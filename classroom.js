@@ -226,10 +226,15 @@ async function joinRoom(id) {
       updateButtons();
     });
     unsubscribeConnection = firebase.onValue(firebase.ref(database, '.info/connected'), snapshot => {
+      const wasConnected=connected;
       connected = snapshot.val() === true;
+      if(!connected){presenceConnectionRef=null;onlineNumber.textContent='離線';}
+      else if(ready && !wasConnected)void markPresent(id);
       updateConnectionState();
     });
+    watchPresence(id);
     ready = true;
+    if(connected)void markPresent(id);
     updateConnectionState();
     return true;
   } catch(error) {
