@@ -86,16 +86,16 @@
   function notePlacement(midi,map,presets={}){
     const p=presets[String(midi)],fallback=positionFor(midi);
     const base=p?{string:p.s,stringName:OPEN[p.s].name,semitones:midi-OPEN[p.s].midi,
-      finger:p.f,group:p.group,custom:false}:{...fallback,finger:null,group:null,custom:false};
+      finger:p.f,group:p.group,custom:false}:{...fallback,finger:null,group:'unverified',custom:false};
     const custom=map[String(midi)];
     if(!custom||!Number.isInteger(custom.s)||custom.s<0||custom.s>3)return base;
     const semi=midi-OPEN[custom.s].midi;
     if(semi<0||semi>24)return base;
     const same=Boolean(p&&p.s===custom.s);
     const finger=semi===0?0:([1,2,3,4].includes(custom.f)?custom.f:
-      same?p.f:suggestionFor(semi).finger);
+      same?p.f:null);
     return {string:custom.s,stringName:OPEN[custom.s].name,semitones:semi,
-      finger,group:same?p.group:null,custom:true};
+      finger,group:same?p.group:'custom',custom:true};
   }
 
   // Suggested fingerings, based on common closed-hand and 1–2 extension
@@ -107,7 +107,9 @@
     first:'#348569',
     extended:'#c99236',
     shifting:'#795bb2',
-    high:'#426f9e'
+    high:'#426f9e',
+    unverified:'#8f9a97',
+    custom:'#be476c'
   };
   const BASE_LABELS={
     1:'半把位',2:'第一把位',3:'第一半把位',4:'第二把位',
@@ -159,11 +161,11 @@
     };
   }
   function pointStyling(position){
-    const base=suggestionFor(position.semitones,position.finger);
-    return position.group&&position.semitones!==0?
-      {...base,group:position.group,finger:position.finger,label:
-        position.group==='extended'?'延伸手型':position.group==='half'?'半把位':
-        position.group==='first'?'第一把位':position.group==='high'?'高把位':'其他把位'}:base;
+    const group=position.semitones===0?'open':(position.group||'unverified');
+    const label={open:'空弦',half:'半把位',first:'第一把位',
+      extended:'延伸手型',shifting:'其他把位',high:'高把位',
+      custom:'已修改',unverified:'照片尚未核對'}[group]||'照片尚未核對';
+    return {finger:position.finger,group,label};
   }
   function makeLegend(){
     const aside=element('aside',{class:'cello-fb-legend','aria-label':'把位顏色圖例'});
@@ -171,7 +173,8 @@
     aside.append(title);
     const entries=[
       ['open','空弦'],['half','半把位'],['first','第一把位'],
-      ['extended','延伸把位'],['shifting','其他換把位'],['high','高把位']
+      ['extended','延伸把位'],['shifting','其他把位'],['high','高把位'],
+      ['unverified','照片未核對'],['custom','老師／學生修改']
     ];
     for(const [group,label] of entries){
       const item=element('div',{class:'cello-legend-item'});
@@ -180,7 +183,7 @@
       item.append(marker,element('span',{},label));
       aside.append(item);
     }
-    aside.append(element('p',{class:'cello-legend-note'},'顏色依參考指法的把位分類；同音可有不同指法，老師可在下方修改。'));
+    aside.append(element('p',{class:'cello-legend-note'},'指號只引用你提供的 Werner 照片中可辨識的部分；未核對的音符不使用其他教材推測。'));
     return aside;
   }
 
@@ -223,10 +226,11 @@
       const isOpen=note.position.semitones===0,style=note.style;
       const color=isOpen?'#34483a':POSITION_COLORS[style.group];
       const explicit=[1,2,3,4].includes(note.position.finger);
+      const modified=note.position.custom===true;
       const point=svgNode('g');
       point.append(svgNode('title',{},
         '第'+note.order+'音 '+note.name+'，'+note.position.stringName+'弦'+
-        (isOpen?'，空弦':'，'+style.label+'，參考第'+style.finger+'指')));
+        (isOpen?'，空弦':'，'+style.label+(explicit?'，第'+style.finger+'指':''))));
       point.append(svgNode('circle',{
         cx:x,cy:y,r:15.5,fill:isOpen?'#f7f9f6':color,
         stroke:isOpen?'#34483a':'#ffffff','stroke-width':isOpen?3:2.1
@@ -241,10 +245,17 @@
           'font-weight':note.order===1||note.order===notes.length?800:650,
           fill:'#273c2e'
         },note.name));
-        point.append(svgNode('text',{
-          x:x+21,y:y+16,'font-size':10,'font-weight':750,
-          fill:explicit?'#654589':'#777f87'
-        },'('+style.finger+')'));
+        if(explicit){
+          if(modified)point.append(svgNode('rect',{
+            x:x+18,y:y+4,width:28,height:17,rx:5,fill:'#fff0f5',
+            stroke:'#d15c80','stroke-width':1
+          }));
+          point.append(svgNode('text',{
+            x:x+21,y:y+16,'font-size':modified?12:10,
+            'font-weight':modified?900:750,
+            fill:modified?'#a82055':'#675879'
+          },'('+style.finger+')'));
+        }
       }
       svg.append(point);
     }
@@ -253,42 +264,45 @@
 
   function create(mode,key,annotations={}){
     const id=(mode==='major'?'major-':'minor-')+key[0];
-    const prev=choices.get(id)||{direction:'up',octaves:2};
-    let direction=prev.direction,octaves=prev.octaves;
+    const octaves=choices.get(id)||2;
     const root=element('div',{class:'cello-fingerboard'});
     const toolbar=element('div',{class:'cello-fb-toolbar'});
-    const directions=element('div',{class:'cello-fb-group','aria-label':'音階方向'});
-    const octavesGroup=element('div',{class:'cello-fb-group','aria-label':'音階八度數'});
-    const viewport=element('div',{class:'cello-fb-viewport'});
-
-    function addButton(group,label,value,type){
-      const button=element('button',{type:'button',class:'cello-fb-button'},label);
-      button.addEventListener('click',()=>{
-        if(type==='direction')direction=value;
-        else octaves=value;
-        choices.set(id,{direction,octaves});
-        render();
-      });
-      group.append(button);
-      return button;
+    const octaveGroup=element('div',{class:'cello-fb-group','aria-label':'音階八度數'});
+    const boards=element('div',{class:'cello-fb-two-up'});
+    const panels={};
+    for(const dir of ['up','down']){
+      const section=element('section',{class:'cello-fb-direction','aria-label':dir==='up'?'上行音階':'下行音階'});
+      const heading=element('h4',{class:'cello-fb-direction-heading'},dir==='up'?'↑ 上行':'↓ 下行');
+      const map=decodeMap(dir==='up'?annotations.upMap:annotations.downMap);
+      if(Object.keys(map).length || (dir==='up'?annotations.up:annotations.down)){
+        heading.append(element('span',{class:'cello-fb-changed'},'（已修改）'));
+      }
+      const viewport=element('div',{class:'cello-fb-viewport'});
+      section.append(heading,viewport);
+      boards.append(section);
+      panels[dir]=viewport;
     }
-    const up=addButton(directions,'↑ 上行','up','direction');
-    const down=addButton(directions,'↓ 下行','down','direction');
-    const one=addButton(octavesGroup,'1 八度',1,'octaves');
-    const two=addButton(octavesGroup,'2 八度',2,'octaves');
-    toolbar.append(directions,octavesGroup);
-    const chart=element('div',{class:'cello-fb-body'});
-    chart.append(viewport,makeLegend());
-    root.append(toolbar,chart);
-
     function render(){
-      up.setAttribute('aria-pressed',String(direction==='up'));
-      down.setAttribute('aria-pressed',String(direction==='down'));
-      one.setAttribute('aria-pressed',String(octaves===1));
-      two.setAttribute('aria-pressed',String(octaves===2));
-      viewport.replaceChildren(chartSVG(mode,key,direction,octaves,annotations));
-
+      const count=choices.get(id)||2;
+      one.setAttribute('aria-pressed',String(count===1));
+      two.setAttribute('aria-pressed',String(count===2));
+      for(const dir of ['up','down']){
+        panels[dir].replaceChildren(chartSVG(mode,key,dir,count,annotations));
+      }
     }
+    function addButton(label,count){
+      const btn=element('button',{type:'button',class:'cello-fb-button'},label);
+      btn.addEventListener('click',()=>{choices.set(id,count);render();});
+      octaveGroup.append(btn);
+      return btn;
+    }
+    const one=addButton('1 八度',1);
+    const two=addButton('2 八度',2);
+    toolbar.append(octaveGroup);
+    const chart=element('div',{class:'cello-fb-dual-body'});
+    chart.append(boards,makeLegend());
+    root.append(toolbar,chart);
+    if(!choices.has(id))choices.set(id,octaves);
     render();
     return root;
   }
