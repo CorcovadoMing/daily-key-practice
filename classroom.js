@@ -1,17 +1,26 @@
-// Classroom mode: one shared room is synchronized using Firebase Realtime Database.
-// Anonymous Firebase Authentication and a cryptographically random room ID are required.
-// Do not use a short, guessable room ID: possession of a room link grants edit access.
+// Classroom sync for cello lessons. Each new room has a 6-digit code valid for 24 hours.
+// Existing 128-bit legacy room links (#room=<32 hex characters>) remain supported.
+// Six digits are convenient, NOT a secret: only store non-sensitive practice selections.
 'use strict';
 
 const practice = window.DailyKeyPractice;
 const el = id => document.getElementById(id);
 const status = el('room-status');
 const createButton = el('room-create');
+const joinForm = el('room-join-form');
+const joinInput = el('room-code-input');
+const joinButton = el('room-join');
 const copyButton = el('room-copy');
 const leaveButton = el('room-leave');
-const roomPattern = /^[a-f0-9]{32}$/;
+const roomCodeDisplay = el('room-code-display');
+const roomCodeNumber = el('room-code-number');
+const shortCodePattern = /^[0-9]{6}$/;
+const legacyRoomPattern = /^[a-f0-9]{32}$/;
+const validRoom = id => shortCodePattern.test(id) || legacyRoomPattern.test(id);
+const DAY_MS = 24 * 60 * 60 * 1000;
 const config = window.DAILY_KEY_FIREBASE_CONFIG;
-const configured = Boolean(config && ['apiKey', 'authDomain', 'projectId', 'databaseURL', 'appId'].every(key => typeof config[key] === 'string' && config[key] && !config[key].includes('YOUR_')));
+const configured = Boolean(config && ['apiKey','authDomain','projectId','databaseURL','appId']
+  .every(key => typeof config[key] === 'string' && config[key].length > 0 && !config[key].includes('YOUR_')));
 
 let firebase = null;
 let database = null;
@@ -19,16 +28,23 @@ let ready = false;
 let connected = false;
 let activeId = null;
 let roomRef = null;
+let roomExpiresAt = null;
 let unsubscribeRoom = null;
 let unsubscribeConnection = null;
 let joining = false;
 
 function setStatus(message) { status.textContent = message; }
 function updateButtons() {
-  createButton.hidden = Boolean(activeId);
-  copyButton.hidden = !activeId;
-  leaveButton.hidden = !activeId;
+  const inRoom = Boolean(activeId);
+  createButton.hidden = inRoom;
+  copyButton.hidden = !inRoom;
+  leaveButton.hidden = !inRoom;
+  joinForm.hidden = inRoom;
+  roomCodeDisplay.hidden = !ready || !shortCodePattern.test(activeId || '');
+  if(!roomCodeDisplay.hidden) roomCodeNumber.textContent = activeId;
   createButton.disabled = !configured || joining;
+  joinButton.disabled = !configured || joining;
+  joinInput.disabled = joining;
   copyButton.disabled = !ready;
 }
 function roomURL(id) {
@@ -42,31 +58,32 @@ function replaceHash(id) {
   history.replaceState(null, '', url.href);
 }
 function hashRoom() {
-  const match = window.location.hash.match(/^#room=([a-f0-9]{32})$/);
+  const match = window.location.hash.match(/^#room=([0-9]{6}|[a-f0-9]{32})$/);
   return match ? match[1] : null;
 }
-function cleanupListener() {
+function cleanupListeners() {
   if(unsubscribeRoom) unsubscribeRoom();
   if(unsubscribeConnection) unsubscribeConnection();
   unsubscribeRoom = null;
   unsubscribeConnection = null;
 }
 function leaveRoom() {
-  cleanupListener();
+  cleanupListeners();
   activeId = null;
   roomRef = null;
+  roomExpiresAt = null;
   ready = false;
   connected = false;
   joining = false;
   replaceHash(null);
   practice.setClassroomRoom(null, null);
-  setStatus(configured ? '個人模式 · 尚未加入課堂房間' : '課堂同步尚未啟用：請先設定 Firebase（參考 README）。');
+  setStatus(configured ? '個人模式 · 可建立房間或輸入六位數房號' : '課堂同步尚未啟用：請檢查 Firebase 設定');
   updateButtons();
 }
 
 async function loadFirebase() {
   if(firebase) return;
-  if(!configured) throw Error('尚未填寫 firebase-config.js');
+  if(!configured) throw Error('Firebase 設定不完整');
   const [appSdk, authSdk, dbSdk] = await Promise.all([
     import('https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js'),
     import('https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js'),
@@ -74,66 +91,123 @@ async function loadFirebase() {
   ]);
   const app = appSdk.initializeApp(config);
   const auth = authSdk.getAuth(app);
-  // Each browser signs in anonymously; nobody needs a Firebase account to join.
+  await auth.authStateReady();
   if(!auth.currentUser) await authSdk.signInAnonymously(auth);
   database = dbSdk.getDatabase(app);
   firebase = dbSdk;
 }
 
-async function joinRoom(id) {
-  if(!roomPattern.test(id)) { practice.showToast('房間連結無效'); return; }
-  if(activeId === id && ready) return;
-  if(joining) return;
-  if(!configured) {
-    replaceHash(id);
-    setStatus('已開啟課堂連結，但尚未啟用 Firebase。請依 README 完成設定。');
+function updateConnectionState() {
+  if(!activeId || !ready) return;
+  if(roomExpiresAt && roomExpiresAt <= Date.now()) {
+    setStatus('此房間已超過 24 小時，請建立新房間');
     return;
   }
+  setStatus(connected ? '已連線 · 抽籤與完成狀態即時同步中' : '等待網路連線 · 暫時無法同步');
+}
+
+async function joinRoom(id) {
+  if(!validRoom(id)) { practice.showToast('請輸入正確的六位數房號'); return false; }
+  if(activeId === id && ready) return true;
+  if(joining) return false;
   joining = true;
-  cleanupListener();
-  activeId = id;
   ready = false;
   connected = false;
-  replaceHash(id);
-  practice.setClassroomRoom(id, { ...practice.getPreferences(), session:null });
   setStatus('正在加入課堂房間…');
   updateButtons();
   try {
     await loadFirebase();
-    if(activeId !== id) return;
-    roomRef = firebase.ref(database, 'rooms/' + id);
-    unsubscribeConnection = firebase.onValue(firebase.ref(database, '.info/connected'), snapshot => {
-      connected = snapshot.val() === true;
-      if(activeId === id && ready) setStatus(connected ? '已連線 · 課堂內容即時同步中' : '連線中斷 · 請確認網路，暫時無法更改');
-    });
+    const nextRef = firebase.ref(database, 'rooms/' + id);
+    // A wrong code must NOT automatically create a new room.
+    const existing = await firebase.get(nextRef);
+    const roomData = existing.val();
+    if(!roomData) throw Error('找不到這個房號，請再次確認');
+    if(roomData.expiresAt && roomData.expiresAt <= Date.now()) throw Error('房間已過期，請建立新房間');
+
+    cleanupListeners();
+    activeId = id;
+    roomRef = nextRef;
+    roomExpiresAt = roomData.expiresAt || null;
+    replaceHash(id);
+    practice.setClassroomRoom(id, roomData);
     unsubscribeRoom = firebase.onValue(roomRef, snapshot => {
       if(activeId !== id) return;
       const data = snapshot.val();
-      if(data) practice.setClassroomRoom(id, data);
-    }, error => {
-      if(activeId === id) {
-        ready = false;
-        setStatus('無法讀取課堂資料：請檢查 Firebase 規則。');
-        practice.showToast('課堂連線失敗：' + error.message);
-        updateButtons();
+      if(!data) {
+        setStatus('房間已關閉或不存在');
+        return;
       }
-    });
-    const prefs = practice.getPreferences();
-    await firebase.runTransaction(roomRef, current => current || {
-      majorCount: prefs.majorCount,
-      minorCount: prefs.minorCount,
-      showScale: Boolean(prefs.showScale),
-      updatedAt: Date.now()
-    }, { applyLocally: false });
-    if(activeId !== id) return;
-    ready = true;
-    setStatus(connected ? '已連線 · 課堂內容即時同步中' : '正在等待網路連線…');
-  } catch(error) {
-    if(activeId === id) {
+      roomExpiresAt = data.expiresAt || null;
+      practice.setClassroomRoom(id, data);
+      updateConnectionState();
+    }, error => {
+      if(activeId !== id) return;
       ready = false;
-      setStatus('課堂連線失敗：請檢查 Firebase 設定與權限。');
-      practice.showToast(error.message || '連線失敗');
+      setStatus('課堂連線失敗，請檢查 Firebase Rules');
+      practice.showToast(error.message || '無法讀取房間');
+      updateButtons();
+    });
+    unsubscribeConnection = firebase.onValue(firebase.ref(database, '.info/connected'), snapshot => {
+      connected = snapshot.val() === true;
+      updateConnectionState();
+    });
+    ready = true;
+    updateConnectionState();
+    return true;
+  } catch(error) {
+    console.error('Classroom join failed:', error);
+    if(!activeId) setStatus('加入失敗：' + (error.message || '請檢查 Firebase 設定'));
+    practice.showToast(error.message || '無法加入課堂房間');
+    return false;
+  } finally {
+    joining = false;
+    updateButtons();
+  }
+}
+
+function randomSixDigits() {
+  // Rejection sampling avoids modulo bias and preserves leading zeros.
+  const random = new Uint32Array(1);
+  const limit = 0x100000000 - (0x100000000 % 1000000);
+  do { crypto.getRandomValues(random); } while(random[0] >= limit);
+  return String(random[0] % 1000000).padStart(6, '0');
+}
+async function createRoom() {
+  if(!configured) { practice.showToast('請先完成 Firebase 設定'); return; }
+  if(joining || activeId) return;
+  if(!window.crypto?.getRandomValues) { practice.showToast('需要 HTTPS 才能安全產生房號'); return; }
+  joining = true;
+  setStatus('正在產生六位數房號…');
+  updateButtons();
+  try {
+    await loadFirebase();
+    const prefs = practice.getPreferences();
+    for(let attempt = 0; attempt < 12; attempt++) {
+      const id = randomSixDigits();
+      const ref = firebase.ref(database, 'rooms/' + id);
+      const result = await firebase.runTransaction(ref, current => {
+        if(current !== null) return; // Atomic collision protection; never overwrite a room.
+        const createdAt = Date.now();
+        return {
+          majorCount: prefs.majorCount,
+          minorCount: prefs.minorCount,
+          showScale: Boolean(prefs.showScale),
+          updatedAt: createdAt,
+          createdAt,
+          expiresAt: createdAt + DAY_MS
+        };
+      }, { applyLocally: false });
+      if(!result.committed) continue;
+      joining = false;
+      const joined = await joinRoom(id);
+      if(joined) practice.showToast('房間建立成功！告訴對方六位數房號即可');
+      return;
     }
+    throw Error('暫時無法取得空房號，請再試一次');
+  } catch(error) {
+    console.error('Classroom creation failed:', error);
+    setStatus('建立失敗：請確認 Firebase Rules 已發布，且匿名登入已啟用');
+    practice.showToast(error.message || '建立課堂房間失敗');
   } finally {
     joining = false;
     updateButtons();
@@ -145,18 +219,22 @@ async function changeRoom(update) {
     practice.showToast('課堂目前無法同步，請確認網路連線');
     return;
   }
+  if(roomExpiresAt && roomExpiresAt <= Date.now()) {
+    updateConnectionState();
+    practice.showToast('房間已過期，請建立新房間');
+    return;
+  }
   try {
     const result = await firebase.runTransaction(roomRef, current => {
-      if(!current) return; // Never overwrite a missing/inaccessible room.
+      if(!current || (current.expiresAt && current.expiresAt <= Date.now())) return;
       return update(current);
     }, { applyLocally: false });
     if(!result.committed) practice.showToast('操作未完成，請再試一次');
   } catch(error) {
-    practice.showToast('同步失敗，請稍後重試');
+    practice.showToast('同步失敗，請稍後再試');
     console.error('Classroom update failed:', error);
   }
 }
-
 window.classroomSync = {
   setCounts(major, minor) {
     return changeRoom(current => ({...current, majorCount:major, minorCount:minor, updatedAt:Date.now()}));
@@ -167,7 +245,7 @@ window.classroomSync = {
   toggleComplete(id) {
     return changeRoom(current => {
       const session = current.session;
-      if(!session) return; // No selection yet.
+      if(!session) return;
       const validIds = [
         ...(Array.isArray(session.majorIds) ? session.majorIds : []).map(i => 'major-' + i),
         ...(Array.isArray(session.minorIds) ? session.minorIds : []).map(i => 'minor-' + i)
@@ -182,15 +260,14 @@ window.classroomSync = {
     return changeRoom(current => ({...current, showScale:Boolean(showScale), updatedAt:Date.now()}));
   }
 };
-
-createButton.addEventListener('click', async () => {
-  if(!configured) { practice.showToast('請先完成 Firebase 設定'); return; }
-  if(!window.crypto?.getRandomValues) { practice.showToast('目前瀏覽器不支援安全產生房間'); return; }
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-  const id = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
-  await joinRoom(id);
-  if(ready) practice.showToast('房間已建立！可以複製邀請連結給老師');
+createButton.addEventListener('click', createRoom);
+joinInput.addEventListener('input', () => { joinInput.value = joinInput.value.replace(/[^0-9]/g, '').slice(0, 6); });
+joinForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  const code = joinInput.value.trim();
+  if(!shortCodePattern.test(code)) { practice.showToast('請輸入六位數字'); return; }
+  const joined = await joinRoom(code);
+  if(joined) joinInput.value = '';
 });
 copyButton.addEventListener('click', async () => {
   if(!activeId || !ready) return;
@@ -199,7 +276,7 @@ copyButton.addEventListener('click', async () => {
     await navigator.clipboard.writeText(url);
     practice.showToast('已複製課堂邀請連結');
   } catch(_) {
-    window.prompt('複製此連結分享給老師：', url);
+    window.prompt('複製邀請連結：', url);
   }
 });
 leaveButton.addEventListener('click', leaveRoom);
@@ -208,8 +285,8 @@ window.addEventListener('hashchange', () => {
   if(id && id !== activeId) joinRoom(id);
   else if(!id && activeId) leaveRoom();
 });
-
+window.addEventListener('focus', updateConnectionState);
 updateButtons();
 const room = hashRoom();
 if(room) joinRoom(room);
-else setStatus(configured ? '個人模式 · 按「建立同步房間」即可與老師共享練習' : '課堂同步尚未啟用：請先設定 Firebase（參考 README）。');
+else setStatus(configured ? '個人模式 · 建立房間或輸入六位數房號即可同步' : 'Firebase 設定尚未完成');
