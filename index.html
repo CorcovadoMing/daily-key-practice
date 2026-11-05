@@ -123,7 +123,8 @@
     .key-group-title h3{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:800;letter-spacing:-.01em;margin:0}
     .key-group-title span{font-size:12px;color:var(--muted)}
     .key-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-    .key-card{width:100%;border:1px solid #e8e9e6;background:#fff;border-radius:13px;padding:14px 14px 12px;text-align:left;display:flex;align-items:flex-start;gap:11px;transition:background .18s,border-color .18s,transform .18s;min-width:0}
+    .key-card{width:100%;border:1px solid #e8e9e6;background:#fff;border-radius:13px;min-width:0;overflow:hidden;transition:background .18s,border-color .18s,transform .18s}
+    .key-card-main{width:100%;background:transparent;border:0;text-align:left;display:flex;gap:11px;align-items:flex-start;padding:14px 14px 12px;color:inherit}
     .key-card:hover{border-color:#c3d3c0;transform:translateY(-1px)}
     .key-card.done{background:#f5f8f2;border-color:#cce0c8}
     .check-circle{height:20px;width:20px;border:1.7px solid #c8d1ca;border-radius:50%;display:grid;place-items:center;flex:none;margin-top:2px;color:white;font-size:13px;font-weight:800}
@@ -131,6 +132,25 @@
     .key-card-content{min-width:0;flex:1}
     .key-primary{display:block;font-size:26px;line-height:1.05;letter-spacing:-.055em;font-weight:800;white-space:nowrap}
     .key-card.done .key-primary{color:#67876b}
+    .fingering-section{padding:11px 13px 13px;border-top:1px solid #e9ece7;background:#fbfcfa;text-align:left}
+    .fingering-title{font-size:11px;font-weight:850;color:#4f6c57;margin:0 0 7px}
+    .fingering-pattern{font-size:11px;color:#58635b;line-height:1.8;overflow-wrap:anywhere;white-space:pre-line}
+    .fingering-note{font-size:11px;color:#48614c;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:7px;border-radius:8px;background:#eaf4e8;padding:7px}
+    .fingering-remark{font-size:10px;color:#87928a;margin-top:6px;line-height:1.55}
+    .fingering-edit{font-size:11px;color:#396349;background:#fff;border:1px solid #cdddcf;border-radius:8px;padding:6px 9px;margin-top:8px;font-weight:700}
+    .fingering-edit:hover{background:#edf4eb}
+    .finger-dialog{border:0;border-radius:21px;background:#fff;box-shadow:0 25px 80px rgba(0,0,0,.24);padding:0;width:min(480px,calc(100% - 28px));max-width:100%}
+    .finger-dialog::backdrop{background:rgba(18,30,20,.63)}
+    .finger-form{padding:26px;display:grid;gap:12px}
+    .finger-form h2{margin:0;font-size:19px}
+    .finger-form p{margin:0;color:#6f7b71;font-size:12px;line-height:1.65}
+    .finger-form label{font-size:12px;font-weight:800;color:#526f59}
+    .finger-form textarea{width:100%;min-height:70px;resize:vertical;border-radius:11px;padding:10px;border:1px solid #ccd8cb;color:#283729;font:inherit;font-size:13px}
+    .finger-form-actions{display:flex;gap:9px;justify-content:flex-end;margin-top:3px}
+    .finger-form-actions button{border-radius:9px;padding:10px 16px;background:#fff;border:1px solid #cbd8ca}
+    .finger-form-actions button.primary{background:#304c37;color:white;border-color:#304c37}
+    .online-count{display:block;margin-top:9px;font-size:13px;font-weight:850;color:#205a35;background:#fff;border:1px solid #c2dbc4;border-radius:10px;padding:9px 12px;width:max-content}
+    .online-count small{font-size:10px;color:#66806e;font-weight:500;display:block;margin-top:3px}
     .key-secondary{display:block;font-size:11px;font-weight:650;color:#8b928e;margin-top:7px;white-space:nowrap}
     .scale-notes{display:none;color:#596b60;font-size:11px;line-height:1.8;word-break:normal;overflow-wrap:anywhere;margin-top:8px;border-top:1px dashed #dfe6dc;padding-top:7px}
     .show-scales .scale-notes{display:block}
@@ -155,7 +175,7 @@
     .toast{position:fixed;left:50%;bottom:25px;transform:translate(-50%,20px);opacity:0;pointer-events:none;border-radius:12px;padding:12px 18px;background:#283a2d;color:white;font-weight:700;font-size:13px;box-shadow:0 15px 40px rgba(0,0,0,.15);transition:opacity .2s,transform .2s;z-index:50}
     .toast.active{opacity:1;transform:translate(-50%,0)}
     @media(max-width:810px){.intro{padding-top:43px;grid-template-columns:1fr;gap:18px}.date-label{text-align:left}.date-label strong{display:inline;margin-left:10px}.workspace{grid-template-columns:1fr}.result-panel{min-height:0}.history-section{padding-top:31px}}
-    @media(max-width:450px){.container{width:calc(100% - 26px)}.masthead-inner{height:68px}.header-tag{font-size:10px;padding:7px 9px}.intro{padding-top:36px;padding-bottom:28px}.intro p{font-size:13px}.date-label{font-size:12px}.date-label strong{font-size:13px;margin-left:5px}.panel{padding:20px;border-radius:18px}.counter-item{padding:16px 12px}.counter-name{font-size:13px}.stepper{gap:3px}.stepper button{width:31px;height:31px}.count-output{min-width:26px;font-size:22px}.key-grid{gap:8px}.key-card{padding:13px 10px;gap:8px}.key-primary{font-size:24px}.key-secondary{font-size:10px}.history-row{align-items:flex-start;flex-direction:column;gap:11px}.history-keys{justify-content:flex-start}.result-controls .icon-button{padding:7px;font-size:11px}footer{flex-direction:column;gap:7px}}
+    @media(max-width:450px){.container{width:calc(100% - 26px)}.masthead-inner{height:68px}.header-tag{font-size:10px;padding:7px 9px}.intro{padding-top:36px;padding-bottom:28px}.intro p{font-size:13px}.date-label{font-size:12px}.date-label strong{font-size:13px;margin-left:5px}.panel{padding:20px;border-radius:18px}.counter-item{padding:16px 12px}.counter-name{font-size:13px}.stepper{gap:3px}.stepper button{width:31px;height:31px}.count-output{min-width:26px;font-size:22px}.key-grid{gap:8px}.key-card-main{padding:13px 10px;gap:8px}.fingering-section{padding:10px 8px}.key-primary{font-size:24px}.key-secondary{font-size:10px}.history-row{align-items:flex-start;flex-direction:column;gap:11px}.history-keys{justify-content:flex-start}.result-controls .icon-button{padding:7px;font-size:11px}footer{flex-direction:column;gap:7px}}
     @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
   </style>
 </head>
