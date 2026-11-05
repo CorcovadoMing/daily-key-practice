@@ -147,7 +147,7 @@ function watchEdits(id){
     const entries=snapshot.val()||{},remotes={};
     const now=Date.now();
     for(const [editorKey,draft] of Object.entries(entries)){
-      if(!draft||editorKey===ownDraftRef?.key||draft.owner===editorUserId||
+      if(!draft||editorKey===ownDraftRef?.key||
         !/^(major|minor)-(?:[0-9]|10|11)$/.test(draft.keyId)||
         !['up','down'].includes(draft.direction)||
         !Number.isInteger(draft.selectedMidi)||
