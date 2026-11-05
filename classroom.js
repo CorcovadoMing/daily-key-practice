@@ -419,8 +419,18 @@ window.classroomSync = {
     const valid=Array.isArray(excludedKeys)?[...new Set(excludedKeys)].filter(id=>/^(major|minor)-(?:[0-9]|10|11)$/.test(id)):[];
     return changeRoom(current => ({...current,excludedKeys:valid,updatedAt:Date.now()}));
   },
-  draw(session) {
-    return changeRoom(current => ({...current, session, updatedAt:Date.now()}));
+  draw(session, action='new', expectedCreatedAt=null) {
+    return changeRoom(current => {
+      // Preserve the original session ID only when explicitly overwriting
+      // this exact record. Every connected browser uses that stable ID to
+      // update the same archived history entry instead of duplicating it.
+      if(action==='overwrite'){
+        if(!current.session||current.session.createdAt!==expectedCreatedAt)return;
+        return {...current,session:{...session,createdAt:current.session.createdAt},
+          updatedAt:Date.now()};
+      }
+      return {...current,session,updatedAt:Date.now()};
+    });
   },
   toggleComplete(id) {
     return changeRoom(current => {
