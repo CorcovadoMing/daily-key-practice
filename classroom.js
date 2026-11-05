@@ -40,6 +40,10 @@ let joining = false;
 let editorUserId = null;
 let ownDraftRef = null;
 let unsubscribeEdits = null;
+let latestOwnDraft = null;
+let draftWriteQueue = Promise.resolve();
+let draftDisconnectRef = null;
+let draftErrorReported = false;
 
 function setStatus(message) { status.textContent = message; }
 function updateButtons() {
@@ -133,10 +137,16 @@ async function markPresent(id){
  }
 }
 function clearOwnDraft(){
-  const old=ownDraftRef;ownDraftRef=null;
+  const old=ownDraftRef;
+  ownDraftRef=null;
+  latestOwnDraft=null;
+  draftDisconnectRef=null;
   if(old&&firebase){
-    firebase.remove(old).then(()=>firebase.onDisconnect(old).cancel())
-      .catch(error=>console.debug('Editing preview cleanup pending disconnect:',error));
+    // Keep queued writes ordered: old sessions cannot reappear after cleanup.
+    draftWriteQueue=draftWriteQueue.catch(()=>{}).then(async()=>{
+      await firebase.remove(old);
+      await firebase.onDisconnect(old).cancel();
+    }).catch(error=>console.debug('Editing preview cleanup pending disconnect:',error));
   }
 }
 function watchEdits(id){
@@ -162,21 +172,43 @@ function watchEdits(id){
     practice.setClassroomDrafts(id,remotes);
   },error=>console.warn('Live classroom edit preview unavailable; room fingering saves still work.',error));
 }
-async function registerDraftPresence(id){
-  if(!connected||!ready||activeId!==id||ownDraftRef)return;
-  const ref=firebase.push(firebase.ref(database,'roomEdits/'+id));
-  ownDraftRef=ref;
-  try{
-    await firebase.onDisconnect(ref).remove();
-    if(activeId!==id||!connected){
-      await firebase.onDisconnect(ref).cancel();
-      if(ownDraftRef===ref)ownDraftRef=null;
-    }
-  }catch(error){
-    if(ownDraftRef===ref)ownDraftRef=null;
-    console.warn('Could not prepare temporary classroom editing status:',error);
+// Allocate a reference without registering onDisconnect on an empty node.
+// Room rules require an owned existing record for a delete, so the first
+// successful SET must happen before onDisconnect.remove() is registered.
+function registerDraftPresence(id){
+  if(!ready||!connected||activeId!==id||!firebase)return;
+  if(!ownDraftRef)ownDraftRef=firebase.push(firebase.ref(database,'roomEdits/'+id));
+  if(latestOwnDraft){
+    latestOwnDraft={...latestOwnDraft,updatedAt:Date.now()};
+    queueOwnDraftWrite();
   }
 }
+function queueOwnDraftWrite(){
+  if(!ready||!connected||!activeId||!firebase||!editorUserId)return;
+  if(!ownDraftRef)ownDraftRef=firebase.push(firebase.ref(database,'roomEdits/'+activeId));
+  const ref=ownDraftRef,room=activeId,payload=latestOwnDraft;
+  draftWriteQueue=draftWriteQueue.catch(()=>{}).then(async()=>{
+    if(activeId!==room||ownDraftRef!==ref||!connected)return;
+    if(!payload){
+      await firebase.remove(ref);
+      return;
+    }
+    await firebase.set(ref,payload);
+    if(draftDisconnectRef!==ref){
+      // Registration is now authorized because the owner's record exists.
+      await firebase.onDisconnect(ref).remove();
+      draftDisconnectRef=ref;
+    }
+    draftErrorReported=false;
+  }).catch(error=>{
+    console.warn('Live classroom edit preview could not be synchronized:',error);
+    if(!draftErrorReported){
+      draftErrorReported=true;
+      practice.showToast('即時指法預覽未能同步，請檢查連線或課堂資料權限');
+    }
+  });
+}
+
 function cleanupListeners() {
   if(unsubscribeRoom) unsubscribeRoom();
   if(unsubscribeConnection) unsubscribeConnection();
@@ -274,7 +306,8 @@ async function joinRoom(id) {
       connected = snapshot.val() === true;
       if(!connected){
         presenceConnectionRef=null;
-        ownDraftRef=null; // onDisconnect removes the remote ghost
+        ownDraftRef=null;
+        draftDisconnectRef=null; // server removes prior ghost on disconnect
         onlineNumber.textContent='離線';
       }
       else if(ready && !wasConnected){
@@ -407,18 +440,25 @@ window.classroomSync = {
     return changeRoom(current => ({...current, showScale:Boolean(showScale), updatedAt:Date.now()}));
   },
   setDraft(keyId,draft){
-    if(!ready||!connected||!ownDraftRef||!editorUserId)return;
-    if(!draft){firebase.remove(ownDraftRef).catch(()=>{});return;}
+    if(!activeId||!editorUserId)return;
+    if(!draft){
+      latestOwnDraft=null;
+      queueOwnDraftWrite();
+      return;
+    }
     if(!/^(major|minor)-(?:[0-9]|10|11)$/.test(keyId)||
       !['up','down'].includes(draft.direction)||!Number.isInteger(draft.selectedMidi))return;
     const previewMap=typeof draft.previewMap==='string'?draft.previewMap:'{}';
     if(previewMap.length>1800)return;
     const changed=JSON.stringify(Array.isArray(draft.changed)?draft.changed.slice(0,30):[]);
     if(changed.length>160)return;
-    firebase.set(ownDraftRef,{
+    // Keep the latest preview even if the connection has not completed
+    // initializing. It will be flushed on connection/reconnection.
+    latestOwnDraft={
       owner:editorUserId,keyId,direction:draft.direction,
       selectedMidi:draft.selectedMidi,previewMap,changed,updatedAt:Date.now()
-    }).catch(error=>console.debug('Live classroom editing preview not sent:',error));
+    };
+    queueOwnDraftWrite();
   },
   setFingering(id,note,direction=null,originalMap=null,resetAll=false) {
     if(!/^(major|minor)-(?:[0-9]|10|11)$/.test(id)) return;
