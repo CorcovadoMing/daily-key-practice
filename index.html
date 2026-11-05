@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="v1.0.8-experimental">
+  <meta name="site-version" content="v1.0.9-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -501,7 +501,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">v1.0.8-experimental · <a href="../" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Experimental</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">v1.0.9-experimental · <a href="../" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Experimental</a></span></footer>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <dialog id="draw-choice-dialog" class="history-choice-dialog" aria-labelledby="draw-choice-title">
     <h3 id="draw-choice-title">這次要如何保存練習紀錄？</h3>
@@ -1000,41 +1000,81 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       const all=[...session.majorIds.map(i=>selectedId('major',i)),...session.minorIds.map(i=>selectedId('minor',i))];
       if(!all.includes(id))return;
       session.doneIds=session.doneIds.includes(id)?session.doneIds.filter(item=>item!==id):[...session.doneIds,id];
+      const historyIndex=state.personalHistory.findIndex(item=>item.id===session.historyId);
+      if(historyIndex>=0)state.personalHistory[historyIndex]=recordSnapshot(session,{id:session.historyId});
       persist();renderResults();renderHistory();
       if(session.doneIds.length===all.length)showToast('今天的調性全部練完了，太棒了！ 🎉');
     }
     function renderHistory(){
-      const list=q('#history-list');list.replaceChildren();
-      const dates=Object.keys(state.sessions).filter(d=>d<=currentDate).sort().reverse();
-      if(dates.length===0){
-        const empty=document.createElement('div');empty.className='history-empty';empty.textContent='還沒有練習紀錄。抽出第一組調性，從今天開始累積！';list.append(empty);return;
-      }
-      dates.forEach(date=>{
-        const session=state.sessions[date];
-        if(!session || !Array.isArray(session.majorIds)||!Array.isArray(session.minorIds))return;
+      function createRow(record,kind){
         const row=document.createElement('div');row.className='history-row';
-        const meta=document.createElement('div');meta.className='history-date';meta.textContent=formatDate(date,false);
-        const sum=document.createElement('small');sum.textContent=`${date===currentDate?'今天 · ':''}完成 ${(session.doneIds||[]).length}/${session.majorIds.length+session.minorIds.length}`;
+        const meta=document.createElement('div');meta.className='history-date';
+        const dateText=formatDate(record.date,false);
+        const timestamp=Number(record.drawnAt||record.createdAt);
+        const hour=Number.isFinite(timestamp)&&timestamp>0?
+          ' · '+new Date(timestamp).getHours()+' 點':' · 時間未記錄';
+        meta.textContent=dateText+hour;
+        const sum=document.createElement('small');
+        sum.textContent='完成 '+(record.doneIds||[]).length+'/'+
+          (record.majorIds.length+record.minorIds.length);
+        if(kind==='classroom')sum.textContent+=' · 房間 '+record.roomId;
         meta.append(sum);row.append(meta);
         const chips=document.createElement('div');chips.className='history-keys';
-        for(const [mode,indices] of [['major',session.majorIds],['minor',session.minorIds]]){
-          indices.forEach(i=>{const chip=document.createElement('span');chip.className=`history-chip${mode==='minor'?' minor':''}`;chip.textContent=`${keyName(mode,i)}${mode==='major'?' 大':' 小'}`;chips.append(chip);});
+        for(const [mode,indices] of [['major',record.majorIds],['minor',record.minorIds]]){
+          indices.forEach(i=>{
+            const chip=document.createElement('span');
+            chip.className='history-chip'+(mode==='minor'?' minor':'');
+            chip.textContent=keyName(mode,i)+(mode==='major'?' 大調':' 小調');
+            chips.append(chip);
+          });
         }
-        const remove=document.createElement('button');
-        remove.type='button';
-        remove.className='history-delete';
-        remove.textContent='刪除';
-        remove.setAttribute('aria-label','刪除 '+formatDate(date)+' 的個人練習紀錄');
+        const remove=document.createElement('button');remove.type='button';
+        remove.className='history-delete';remove.textContent='刪除';
+        remove.setAttribute('aria-label','刪除 '+dateText+hour+' 的'+
+          (kind==='personal'?'個人':'課堂')+'練習紀錄');
         remove.addEventListener('click',()=>{
-          if(!window.confirm('確定要刪除 '+formatDate(date)+' 的個人練習紀錄嗎？\n此操作無法復原，且不會影響課堂房間。'))return;
-          delete state.sessions[date];
-          persist();
-          renderHistory();
-          if(date===currentDate&&!sharedRoom)renderResults();
-          showToast('已刪除該日的個人練習紀錄');
+          if(!window.confirm('確定刪除這筆練習紀錄嗎？此操作無法復原。'))return;
+          if(kind==='classroom'){
+            state.classroomHistory=state.classroomHistory.filter(item=>item.id!==record.id);
+            if(!state.deletedClassroomHistoryIds.includes(record.id))
+              state.deletedClassroomHistoryIds.push(record.id);
+          }else{
+            state.personalHistory=state.personalHistory.filter(item=>item.id!==record.id);
+            const active=state.sessions[record.date];
+            if(active?.historyId===record.id){
+              const remaining=state.personalHistory.filter(item=>item.date===record.date)
+                .sort((a,b)=>(b.drawnAt||b.createdAt||0)-(a.drawnAt||a.createdAt||0));
+              if(remaining.length){
+                const latest=remaining[0];
+                state.sessions[record.date]={...latest,historyId:latest.id,
+                  majorIds:[...latest.majorIds],minorIds:[...latest.minorIds],
+                  doneIds:[...latest.doneIds]};
+              }else delete state.sessions[record.date];
+            }
+          }
+          persist();renderHistory();
+          if(kind==='personal'&&record.date===currentDate&&!sharedRoom)renderResults();
+          showToast('已刪除這筆練習紀錄');
         });
-        row.append(chips,remove);list.append(row);
-      });
+        row.append(chips,remove);
+        return row;
+      }
+      for(const [kind,id,emptyMessage] of [
+        ['personal','personal-history-list','還沒有個人練習紀錄。'],
+        ['classroom','classroom-history-list','還沒有課堂連線紀錄。與其他人連線抽籤後，這裡會自動保存。']
+      ]){
+        const list=q('#'+id);list.replaceChildren();
+        const records=(kind==='personal'?state.personalHistory:state.classroomHistory)
+          .filter(record=>record&&Array.isArray(record.majorIds)&&
+            Array.isArray(record.minorIds)&&/^\d{4}-\d{2}-\d{2}$/.test(record.date))
+          .sort((a,b)=>(b.drawnAt||b.createdAt||0)-(a.drawnAt||a.createdAt||0));
+        if(!records.length){
+          const empty=document.createElement('div');
+          empty.className='history-empty';empty.textContent=emptyMessage;
+          list.append(empty);continue;
+        }
+        records.forEach(record=>list.append(createRow(record,kind)));
+      }
     }
     function render(){
       q('#today-label').textContent=formatDate(currentDate);
@@ -1077,6 +1117,6 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     render();
   </script>
   <script src="firebase-config.js?v=20261106-001"></script>
-  <script type="module" src="classroom.js?v=20261106-018"></script>
+  <script type="module" src="classroom.js?v=20261106-020"></script>
 </body>
 </html>
