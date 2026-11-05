@@ -1,13 +1,13 @@
-// Firebase Web App configuration for optional classroom synchronization.
-// This is public client-side configuration, NOT a Firebase Admin key or service-account secret.
-// Steps: see README.md. Leave null to use the offline personal practice mode only.
-window.DAILY_KEY_FIREBASE_CONFIG = null;
-
-// After setup, replace "null" with the public Web App config from Firebase Console, e.g.
-// {
-//   apiKey: "YOUR_PUBLIC_WEB_API_KEY",
-//   authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-//   databaseURL: "https://YOUR_DATABASE_NAME.REGION.firebasedatabase.app",
-//   projectId: "YOUR_PROJECT_ID",
-//   appId: "YOUR_APP_ID"
-// };
+// Firebase Web App public client configuration.
+// The Realtime Database URL is still required for live classroom rooms.
+// Find it in Firebase Console → Build → Realtime Database → Data.
+// Firebase client identifiers are public; NEVER add service-account private keys here.
+window.DAILY_KEY_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCxaBMQ-rO8SC5yLOwUkZNgCKnKm2cv9a0",
+  authDomain: "daily-key-practice.firebaseapp.com",
+  projectId: "daily-key-practice",
+  storageBucket: "daily-key-practice.firebasestorage.app",
+  messagingSenderId: "348101701880",
+  appId: "1:348101701880:web:9cd612d211046f495f0b0d"
+  // databaseURL: "https://YOUR_DATABASE_NAME.REGION.firebasedatabase.app"
+};
