@@ -133,7 +133,7 @@
       item.append(marker,element('span',{},label));
       aside.append(item);
     }
-    aside.append(element('p',{class:'cello-legend-note'},'指號只引用你提供的 Werner 照片中可辨識的部分；未核對的音符不使用其他教材推測。'));
+    aside.append(element('p',{class:'cello-legend-note'},'12 個大調的指號已逐調確認；弦位及把位色彩依音高與指型推排，可由老師修改。小調仍有待核對的指號。'));
     return aside;
   }
 
