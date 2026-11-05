@@ -150,15 +150,37 @@
     const nearby=editableMidi===null||editableMidi===undefined?[]:
       OPEN.map(item=>editableMidi-item.midi).filter(n=>n>=0&&n<=14);
     const ghosts=Array.isArray(remoteDrafts)?remoteDrafts.filter(d=>d?.direction===direction).slice(0,6):[];
-    const ghostPositions=[];
+    // Keep the previous location visible while a new string position is staged.
+    const originGhosts=[],ghostPositions=[],replacedByRemote=new Set(),knownOrigins=new Set();
+    const addOrigin=(note,position)=>{
+      const identity=note.midi+':'+position.string;
+      if(knownOrigins.has(identity))return;
+      knownOrigins.add(identity);
+      originGhosts.push({note,position});
+      ghostPositions.push(position.semitones);
+    };
+    if(interaction?.originalMap!=null){
+      const original=decodeMap(interaction.originalMap);
+      for(const note of plotted){
+        const prior=notePlacement(note.midi,original,presets);
+        if(prior.string!==note.position.string)addOrigin(note,prior);
+      }
+    }
+    const confirmedMap=interaction?.confirmedMap!==undefined?
+      decodeMap(interaction.confirmedMap):map;
     for(const remote of ghosts){
       const proposed=decodeMap(remote.previewMap);
       const pitches=[...(Array.isArray(remote.changed)?remote.changed:[]),remote.selectedMidi];
       for(const midi of pitches){
-        const n=plotted.find(note=>note.midi===midi);
-        if(!n)continue;
-        const p=notePlacement(midi,proposed,presets);
-        if(p.semitones>=0&&p.semitones<=24)ghostPositions.push(p.semitones);
+        const note=plotted.find(item=>item.midi===midi);
+        if(!note)continue;
+        const next=notePlacement(midi,proposed,presets);
+        if(next.semitones>=0&&next.semitones<=24)ghostPositions.push(next.semitones);
+        const prior=notePlacement(midi,confirmedMap,presets);
+        if(prior.string!==next.string){
+          addOrigin(note,prior);
+          if(interaction?.originalMap==null)replacedByRemote.add(midi);
+        }
       }
     }
     const maxPosition=Math.max(7,...plotted.map(item=>item.position.semitones),...nearby,
@@ -186,6 +208,19 @@
       if(fret>=maxPosition)continue;
       const y=top+fret*step;
       svg.append(svgNode('line',{x1:24,y1:y,x2:340,y2:y,stroke:'#e3eae2','stroke-width':1,'stroke-dasharray':'3 6'}));
+    }
+
+    // Faded origin marks are visual only and never counted as extra scale notes.
+    for(const {note,position} of originGhosts){
+      const x=xPositions[position.string],y=top+position.semitones*step;
+      const marker=svgNode('g',{'pointer-events':'none',opacity:.68,'aria-hidden':'true'});
+      marker.append(svgNode('circle',{cx:x,cy:y,r:16,
+        fill:'#edf1ed',stroke:'#8fa69a','stroke-width':2.2,'stroke-dasharray':'4 3'}));
+      marker.append(svgNode('text',{x,y:y+4.5,'text-anchor':'middle',
+        'font-size':12,'font-weight':750,fill:'#648072'},String(note.order)));
+      marker.append(svgNode('text',{x:x+14,y:y-13,'font-size':10,
+        'font-weight':800,fill:'#6e8c7b'},'原'));
+      svg.append(marker);
     }
 
     if(interaction && editableMidi!==null && editableMidi!==undefined){
@@ -216,6 +251,7 @@
     }
 
     for(const note of plotted){
+      if(replacedByRemote.has(note.midi))continue;
       const x=xPositions[note.position.string],y=top+note.position.semitones*step;
       const isOpen=note.position.semitones===0,style=note.style;
       const color=isOpen?'#34483a':POSITION_COLORS[style.group];
@@ -272,9 +308,8 @@
       }
       svg.append(point);
     }
-    // Ghost note locations are not committed fingerings: hollow translucent
-    // pink preview means a remote participant is still editing; dashed blue
-    // outline marks the remote participant's selected note.
+    // Translucent origin circles show where a note came from; pink indicates
+    // its unconfirmed destination and blue outlines the selected pitch.
     for(const remote of ghosts){
       const previewMap=decodeMap(remote.previewMap);
       for(const midi of Array.isArray(remote.changed)?remote.changed:[]){
@@ -288,6 +323,12 @@
           stroke:'#ce5078','stroke-width':2.4,'stroke-dasharray':'3 3',
           'pointer-events':'none'
         }));
+        if(replacedByRemote.has(midi)){
+          svg.append(svgNode('text',{
+            x,y:y+4.5,'text-anchor':'middle','font-size':12,
+            'font-weight':850,fill:'#bd3c6b','pointer-events':'none'
+          },String(note.order)));
+        }
         if(Number.isInteger(pos.finger)){
           svg.append(svgNode('text',{
             x:x+23,y:y+14,'font-size':13,'font-weight':850,fill:'#bd3c6b',
@@ -598,6 +639,8 @@
         {...annotations,[dir+'Map']:value},
         typeof onSave==='function'?{
           selectedMidi:editing?edit.midi:null,
+          originalMap:editing?JSON.stringify(edit.original):null,
+          confirmedMap:annotations[dir+'Map']||'',
           select:midi=>begin(dir,midi),
           chooseString:s=>chooseString(s),showMore:editing&&edit.showMore
         }:null,remoteDrafts));
