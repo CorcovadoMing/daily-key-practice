@@ -1062,7 +1062,14 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       q('#result-content').classList.toggle('visible',hasSession);
       q('#result-controls').hidden=!hasSession;
       q('#result-placeholder-code').hidden=hasSession;
-      if(!hasSession)return;
+      if(!hasSession){
+        expandedOverride=undefined;renderedSessionKey=null;
+        q('#bottom-practice-nav').replaceChildren();
+        q('#floating-practice-list').replaceChildren();
+        q('#floating-practice-nav').hidden=true;
+        boardInstances.clear();cardInstances.clear();
+        return;
+      }
       const total=session.majorIds.length+session.minorIds.length;
       session.doneIds=Array.isArray(session.doneIds)?session.doneIds:[];
       const count=session.doneIds.length;
@@ -1071,7 +1078,11 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       q('#progress-track').setAttribute('aria-valuenow',String(count));
       q('#progress-fill').style.width=`${total?100*count/total:0}%`;
       q('#result-content').classList.remove('show-scales');
+      const layoutKey=JSON.stringify([sharedRoom?.id||'personal',session.createdAt,
+        session.replayOf||null,session.sequenceMode||'',session.majorIds,session.minorIds]);
+      if(renderedSessionKey!==layoutKey){expandedOverride=undefined;renderedSessionKey=layoutKey;}
       renderGroups(session);
+      syncPracticeCards(session);
     }
     function toggleComplete(id){
       const session=currentSession();if(!session)return;
@@ -1079,10 +1090,18 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       const all=[...session.majorIds.map(i=>selectedId('major',i)),...session.minorIds.map(i=>selectedId('minor',i))];
       if(!all.includes(id))return;
       session.doneIds=session.doneIds.includes(id)?session.doneIds.filter(item=>item!==id):[...session.doneIds,id];
-      const historyIndex=state.personalHistory.findIndex(item=>item.id===session.historyId);
-      if(historyIndex>=0)state.personalHistory[historyIndex]=recordSnapshot(session,{id:session.historyId});
-      persist();renderResults();renderHistory();
-      if(session.doneIds.length===all.length)showToast('今天的調性全部練完了，太棒了！ 🎉');
+      expandedOverride=undefined;
+      if(session!==replaySession){
+        const historyIndex=state.personalHistory.findIndex(item=>item.id===session.historyId);
+        if(historyIndex>=0)state.personalHistory[historyIndex]=recordSnapshot(session,{id:session.historyId});
+        persist();renderHistory();
+      }
+      const count=session.doneIds.length,total=all.length;
+      q('#progress-text').textContent=count+' / '+total;
+      q('#progress-track').setAttribute('aria-valuenow',String(count));
+      q('#progress-fill').style.width=(total?100*count/total:0)+'%';
+      syncPracticeCards(session);
+      if(count===total)showToast('今天的調性全部練完了，太棒了！ 🎉');
     }
     function renderHistory(){
       function createRow(record,kind){
