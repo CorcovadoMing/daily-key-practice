@@ -345,15 +345,20 @@ window.classroomSync = {
   setShowScale(showScale) {
     return changeRoom(current => ({...current, showScale:Boolean(showScale), updatedAt:Date.now()}));
   },
-  setFingering(id, note) {
+  setFingering(id, note, direction=null) {
     if(!/^(major|minor)-(?:[0-9]|10|11)$/.test(id)) return;
     return changeRoom(current => {
       const fingerings={...(current.fingerings||{})};
-      const next={};
-      for(const field of ['up','down','upMap','downMap']){
+      // Update only the requested direction against the newest room state;
+      // another participant's edits to the opposite direction are untouched.
+      const fields=direction==='up'||direction==='down'?
+        [direction,direction+'Map']:['up','down','upMap','downMap'];
+      const next=direction?{...(fingerings[id]||{})}:{};
+      for(const field of fields){
         const max=field.endsWith('Map')?1800:300;
         const value=typeof note?.[field]==='string'?note[field].slice(0,max):'';
         if(value)next[field]=value;
+        else delete next[field];
       }
       if(Object.keys(next).length)fingerings[id]=next;
       else delete fingerings[id];
