@@ -14,8 +14,9 @@
 - **方向獨立的老師指法**：上行與下行各有自己的指板圖例及「記錄／編輯老師的指法」按鈕；編輯時只修改該方向的弦位、1～4 指號和文字備註，不覆蓋另一個方向。
 - **課堂即時同步**：直接在頁面顯示六位數房號，也能分享連結；師生共同同步調性篩選、抽籤數量、結果、進度與指法註記，並顯示目前連線數。
 - **個人練習紀錄**：在目前瀏覽器保留每日練習歷史，可逐日刪除不需要的紀錄；保留的紀錄不再因超過 90 天而自動清除。
-- **穩定版本**：正式版以簡潔版本號顯示，例如 `v1.0.0-experimental`。
+- **穩定版本**：正式版以簡潔版本號顯示，例如 `v1.0.1-experimental`。
 
 ## 網站
 
-**<https://corcovadoming.github.io/daily-key-practice/experimental/>**
+- **正式版 Stable**：<https://corcovadoming.github.io/daily-key-practice/>
+- **實驗版 Experimental**：<https://corcovadoming.github.io/daily-key-practice/experimental/>
