@@ -574,6 +574,7 @@
     if(!Array.isArray(state.personalHistory))state.personalHistory=[];
     if(!Array.isArray(state.classroomHistory))state.classroomHistory=[];
     if(!Array.isArray(state.deletedClassroomHistoryIds))state.deletedClassroomHistoryIds=[];
+    if(!state.continuedSession||typeof state.continuedSession!=='object')state.continuedSession=null;
     let sharedRoom = null; // Classroom state is distinct from personal browser history.
     let replaySession=null; // Temporary rehearsal: never added to personal history.
     let expandedOverride=undefined,renderedSessionKey=null;
@@ -655,7 +656,8 @@
     const clamp = n => Math.min(12,Math.max(0,Number.isFinite(Number(n))?Number(n):0));
     const selectedId = (mode,index) => `${mode}-${index}`;
     function keyName(mode,index){ return (mode === 'major' ? MAJOR_KEYS : MINOR_KEYS)[index][0]; }
-    function currentSession(){ return sharedRoom ? sharedRoom.session : (replaySession||state.sessions[currentDate]); }
+    function currentSession(){ return sharedRoom ? sharedRoom.session :
+      (replaySession||state.continuedSession||state.sessions[currentDate]); }
     function visiblePreferences(){ return sharedRoom || state.preferences; }
     function visibleFingerings(){ return sharedRoom ? (sharedRoom.fingerings||{}) : state.fingerings; }
     function recordSnapshot(session,extra={}){
@@ -876,7 +878,9 @@
       });
     }
     function planDraw(){
-      const previous=currentSession();
+      // A continuation from a previous date is not a new record for today.
+      // Never silently overwrite the original historical entry.
+      const previous=sharedRoom?sharedRoom.session:state.sessions[currentDate];
       return previous&&previous.date===currentDate?
         requestDrawAction():Promise.resolve('new');
     }
@@ -894,7 +898,7 @@
         window.classroomSync?.draw(session,action,previous?.createdAt);
         return;
       }
-      replaySession=null;
+      replaySession=null;state.continuedSession=null;
       storePersonalSession(session,action);
       render();showToast('新的練習清單已準備好！');
     }
@@ -914,7 +918,7 @@
         return;
       }
       session.sequenceMode='signature'; // local-only; Firebase room schema unchanged
-      replaySession=null;
+      replaySession=null;state.continuedSession=null;
       storePersonalSession(session,action);
       render();showToast('已依調號排好全部選取的調性！');
     }
@@ -1096,7 +1100,14 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       if(!all.includes(id))return;
       session.doneIds=session.doneIds.includes(id)?session.doneIds.filter(item=>item!==id):[...session.doneIds,id];
       expandedOverride=undefined;
-      if(session!==replaySession){
+      if(session===state.continuedSession){
+        // Continuation updates its ORIGINAL dated record, not today's draw history.
+        const history=state.continuedSession.sourceKind==='classroom'?
+          state.classroomHistory:state.personalHistory;
+        const index=history.findIndex(item=>item.id===session.historyId);
+        if(index>=0)history[index]={...history[index],doneIds:[...session.doneIds]};
+        persist();renderHistory();
+      }else if(session!==replaySession){
         const historyIndex=state.personalHistory.findIndex(item=>item.id===session.historyId);
         if(historyIndex>=0)state.personalHistory[historyIndex]=recordSnapshot(session,{id:session.historyId});
         persist();renderHistory();
@@ -1235,6 +1246,13 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       if(!/^\d{4}-\d{2}-\d{2}$/.test(d))delete state.sessions[d];
     });
     initializePersonalHistory();
+    if(state.continuedSession){
+      const history=state.continuedSession.sourceKind==='classroom'?
+        state.classroomHistory:state.personalHistory;
+      if(!history.some(item=>item.id===state.continuedSession.historyId)){
+        state.continuedSession=null;persist();
+      }
+    }
     window.DailyKeyPractice={setClassroomRoom,setClassroomDrafts,
       getPreferences:()=>({...state.preferences}),showToast};
     render();
