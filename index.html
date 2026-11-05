@@ -667,12 +667,7 @@ function createCard(mode,index,doneIds){
  const panel=document.createElement('div');panel.className='fingering-section';
  const header=document.createElement('div');header.className='fingering-title';header.textContent='大提琴指板音位圖';
  const note=visibleFingerings()[id]||{};
- if(['upMap','downMap','up','down'].some(field=>typeof note[field]==='string'&&note[field].trim())){
-   const mark=document.createElement('span');
-   mark.className='fingering-changed';
-   mark.textContent='（已修改）';
-   header.append(mark);
- }
+ // Only each direction's heading carries the modified label.
  const guide=window.CelloFingerboard.create(mode,key,note,(direction,map)=>saveInlineFingering(id,direction,map));
  panel.append(header,guide);
  card.append(main,panel);
