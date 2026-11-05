@@ -75,11 +75,30 @@
     return node;
   }
 
-  function chartSVG(mode,key,direction,octaves){
+  function decodeMap(value){
+    if(!value || typeof value!=='string')return {};
+    try{
+      const data=JSON.parse(value);
+      return data && typeof data==='object' && !Array.isArray(data)?data:{};
+    }catch{return {};}
+  }
+
+  function notePlacement(midi,map){
+    const fallback=positionFor(midi);
+    const custom=map[String(midi)];
+    if(!custom || !Number.isInteger(custom.s) || custom.s<0 || custom.s>3)return {...fallback,finger:null};
+    const semitones=midi-OPEN[custom.s].midi;
+    if(semitones<0 || semitones>24)return {...fallback,finger:null};
+    const finger=semitones===0?0:([1,2,3,4].includes(custom.f)?custom.f:null);
+    return {string:custom.s,stringName:OPEN[custom.s].name,semitones,finger};
+  }
+
+  function chartSVG(mode,key,direction,octaves,annotations={}){
     const notes=scaleNotes(mode,key,direction,octaves);
-    const plotted=notes.map(note=>({...note,position:positionFor(note.midi)}));
+    const map=decodeMap(direction==='up'?annotations.upMap:annotations.downMap);
+    const plotted=notes.map(note=>({...note,position:notePlacement(note.midi,map)}));
     const maxPosition=Math.max(7,...plotted.map(item=>item.position.semitones));
-    const top=78,step=35,height=top+maxPosition*step+47;
+    const top=68,step=35,height=top+maxPosition*step+47;
     const xPositions=[42,126,210,294], end=top+maxPosition*step+22;
     const svg=svgNode('svg',{
       viewBox:'0 0 370 '+height,
@@ -108,17 +127,18 @@
       const x=xPositions[note.position.string],y=top+note.position.semitones*step;
       const rootOrEnd=note.order===1||note.order===notes.length;
       const color=note.order===1?'#2e7049':rootOrEnd?'#527e5a':'#364c3b';
-      const label=note.name;
+      const isOpen=note.position.semitones===0;
+      const label=note.name+(isOpen?' · 空弦':note.position.finger?' · '+note.position.finger+' 指':'');
       const point=svgNode('g');
       point.append(svgNode('title',{},
         '第'+note.order+'音 '+label+'，'+note.position.stringName+
         '弦，距空弦 '+note.position.semitones+' 個半音'));
       point.append(svgNode('circle',{
-        cx:x,cy:y,r:15.5,fill:color,stroke:'#ffffff','stroke-width':2.1
+        cx:x,cy:y,r:15.5,fill:isOpen?'#f7f9f6':color,stroke:isOpen?color:'#ffffff','stroke-width':isOpen?3:2.1
       }));
       point.append(svgNode('text',{
         x,y:y+4.5,'text-anchor':'middle','font-size':12.5,
-        'font-weight':800,fill:'#ffffff'
+        'font-weight':800,fill:isOpen?color:'#ffffff'
       },String(note.order)));
       point.append(svgNode('text',{
         x:x+21,y:y+4.2,'font-size':14,
@@ -129,7 +149,7 @@
     return svg;
   }
 
-  function create(mode,key){
+  function create(mode,key,annotations={}){
     const id=(mode==='major'?'major-':'minor-')+key[0];
     const prev=choices.get(id)||{direction:'up',octaves:2};
     let direction=prev.direction,octaves=prev.octaves;
@@ -165,7 +185,7 @@
       down.setAttribute('aria-pressed',String(direction==='down'));
       one.setAttribute('aria-pressed',String(octaves===1));
       two.setAttribute('aria-pressed',String(octaves===2));
-      viewport.replaceChildren(chartSVG(mode,key,direction,octaves));
+      viewport.replaceChildren(chartSVG(mode,key,direction,octaves,annotations));
       const notes=scaleNotes(mode,key,direction,octaves);
       sequence.textContent=notes.map(item=>item.order+' '+item.name).join(' → ');
     }
@@ -176,6 +196,6 @@
   window.CelloFingerboard={
     create,
     // Pure helpers exported for automated pitch and placement checks.
-    scaleNotes,positionFor,pitchClass
+    scaleNotes,positionFor,pitchClass,decodeMap
   };
 })();
