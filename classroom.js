@@ -17,10 +17,6 @@ const roomCodeNumber = el('room-code-number');
 const onlineCount=el('online-count');
 const onlineNumber=el('online-number');
 const copyCodeButton = el('room-copy-code');
-const createdDialog = el('room-created-dialog');
-const dialogCode = el('room-dialog-code');
-const dialogClose = el('room-dialog-close');
-const dialogCopy = el('room-dialog-copy');
 const shortCodePattern = /^[0-9]{6}$/;
 const legacyRoomPattern = /^[a-f0-9]{32}$/;
 const validRoom = id => shortCodePattern.test(id) || legacyRoomPattern.test(id);
@@ -63,12 +59,8 @@ function revealCreatedRoomCode(id) {
   if(!shortCodePattern.test(id)) return;
   roomCodeNumber.textContent = id;
   roomCodeDisplay.hidden = false;
-  dialogCode.textContent = id;
-  if(typeof createdDialog.showModal === 'function') {
-    if(!createdDialog.open) createdDialog.showModal();
-  } else {
-    // On browsers without dialog support, the persistent in-page room code is still visible.
-    practice.showToast('課堂六位數房號：' + id);
+  if(typeof roomCodeDisplay.scrollIntoView === 'function'){
+    roomCodeDisplay.scrollIntoView({behavior:'smooth',block:'nearest'});
   }
 }
 async function copyRoomCode() {
@@ -146,7 +138,6 @@ function cleanupListeners() {
 }
 function leaveRoom() {
   cleanupListeners();
-  if(createdDialog.open) createdDialog.close();
   activeId = null;
   roomRef = null;
   roomExpiresAt = null;
@@ -377,8 +368,6 @@ window.classroomSync = {
 };
 createButton.addEventListener('click', createRoom);
 copyCodeButton.addEventListener('click', copyRoomCode);
-dialogCopy.addEventListener('click', copyRoomCode);
-dialogClose.addEventListener('click', () => createdDialog.close());
 joinInput.addEventListener('input', () => { joinInput.value = joinInput.value.replace(/[^0-9]/g, '').slice(0, 6); });
 joinForm.addEventListener('submit', async event => {
   event.preventDefault();
