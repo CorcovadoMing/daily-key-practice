@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="2026-11-06.3">
+  <meta name="site-version" content="v2026.11.06-001">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
-  <title>琴弦抽調所｜大提琴 24 調練習抽籤</title>
+  <title>弓弦的每日練習｜大提琴 24 調音階練習</title>
   <style>
     :root {
       color-scheme: light;
@@ -207,6 +207,7 @@
     .history-chip{border-radius:6px;padding:6px 9px;background:#e9f2e8;color:#395843;font-weight:750;font-size:12px}
     .history-chip.minor{background:#f0eaf8;color:#655178}
     footer{border-top:1px solid var(--line);padding:24px 0 33px;color:#a1a8a1;font-size:12px;display:flex;justify-content:space-between;gap:18px}
+    .site-version{white-space:nowrap;font-variant-numeric:tabular-nums;font-weight:700;letter-spacing:.02em}
     .toast{position:fixed;left:50%;bottom:25px;transform:translate(-50%,20px);opacity:0;pointer-events:none;border-radius:12px;padding:12px 18px;background:#283a2d;color:white;font-weight:700;font-size:13px;box-shadow:0 15px 40px rgba(0,0,0,.15);transition:opacity .2s,transform .2s;z-index:50}
     .toast.active{opacity:1;transform:translate(-50%,0)}
     @media(max-width:810px){.intro{padding-top:43px;grid-template-columns:1fr;gap:18px}.date-label{text-align:left}.date-label strong{display:inline;margin-left:10px}.workspace{grid-template-columns:1fr}.result-panel{min-height:0}.history-section{padding-top:31px}}
@@ -221,7 +222,7 @@
         <div class="brand-logo" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><ellipse cx="6" cy="18.5" rx="3" ry="2"/><ellipse cx="17" cy="16.5" rx="3" ry="2"/></svg>
         </div>
-        <span>琴弦抽調所<small>CELLO SCALE ROULETTE</small></span>
+        <span>弓弦的每日練習<small>DAILY CELLO PRACTICE</small></span>
       </div>
       <span class="header-tag">24 KEYS · 每日一練</span>
     </div>
@@ -231,8 +232,8 @@
     <section class="intro" aria-labelledby="page-title">
       <div>
         <div class="eyebrow">A little surprise in every scale</div>
-        <h1 id="page-title">今天，琴弦帶你走哪個<em>調</em>？</h1>
-        <p>先挑好想練的調號，讓抽籤決定今天的大提琴音階任務。<br>12 個大調、12 個古典旋律小調，每次練習都有新挑戰。</p>
+        <h1 id="page-title">弓弦的<em>每日練習</em></h1>
+        <p>挑好想練的調性，讓一點隨機帶來每天的新挑戰。<br>12 個大調、12 個古典旋律小調，從音階開始，拉出更好的聲音。</p>
       </div>
       <div class="date-label">TODAY <strong id="today-label">—</strong></div>
     </section>
@@ -358,10 +359,10 @@
       <div class="history-list" id="history-list"></div>
     </section>
   </main>
-  <footer class="container"><span>每天練一點音階，慢慢累積大提琴的聲音。</span><span>12 MAJOR + 12 MINOR · MADE FOR PRACTICE</span></footer>
+  <footer class="container"><span>弓弦的每日練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">v2026.11.06-001</span></footer>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="fingerboard.js?v=20261106-2"></script>
+  <script src="fingerboard.js?v=20261106-001"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
@@ -682,7 +683,7 @@ function saveFingering(){
     window.DailyKeyPractice={setClassroomRoom,getPreferences:()=>({...state.preferences}),showToast};
     render();
   </script>
-  <script src="firebase-config.js?v=20261106-1"></script>
-  <script type="module" src="classroom.js?v=20261106-1"></script>
+  <script src="firebase-config.js?v=20261106-001"></script>
+  <script type="module" src="classroom.js?v=20261106-001"></script>
 </body>
 </html>
