@@ -265,144 +265,208 @@
 
   function create(mode,key,initialAnnotations={},onSave=null){
     const id=(mode==='major'?'major-':'minor-')+key[0];
-    let annotations={...initialAnnotations};
-    const octaves=choices.get(id)||2;
+    const annotations={...initialAnnotations};
     const root=element('div',{class:'cello-fingerboard'});
     const toolbar=element('div',{class:'cello-fb-toolbar'});
     const octaveGroup=element('div',{class:'cello-fb-group','aria-label':'音階八度數'});
     const boards=element('div',{class:'cello-fb-two-up'});
-    const panels={},selected={up:null,down:null},draft={up:null,down:null},
-      history={up:[],down:[]},showMore={up:false,down:false};
-    let outsideListening=false;
+    const panels={};
+    // A single transaction stages any number of note edits for one direction.
+    // Only clicking Confirm (or Save in the leave dialog) persists the map.
+    const edit={dir:null,midi:null,original:{},pending:{},undo:[],showMore:false};
+    let tracking=false,pointer=null;
 
-    function closeSelection(dir){
-      selected[dir]=null;
-      draft[dir]=null;
-      history[dir]=[];
-      showMore[dir]=false;
-      renderDirection(dir);
-      syncOutsideListener();
+    function clone(map){return JSON.parse(JSON.stringify(map));}
+    function signature(map){
+      return JSON.stringify(Object.entries(map).sort(([a],[b])=>Number(a)-Number(b)));
     }
-    function closeAll(){
-      for(const dir of ['up','down']){
-        if(selected[dir]!==null)closeSelection(dir);
-      }
+    function isDirty(){return edit.dir!==null&&signature(edit.original)!==signature(edit.pending);}
+    function notes(dir){return scaleNotes(mode,key,dir,choices.get(id)||2);}
+    function defaultPosition(dir,midi){
+      const ref=window.CelloFingeringPresets?.get(mode,key,dir,notes(dir))||{};
+      return notePlacement(midi,{},ref);
     }
-    function outsidePointer(event){
-      if(root.isConnected===false){
-        document.removeEventListener('pointerdown',outsidePointer,true);
-        outsideListening=false;
+    function proposedPosition(dir,midi){
+      const ref=window.CelloFingeringPresets?.get(mode,key,dir,notes(dir))||{};
+      const map=edit.dir===dir?edit.pending:decodeMap(annotations[dir+'Map']);
+      return notePlacement(midi,map,ref);
+    }
+    function selectedNote(){return edit.dir===null?null:notes(edit.dir).find(n=>n.midi===edit.midi);}
+    function invalidNotes(){
+      if(edit.dir===null)return [];
+      return Object.entries(edit.pending).filter(([pitch,pos])=>{
+        if(!pos||!Number.isInteger(pos.s)||pos.s<0||pos.s>3)return true;
+        const semitone=Number(pitch)-OPEN[pos.s].midi;
+        return semitone<0||semitone>24||(semitone===0?pos.f!==0:![1,2,3,4].includes(pos.f));
+      });
+    }
+    function saveAllowed(){return isDirty()&&invalidNotes().length===0&&JSON.stringify(edit.pending).length<=1800;}
+    function stopTracking(){
+      if(!tracking)return;
+      tracking=false;pointer=null;
+      document.removeEventListener('pointerdown',onPointerDown,true);
+      document.removeEventListener('pointermove',onPointerMove,true);
+      document.removeEventListener('pointerup',onPointerUp,true);
+      document.removeEventListener('pointercancel',onPointerCancel,true);
+      document.removeEventListener('scroll',onScroll,true);
+      document.removeEventListener('keydown',onKeydown,true);
+    }
+    function startTracking(){
+      if(tracking||typeof onSave!=='function')return;
+      tracking=true;
+      document.addEventListener('pointerdown',onPointerDown,true);
+      document.addEventListener('pointermove',onPointerMove,true);
+      document.addEventListener('pointerup',onPointerUp,true);
+      document.addEventListener('pointercancel',onPointerCancel,true);
+      document.addEventListener('scroll',onScroll,true);
+      document.addEventListener('keydown',onKeydown,true);
+    }
+    function closeEditor(){
+      edit.dir=null;edit.midi=null;edit.original={};edit.pending={};
+      edit.undo=[];edit.showMore=false;
+      stopTracking();
+      render();
+    }
+    function saveSession(){
+      if(edit.dir===null)return;
+      if(!isDirty()){closeEditor();return;}
+      if(!saveAllowed()){
+        const bad=invalidNotes();
+        const warning=panels[edit.dir].hint;
+        warning.textContent=bad.length?
+          '仍有 '+bad.length+' 個音未設定有效指號；請選擇指號後儲存。':
+          '這次修改超過可儲存的長度，請減少修改。';
+        if(bad.length)edit.midi=Number(bad[0][0]);
+        renderDirection(edit.dir);
         return;
       }
-      const target=event.target;
-      // A scale note, green alternative, or editor control keeps editing.
-      // Any blank space (even outside the card) discards the draft.
-      if(root.contains(target) &&
-         target?.closest?.('.cello-fb-note, .cello-fb-alt, .cello-inline-editor'))return;
-      closeAll();
-    }
-    function syncOutsideListener(){
-      if(typeof onSave!=='function')return;
-      const active=selected.up!==null||selected.down!==null;
-      if(active&&!outsideListening){
-        document.addEventListener('pointerdown',outsidePointer,true);
-        outsideListening=true;
-      }else if(!active&&outsideListening){
-        document.removeEventListener('pointerdown',outsidePointer,true);
-        outsideListening=false;
-      }
-    }
-    function rememberStep(dir){
-      const old=draft[dir];
-      if(old)history[dir].push({...old});
-    }
-    function undo(dir){
-      if(!history[dir].length)return;
-      draft[dir]=history[dir].pop();
-      renderDirection(dir);
-    }
-    function cancel(dir){if(selected[dir]!==null)closeSelection(dir);}
-    function toggleRange(dir){
-      if(selected[dir]===null)return;
-      showMore[dir]=!showMore[dir];
-      renderDirection(dir);
-    }
-
-    function notes(dir){return scaleNotes(mode,key,dir,choices.get(id)||2);}
-    function reference(dir,midi){
-      const proposals=window.CelloFingeringPresets?.get(mode,key,dir,notes(dir))||{};
-      return notePlacement(midi,{},proposals);
-    }
-    function current(dir,midi){
-      const proposals=window.CelloFingeringPresets?.get(mode,key,dir,notes(dir))||{};
-      return notePlacement(midi,decodeMap(annotations[dir+'Map']),proposals);
-    }
-    function selectedNote(dir){return notes(dir).find(n=>n.midi===selected[dir]);}
-
-    function selectNote(dir,midi){
-      if(typeof onSave!=='function')return;
-      if(selected[dir]===midi){closeSelection(dir);return;}
-      const other=dir==='up'?'down':'up';
-      if(selected[other]!==null)closeSelection(other);
-      const pos=current(dir,midi);
-      draft[dir]={s:pos.string,f:pos.finger,reset:false};
-      history[dir]=[];
-      showMore[dir]=false;
-      selected[dir]=midi;
-      renderDirection(dir);
-      syncOutsideListener();
-    }
-    function chooseString(dir,s){
-      const midi=selected[dir],entry=draft[dir];
-      if(midi===null||!entry)return;
-      const semi=midi-OPEN[s].midi;
-      if(semi<0||semi>24)return;
-      const newFinger=semi===0?0:([1,2,3,4].includes(entry.f)?entry.f:null);
-      if(entry.s===s&&entry.f===newFinger&&!entry.reset)return;
-      rememberStep(dir);
-      entry.s=s;
-      entry.f=newFinger;
-      entry.reset=false;
-      renderDirection(dir);
-    }
-    function chooseFinger(dir,f){
-      const entry=draft[dir],midi=selected[dir];
-      if(!entry||midi===null||midi===OPEN[entry.s].midi||![1,2,3,4].includes(f))return;
-      if(entry.f===f&&!entry.reset)return;
-      rememberStep(dir);
-      entry.f=f;entry.reset=false;
-      renderDirection(dir);
-    }
-    function restore(dir){
-      const midi=selected[dir];
-      if(midi===null)return;
-      const next=decodeMap(annotations[dir+'Map']);
-      const hadChange=Object.prototype.hasOwnProperty.call(next,String(midi));
-      delete next[String(midi)];
-      const value=Object.keys(next).length?JSON.stringify(next):'';
-      annotations={...annotations,[dir+'Map']:value};
-      // Restore this one note, close the editor, preserve other custom notes.
-      closeSelection(dir);
-      if(hadChange)onSave(dir,value);
-    }
-    function confirm(dir){
-      const midi=selected[dir],entry=draft[dir];
-      if(midi===null||!entry)return;
-      const semi=midi-OPEN[entry.s].midi;
-      if(semi<0||semi>24||(semi>0&&![1,2,3,4].includes(entry.f)))return;
-      const previous=decodeMap(annotations[dir+'Map']);
-      const next={...previous};
-      const base=reference(dir,midi);
-      if(entry.reset||(entry.s===base.string&&entry.f===base.finger)){
-        delete next[String(midi)];
-      }else{
-        next[String(midi)]={s:entry.s,f:semi===0?0:entry.f};
-      }
-      const value=Object.keys(next).length?JSON.stringify(next):'';
-      if(value.length>1800)return;
-      annotations={...annotations,[dir+'Map']:value};
-      closeSelection(dir);
+      const dir=edit.dir,value=Object.keys(edit.pending).length?JSON.stringify(edit.pending):'';
+      // Update only the selected direction. The caller merges the other direction
+      // with the freshest local/Firebase room state.
+      annotations[dir+'Map']=value;
+      closeEditor();
       onSave(dir,value);
+    }
+    function exitEditor(next=null){
+      if(edit.dir===null){if(next)next();return;}
+      if(isDirty()){
+        pendingAfterExit=next;
+        dialog.showModal();
+        return;
+      }
+      closeEditor();
+      if(next)next();
+    }
+    let pendingAfterExit=null;
+    const dialog=element('dialog',{class:'cello-leave-dialog',
+      'aria-label':'未儲存的指法修改'});
+    const dialogTitle=element('h3',{},'有尚未確認的修改');
+    const dialogText=element('p',{},'要放棄目前暫存的修改，還是儲存修改？');
+    const dialogActions=element('div',{class:'cello-leave-actions'});
+    const discard=element('button',{type:'button',class:'cello-leave-discard'},'放棄修改');
+    const saveExit=element('button',{type:'button',class:'cello-leave-save'},'儲存修改');
+    const keep=element('button',{type:'button',class:'cello-leave-keep'},'繼續編輯');
+    function afterExit(){const fn=pendingAfterExit;pendingAfterExit=null;if(fn)fn();}
+    discard.addEventListener('click',()=>{
+      dialog.close();closeEditor();afterExit();
+    });
+    saveExit.addEventListener('click',()=>{
+      if(!saveAllowed()){
+        dialog.close();pendingAfterExit=null;saveSession();return;
+      }
+      dialog.close();saveSession();afterExit();
+    });
+    keep.addEventListener('click',()=>{dialog.close();pendingAfterExit=null;});
+    dialog.addEventListener('cancel',()=>{pendingAfterExit=null;});
+    dialogActions.append(discard,saveExit,keep);
+    dialog.append(dialogTitle,dialogText,dialogActions);
+
+    function protectedTarget(target){
+      return !!(root.contains(target)&&target?.closest?.(
+        '.cello-fb-note, .cello-fb-alt, .cello-inline-editor, .cello-fb-button, .cello-leave-dialog'));
+    }
+    // Decide on pointerup, never pointerdown: a finger swipe is scrolling,
+    // not a tap on blank space. Pointercancel/scroll also cancel the gesture.
+    function onPointerDown(e){
+      if(edit.dir===null||dialog.open)return;
+      pointer={id:e.pointerId,x:e.clientX,y:e.clientY,target:e.target,moved:false};
+    }
+    function onPointerMove(e){
+      if(!pointer||e.pointerId!==pointer.id)return;
+      if(Math.hypot(e.clientX-pointer.x,e.clientY-pointer.y)>12)pointer.moved=true;
+    }
+    function onScroll(){if(pointer)pointer.moved=true;}
+    function onPointerCancel(e){if(pointer&&e.pointerId===pointer.id)pointer=null;}
+    function onPointerUp(e){
+      if(!pointer||e.pointerId!==pointer.id)return;
+      const gesture=pointer;pointer=null;
+      if(gesture.moved||Math.hypot(e.clientX-gesture.x,e.clientY-gesture.y)>12)return;
+      if(protectedTarget(gesture.target)||protectedTarget(e.target))return;
+      exitEditor();
+    }
+    function onKeydown(e){
+      if(e.key==='Escape'&&edit.dir!==null&&!dialog.open){
+        e.preventDefault();exitEditor();
+      }
+    }
+
+    function begin(dir,midi){
+      if(edit.dir!==null&&edit.dir!==dir){
+        exitEditor(()=>begin(dir,midi));
+        return;
+      }
+      if(edit.dir===null){
+        edit.dir=dir;edit.original=clone(decodeMap(annotations[dir+'Map']));
+        edit.pending=clone(edit.original);edit.undo=[];edit.showMore=false;
+        startTracking();
+      }
+      // Selecting a different note never discards staged modifications.
+      edit.midi=midi;
+      render();
+    }
+    function applyChange(s,f){
+      if(edit.dir===null||edit.midi===null)return;
+      const midi=edit.midi,semi=midi-OPEN[s].midi;
+      if(semi<0||semi>24)return;
+      const base=defaultPosition(edit.dir,midi);
+      const changed=clone(edit.pending);
+      if(s===base.string&&f===base.finger){
+        delete changed[String(midi)];
+      }else{
+        changed[String(midi)]={s,f};
+      }
+      if(signature(changed)===signature(edit.pending))return;
+      edit.undo.push({map:clone(edit.pending),midi});
+      edit.pending=changed;
+      renderDirection(edit.dir);
+    }
+    function chooseString(s){
+      if(edit.dir===null||edit.midi===null)return;
+      const midi=edit.midi,semis=midi-OPEN[s].midi;
+      if(semis<0||semis>24)return;
+      const current=proposedPosition(edit.dir,midi);
+      const finger=semis===0?0:([1,2,3,4].includes(current.finger)?current.finger:null);
+      applyChange(s,finger);
+    }
+    function chooseFinger(f){
+      if(edit.dir===null||edit.midi===null||![1,2,3,4].includes(f))return;
+      const pos=proposedPosition(edit.dir,edit.midi);
+      if(edit.midi===OPEN[pos.string].midi)return;
+      applyChange(pos.string,f);
+    }
+    function undo(){
+      if(edit.dir===null||!edit.undo.length)return;
+      const prior=edit.undo.pop();edit.pending=prior.map;edit.midi=prior.midi;
+      renderDirection(edit.dir);
+    }
+    function resetAll(){
+      if(edit.dir===null)return;
+      const dir=edit.dir;
+      // Clear every saved/unsaved custom fingering in this direction.
+      const hadSaved=Object.keys(decodeMap(annotations[dir+'Map'])).length>0;
+      annotations[dir+'Map']='';
+      closeEditor();
+      if(hadSaved)onSave(dir,'');
     }
 
     for(const dir of ['up','down']){
@@ -411,120 +475,123 @@
       const heading=element('h4',{class:'cello-fb-direction-heading'});
       const viewport=element('div',{class:'cello-fb-viewport'});
       const editor=element('div',{class:'cello-inline-editor',
-        'aria-label':(dir==='up'?'上行':'下行')+'直接編輯音符'});
+        'aria-label':(dir==='up'?'上行':'下行')+'批次編輯音符'});
       editor.hidden=true;
       const status=element('div',{class:'cello-inline-status'});
       const hint=element('p',{class:'cello-inline-hint'},
-        '點綠色＋選擇同音高弦位，並設定指號；點空白處或取消編輯可離開。');
-      const stringChoices=element('div',{class:'cello-inline-choices'});
-      const fingerChoices=element('div',{class:'cello-inline-choices'});
+        '可以連續修改多個音符，最後一次確認；點空白處可選擇儲存或放棄。');
       const range=element('button',{type:'button',class:'cello-inline-range',
         'aria-pressed':'false'},'顯示更多把位');
+      const stringChoices=element('div',{class:'cello-inline-choices'});
+      const fingerChoices=element('div',{class:'cello-inline-choices'});
       const actions=element('div',{class:'cello-inline-actions'});
       const back=element('button',{type:'button',class:'cello-inline-undo'},'上一步');
       const reset=element('button',{type:'button',class:'cello-inline-reset',
-        title:'立即清除這個音的自訂位置，恢復 Werner 預設並離開編輯'},'復原預設');
-      const cancelButton=element('button',{type:'button',
-        class:'cello-inline-cancel'},'取消編輯');
+        title:'將整個方向的指法還原成 Werner 預設'},'復原預設');
       const save=element('button',{type:'button',class:'cello-inline-save'},'確認修改');
-      range.addEventListener('click',()=>toggleRange(dir));
-      back.addEventListener('click',()=>undo(dir));
-      reset.addEventListener('click',()=>restore(dir));
-      cancelButton.addEventListener('click',()=>cancel(dir));
-      save.addEventListener('click',()=>confirm(dir));
-      actions.append(back,reset,cancelButton,save);
+      back.addEventListener('click',undo);
+      reset.addEventListener('click',resetAll);
+      save.addEventListener('click',saveSession);
+      range.addEventListener('click',()=>{edit.showMore=!edit.showMore;renderDirection(dir);});
+      actions.append(back,reset,save);
       editor.append(status,hint,range,stringChoices,fingerChoices,actions);
       const legend=makeLegend();
       const memo=element('div',{class:'fingering-note'});
       memo.hidden=true;
       section.append(heading,viewport,editor,legend,memo);
       boards.append(section);
-      panels[dir]={heading,viewport,editor,status,stringChoices,fingerChoices,
-        range,back,save,memo};
+      panels[dir]={heading,viewport,editor,status,hint,stringChoices,
+        fingerChoices,range,back,save,memo};
     }
+    root.append(toolbar,boards,dialog);
 
     function renderDirection(dir){
-      const pane=panels[dir],notesForDir=notes(dir);
-      if(selected[dir]!==null&&!notesForDir.some(n=>n.midi===selected[dir])){
-        selected[dir]=null;draft[dir]=null;
-      }
+      const pane=panels[dir],editing=edit.dir===dir;
       const saved=decodeMap(annotations[dir+'Map']);
       pane.heading.textContent=dir==='up'?'↑ 上行':'↓ 下行';
       if(Object.keys(saved).length||(dir==='up'?annotations.up:annotations.down)){
         pane.heading.append(element('span',{class:'cello-fb-changed'},'（已修改）'));
       }
       const memo=dir==='up'?annotations.up:annotations.down;
-      pane.memo.textContent=memo||'';
-      pane.memo.hidden=!memo;
-      const preview={...saved};
-      const chosen=selected[dir],entry=draft[dir];
-      if(chosen!==null&&entry){
-        if(entry.reset)delete preview[String(chosen)];
-        else preview[String(chosen)]={s:entry.s,f:entry.f};
-      }
-      const picture={...annotations,[dir+'Map']:Object.keys(preview).length?
-        JSON.stringify(preview):''};
+      pane.memo.textContent=memo||'';pane.memo.hidden=!memo;
+      const value=editing?(Object.keys(edit.pending).length?JSON.stringify(edit.pending):''):
+        annotations[dir+'Map']||'';
       pane.viewport.replaceChildren(chartSVG(mode,key,dir,choices.get(id)||2,
-        picture,typeof onSave==='function'?{
-          selectedMidi:chosen,select:midi=>selectNote(dir,midi),
-          chooseString:s=>chooseString(dir,s),showMore:showMore[dir]
+        {...annotations,[dir+'Map']:value},
+        typeof onSave==='function'?{
+          selectedMidi:editing?edit.midi:null,
+          select:midi=>begin(dir,midi),
+          chooseString:s=>chooseString(s),showMore:editing&&edit.showMore
         }:null));
-      pane.editor.hidden=chosen===null;
-      if(chosen===null)return;
-      pane.range.textContent=showMore[dir]?'收起高把位':'顯示更多把位';
-      pane.range.setAttribute('aria-pressed',String(showMore[dir]));
-      pane.back.disabled=history[dir].length===0;
-      const note=selectedNote(dir);
-      if(!note||!entry)return;
-      const semi=chosen-OPEN[entry.s].midi;
-      pane.status.textContent='第 '+note.order+' 音 · '+note.name+
-        '  ｜  '+OPEN[entry.s].name+' 弦'+
-        (semi===0?'（空弦）':' · '+semi+' 個半音位置');
+      pane.editor.hidden=!editing;
+      if(!editing)return;
+      const count=Object.keys(edit.pending).length;
+      const diff=Object.keys({...edit.original,...edit.pending}).filter(k=>
+        JSON.stringify(edit.original[k])!==JSON.stringify(edit.pending[k])).length;
+      const invalid=invalidNotes().length;
+      pane.status.textContent='暫存 '+diff+' 個音的修改'+
+        (invalid?' · '+invalid+' 個音待設定指號':'');
+      pane.hint.textContent=invalid?
+        '請先為未設定指號的音選擇 1～4 指，再確認整批修改。':
+        '可連續改多個音；上一步只撤銷最後一個操作。';
+      pane.range.textContent=edit.showMore?'收起高把位':'顯示更多把位';
+      pane.range.setAttribute('aria-pressed',String(edit.showMore));
+      pane.back.disabled=edit.undo.length===0;
+      pane.save.disabled=!isDirty()||invalid>0;
       pane.stringChoices.replaceChildren();
+      pane.fingerChoices.replaceChildren();
+      const note=selectedNote();
+      if(!note){
+        pane.stringChoices.append(element('span',{class:'cello-inline-label'},'點選要修改的音符'));
+        return;
+      }
+      const current=proposedPosition(dir,note.midi);
+      const semi=note.midi-OPEN[current.string].midi;
+      const noteLabel=element('div',{class:'cello-inline-label'},
+        '選取：第 '+note.order+' 音 '+note.name+' · '+OPEN[current.string].name+' 弦');
+      pane.stringChoices.append(noteLabel);
       for(let s=0;s<OPEN.length;s++){
-        const offset=chosen-OPEN[s].midi;
+        const offset=note.midi-OPEN[s].midi;
         if(offset<0||offset>24)continue;
         const btn=element('button',{type:'button',class:'cello-inline-choice',
-          'aria-pressed':String(entry.s===s)},
+          'aria-pressed':String(current.string===s)},
           OPEN[s].name+' 弦'+(offset===0?' · 空弦':' · '+offset+' 半音'));
-        btn.addEventListener('click',()=>chooseString(dir,s));
+        btn.addEventListener('click',()=>chooseString(s));
         pane.stringChoices.append(btn);
       }
-      pane.fingerChoices.replaceChildren();
       if(semi===0){
-        pane.fingerChoices.append(element('span',{class:'cello-inline-open'},
-          '空弦 · 指號 0'));
+        pane.fingerChoices.append(element('span',{class:'cello-inline-open'},'空弦 · 指號 0'));
       }else{
-        pane.fingerChoices.append(element('span',{class:'cello-inline-label'},
-          '左手指號'));
+        pane.fingerChoices.append(element('span',{class:'cello-inline-label'},'左手指號'));
         for(let finger=1;finger<=4;finger++){
           const btn=element('button',{type:'button',class:'cello-inline-finger',
-            'aria-pressed':String(entry.f===finger)},String(finger));
-          btn.addEventListener('click',()=>chooseFinger(dir,finger));
+            'aria-pressed':String(current.finger===finger)},String(finger));
+          btn.addEventListener('click',()=>chooseFinger(finger));
           pane.fingerChoices.append(btn);
         }
       }
-      pane.save.disabled=semi>0&&![1,2,3,4].includes(entry.f);
     }
-
     function render(){
       const count=choices.get(id)||2;
       one.setAttribute('aria-pressed',String(count===1));
       two.setAttribute('aria-pressed',String(count===2));
-      renderDirection('up');
-      renderDirection('down');
+      renderDirection('up');renderDirection('down');
     }
     function addButton(label,count){
       const btn=element('button',{type:'button',class:'cello-fb-button'},label);
-      btn.addEventListener('click',()=>{choices.set(id,count);render();});
-      octaveGroup.append(btn);
-      return btn;
+      btn.addEventListener('click',()=>{
+        // Switching octaves retains the current pending multi-note transaction.
+        choices.set(id,count);
+        if(edit.dir!==null&&edit.midi!==null&&!notes(edit.dir).some(n=>n.midi===edit.midi)){
+          edit.midi=null;
+        }
+        render();
+      });
+      octaveGroup.append(btn);return btn;
     }
-    const one=addButton('1 八度',1);
-    const two=addButton('2 八度',2);
+    const one=addButton('1 八度',1),two=addButton('2 八度',2);
     toolbar.append(octaveGroup);
-    root.append(toolbar,boards);
-    if(!choices.has(id))choices.set(id,octaves);
+    if(!choices.has(id))choices.set(id,2);
     render();
     return root;
   }
