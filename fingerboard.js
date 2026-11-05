@@ -575,14 +575,13 @@
       announceDraft();
     }
     function resetAll(){
-      if(edit.dir===null)return;
-      const dir=edit.dir;
-      // Clear every saved/unsaved custom fingering in this direction.
-      const hadSaved=Object.keys(decodeMap(annotations[dir+'Map'])).length>0;
-      const previous=JSON.stringify(edit.original);
-      annotations[dir+'Map']='';
-      closeEditor();
-      if(hadSaved)onSave(dir,'',previous,true);
+      if(edit.dir===null||Object.keys(edit.pending).length===0)return;
+      // Reset is a staged, undoable batch operation, just like changing one
+      // note. No saved fingering changes until the user confirms the edit.
+      edit.undo.push({map:clone(edit.pending),midi:edit.midi});
+      edit.pending={};
+      renderDirection(edit.dir);
+      announceDraft();
     }
 
     for(const dir of ['up','down']){
@@ -605,7 +604,7 @@
       const restoreSelected=element('button',{type:'button',class:'cello-inline-restore-selected',
         title:'將目前選取的粉紅色修改音符還原 Werner 預設，並保留其他音'},'復原選取的修改');
       const reset=element('button',{type:'button',class:'cello-inline-reset',
-        title:'將整個方向全部自訂指法還原 Werner 預設'},'復原所有修改');
+        title:'暫時將整個方向還原預設；可按「上一步」撤銷，按「確認修改」才儲存'},'復原所有修改');
       const save=element('button',{type:'button',class:'cello-inline-save'},'確認修改');
       back.addEventListener('click',undo);
       restoreSelected.addEventListener('click',resetSelected);
@@ -620,7 +619,7 @@
       section.append(heading,viewport,editor,legend,memo);
       boards.append(section);
       panels[dir]={heading,viewport,editor,status,hint,stringChoices,
-        fingerChoices,range,back,restoreSelected,save,memo};
+        fingerChoices,range,back,restoreSelected,reset,save,memo};
     }
     root.append(toolbar,boards,dialog);
 
@@ -663,6 +662,7 @@
       pane.back.disabled=edit.undo.length===0;
       pane.restoreSelected.disabled=edit.midi===null||
         !Object.prototype.hasOwnProperty.call(edit.pending,String(edit.midi));
+      pane.reset.disabled=Object.keys(edit.pending).length===0;
       pane.save.disabled=!isDirty()||invalid>0;
       pane.stringChoices.replaceChildren();
       pane.fingerChoices.replaceChildren();
