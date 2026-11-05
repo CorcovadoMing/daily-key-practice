@@ -639,7 +639,7 @@ function saveFingering(){
     }
     function renderHistory(){
       const list=q('#history-list');list.replaceChildren();
-      const dates=Object.keys(state.sessions).filter(d=>d<=currentDate).sort().reverse().slice(0,7);
+      const dates=Object.keys(state.sessions).filter(d=>d<=currentDate).sort().reverse();
       if(dates.length===0){
         const empty=document.createElement('div');empty.className='history-empty';empty.textContent='還沒有練習紀錄。抽出第一組調性，從今天開始累積！';list.append(empty);return;
       }
@@ -654,7 +654,20 @@ function saveFingering(){
         for(const [mode,indices] of [['major',session.majorIds],['minor',session.minorIds]]){
           indices.forEach(i=>{const chip=document.createElement('span');chip.className=`history-chip${mode==='minor'?' minor':''}`;chip.textContent=`${keyName(mode,i)}${mode==='major'?' 大':' 小'}`;chips.append(chip);});
         }
-        row.append(chips);list.append(row);
+        const remove=document.createElement('button');
+        remove.type='button';
+        remove.className='history-delete';
+        remove.textContent='刪除';
+        remove.setAttribute('aria-label','刪除 '+formatDate(date)+' 的個人練習紀錄');
+        remove.addEventListener('click',()=>{
+          if(!window.confirm('確定要刪除 '+formatDate(date)+' 的個人練習紀錄嗎？\n此操作無法復原，且不會影響課堂房間。'))return;
+          delete state.sessions[date];
+          persist();
+          renderHistory();
+          if(date===currentDate&&!sharedRoom)renderResults();
+          showToast('已刪除該日的個人練習紀錄');
+        });
+        row.append(chips,remove);list.append(row);
       });
     }
     function render(){
@@ -689,11 +702,10 @@ function saveFingering(){
     q('#finger-form').addEventListener('submit',event=>{event.preventDefault();saveFingering();});
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshDate();});
     window.addEventListener('focus',refreshDate);
-    // Remove malformed entries and keep local storage compact (last 90 days).
+    // Preserve valid personal history until explicitly deleted by the user.
     Object.keys(state.sessions).forEach(d=>{
-      if(!/^\d{4}-\d{2}-\d{2}$/.test(d)||d<getLocalDateFromOffset(-90))delete state.sessions[d];
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(d))delete state.sessions[d];
     });
-    function getLocalDateFromOffset(offset){const d=new Date();d.setDate(d.getDate()+offset);const pad=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
     window.DailyKeyPractice={setClassroomRoom,getPreferences:()=>({...state.preferences}),showToast};
     render();
   </script>
