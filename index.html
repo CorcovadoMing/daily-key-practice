@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="v2026.11.06-007">
+  <meta name="site-version" content="v2026.11.06-008">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日練習｜大提琴 24 調音階練習</title>
   <style>
@@ -176,20 +176,16 @@
     @media(max-width:380px){
       .cello-fb-body>.cello-fb-legend,.teacher-fingerboard>.cello-fb-legend{grid-template-columns:repeat(2,minmax(0,1fr))}
     }
-    .cello-fb-dual-body{display:grid;grid-template-columns:minmax(0,1fr) 144px;align-items:start;gap:12px}
     .cello-fb-two-up{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:14px;min-width:0}
-    .cello-fb-direction{min-width:0;border:1px solid #e6ece6;border-radius:11px;padding:8px 6px;background:#fff}
+    .cello-fb-direction{display:flex;flex-direction:column;align-items:stretch;min-width:0;border:1px solid #e6ece6;border-radius:11px;padding:10px 8px;background:#fff;gap:8px}
+    .cello-fb-direction>.cello-fb-legend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 8px;margin-top:3px}
+    .cello-fb-direction>.cello-fb-legend .cello-legend-title{grid-column:1/-1}
+    .cello-fb-direction>.cello-fb-edit{margin-top:auto;align-self:stretch;width:100%;padding:10px}
     .cello-fb-direction-heading{margin:0 0 8px;font-size:13px;font-weight:850;color:#365a42;text-align:center}
     .fingering-changed,.cello-fb-changed{font-size:11px;font-weight:850;color:#ad315c;margin-left:5px}
     .cello-fb-changed{font-size:10px}
     @media(max-width:1250px){
       .cello-fb-two-up{grid-template-columns:1fr}
-    }
-    @media(max-width:700px){
-      .cello-fb-dual-body{grid-template-columns:1fr}
-      .cello-fb-dual-body>.cello-fb-legend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-      .cello-fb-dual-body>.cello-fb-legend .cello-legend-title,
-      .cello-fb-dual-body>.cello-fb-legend .cello-legend-note{grid-column:1/-1}
     }
         .cello-fb-svg{display:block;width:min(100%,390px);height:auto;overflow:visible}
     .cello-fb-sequence{border-top:1px solid #e5ece4;padding-top:9px;color:#415e48;line-height:1.9;font-size:11px;overflow-wrap:anywhere;font-weight:650}
@@ -399,12 +395,12 @@
       <div class="history-list" id="history-list"></div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">v2026.11.06-007</span></footer>
+  <footer class="container"><span>弓弦的每日練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">v2026.11.06-008</span></footer>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="fingering-presets.js?v=20261106-007"></script>
-  <script src="fingerboard.js?v=20261106-007"></script>
-  <script src="fingerboard-editor.js?v=20261106-007"></script>
+  <script src="fingering-presets.js?v=20261106-008"></script>
+  <script src="fingerboard.js?v=20261106-008"></script>
+  <script src="fingerboard-editor.js?v=20261106-008"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
@@ -444,6 +440,7 @@
     if(!state.fingerings || typeof state.fingerings !== 'object') state.fingerings={};
     if(!Array.isArray(state.preferences.excludedKeys))state.preferences.excludedKeys=[];
     let editingKeyId=null;
+    let editingDirection=null;
     let editingBoard=null;
     let sharedRoom = null; // Classroom state is distinct from personal browser history.
     let currentDate = getLocalDate();
@@ -599,37 +596,42 @@ function createCard(mode,index,doneIds){
    mark.textContent='（已修改）';
    header.append(mark);
  }
- const guide=window.CelloFingerboard.create(mode,key,note);
+ const guide=window.CelloFingerboard.create(mode,key,note,direction=>openFingeringEditor(id,direction));
  panel.append(header,guide);
- if(note&&(note.up||note.down)){const n=document.createElement('div');n.className='fingering-note';n.textContent=[note.up&&'↑ '+note.up,note.down&&'↓ '+note.down].filter(Boolean).join('\n');panel.append(n);}
- const edit=document.createElement('button');edit.type='button';edit.className='fingering-edit';edit.textContent='記錄／編輯老師的指法';
- edit.addEventListener('click',()=>openFingeringEditor(id));panel.append(edit);card.append(main,panel);
+ card.append(main,panel);
  return card;
 }
-function openFingeringEditor(id){
+function openFingeringEditor(id,direction){
+  if(direction!=='up'&&direction!=='down')return;
   editingKeyId=id;
+  editingDirection=direction;
   const [mode,index]=id.split('-');
   const key=(mode==='major'?MAJOR_KEYS:MINOR_KEYS)[Number(index)];
   const note=visibleFingerings()[id]||{};
-  q('#finger-dialog-key').textContent=`${key[0]} ${mode==='major'?'大調':'古典旋律小調'} · 拖曳或點選音符，移到同音高的另一個弦位。`;
-  editingBoard=window.CelloFingerboard.createEditor(mode,key,note);
+  const label=direction==='up'?'上行':'下行';
+  q('#finger-dialog-title').textContent='編輯'+label+'老師的指法';
+  q('#finger-dialog-key').textContent=`${key[0]} ${mode==='major'?'大調':'古典旋律小調'} · ${label} · 拖曳或點選音符，移到同音高的另一個弦位。`;
+  editingBoard=window.CelloFingerboard.createEditor(mode,key,note,direction);
   q('#finger-editor-container').replaceChildren(editingBoard.element);
   q('#finger-up').value=note.up||'';
   q('#finger-down').value=note.down||'';
+  q('#finger-up').hidden=direction!=='up';
+  q('#finger-down').hidden=direction!=='down';
+  q('label[for="finger-up"]').hidden=direction!=='up';
+  q('label[for="finger-down"]').hidden=direction!=='down';
   q('#finger-dialog').showModal();
 }
 function saveFingering(){
-  if(!editingKeyId||!editingBoard)return;
-  const id=editingKeyId;
+  if(!editingKeyId||!editingBoard||!editingDirection)return;
+  const id=editingKeyId,direction=editingDirection;
   const maps=editingBoard.getValue();
-  const note={
-    up:q('#finger-up').value.trim().slice(0,300),
-    down:q('#finger-down').value.trim().slice(0,300),
-    upMap:maps.upMap,
-    downMap:maps.downMap
-  };
+  // Merge with latest local or shared data; never overwrite the other direction.
+  const note={...(visibleFingerings()[id]||{})};
+  note[direction]=q('#finger-'+direction).value.trim().slice(0,300);
+  note[direction+'Map']=maps[direction+'Map'];
   q('#finger-dialog').close();
   editingKeyId=null;
+  editingDirection=null;
   editingBoard=null;
   if(sharedRoom){
     window.classroomSync?.setFingering(id,note);
