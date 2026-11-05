@@ -66,6 +66,12 @@
             },
             "$other": {
               ".validate": false
+            },
+            "upMap": {
+              ".validate": "newData.isString() && newData.val().length <= 1800"
+            },
+            "downMap": {
+              ".validate": "newData.isString() && newData.val().length <= 1800"
             }
           }
         },
