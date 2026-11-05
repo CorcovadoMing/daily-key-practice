@@ -1,0 +1,55 @@
+name: Publish stable and experimental together
+# Enable Pages: Settings > Pages > Build and deployment > GitHub Actions.
+# The existing branch-based Pages source remains active until you switch it.
+# Once switched, run this workflow manually first; then enable the push trigger.
+on:
+  workflow_dispatch:
+  # push:
+  #   branches: [main, experimental]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: publish-both-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout stable
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          path: stable
+      - name: Checkout experimental
+        uses: actions/checkout@v6
+        with:
+          ref: experimental
+          path: experiment
+      - name: Combine both branch snapshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _site/experimental
+          for file in index.html fingering-presets.js fingerboard.js fingerboard-editor.js classroom.js firebase-config.js; do
+            cp "stable/$file" "_site/$file"
+            cp "experiment/$file" "_site/experimental/$file"
+          done
+          touch _site/.nojekyll
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
