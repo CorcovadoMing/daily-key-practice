@@ -638,6 +638,53 @@
     function currentSession(){ return sharedRoom ? sharedRoom.session : state.sessions[currentDate]; }
     function visiblePreferences(){ return sharedRoom || state.preferences; }
     function visibleFingerings(){ return sharedRoom ? (sharedRoom.fingerings||{}) : state.fingerings; }
+    function recordSnapshot(session,extra={}){
+      return {...extra,date:session.date,createdAt:session.createdAt,drawnAt:session.drawnAt||session.createdAt,
+        majorIds:[...session.majorIds],minorIds:[...session.minorIds],doneIds:[...(session.doneIds||[])],
+        ...(session.sequenceMode?{sequenceMode:session.sequenceMode}:{})};
+    }
+    function initializePersonalHistory(){
+      let changed=false;
+      for(const [date,session] of Object.entries(state.sessions)){
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||
+          !Array.isArray(session?.majorIds)||!Array.isArray(session?.minorIds))continue;
+        if(!session.historyId){session.historyId='old:'+date+':'+(session.createdAt||0);changed=true;}
+        if(!state.personalHistory.some(item=>item.id===session.historyId)){
+          state.personalHistory.push(recordSnapshot({...session,date},{id:session.historyId}));
+          changed=true;
+        }
+      }
+      if(changed)persist();
+    }
+    function archiveClassroomSession(roomId,data){
+      const session=data?.session;
+      if(!roomId||!session||!Array.isArray(session.majorIds)||!Array.isArray(session.minorIds)||
+        !session.date||!Number.isFinite(session.createdAt))return false;
+      const id='room:'+roomId+':'+session.createdAt;
+      if(state.deletedClassroomHistoryIds.includes(id))return false;
+      const index=state.classroomHistory.findIndex(item=>item.id===id);
+      const old=index>=0?state.classroomHistory[index]:null;
+      const redrawn=old&&(JSON.stringify(old.majorIds)!==JSON.stringify(session.majorIds)||
+        JSON.stringify(old.minorIds)!==JSON.stringify(session.minorIds));
+      const drawnAt=redrawn&&Number.isFinite(data.updatedAt)?data.updatedAt:(old?.drawnAt||session.createdAt);
+      const next=recordSnapshot({...session,drawnAt},{id,roomId});
+      if(old&&JSON.stringify(old)===JSON.stringify(next))return false;
+      if(index<0)state.classroomHistory.push(next);else state.classroomHistory[index]=next;
+      persist();return true;
+    }
+    function storePersonalSession(session,action){
+      const history=state.personalHistory.filter(item=>item.date===session.date)
+        .sort((a,b)=>(b.drawnAt||b.createdAt||0)-(a.drawnAt||a.createdAt||0));
+      const previous=state.sessions[session.date];
+      const target=action==='overwrite'?(previous?.historyId||history[0]?.id):null;
+      const id=target||'p:'+Date.now()+':'+Math.random().toString(36).slice(2,10);
+      session.historyId=id;
+      state.sessions[session.date]=session;
+      const index=state.personalHistory.findIndex(item=>item.id===id);
+      const snapshot=recordSnapshot(session,{id});
+      if(index>=0)state.personalHistory[index]=snapshot;else state.personalHistory.push(snapshot);
+      persist();
+    }
     // Follow the exact ascending-signature progression displayed in the filters:
     // natural first, then one through six sharps, then one through six flats.
     function signatureRank(count){return count===0?0:count>0?count:6-count;}
@@ -718,6 +765,7 @@
       const previous=sharedRoom;
       if(previous?.id!==id)roomEditingPreviews={};
       if(id)inheritConfirmedFingerings(id,data);
+      const historyChanged=id?archiveClassroomSession(id,data):false;
       if(!id){sharedRoom=null;roomEditingPreviews={};}
       else sharedRoom={id,majorCount:clamp(data?.majorCount??2),minorCount:clamp(data?.minorCount??2),showScale:Boolean(data?.showScale),excludedKeys:Array.isArray(data?.excludedKeys)?data.excludedKeys:[],fingerings:data?.fingerings&&typeof data.fingerings==='object'?data.fingerings:{},session:data?.session?{...data.session,majorIds:Array.isArray(data.session.majorIds)?data.session.majorIds:[],minorIds:Array.isArray(data.session.minorIds)?data.session.minorIds:[],doneIds:Array.isArray(data.session.doneIds)?data.session.doneIds:[]}:null};
       // Room updates must not destroy a teacher's unsaved batch edit. When only
@@ -741,6 +789,7 @@
             item.button.querySelector('.check-circle').textContent=finished?'✓':'';
           }
         }
+        if(historyChanged)renderHistory();
         return;
       }
       render();
@@ -990,6 +1039,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     Object.keys(state.sessions).forEach(d=>{
       if(!/^\d{4}-\d{2}-\d{2}$/.test(d))delete state.sessions[d];
     });
+    initializePersonalHistory();
     window.DailyKeyPractice={setClassroomRoom,setClassroomDrafts,
       getPreferences:()=>({...state.preferences}),showToast};
     render();
