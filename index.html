@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="description" content="從 12 個大調、12 個爵士旋律小調隨機抽選，支援課堂多人即時同步。">
+  <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>今日練什麼調？｜每日 24 調抽籤器</title>
   <style>
     :root {
@@ -114,6 +114,8 @@
     .key-secondary{display:block;font-size:11px;font-weight:650;color:#8b928e;margin-top:7px;white-space:nowrap}
     .scale-notes{display:none;color:#596b60;font-size:11px;line-height:1.8;word-break:normal;overflow-wrap:anywhere;margin-top:8px;border-top:1px dashed #dfe6dc;padding-top:7px}
     .show-scales .scale-notes{display:block}
+    .scale-line{display:block;margin:5px 0;line-height:1.8}
+    .scale-line b{display:block;color:var(--minor-ink);font-weight:750;font-size:10px}
     .result-bottom{margin-top:23px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
     .toggle-wrap{display:flex;gap:8px;align-items:center;font-size:12px;color:#66706a;cursor:pointer;user-select:none}
     .toggle-wrap input{accent-color:#3f764d;width:15px;height:15px;margin:0}
@@ -142,9 +144,9 @@
     <div class="container masthead-inner">
       <div class="brand">
         <div class="brand-logo" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16M7 4v9M13 4v9M19 4v9"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><ellipse cx="6" cy="18.5" rx="3" ry="2"/><ellipse cx="17" cy="16.5" rx="3" ry="2"/></svg>
         </div>
-        <span>今日練什麼調？<small>DAILY KEY PRACTICE</small></span>
+        <span>今日練什麼調？<small>CELLO SCALE PRACTICE</small></span>
       </div>
       <span class="header-tag">24 KEYS · 每日一練</span>
     </div>
@@ -155,7 +157,7 @@
       <div>
         <div class="eyebrow">Make music a little every day</div>
         <h1 id="page-title">今天，練幾個<em>調</em>？</h1>
-        <p>從 12 個大調、12 個小調中，隨機挑選今天的練習清單。<br>少一點猶豫，多一點音樂。</p>
+        <p>為大提琴課從 12 個大調、12 個古典旋律小調中抽選練習清單。<br>每天練好音準、運弓與音階。</p>
       </div>
       <div class="date-label">TODAY <strong id="today-label">—</strong></div>
     </section>
@@ -178,7 +180,7 @@
             <div class="stepper" aria-label="大調抽取數量"><button type="button" id="major-minus" aria-label="減少大調數量">−</button><output class="count-output" id="major-count" aria-live="polite">2</output><button type="button" id="major-plus" aria-label="增加大調數量">+</button></div>
           </div>
           <div class="counter-item">
-            <div><div class="counter-name"><i class="key-dot minor" aria-hidden="true"></i>小調 <span class="caption">MINOR</span></div><div class="counter-desc">12 個爵士旋律小調可抽</div></div>
+            <div><div class="counter-name"><i class="key-dot minor" aria-hidden="true"></i>小調 <span class="caption">MINOR</span></div><div class="counter-desc">12 個古典旋律小調可抽</div></div>
             <div class="stepper" aria-label="小調抽取數量"><button type="button" id="minor-minus" aria-label="減少小調數量">−</button><output class="count-output" id="minor-count" aria-live="polite">2</output><button type="button" id="minor-plus" aria-label="增加小調數量">+</button></div>
           </div>
         </div>
@@ -213,7 +215,7 @@
             <label class="toggle-wrap"><input id="scale-toggle" type="checkbox">顯示音階提示</label>
             <span class="caption">點一下調性，即可標記完成 ✓</span>
           </div>
-          <p class="hint">小調統一採用 Jazz Melodic Minor：自然小調升高第 6、7 音，上下行相同（非古典下行自然小調）。</p>
+          <p class="hint">古典旋律小調（Classical Melodic Minor）：上行升高自然小調第 6、7 級；下行恢復自然小調。音階提示列出上行與下行兩個方向。</p>
         </div>
       </section>
     </div>
@@ -223,7 +225,7 @@
       <div class="history-list" id="history-list"></div>
     </section>
   </main>
-  <footer class="container"><span>每日一點練習，慢慢累積成自己的聲音。</span><span>12 MAJOR + 12 MINOR · MADE FOR PRACTICE</span></footer>
+  <footer class="container"><span>每天練一點音階，慢慢累積大提琴的聲音。</span><span>12 MAJOR + 12 MINOR · MADE FOR PRACTICE</span></footer>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script>
@@ -244,19 +246,20 @@
       ['B♭',-2,'B♭ C D E♭ F G A'],
       ['B',5,'B C♯ D♯ E F♯ G♯ A♯']
     ];
+    // [name, signature key accidentals, ascending melodic minor, descending natural minor]
     const MINOR_KEYS = [
-      ['C',-3,'C D E♭ F G A B'],
-      ['C♯',4,'C♯ D♯ E F♯ G♯ A♯ B♯'],
-      ['D',-1,'D E F G A B C♯'],
-      ['E♭',-6,'E♭ F G♭ A♭ B♭ C D'],
-      ['E',1,'E F♯ G A B C♯ D♯'],
-      ['F',-4,'F G A♭ B♭ C D E'],
-      ['F♯',3,'F♯ G♯ A B C♯ D♯ E♯'],
-      ['G',-2,'G A B♭ C D E F♯'],
-      ['G♯',5,'G♯ A♯ B C♯ D♯ E♯ F𝄪'],
-      ['A',0,'A B C D E F♯ G♯'],
-      ['B♭',-5,'B♭ C D♭ E♭ F G A'],
-      ['B',2,'B C♯ D E F♯ G♯ A♯']
+      ["C",-3,"C D E♭ F G A B","C D E♭ F G A♭ B♭"],
+      ["C♯",4,"C♯ D♯ E F♯ G♯ A♯ B♯","C♯ D♯ E F♯ G♯ A B"],
+      ["D",-1,"D E F G A B C♯","D E F G A B♭ C"],
+      ["E♭",-6,"E♭ F G♭ A♭ B♭ C D","E♭ F G♭ A♭ B♭ C♭ D♭"],
+      ["E",1,"E F♯ G A B C♯ D♯","E F♯ G A B C D"],
+      ["F",-4,"F G A♭ B♭ C D E","F G A♭ B♭ C D♭ E♭"],
+      ["F♯",3,"F♯ G♯ A B C♯ D♯ E♯","F♯ G♯ A B C♯ D E"],
+      ["G",-2,"G A B♭ C D E F♯","G A B♭ C D E♭ F"],
+      ["G♯",5,"G♯ A♯ B C♯ D♯ E♯ F𝄪","G♯ A♯ B C♯ D♯ E F♯"],
+      ["A",0,"A B C D E F♯ G♯","A B C D E F G"],
+      ["B♭",-5,"B♭ C D♭ E♭ F G A","B♭ C D♭ E♭ F G♭ A♭"],
+      ["B",2,"B C♯ D E F♯ G♯ A♯","B C♯ D E F♯ G A"]
     ];
     const STORAGE_KEY = 'daily-key-practice:v1';
     const q = selector => document.querySelector(selector);
@@ -351,13 +354,13 @@
       button.className=`key-card${done?' done':''}`;
       button.setAttribute('aria-pressed',String(done));
       button.setAttribute('aria-label',`${key[0]} ${mode==='major'?'大調':'小調'}，${done?'已完成':'未完成'}，點擊切換`);
-      button.innerHTML=`<span class="check-circle" aria-hidden="true">${done?'✓':''}</span><span class="key-card-content"><span class="key-primary">${key[0]}</span><span class="key-secondary">${mode==='major'?`MAJOR · ${signature(key[1])}`:'MELODIC MINOR'}</span><span class="scale-notes">${key[2]}</span></span>`;
+      button.innerHTML=`<span class="check-circle" aria-hidden="true">${done?'✓':''}</span><span class="key-card-content"><span class="key-primary">${key[0]}</span><span class="key-secondary">${mode==='major'?`MAJOR · ${signature(key[1])}`:'CLASSICAL MELODIC MINOR'}</span><span class="scale-notes">${mode==='major' ? key[2] : `<span class="scale-line"><b>↑ 上行</b> ${[...key[2].split(' '),key[0]].join(' ')}</span><span class="scale-line"><b>↓ 下行</b> ${[key[0],...key[3].split(' ').slice(1).reverse(),key[0]].join(' ')}</span>`}</span></span>`;
       button.addEventListener('click',()=>toggleComplete(id));
       return button;
     }
     function renderGroups(session){
       const container=q('#key-groups');container.replaceChildren();
-      for(const [mode,indices,label] of [['major',session.majorIds,'大調 MAJOR'],['minor',session.minorIds,'旋律小調 MELODIC MINOR']]){
+      for(const [mode,indices,label] of [['major',session.majorIds,'大調 MAJOR'],['minor',session.minorIds,'古典旋律小調 MELODIC MINOR']]){
         if(!Array.isArray(indices)||!indices.length) continue;
         const section=document.createElement('section');section.className='key-group';
         const heading=document.createElement('div');heading.className='key-group-title';
