@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="v2026.11.06-002">
+  <meta name="site-version" content="v2026.11.06-003">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日練習｜大提琴 24 調音階練習</title>
   <style>
@@ -57,15 +57,6 @@
     .room-join-line input{width:142px;min-width:0;border-radius:10px;border:1px solid #b9d0be;padding:11px 12px;background:white;font:750 18px ui-monospace,monospace;letter-spacing:.12em;color:#293c2f}
     .room-join-line input::placeholder{font-size:13px;letter-spacing:0;font-family:ui-sans-serif,system-ui,sans-serif;font-weight:500;color:#9baba0}
     .room-code-display{margin-top:15px;background:#fff;border:2px solid #92ba99;border-radius:15px;padding:16px 23px;display:flex;flex-direction:column;gap:6px;width:max-content;max-width:100%;box-shadow:0 8px 22px rgba(43,77,49,.08)}
-    .room-dialog{border:0;border-radius:23px;padding:0;width:min(390px,calc(100% - 32px));max-width:100%;box-shadow:0 28px 96px rgba(0,0,0,.28);color:var(--ink);background:#fff}
-    .room-dialog::backdrop{background:rgba(16,28,19,.64)}
-    .room-dialog-inner{padding:31px 25px 26px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}
-    .room-dialog-title{font-size:21px;margin:0;font-weight:850}
-    .room-dialog-help{font-size:13px;line-height:1.75;color:#667c6b;margin:0}
-    .room-dialog-code{font:850 clamp(38px,11vw,55px) ui-monospace,monospace;letter-spacing:.12em;color:#245433;background:#eff6ec;border:2px solid #d4e4d1;border-radius:15px;padding:16px 20px;margin:7px 0 9px;font-variant-numeric:tabular-nums;width:100%;box-sizing:border-box}
-    .room-dialog-actions{width:100%;display:flex;flex-direction:column;gap:9px}
-    .room-dialog-actions button{font:750 14px ui-sans-serif,system-ui,sans-serif;border-radius:11px;padding:14px 16px;border:1px solid #d7e0d6;background:white;color:#335640}
-    .room-dialog-actions button.primary{background:#304c37;color:white;border-color:#304c37}
     .room-code-display .code-caption{font-size:11px;font-weight:700;color:#52735b}
     .room-code-display strong{font:850 34px ui-monospace,monospace;letter-spacing:.12em;color:#24472e;font-variant-numeric:tabular-nums}
     .room-code-display small{color:#7b8980;font-size:11px}
@@ -224,7 +215,11 @@
     .history-row{background:#fff;border:1px solid var(--line);border-radius:14px;padding:17px 20px;display:flex;justify-content:space-between;align-items:center;gap:15px}
     .history-date{font-weight:750;font-size:13px;min-width:86px}
     .history-date small{display:block;color:#909894;font-size:11px;font-weight:500;margin-top:4px}
-    .history-keys{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+    .history-keys{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;flex:1;min-width:0}
+    .history-delete{flex:none;background:#fff;color:#a45454;border:1px solid #ead2d2;padding:8px 11px;border-radius:9px;font-size:11px;font-weight:750}
+    .history-delete:hover{background:#fdf1f1;border-color:#dba7a7}
+    .history-delete:focus-visible{outline:3px solid #bb8181;outline-offset:2px}
+    @media(max-width:480px){.history-row{flex-wrap:wrap;gap:10px}.history-keys{justify-content:flex-start;flex-basis:calc(100% - 85px)}.history-delete{margin-left:auto}}
     .history-chip{border-radius:6px;padding:6px 9px;background:#e9f2e8;color:#395843;font-weight:750;font-size:12px}
     .history-chip.minor{background:#f0eaf8;color:#655178}
     footer{border-top:1px solid var(--line);padding:24px 0 33px;color:#a1a8a1;font-size:12px;display:flex;justify-content:space-between;gap:18px}
@@ -288,19 +283,6 @@
       </div>
     </section>
 
-    <dialog class="room-dialog" id="room-created-dialog" aria-labelledby="room-created-title" aria-describedby="room-created-help">
-      <div class="room-dialog-inner">
-        <span aria-hidden="true" style="font-size:34px">🎻</span>
-        <h2 class="room-dialog-title" id="room-created-title">同步房間建立成功！</h2>
-        <p class="room-dialog-help" id="room-created-help">這是你的六位數課堂房號。<br>直接唸給老師或學生，對方就能加入同一間房。</p>
-        <output class="room-dialog-code" id="room-dialog-code" aria-label="課堂六位數房號">------</output>
-        <div class="room-dialog-actions">
-          <button type="button" id="room-dialog-close" class="primary">我記住房號了，開始練習</button>
-          <button type="button" id="room-dialog-copy">複製六位數房號</button>
-        </div>
-        <p class="room-dialog-help">關閉後，房號仍會保留在網頁上方，24 小時內有效。</p>
-      </div>
-    </dialog>
     <dialog id="finger-dialog" class="finger-dialog" aria-labelledby="finger-dialog-title">
       <form id="finger-form" class="finger-form">
         <h2 id="finger-dialog-title">視覺化編輯老師的指法</h2>
@@ -383,10 +365,10 @@
       <div class="history-list" id="history-list"></div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">v2026.11.06-002</span></footer>
+  <footer class="container"><span>弓弦的每日練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">v2026.11.06-003</span></footer>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="fingerboard.js?v=20261106-002"></script>
+  <script src="fingerboard.js?v=20261106-003"></script>
   <script src="fingerboard-editor.js?v=20261106-002"></script>
   <script>
     'use strict';
@@ -716,6 +698,6 @@ function saveFingering(){
     render();
   </script>
   <script src="firebase-config.js?v=20261106-001"></script>
-  <script type="module" src="classroom.js?v=20261106-001"></script>
+  <script type="module" src="classroom.js?v=20261106-003"></script>
 </body>
 </html>
