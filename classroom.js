@@ -358,7 +358,13 @@ window.classroomSync = {
     if(!/^(major|minor)-(?:[0-9]|10|11)$/.test(id)) return;
     return changeRoom(current => {
       const fingerings={...(current.fingerings||{})};
-      if(note.up || note.down) fingerings[id]={up:String(note.up||'').slice(0,300),down:String(note.down||'').slice(0,300)};
+      const next={};
+      for(const field of ['up','down','upMap','downMap']){
+        const max=field.endsWith('Map')?1800:300;
+        const value=typeof note?.[field]==='string'?note[field].slice(0,max):'';
+        if(value)next[field]=value;
+      }
+      if(Object.keys(next).length)fingerings[id]=next;
       else delete fingerings[id];
       if(!Object.keys(fingerings).length) {
         const {...rest}=current;
