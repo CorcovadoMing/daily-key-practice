@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#f7f6f2">
   <meta name="site-version" content="2026-11-06.3">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
-  <title>音階命運交響曲｜大提琴 24 調練習室</title>
+  <title>琴弦抽調所｜大提琴 24 調練習抽籤</title>
   <style>
     :root {
       color-scheme: light;
@@ -81,19 +81,28 @@
     .section-number{font-size:11px;letter-spacing:.16em;font-weight:750;color:#9caaa2}
     .caption{font-size:12px;color:var(--muted);line-height:1.7}
     .counter-list{display:grid;gap:12px}
-    .key-filter{margin-top:23px;padding-top:20px;border-top:1px solid var(--line)}
+    .key-filter{margin:0 0 22px;padding:16px;border:1px solid #dbe5d8;background:#f7faf5;border-radius:16px}
+    .key-pool-actions{display:flex;gap:5px}
+    .signature-section{margin-top:13px}
+    .signature-section-title{font-size:11px;font-weight:850;color:#728874;margin-bottom:7px}
+    .signature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+    .signature-card{display:flex;align-items:center;gap:5px;background:#fff;border:1px solid #e2eae0;border-radius:10px;padding:6px;min-width:0}
+    .signature-label{font-size:11px;font-weight:850;color:#778b7b;min-width:23px;text-align:center;flex:none}
+    .signature-chips{display:flex;gap:4px;flex-wrap:wrap;min-width:0}
+    .filter-status{font-size:11px;color:#5b7762;display:flex;gap:12px;flex-wrap:wrap;margin-top:11px}
+    @media(max-width:430px){.key-filter{padding:12px}.signature-grid{gap:5px}.signature-card{padding:5px;gap:3px}.signature-label{min-width:19px}.filter-key{font-size:10px;padding:6px 5px}}
     .filter-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
     .filter-heading h3{margin:0;font-size:14px;font-weight:800}
-    .filter-all{border:1px solid #d8e4d7;background:#f6faf5;border-radius:9px;padding:7px 10px;font-size:11px;font-weight:750;color:#386246}
+    .filter-all{border:1px solid #d8e4d7;background:#fff;border-radius:9px;padding:7px 10px;font-size:11px;font-weight:750;color:#386246}
     .filter-explain{font-size:11px;color:#77847b;line-height:1.65;margin:7px 0 14px}
     .filter-subhead{font-size:11px;font-weight:800;margin:15px 0 8px;color:#506653;display:flex;align-items:center;justify-content:space-between}
     .filter-subhead.minor{color:#6b547d}
     .filter-keys{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
-    .filter-key{border:1px solid #d5e2d4;background:#e8f2e7;color:#315e3b;border-radius:10px;min-width:0;padding:8px 2px 7px;text-align:center;display:grid;gap:2px}
+    .filter-key{border:1px solid #d5e2d4;background:#e8f2e7;color:#315e3b;border-radius:8px;min-width:0;padding:7px 8px;text-align:center;display:flex;align-items:center;gap:3px}
     .filter-key.minor{background:#f0eaf7;border-color:#e3d9f0;color:#5c4775}
     .filter-key[aria-pressed="false"]{background:#fafafa;border-color:#e7e9e7;color:#9fa7a1;opacity:.72}
-    .filter-key strong{font-size:13px;font-weight:850}
-    .filter-key small{font-size:9px;font-weight:650}
+    .filter-key strong{font-size:12px;font-weight:850}
+    .filter-key small{font-size:10px;font-weight:700}
     .filter-count{font-size:10px;color:#7e8b81;font-weight:650}
     .filter-warning{font-size:11px;color:#a45a32;line-height:1.6;margin-top:9px}
 
@@ -212,7 +221,7 @@
         <div class="brand-logo" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><ellipse cx="6" cy="18.5" rx="3" ry="2"/><ellipse cx="17" cy="16.5" rx="3" ry="2"/></svg>
         </div>
-        <span>音階命運交響曲<small>CELLO SCALE STUDIO</small></span>
+        <span>琴弦抽調所<small>CELLO SCALE ROULETTE</small></span>
       </div>
       <span class="header-tag">24 KEYS · 每日一練</span>
     </div>
@@ -222,8 +231,8 @@
     <section class="intro" aria-labelledby="page-title">
       <div>
         <div class="eyebrow">A little surprise in every scale</div>
-        <h1 id="page-title">今天，讓<em>哪個調</em>登場？</h1>
-        <p>為大提琴課從 12 個大調、12 個古典旋律小調中抽選練習清單。<br>每天練好音準、運弓與音階。</p>
+        <h1 id="page-title">今天，琴弦帶你走哪個<em>調</em>？</h1>
+        <p>先挑好想練的調號，讓抽籤決定今天的大提琴音階任務。<br>12 個大調、12 個古典旋律小調，每次練習都有新挑戰。</p>
       </div>
       <div class="date-label">TODAY <strong id="today-label">—</strong></div>
     </section>
@@ -288,24 +297,25 @@
     <div class="workspace">
       <section class="panel" aria-labelledby="settings-title">
         <div class="panel-head"><h2 class="panel-title" id="settings-title">設定抽籤數量</h2><span class="section-number">01 / SETUP</span></div>
+        <section class="key-filter" aria-labelledby="key-filter-title">
+          <div class="filter-heading">
+            <h3 id="key-filter-title">今天要練哪些調？</h3>
+            <div class="key-pool-actions"><button type="button" id="filter-all" class="filter-all">全部選取</button><button type="button" id="filter-none" class="filter-all">全部取消</button></div>
+          </div>
+          <p class="filter-explain">預設 24 調全選。按亮的調性會進入抽籤池；灰色代表排除。依調號分組，可分別選擇大調及小調。</p>
+          <div id="signature-filters" aria-label="依升降記號分類的 24 個候選調性"></div>
+          <div class="filter-status"><span>大調 <b id="major-eligible">12 / 12</b></span><span>古典旋律小調 <b id="minor-eligible">12 / 12</b></span></div>
+          <p id="filter-warning" class="filter-warning" role="status" hidden></p>
+        </section>
         <div class="counter-list">
           <div class="counter-item">
-            <div><div class="counter-name"><i class="key-dot" aria-hidden="true"></i>大調 <span class="caption">MAJOR</span></div><div class="counter-desc">12 個大調可抽</div></div>
+            <div><div class="counter-name"><i class="key-dot" aria-hidden="true"></i>大調 <span class="caption">MAJOR</span></div><div class="counter-desc" id="major-available">12 個大調可抽</div></div>
             <div class="stepper" aria-label="大調抽取數量"><button type="button" id="major-minus" aria-label="減少大調數量">−</button><output class="count-output" id="major-count" aria-live="polite">2</output><button type="button" id="major-plus" aria-label="增加大調數量">+</button></div>
           </div>
           <div class="counter-item">
-            <div><div class="counter-name"><i class="key-dot minor" aria-hidden="true"></i>小調 <span class="caption">MINOR</span></div><div class="counter-desc">12 個古典旋律小調可抽</div></div>
+            <div><div class="counter-name"><i class="key-dot minor" aria-hidden="true"></i>小調 <span class="caption">MINOR</span></div><div class="counter-desc" id="minor-available">12 個古典旋律小調可抽</div></div>
             <div class="stepper" aria-label="小調抽取數量"><button type="button" id="minor-minus" aria-label="減少小調數量">−</button><output class="count-output" id="minor-count" aria-live="polite">2</output><button type="button" id="minor-plus" aria-label="增加小調數量">+</button></div>
           </div>
-        </div>
-        <div class="key-filter" aria-labelledby="key-filter-title">
-          <div class="filter-heading"><h3 id="key-filter-title">抽籤候選調性</h3><button type="button" id="filter-all" class="filter-all">全部選取</button></div>
-          <p class="filter-explain">依調號（♯ 升記號／♭ 降記號）排列。按下的調性才會進入抽籤池，預設 24 調全選；課堂房間內會同步選擇。</p>
-          <div class="filter-subhead">大調 MAJOR <span id="major-eligible" class="filter-count">12 / 12</span></div>
-          <div id="major-filter" class="filter-keys" role="group" aria-label="大調候選調性"></div>
-          <div class="filter-subhead minor">古典旋律小調 MINOR <span id="minor-eligible" class="filter-count">12 / 12</span></div>
-          <div id="minor-filter" class="filter-keys" role="group" aria-label="小調候選調性"></div>
-          <p id="filter-warning" class="filter-warning" role="status" hidden></p>
         </div>
         <div class="preset-area"><span class="field-label">快速設定</span><div class="presets" id="presets">
           <button type="button" class="preset" data-major="1" data-minor="1">1 大 + 1 小</button>
@@ -424,33 +434,53 @@
       state.preferences.excludedKeys=next;persist();renderControls();
     }
     function renderKeyFilters(){
-      for(const mode of ['major','minor']){
-        const container=q('#'+mode+'-filter');
-        container.replaceChildren();
-        const arr=mode==='major'?MAJOR_KEYS:MINOR_KEYS;
-        const sorted=arr.map((key,index)=>({key,index})).sort((a,b)=>a.key[1]-b.key[1]);
-        for(const {key,index} of sorted){
-          const id=selectedId(mode,index),selected=!excludedKeys().includes(id);
-          const button=document.createElement('button');
-          button.type='button';button.className='filter-key'+(mode==='minor'?' minor':'');
-          button.setAttribute('aria-pressed',String(selected));
-          button.setAttribute('aria-label',key[0]+(mode==='major'?'大調':'小調')+' '+signature(key[1])+(selected?' 已加入抽籤':' 已排除'));
-          const label=document.createElement('strong');label.textContent=key[0];
-          const detail=document.createElement('small');detail.textContent=key[1]===0?'無升降':key[1]>0?'♯ '+key[1]:'♭ '+(-key[1]);
-          button.append(label,detail);
-          button.addEventListener('click',()=>{
-            const set=new Set(excludedKeys());
-            if(set.has(id))set.delete(id);else set.add(id);
-            updateExclusions([...set]);
-          });
-          container.append(button);
+      const container=q('#signature-filters');
+      container.replaceChildren();
+      const excluded=new Set(excludedKeys());
+      const groups=[
+        {label:'無升降記號',values:[0]},
+        {label:'升記號 ♯',values:[1,2,3,4,5,6]},
+        {label:'降記號 ♭',values:[-1,-2,-3,-4,-5,-6]}
+      ];
+      for(const group of groups){
+        const section=document.createElement('section');section.className='signature-section';
+        const heading=document.createElement('div');heading.className='signature-section-title';heading.textContent=group.label;
+        const grid=document.createElement('div');grid.className='signature-grid';
+        for(const sig of group.values){
+          const card=document.createElement('div');card.className='signature-card';
+          const label=document.createElement('span');label.className='signature-label';label.textContent=sig===0?'0':(sig>0?'♯':'♭')+Math.abs(sig);
+          const chips=document.createElement('div');chips.className='signature-chips';
+          for(const mode of ['major','minor']){
+            const arr=mode==='major'?MAJOR_KEYS:MINOR_KEYS;
+            const index=arr.findIndex(key=>key[1]===sig);
+            if(index<0)continue;
+            const key=arr[index],id=selectedId(mode,index),on=!excluded.has(id);
+            const button=document.createElement('button');button.type='button';
+            button.className='filter-key'+(mode==='minor'?' minor':'');
+            button.setAttribute('aria-pressed',String(on));
+            button.setAttribute('aria-label',key[0]+(mode==='major'?'大調':'古典旋律小調')+' '+signature(sig)+(on?' 已加入抽籤':' 已排除'));
+            const name=document.createElement('strong');name.textContent=key[0];
+            const suffix=document.createElement('small');suffix.textContent=mode==='major'?'大':'小';
+            button.append(name,suffix);
+            button.addEventListener('click',()=>{
+              const next=new Set(excludedKeys());
+              if(next.has(id))next.delete(id);else next.add(id);
+              updateExclusions([...next]);
+            });
+            chips.append(button);
+          }
+          card.append(label,chips);grid.append(card);
         }
-        q('#'+mode+'-eligible').textContent=eligible(mode).length+' / 12';
+        section.append(heading,grid);container.append(section);
       }
-      const p=visiblePreferences(),over=p.majorCount>eligible('major').length||p.minorCount>eligible('minor').length;
-      const warning=q('#filter-warning');
-      warning.hidden=!over;
-      warning.textContent=over?'目前選擇的候選調性少於要抽的數量；請增加候選調性或減少抽籤數量。':'';
+      const major=eligible('major').length,minor=eligible('minor').length;
+      q('#major-eligible').textContent=major+' / 12';
+      q('#minor-eligible').textContent=minor+' / 12';
+      q('#major-available').textContent=major+' / 12 個大調可抽';
+      q('#minor-available').textContent=minor+' / 12 個古典旋律小調可抽';
+      const p=visiblePreferences(),over=p.majorCount>major||p.minorCount>minor;
+      const warning=q('#filter-warning');warning.hidden=!over;
+      warning.textContent=over?'候選調性不足：請增加候選調性，或減少抽籤數量。':'';
     }
     function setClassroomRoom(id,data){
       if(!id) sharedRoom=null;
@@ -635,6 +665,7 @@ function saveFingering(){
     q('#draw-button').addEventListener('click',drawToday);
     q('#copy-button').addEventListener('click',copyList);
     q('#filter-all').addEventListener('click',()=>updateExclusions([]));
+    q('#filter-none').addEventListener('click',()=>updateExclusions([...MAJOR_KEYS.map((_,i)=>selectedId('major',i)),...MINOR_KEYS.map((_,i)=>selectedId('minor',i))]));
     q('#finger-cancel').addEventListener('click',()=>q('#finger-dialog').close());
     q('#finger-form').addEventListener('submit',event=>{event.preventDefault();saveFingering();});
     q('#scale-toggle').addEventListener('change',e=>{
