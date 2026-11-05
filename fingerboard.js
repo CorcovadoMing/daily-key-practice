@@ -124,7 +124,7 @@
     const entries=[
       ['open','空弦'],['half','半把位'],['first','第一把位'],
       ['extended','延伸把位'],['shifting','其他把位'],['high','高把位'],
-      ['unverified','照片未核對'],['custom','老師／學生修改']
+      ['custom','老師／學生修改']
     ];
     for(const [group,label] of entries){
       const item=element('div',{class:'cello-legend-item'});
@@ -133,7 +133,6 @@
       item.append(marker,element('span',{},label));
       aside.append(item);
     }
-    aside.append(element('p',{class:'cello-legend-note'},'12 個大調的指號已逐調確認；弦位及把位色彩依音高與指型推排，可由老師修改。小調仍有待核對的指號。'));
     return aside;
   }
 
@@ -212,7 +211,7 @@
     return svg;
   }
 
-  function create(mode,key,annotations={}){
+  function create(mode,key,annotations={},onEdit=null){
     const id=(mode==='major'?'major-':'minor-')+key[0];
     const octaves=choices.get(id)||2;
     const root=element('div',{class:'cello-fingerboard'});
@@ -228,7 +227,14 @@
         heading.append(element('span',{class:'cello-fb-changed'},'（已修改）'));
       }
       const viewport=element('div',{class:'cello-fb-viewport'});
-      section.append(heading,viewport);
+      const legend=makeLegend();
+      const edit=element('button',{
+        type:'button',class:'fingering-edit cello-fb-edit',
+        'aria-label':'記錄／編輯'+(dir==='up'?'上行':'下行')+'老師的指法'
+      },'記錄／編輯老師的指法');
+      edit.addEventListener('click',()=>{if(typeof onEdit==='function')onEdit(dir);});
+      if(typeof onEdit!=='function')edit.hidden=true;
+      section.append(heading,viewport,legend,edit);
       boards.append(section);
       panels[dir]=viewport;
     }
@@ -249,9 +255,7 @@
     const one=addButton('1 八度',1);
     const two=addButton('2 八度',2);
     toolbar.append(octaveGroup);
-    const chart=element('div',{class:'cello-fb-dual-body'});
-    chart.append(boards,makeLegend());
-    root.append(toolbar,chart);
+    root.append(toolbar,boards);
     if(!choices.has(id))choices.set(id,octaves);
     render();
     return root;
