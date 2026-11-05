@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="description" content="從 12 個大調、12 個小調隨機挑選每日練習調性，完成打勾、保留當日清單。">
+  <meta name="description" content="從 12 個大調、12 個爵士旋律小調隨機抽選，支援課堂多人即時同步。">
   <title>今日練什麼調？｜每日 24 調抽籤器</title>
   <style>
     :root {
@@ -44,6 +44,15 @@
     .intro p{margin:0;color:var(--muted);line-height:1.9;font-size:15px}
     .date-label{text-align:right;color:var(--muted);font-size:13px;white-space:nowrap;padding-bottom:5px}
     .date-label strong{font-size:16px;display:block;color:var(--ink);margin-top:6px;letter-spacing:-.02em}
+    .classroom-bar{display:flex;justify-content:space-between;align-items:center;gap:18px;background:#eaf0e8;border:1px solid #d7e4d6;border-radius:20px;padding:20px 25px;margin:0 0 22px}
+    .classroom-bar h2{font-size:16px;margin:0 0 7px;letter-spacing:-.035em}
+    .classroom-bar p{font-size:12px;color:#6a796d;line-height:1.7;margin:0}
+    .room-status{font-size:12px;color:#42634b;display:block;margin-top:8px;font-weight:700}
+    .room-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .room-action{padding:10px 14px;border:1px solid #c5d8c6;border-radius:10px;background:white;font-size:12px;font-weight:750;color:#2d5838;white-space:nowrap}
+    .room-action.primary{background:#304c37;color:white;border-color:#304c37}
+    .room-action:hover:not(:disabled){filter:brightness(.96)}
+    @media(max-width:620px){.classroom-bar{flex-direction:column;align-items:stretch;padding:18px}.room-actions{justify-content:flex-start}}
     .workspace{display:grid;grid-template-columns:minmax(320px,.84fr) minmax(0,1.16fr);align-items:start;gap:22px}
     .panel{background:var(--paper);border:1px solid var(--line);border-radius:23px;box-shadow:var(--shadow);padding:28px}
     .panel-head{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:26px}
@@ -151,6 +160,15 @@
       <div class="date-label">TODAY <strong id="today-label">—</strong></div>
     </section>
 
+    <section class="classroom-bar" aria-labelledby="classroom-heading">
+      <div><h2 id="classroom-heading">課堂同步模式 · CLASSROOM</h2><p>建立房間，把邀請連結傳給老師；雙方抽籤、勾選及設定會即時同步。</p><span class="room-status" id="room-status" role="status" aria-live="polite">正在檢查同步設定…</span></div>
+      <div class="room-actions">
+        <button type="button" class="room-action primary" id="room-create">建立同步房間</button>
+        <button type="button" class="room-action primary" id="room-copy" hidden>複製邀請連結</button>
+        <button type="button" class="room-action" id="room-leave" hidden>離開房間</button>
+      </div>
+    </section>
+
     <div class="workspace">
       <section class="panel" aria-labelledby="settings-title">
         <div class="panel-head"><h2 class="panel-title" id="settings-title">設定抽籤數量</h2><span class="section-number">01 / SETUP</span></div>
@@ -160,7 +178,7 @@
             <div class="stepper" aria-label="大調抽取數量"><button type="button" id="major-minus" aria-label="減少大調數量">−</button><output class="count-output" id="major-count" aria-live="polite">2</output><button type="button" id="major-plus" aria-label="增加大調數量">+</button></div>
           </div>
           <div class="counter-item">
-            <div><div class="counter-name"><i class="key-dot minor" aria-hidden="true"></i>小調 <span class="caption">MINOR</span></div><div class="counter-desc">12 個小調可抽</div></div>
+            <div><div class="counter-name"><i class="key-dot minor" aria-hidden="true"></i>小調 <span class="caption">MINOR</span></div><div class="counter-desc">12 個爵士旋律小調可抽</div></div>
             <div class="stepper" aria-label="小調抽取數量"><button type="button" id="minor-minus" aria-label="減少小調數量">−</button><output class="count-output" id="minor-count" aria-live="polite">2</output><button type="button" id="minor-plus" aria-label="增加小調數量">+</button></div>
           </div>
         </div>
@@ -195,7 +213,7 @@
             <label class="toggle-wrap"><input id="scale-toggle" type="checkbox">顯示音階提示</label>
             <span class="caption">點一下調性，即可標記完成 ✓</span>
           </div>
-          <p class="hint">小調音階提示為自然小調（Natural Minor）。</p>
+          <p class="hint">小調統一採用 Jazz Melodic Minor：自然小調升高第 6、7 音，上下行相同（非古典下行自然小調）。</p>
         </div>
       </section>
     </div>
@@ -227,22 +245,23 @@
       ['B',5,'B C♯ D♯ E F♯ G♯ A♯']
     ];
     const MINOR_KEYS = [
-      ['C',-3,'C D E♭ F G A♭ B♭'],
-      ['C♯',4,'C♯ D♯ E F♯ G♯ A B'],
-      ['D',-1,'D E F G A B♭ C'],
-      ['E♭',-6,'E♭ F G♭ A♭ B♭ C♭ D♭'],
-      ['E',1,'E F♯ G A B C D'],
-      ['F',-4,'F G A♭ B♭ C D♭ E♭'],
-      ['F♯',3,'F♯ G♯ A B C♯ D E'],
-      ['G',-2,'G A B♭ C D E♭ F'],
-      ['G♯',5,'G♯ A♯ B C♯ D♯ E F♯'],
-      ['A',0,'A B C D E F G'],
-      ['B♭',-5,'B♭ C D♭ E♭ F G♭ A♭'],
-      ['B',2,'B C♯ D E F♯ G A']
+      ['C',-3,'C D E♭ F G A B'],
+      ['C♯',4,'C♯ D♯ E F♯ G♯ A♯ B♯'],
+      ['D',-1,'D E F G A B C♯'],
+      ['E♭',-6,'E♭ F G♭ A♭ B♭ C D'],
+      ['E',1,'E F♯ G A B C♯ D♯'],
+      ['F',-4,'F G A♭ B♭ C D E'],
+      ['F♯',3,'F♯ G♯ A B C♯ D♯ E♯'],
+      ['G',-2,'G A B♭ C D E F♯'],
+      ['G♯',5,'G♯ A♯ B C♯ D♯ E♯ F𝄪'],
+      ['A',0,'A B C D E F♯ G♯'],
+      ['B♭',-5,'B♭ C D♭ E♭ F G A'],
+      ['B',2,'B C♯ D E F♯ G♯ A♯']
     ];
     const STORAGE_KEY = 'daily-key-practice:v1';
     const q = selector => document.querySelector(selector);
     const state = readStore();
+    let sharedRoom = null; // Classroom state is distinct from personal browser history.
     let currentDate = getLocalDate();
     let toastTimer;
 
@@ -265,7 +284,13 @@
     const clamp = n => Math.min(12,Math.max(0,Number.isFinite(Number(n))?Number(n):0));
     const selectedId = (mode,index) => `${mode}-${index}`;
     function keyName(mode,index){ return (mode === 'major' ? MAJOR_KEYS : MINOR_KEYS)[index][0]; }
-    function currentSession(){ return state.sessions[currentDate]; }
+    function currentSession(){ return sharedRoom ? sharedRoom.session : state.sessions[currentDate]; }
+    function visiblePreferences(){ return sharedRoom || state.preferences; }
+    function setClassroomRoom(id,data){
+      if(!id) sharedRoom=null;
+      else sharedRoom={id,majorCount:clamp(data?.majorCount??2),minorCount:clamp(data?.minorCount??2),showScale:Boolean(data?.showScale),session:data?.session&&Array.isArray(data.session.majorIds)&&Array.isArray(data.session.minorIds)?{...data.session,doneIds:Array.isArray(data.session.doneIds)?data.session.doneIds:[]}:null};
+      render();
+    }
     function signature(count){ return count===0?'無升降記號':(count>0?`♯ × ${count}`:`♭ × ${-count}`); }
     function showToast(msg){
       const el=q('#toast'); el.textContent=msg;el.classList.add('active');
@@ -276,12 +301,13 @@
       return new Intl.DateTimeFormat('zh-TW',{year:showYear?'numeric':undefined,month:'long',day:'numeric',weekday:'short'}).format(parsed);
     }
     function setCounts(major,minor){
+      if(sharedRoom){window.classroomSync?.setCounts(clamp(major),clamp(minor));return;}
       state.preferences.majorCount=clamp(major);
       state.preferences.minorCount=clamp(minor);
       persist();renderControls();
     }
     function renderControls(){
-      const {majorCount,minorCount}=state.preferences;
+      const {majorCount,minorCount}=visiblePreferences();
       q('#major-count').textContent=majorCount;
       q('#minor-count').textContent=minorCount;
       q('#major-minus').disabled=majorCount===0;
@@ -289,7 +315,7 @@
       q('#minor-minus').disabled=minorCount===0;
       q('#minor-plus').disabled=minorCount===12;
       q('#draw-button').disabled=majorCount+minorCount===0;
-      q('#draw-text').textContent=currentSession()?'重新抽選今日調性':'抽取今日練習調性';
+      q('#draw-text').textContent=currentSession()?(sharedRoom?'重新抽選課堂調性':'重新抽選今日調性'):(sharedRoom?'抽取課堂練習調性':'抽取今日練習調性');
       document.querySelectorAll('.preset').forEach(el=>{
         const active=Number(el.dataset.major)===majorCount && Number(el.dataset.minor)===minorCount;
         el.classList.toggle('active',active);
@@ -307,8 +333,12 @@
     function drawToday(){
       refreshDate();
       if(currentSession() && !window.confirm('重新抽籤會取代今天原本的清單和完成紀錄。確定要重新抽選嗎？')) return;
-      const {majorCount,minorCount}=state.preferences;
+      const {majorCount,minorCount}=visiblePreferences();
       if(majorCount+minorCount===0) return;
+      if(sharedRoom){
+        window.classroomSync?.draw({date:currentDate,majorIds:chooseDistinct(majorCount),minorIds:chooseDistinct(minorCount),doneIds:[],createdAt:Date.now()});
+        return;
+      }
       state.sessions[currentDate]={date:currentDate,majorIds:chooseDistinct(majorCount),minorIds:chooseDistinct(minorCount),doneIds:[],createdAt:Date.now()};
       persist();render();showToast('新的練習清單已準備好！');
     }
@@ -321,13 +351,13 @@
       button.className=`key-card${done?' done':''}`;
       button.setAttribute('aria-pressed',String(done));
       button.setAttribute('aria-label',`${key[0]} ${mode==='major'?'大調':'小調'}，${done?'已完成':'未完成'}，點擊切換`);
-      button.innerHTML=`<span class="check-circle" aria-hidden="true">${done?'✓':''}</span><span class="key-card-content"><span class="key-primary">${key[0]}</span><span class="key-secondary">${mode==='major'?'MAJOR':'MINOR'} · ${signature(key[1])}</span><span class="scale-notes">${key[2]}</span></span>`;
+      button.innerHTML=`<span class="check-circle" aria-hidden="true">${done?'✓':''}</span><span class="key-card-content"><span class="key-primary">${key[0]}</span><span class="key-secondary">${mode==='major'?`MAJOR · ${signature(key[1])}`:'MELODIC MINOR'}</span><span class="scale-notes">${key[2]}</span></span>`;
       button.addEventListener('click',()=>toggleComplete(id));
       return button;
     }
     function renderGroups(session){
       const container=q('#key-groups');container.replaceChildren();
-      for(const [mode,indices,label] of [['major',session.majorIds,'大調 MAJOR'],['minor',session.minorIds,'小調 MINOR']]){
+      for(const [mode,indices,label] of [['major',session.majorIds,'大調 MAJOR'],['minor',session.minorIds,'旋律小調 MELODIC MINOR']]){
         if(!Array.isArray(indices)||!indices.length) continue;
         const section=document.createElement('section');section.className='key-group';
         const heading=document.createElement('div');heading.className='key-group-title';
@@ -352,12 +382,13 @@
       q('#progress-track').setAttribute('aria-valuemax',String(total));
       q('#progress-track').setAttribute('aria-valuenow',String(count));
       q('#progress-fill').style.width=`${total?100*count/total:0}%`;
-      q('#scale-toggle').checked=Boolean(state.preferences.showScale);
-      q('#result-content').classList.toggle('show-scales',Boolean(state.preferences.showScale));
+      q('#scale-toggle').checked=Boolean(visiblePreferences().showScale);
+      q('#result-content').classList.toggle('show-scales',Boolean(visiblePreferences().showScale));
       renderGroups(session);
     }
     function toggleComplete(id){
       const session=currentSession();if(!session)return;
+      if(sharedRoom){window.classroomSync?.toggleComplete(id);return;}
       const all=[...session.majorIds.map(i=>selectedId('major',i)),...session.minorIds.map(i=>selectedId('minor',i))];
       if(!all.includes(id))return;
       session.doneIds=session.doneIds.includes(id)?session.doneIds.filter(item=>item!==id):[...session.doneIds,id];
@@ -403,14 +434,17 @@
         const ok=document.execCommand('copy');ta.remove();showToast(ok?'已複製今日練習清單':'複製失敗，請檢查瀏覽器權限');
       }
     }
-    q('#major-minus').addEventListener('click',()=>setCounts(state.preferences.majorCount-1,state.preferences.minorCount));
-    q('#major-plus').addEventListener('click',()=>setCounts(state.preferences.majorCount+1,state.preferences.minorCount));
-    q('#minor-minus').addEventListener('click',()=>setCounts(state.preferences.majorCount,state.preferences.minorCount-1));
-    q('#minor-plus').addEventListener('click',()=>setCounts(state.preferences.majorCount,state.preferences.minorCount+1));
+    q('#major-minus').addEventListener('click',()=>setCounts(visiblePreferences().majorCount-1,visiblePreferences().minorCount));
+    q('#major-plus').addEventListener('click',()=>setCounts(visiblePreferences().majorCount+1,visiblePreferences().minorCount));
+    q('#minor-minus').addEventListener('click',()=>setCounts(visiblePreferences().majorCount,visiblePreferences().minorCount-1));
+    q('#minor-plus').addEventListener('click',()=>setCounts(visiblePreferences().majorCount,visiblePreferences().minorCount+1));
     document.querySelectorAll('.preset').forEach(btn=>btn.addEventListener('click',()=>setCounts(Number(btn.dataset.major),Number(btn.dataset.minor))));
     q('#draw-button').addEventListener('click',drawToday);
     q('#copy-button').addEventListener('click',copyList);
-    q('#scale-toggle').addEventListener('change',e=>{state.preferences.showScale=e.target.checked;persist();renderResults();});
+    q('#scale-toggle').addEventListener('change',e=>{
+      if(sharedRoom){window.classroomSync?.setShowScale(e.target.checked);return;}
+      state.preferences.showScale=e.target.checked;persist();renderResults();
+    });
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshDate();});
     window.addEventListener('focus',refreshDate);
     // Remove malformed entries and keep local storage compact (last 90 days).
@@ -418,7 +452,10 @@
       if(!/^\d{4}-\d{2}-\d{2}$/.test(d)||d<getLocalDateFromOffset(-90))delete state.sessions[d];
     });
     function getLocalDateFromOffset(offset){const d=new Date();d.setDate(d.getDate()+offset);const pad=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
+    window.DailyKeyPractice={setClassroomRoom,getPreferences:()=>({...state.preferences}),showToast};
     render();
   </script>
+  <script src="firebase-config.js"></script>
+  <script type="module" src="classroom.js"></script>
 </body>
 </html>
