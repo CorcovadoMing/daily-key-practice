@@ -178,7 +178,10 @@ function watchEdits(id){
 function registerDraftPresence(id){
   if(!ready||!connected||activeId!==id||!firebase)return;
   if(!ownDraftRef)ownDraftRef=firebase.push(firebase.ref(database,'roomEdits/'+id));
-  if(latestOwnDraft)queueOwnDraftWrite();
+  if(latestOwnDraft){
+    latestOwnDraft={...latestOwnDraft,updatedAt:Date.now()};
+    queueOwnDraftWrite();
+  }
 }
 function queueOwnDraftWrite(){
   if(!ready||!connected||!activeId||!firebase||!editorUserId)return;
