@@ -584,26 +584,37 @@ function createCard(mode,index,doneIds){
  return card;
 }
 function openFingeringEditor(id){
- editingKeyId=id;
- const [mode,index]=id.split('-');
- q('#finger-dialog-key').textContent=`${keyName(mode,Number(index))} ${mode==='major'?'大調':'古典旋律小調'} · 記錄老師指定的弦、把位與指號。`;
- const note=visibleFingerings()[id]||{};
- q('#finger-up').value=note.up||'';
- q('#finger-down').value=note.down||'';
- q('#finger-dialog').showModal();
+  editingKeyId=id;
+  const [mode,index]=id.split('-');
+  const key=(mode==='major'?MAJOR_KEYS:MINOR_KEYS)[Number(index)];
+  const note=visibleFingerings()[id]||{};
+  q('#finger-dialog-key').textContent=`${key[0]} ${mode==='major'?'大調':'古典旋律小調'} · 拖曳或點選音符，移到同音高的另一個弦位。`;
+  editingBoard=window.CelloFingerboard.createEditor(mode,key,note);
+  q('#finger-editor-container').replaceChildren(editingBoard.element);
+  q('#finger-up').value=note.up||'';
+  q('#finger-down').value=note.down||'';
+  q('#finger-dialog').showModal();
 }
 function saveFingering(){
- if(!editingKeyId)return;
- const id=editingKeyId;
- const note={up:q('#finger-up').value.trim().slice(0,300),down:q('#finger-down').value.trim().slice(0,300)};
- q('#finger-dialog').close();
- editingKeyId=null;
- if(sharedRoom)window.classroomSync?.setFingering(id,note);
- else{
-  if(note.up||note.down)state.fingerings[id]=note;
-  else delete state.fingerings[id];
-  persist();renderResults();
- }
+  if(!editingKeyId||!editingBoard)return;
+  const id=editingKeyId;
+  const maps=editingBoard.getValue();
+  const note={
+    up:q('#finger-up').value.trim().slice(0,300),
+    down:q('#finger-down').value.trim().slice(0,300),
+    upMap:maps.upMap,
+    downMap:maps.downMap
+  };
+  q('#finger-dialog').close();
+  editingKeyId=null;
+  editingBoard=null;
+  if(sharedRoom){
+    window.classroomSync?.setFingering(id,note);
+  }else{
+    if(note.up||note.down||note.upMap||note.downMap)state.fingerings[id]=note;
+    else delete state.fingerings[id];
+    persist();renderResults();
+  }
 }
     function renderGroups(session){
       const container=q('#key-groups');container.replaceChildren();
