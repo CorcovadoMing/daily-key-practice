@@ -93,19 +93,102 @@
     return {string:custom.s,stringName:OPEN[custom.s].name,semitones,finger};
   }
 
-  // Reference only: common first / fourth position finger choices.
-  // Higher positions and some extensions depend on the teacher's technique.
-  const FINGER_SUGGESTION={1:'1↓',2:'1',3:'2',4:'3',5:'4',7:'1',8:'2',9:'3',10:'4'};
-  function displayedFinger(position){
-    if(position.semitones===0)return null;
-    if([1,2,3,4].includes(position.finger))return String(position.finger);
-    return FINGER_SUGGESTION[position.semitones] || '—';
+  // Suggested fingerings, based on common closed-hand and 1–2 extension
+  // patterns and classical 1st-to-4th / higher-position scale practice.
+  // These are editable starting points, not prescribed fingerings from an etude.
+  const POSITION_COLORS={
+    open:'#ffffff',
+    half:'#428b9a',
+    first:'#348569',
+    extended:'#c99236',
+    shifting:'#795bb2',
+    high:'#426f9e'
+  };
+  const BASE_LABELS={
+    1:'半把位',2:'第一把位',3:'第一半把位',4:'第二把位',
+    5:'第三把位',6:'第三半把位',7:'第四把位',
+    8:'第四半把位',9:'第五把位',10:'第五半把位',
+    11:'第六把位',12:'第七把位'
+  };
+  const DEFAULT_FINGERING={
+    1:[1,1,false], 2:[1,2,false], 3:[2,2,false],
+    4:[3,2,false], 5:[4,2,false], 6:[4,2,true],
+    7:[1,7,false], 8:[2,7,false], 9:[3,7,false],
+    10:[4,7,false], 11:[4,7,true],
+    12:[1,12,false],13:[2,12,false],14:[3,12,false]
+  };
+  function groupFor(base,extended=false){
+    if(extended)return 'extended';
+    if(base===1)return 'half';
+    if(base===2)return 'first';
+    if(base>=8)return 'high';
+    return 'shifting';
+  }
+  function suggestionFor(semi,customFinger=null){
+    if(semi===0)return {finger:0,group:'open',hand:'open',label:'空弦',extended:false};
+    const predefined=DEFAULT_FINGERING[semi]||[
+      ((semi-15)%3+3)%3+1, Math.max(12,semi-((semi-15)%3+3)%3), false
+    ];
+    let [finger,base,extended]=predefined;
+    if([1,2,3,4].includes(customFinger) && customFinger!==finger){
+      const offsets=[
+        [0,1,2,3], // closed fingering
+        [0,2,3,4]  // extended between fingers 1 and 2
+      ];
+      const candidates=[];
+      for(let ext=0;ext<=1;ext++){
+        const possibleBase=semi-offsets[ext][customFinger-1];
+        if(possibleBase<1||possibleBase>12)continue;
+        if(possibleBase>=8&&customFinger===4)continue; // higher-neck technique usually uses 1-3
+        candidates.push({base:possibleBase,extended:Boolean(ext),score:
+          Math.abs(possibleBase-base)+(ext?.35:0)+(possibleBase>=8&&customFinger===3?0:.0)});
+      }
+      candidates.sort((a,b)=>a.score-b.score);
+      if(candidates.length){base=candidates[0].base;extended=candidates[0].extended;}
+      finger=customFinger;
+    }
+    const label=BASE_LABELS[base]||'高把位';
+    return {
+      finger,base,group:groupFor(base,extended),hand:String(base),
+      label:label+(extended?'延伸':''),extended
+    };
+  }
+  function pointStyling(position){
+    return suggestionFor(position.semitones,position.finger);
+  }
+  function makeLegend(){
+    const aside=element('aside',{class:'cello-fb-legend','aria-label':'把位顏色圖例'});
+    const title=element('div',{class:'cello-legend-title'},'指板顏色圖例');
+    aside.append(title);
+    const entries=[
+      ['open','空弦'],['half','半把位'],['first','第一把位'],
+      ['extended','延伸把位'],['shifting','其他換把位'],['high','高把位']
+    ];
+    for(const [group,label] of entries){
+      const item=element('div',{class:'cello-legend-item'});
+      const marker=element('span',{class:'cello-legend-dot '+group});
+      marker.style.background=POSITION_COLORS[group];
+      item.append(marker,element('span',{},label));
+      aside.append(item);
+    }
+    const shift=element('div',{class:'cello-legend-item'});
+    shift.append(element('span',{class:'cello-legend-shift'},'↗'),element('span',{},'換把起點'));
+    aside.append(shift);
+    aside.append(element('p',{class:'cello-legend-note'},'顏色依參考指法的把位分類；同音可有不同指法，老師可在下方修改。'));
+    return aside;
   }
 
   function chartSVG(mode,key,direction,octaves,annotations={}){
     const notes=scaleNotes(mode,key,direction,octaves);
     const map=decodeMap(direction==='up'?annotations.upMap:annotations.downMap);
-    const plotted=notes.map(note=>({...note,position:notePlacement(note.midi,map)}));
+    let lastHand=null;
+    const plotted=notes.map(note=>{
+      const position=notePlacement(note.midi,map);
+      const style=pointStyling(position);
+      const shift=style.hand!=='open' && lastHand!==null && style.hand!==lastHand;
+      if(style.hand!=='open')lastHand=style.hand;
+      return {...note,position,style,shift};
+    });
     const maxPosition=Math.max(7,...plotted.map(item=>item.position.semitones));
     const top=68,step=35,height=top+maxPosition*step+47;
     const xPositions=[42,126,210,294], end=top+maxPosition*step+22;
@@ -134,33 +217,38 @@
 
     for(const note of plotted){
       const x=xPositions[note.position.string],y=top+note.position.semitones*step;
-      const rootOrEnd=note.order===1||note.order===notes.length;
-      const color=note.order===1?'#2e7049':rootOrEnd?'#527e5a':'#364c3b';
-      const isOpen=note.position.semitones===0;
-      const finger=displayedFinger(note.position);
-      const label=isOpen?'':note.name;
+      const isOpen=note.position.semitones===0,style=note.style;
+      const color=isOpen?'#34483a':POSITION_COLORS[style.group];
+      const explicit=[1,2,3,4].includes(note.position.finger);
       const point=svgNode('g');
       point.append(svgNode('title',{},
-        '第'+note.order+'音 '+note.name+'，'+note.position.stringName+
-        '弦，距空弦 '+note.position.semitones+' 個半音'+(finger?'，參考指號 '+finger:'')));
+        '第'+note.order+'音 '+note.name+'，'+note.position.stringName+'弦'+
+        (isOpen?'，空弦':'，'+style.label+'，參考第'+style.finger+'指')+
+        (note.shift?'（這裡建議換把）':'')));
+      if(note.shift){
+        point.append(svgNode('circle',{cx:x,cy:y,r:20.5,fill:'none',
+          stroke:'#3d3658','stroke-width':2.2,'stroke-dasharray':'3 3'}));
+        point.append(svgNode('text',{x:x-24,y:y-12,'font-size':15,
+          'font-weight':800,fill:'#514476'},'↗'));
+      }
       point.append(svgNode('circle',{
-        cx:x,cy:y,r:15.5,fill:isOpen?'#f7f9f6':color,stroke:isOpen?color:'#ffffff','stroke-width':isOpen?3:2.1
+        cx:x,cy:y,r:15.5,fill:isOpen?'#f7f9f6':color,
+        stroke:isOpen?'#34483a':'#ffffff','stroke-width':isOpen?3:2.1
       }));
       point.append(svgNode('text',{
         x,y:y+4.5,'text-anchor':'middle','font-size':12.5,
-        'font-weight':800,fill:isOpen?color:'#ffffff'
+        'font-weight':800,fill:isOpen?'#34483a':'#ffffff'
       },String(note.order)));
-      // Open strings are self-evident on the nut: circle and playing-order only.
-      // For stopped notes, show note name with a compact fingering beneath.
       if(!isOpen){
         point.append(svgNode('text',{
           x:x+21,y:y+1,'font-size':13,
-          'font-weight':rootOrEnd?800:650,fill:'#273c2e'
-        },label));
+          'font-weight':note.order===1||note.order===notes.length?800:650,
+          fill:'#273c2e'
+        },note.name));
         point.append(svgNode('text',{
-          x:x+21,y:y+16,'font-size':10,
-          'font-weight':700,fill:note.position.finger?'#654589':'#8b719a'
-        },'('+finger+')'));
+          x:x+21,y:y+16,'font-size':10,'font-weight':750,
+          fill:explicit?'#654589':'#777f87'
+        },'('+style.finger+')'));
       }
       svg.append(point);
     }
@@ -193,7 +281,9 @@
     const one=addButton(octavesGroup,'1 八度',1,'octaves');
     const two=addButton(octavesGroup,'2 八度',2,'octaves');
     toolbar.append(directions,octavesGroup);
-    root.append(toolbar,viewport);
+    const chart=element('div',{class:'cello-fb-body'});
+    chart.append(viewport,makeLegend());
+    root.append(toolbar,chart);
 
     function render(){
       up.setAttribute('aria-pressed',String(direction==='up'));
@@ -210,6 +300,6 @@
   window.CelloFingerboard={
     create,
     // Pure helpers exported for automated pitch and placement checks.
-    scaleNotes,positionFor,pitchClass,decodeMap
+    scaleNotes,positionFor,pitchClass,decodeMap,suggestionFor,pointStyling,POSITION_COLORS
   };
 })();
