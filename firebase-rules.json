@@ -90,6 +90,15 @@
           ".validate": "newData.isBoolean() && newData.val() === true"
         }
       }
+    },
+    "roomEdits": {
+      "$roomId": {
+        ".read": "auth !== null && root.child('rooms').child($roomId).exists() && ($roomId.matches(/^[a-f0-9]{32}$/) || ($roomId.matches(/^[0-9]{6}$/) && root.child('rooms').child($roomId).child('expiresAt').val() > now))",
+        "$editorId": {
+          ".write": "auth !== null && root.child('rooms').child($roomId).exists() && ($roomId.matches(/^[a-f0-9]{32}$/) || ($roomId.matches(/^[0-9]{6}$/) && root.child('rooms').child($roomId).child('expiresAt').val() > now)) && $editorId.matches(/^[-A-Za-z0-9_]{20}$/) && ((data.exists() && data.child('owner').val() === auth.uid) || (!data.exists() && newData.child('owner').val() === auth.uid))",
+          ".validate": "newData.hasChildren(['owner','keyId','direction','selectedMidi','previewMap','changed','updatedAt']) && newData.child('owner').isString() && newData.child('owner').val() === auth.uid && newData.child('keyId').isString() && newData.child('keyId').val().matches(/^(major|minor)-(0|1|2|3|4|5|6|7|8|9|10|11)$/) && newData.child('direction').isString() && (newData.child('direction').val() === 'up' || newData.child('direction').val() === 'down') && newData.child('selectedMidi').isNumber() && newData.child('selectedMidi').val() >= 36 && newData.child('selectedMidi').val() <= 100 && newData.child('previewMap').isString() && newData.child('previewMap').val().length <= 1800 && newData.child('changed').isString() && newData.child('changed').val().length <= 160 && newData.child('updatedAt').isNumber() && newData.child('updatedAt').val() > 0"
+        }
+      }
     }
   }
 }
