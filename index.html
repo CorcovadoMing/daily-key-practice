@@ -81,6 +81,22 @@
     .section-number{font-size:11px;letter-spacing:.16em;font-weight:750;color:#9caaa2}
     .caption{font-size:12px;color:var(--muted);line-height:1.7}
     .counter-list{display:grid;gap:12px}
+    .key-filter{margin-top:23px;padding-top:20px;border-top:1px solid var(--line)}
+    .filter-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .filter-heading h3{margin:0;font-size:14px;font-weight:800}
+    .filter-all{border:1px solid #d8e4d7;background:#f6faf5;border-radius:9px;padding:7px 10px;font-size:11px;font-weight:750;color:#386246}
+    .filter-explain{font-size:11px;color:#77847b;line-height:1.65;margin:7px 0 14px}
+    .filter-subhead{font-size:11px;font-weight:800;margin:15px 0 8px;color:#506653;display:flex;align-items:center;justify-content:space-between}
+    .filter-subhead.minor{color:#6b547d}
+    .filter-keys{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+    .filter-key{border:1px solid #d5e2d4;background:#e8f2e7;color:#315e3b;border-radius:10px;min-width:0;padding:8px 2px 7px;text-align:center;display:grid;gap:2px}
+    .filter-key.minor{background:#f0eaf7;border-color:#e3d9f0;color:#5c4775}
+    .filter-key[aria-pressed="false"]{background:#fafafa;border-color:#e7e9e7;color:#9fa7a1;opacity:.72}
+    .filter-key strong{font-size:13px;font-weight:850}
+    .filter-key small{font-size:9px;font-weight:650}
+    .filter-count{font-size:10px;color:#7e8b81;font-weight:650}
+    .filter-warning{font-size:11px;color:#a45a32;line-height:1.6;margin-top:9px}
+
     .counter-item{display:flex;justify-content:space-between;align-items:center;gap:13px;padding:20px;border:1px solid var(--line);border-radius:16px;background:#fcfcfa}
     .counter-name{display:flex;align-items:center;gap:11px;font-size:15px;font-weight:750}
     .key-dot{width:12px;height:12px;border-radius:4px;display:inline-block;background:var(--accent);flex:none}
@@ -281,6 +297,15 @@
             <div><div class="counter-name"><i class="key-dot minor" aria-hidden="true"></i>小調 <span class="caption">MINOR</span></div><div class="counter-desc">12 個古典旋律小調可抽</div></div>
             <div class="stepper" aria-label="小調抽取數量"><button type="button" id="minor-minus" aria-label="減少小調數量">−</button><output class="count-output" id="minor-count" aria-live="polite">2</output><button type="button" id="minor-plus" aria-label="增加小調數量">+</button></div>
           </div>
+        </div>
+        <div class="key-filter" aria-labelledby="key-filter-title">
+          <div class="filter-heading"><h3 id="key-filter-title">抽籤候選調性</h3><button type="button" id="filter-all" class="filter-all">全部選取</button></div>
+          <p class="filter-explain">依調號（♯ 升記號／♭ 降記號）排列。按下的調性才會進入抽籤池，預設 24 調全選；課堂房間內會同步選擇。</p>
+          <div class="filter-subhead">大調 MAJOR <span id="major-eligible" class="filter-count">12 / 12</span></div>
+          <div id="major-filter" class="filter-keys" role="group" aria-label="大調候選調性"></div>
+          <div class="filter-subhead minor">古典旋律小調 MINOR <span id="minor-eligible" class="filter-count">12 / 12</span></div>
+          <div id="minor-filter" class="filter-keys" role="group" aria-label="小調候選調性"></div>
+          <p id="filter-warning" class="filter-warning" role="status" hidden></p>
         </div>
         <div class="preset-area"><span class="field-label">快速設定</span><div class="presets" id="presets">
           <button type="button" class="preset" data-major="1" data-minor="1">1 大 + 1 小</button>
