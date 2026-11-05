@@ -1,13 +1,18 @@
 name: Publish stable and experimental
 
-# GitHub Pages source: GitHub Actions.
-# The same workflow must exist on both branches so either branch push
-# rebuilds one combined site from the newest stable + experimental tips.
+# GitHub Pages deployments are authorized from main only.
+# Experimental pushes first run "Verify experimental branch"; its successful
+# completion triggers this publisher on the default (main) branch.
 on:
   push:
     branches:
       - main
+  workflow_run:
+    workflows: ["Verify experimental branch"]
+    branches:
       - experimental
+    types:
+      - completed
   workflow_dispatch:
 
 permissions:
@@ -21,6 +26,7 @@ concurrency:
 
 jobs:
   build:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout stable
