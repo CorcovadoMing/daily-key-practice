@@ -176,9 +176,6 @@
     const directions=element('div',{class:'cello-fb-group','aria-label':'音階方向'});
     const octavesGroup=element('div',{class:'cello-fb-group','aria-label':'音階八度數'});
     const viewport=element('div',{class:'cello-fb-viewport'});
-    const sequence=element('div',{class:'cello-fb-sequence'});
-    const note=element('div',{class:'cello-fb-caption'},
-      '圓點數字＝演奏順序，不是左手指號。四弦 C–G–D–A，點的位置為示意音位；實際演奏可依老師指法換弦／換把。');
 
     function addButton(group,label,value,type){
       const button=element('button',{type:'button',class:'cello-fb-button'},label);
@@ -196,7 +193,7 @@
     const one=addButton(octavesGroup,'1 八度',1,'octaves');
     const two=addButton(octavesGroup,'2 八度',2,'octaves');
     toolbar.append(directions,octavesGroup);
-    root.append(toolbar,viewport,sequence,note);
+    root.append(toolbar,viewport);
 
     function render(){
       up.setAttribute('aria-pressed',String(direction==='up'));
@@ -204,8 +201,7 @@
       one.setAttribute('aria-pressed',String(octaves===1));
       two.setAttribute('aria-pressed',String(octaves===2));
       viewport.replaceChildren(chartSVG(mode,key,direction,octaves,annotations));
-      const notes=scaleNotes(mode,key,direction,octaves);
-      sequence.textContent=notes.map(item=>item.order+' '+item.name).join(' → ');
+
     }
     render();
     return root;
