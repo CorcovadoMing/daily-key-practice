@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="v1.0.4">
+  <meta name="site-version" content="v1.0.5">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -426,11 +426,11 @@
       <div class="history-list" id="history-list"></div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">v1.0.4 · <a href="./experimental/" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Experimental</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">v1.0.5 · <a href="./experimental/" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Experimental</a></span></footer>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="fingering-presets.js?v=20261106-012"></script>
-  <script src="fingerboard.js?v=20261106-015"></script>
+  <script src="fingerboard.js?v=20261106-016"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
@@ -490,7 +490,9 @@
           const old=typeof prior[key]?.[field]==='string'?prior[key][field]:'';
           const next=typeof incoming[key]?.[field]==='string'?incoming[key][field]:'';
           if(old===next)continue;
-          if(next)local[field]=next;
+          const merged=field.endsWith('Map')?
+            mergeFingeringMap(local[field]||'',old,next,false):next;
+          if(merged)local[field]=merged;
           else delete local[field];
           updated=true;
         }
@@ -905,6 +907,6 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     render();
   </script>
   <script src="firebase-config.js?v=20261106-001"></script>
-  <script type="module" src="classroom.js?v=20261106-009"></script>
+  <script type="module" src="classroom.js?v=20261106-016"></script>
 </body>
 </html>
