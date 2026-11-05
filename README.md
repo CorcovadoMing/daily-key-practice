@@ -68,9 +68,13 @@ Firebase Web App `apiKey` 是公開的用戶端設定，不是 Firebase Admin �
 
 ## GitHub Pages 部署
 
-- 本專案為靜態 HTML、CSS、JS，不需 npm build。
-- GitHub Repository → **Settings → Pages → Build and deployment → Source → GitHub Actions**。
-- 提交到 `main` 後由 `.github/workflows/deploy.yml` 自動部署。
+本專案為純靜態 HTML／CSS／JavaScript，不需編譯。若 GitHub Actions 出現舊 Pages deployment 卡住的錯誤，建議使用官方「由分支發布」：
+
+1. Repository **Settings → Pages → Build and deployment → Source** 選 **Deploy from a branch**。
+2. 選擇 **main** 分支、**/(root)** 資料夾，按 **Save**。
+3. GitHub Pages 隨後會自動發布該分支的網站，後續推送也會自動更新。
+
+根目錄已新增 `.nojekyll`，避免 Jekyll 處理靜態程式。原本的 `.github/workflows/deploy.yml` 仍留作**手動執行的備援流程**，不再在每次 push 競爭 Pages 部署。
 
 ## 檔案
 
@@ -78,6 +82,7 @@ Firebase Web App `apiKey` 是公開的用戶端設定，不是 Firebase Admin �
 - `classroom.js` — 即時同步與六位數房間、碰撞保護和過期處理。
 - `firebase-config.js` — Firebase Web App 公開設定（包含 databaseURL）。
 - `firebase-rules.json` — **必須手動發布到 Firebase Console** 的資料庫安全規則。
-- `.github/workflows/deploy.yml` — GitHub Pages 部署。
+- `.nojekyll` — GitHub Pages 分支發布的靜態檔案設定。
+- `.github/workflows/deploy.yml` — 可手動執行的備援部署工作流程。
 
 免費 Spark 方案的 Realtime Database 有使用量限制；兩人上課使用通常遠低於限制。留意 Firebase Console 的 Usage 分頁。
