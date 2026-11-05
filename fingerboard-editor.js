@@ -28,9 +28,9 @@
     }
     return output;
   }
-  function createEditor(mode,key,annotations={}){
+  function createEditor(mode,key,annotations={},lockedDirection=null){
     const maps={up:validated(annotations.upMap),down:validated(annotations.downMap)};
-    let direction='up',octaves=2,maxFret=14,selected=0;
+    let direction=lockedDirection==='down'?'down':'up',octaves=2,maxFret=14,selected=0;
     const root=el('div','teacher-fingerboard');
     const toolbar=el('div','teacher-tools');
     const directionGroup=el('div','cello-fb-group');
@@ -60,7 +60,8 @@
       maxFret=maxFret===14?24:14;
       render();
     });
-    toolbar.append(directionGroup,octaveGroup,rangeGroup);
+    if(!lockedDirection)toolbar.append(directionGroup);
+    toolbar.append(octaveGroup,rangeGroup);
     root.append(toolbar,noteStrip,help,stage,fb.makeLegend(),info,fingers,reset,foot);
 
     function notes(){return fb.scaleNotes(mode,key,direction,octaves);}
@@ -209,8 +210,10 @@
     function render(){
       const ns=notes();
       if(selected>=ns.length)selected=ns.length-1;
-      upButton.setAttribute('aria-pressed',String(direction==='up'));
-      downButton.setAttribute('aria-pressed',String(direction==='down'));
+      if(!lockedDirection){
+        upButton.setAttribute('aria-pressed',String(direction==='up'));
+        downButton.setAttribute('aria-pressed',String(direction==='down'));
+      }
       oneButton.setAttribute('aria-pressed',String(octaves===1));
       twoButton.setAttribute('aria-pressed',String(octaves===2));
       rangeButton.setAttribute('aria-pressed',String(maxFret===24));
