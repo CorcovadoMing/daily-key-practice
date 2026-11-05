@@ -98,9 +98,8 @@
       finger,group:same?p.group:'custom',custom:true};
   }
 
-  // Suggested fingerings, based on common closed-hand and 1–2 extension
-  // patterns and classical 1st-to-4th / higher-position scale practice.
-  // These are editable starting points, not prescribed fingerings from an etude.
+  // Presentation colors do not assert a particular hand position for
+  // unverified notes. Only the user's photographed fingerings set groups.
   const POSITION_COLORS={
     open:'#ffffff',
     half:'#428b9a',
@@ -111,55 +110,6 @@
     unverified:'#8f9a97',
     custom:'#be476c'
   };
-  const BASE_LABELS={
-    1:'半把位',2:'第一把位',3:'第一半把位',4:'第二把位',
-    5:'第三把位',6:'第三半把位',7:'第四把位',
-    8:'第四半把位',9:'第五把位',10:'第五半把位',
-    11:'第六把位',12:'第七把位'
-  };
-  const DEFAULT_FINGERING={
-    1:[1,1,false], 2:[1,2,false], 3:[2,2,false],
-    4:[3,2,false], 5:[4,2,false], 6:[4,2,true],
-    7:[1,7,false], 8:[2,7,false], 9:[3,7,false],
-    10:[4,7,false], 11:[4,7,true],
-    12:[1,12,false],13:[2,12,false],14:[3,12,false]
-  };
-  function groupFor(base,extended=false){
-    if(extended)return 'extended';
-    if(base===1)return 'half';
-    if(base===2)return 'first';
-    if(base>=8)return 'high';
-    return 'shifting';
-  }
-  function suggestionFor(semi,customFinger=null){
-    if(semi===0)return {finger:0,group:'open',hand:'open',label:'空弦',extended:false};
-    const predefined=DEFAULT_FINGERING[semi]||[
-      ((semi-15)%3+3)%3+1, Math.max(12,semi-((semi-15)%3+3)%3), false
-    ];
-    let [finger,base,extended]=predefined;
-    if([1,2,3,4].includes(customFinger) && customFinger!==finger){
-      const offsets=[
-        [0,1,2,3], // closed fingering
-        [0,2,3,4]  // extended between fingers 1 and 2
-      ];
-      const candidates=[];
-      for(let ext=0;ext<=1;ext++){
-        const possibleBase=semi-offsets[ext][customFinger-1];
-        if(possibleBase<1||possibleBase>12)continue;
-        if(possibleBase>=8&&customFinger===4)continue; // higher-neck technique usually uses 1-3
-        candidates.push({base:possibleBase,extended:Boolean(ext),score:
-          Math.abs(possibleBase-base)+(ext?.35:0)+(possibleBase>=8&&customFinger===3?0:.0)});
-      }
-      candidates.sort((a,b)=>a.score-b.score);
-      if(candidates.length){base=candidates[0].base;extended=candidates[0].extended;}
-      finger=customFinger;
-    }
-    const label=BASE_LABELS[base]||'高把位';
-    return {
-      finger,base,group:groupFor(base,extended),hand:String(base),
-      label:label+(extended?'延伸':''),extended
-    };
-  }
   function pointStyling(position){
     const group=position.semitones===0?'open':(position.group||'unverified');
     const label={open:'空弦',half:'半把位',first:'第一把位',
@@ -310,6 +260,6 @@
   window.CelloFingerboard={
     create,
     // Pure helpers exported for automated pitch and placement checks.
-    scaleNotes,positionFor,pitchClass,decodeMap,suggestionFor,pointStyling,POSITION_COLORS,makeLegend,notePlacement
+    scaleNotes,positionFor,pitchClass,decodeMap,pointStyling,POSITION_COLORS,makeLegend,notePlacement
   };
 })();
