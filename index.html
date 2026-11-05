@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f6f2">
+  <meta name="description" content="從 12 個大調、12 個小調隨機挑選每日練習調性，完成打勾、保留當日清單。">
+  <title>今日練什麼調？｜每日 24 調抽籤器</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page:#f7f6f2;
+      --paper:#ffffff;
+      --ink:#202525;
+      --muted:#747c7b;
+      --line:#e7e9e4;
+      --accent:#b6d6b3;
+      --accent-ink:#234b37;
+      --minor:#e2d7f3;
+      --minor-ink:#594371;
+      --soft:#f2f3ee;
+      --shadow:0 20px 60px rgba(32,37,37,.035);
+    }
+    *,*::before,*::after{box-sizing:border-box}
+    [hidden]{display:none!important}
+    html{scroll-behavior:smooth}
+    body{margin:0;background:var(--page);color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;-webkit-font-smoothing:antialiased}
+    button{font:inherit;cursor:pointer}
+    button:focus-visible,input:focus-visible{outline:3px solid #5e886f;outline-offset:3px}
+    button:disabled{cursor:not-allowed;opacity:.46}
+    .container{width:min(1110px,calc(100% - 40px));margin:0 auto}
+    .masthead{border-bottom:1px solid var(--line);background:rgba(247,246,242,.94)}
+    .masthead-inner{height:76px;display:flex;justify-content:space-between;align-items:center;gap:18px}
+    .brand{display:flex;align-items:center;gap:12px;font-size:16px;letter-spacing:-.035em;font-weight:800;white-space:nowrap}
+    .brand-logo{width:38px;height:38px;border-radius:12px;background:#26332b;display:grid;place-items:center;color:white}
+    .brand-logo svg{width:21px;height:21px}
+    .brand small{display:block;font-weight:500;color:var(--muted);font-size:10px;letter-spacing:.14em;line-height:1.5}
+    .header-tag{font-size:12px;letter-spacing:.02em;color:#62726b;background:#e9eee8;padding:8px 13px;border-radius:40px;white-space:nowrap}
+    .intro{padding:67px 0 45px;display:grid;grid-template-columns:1fr auto;align-items:end;gap:20px}
+    .eyebrow{font-size:11px;font-weight:800;letter-spacing:.20em;color:#6e876f;text-transform:uppercase;display:flex;align-items:center;gap:9px}
+    .eyebrow::before{content:"";width:7px;height:7px;background:#93bd98;border-radius:50%}
+    h1{font-weight:850;font-size:clamp(36px,5.5vw,64px);line-height:1.22;letter-spacing:-.075em;margin:15px 0 14px}
+    h1 em{font-style:normal;color:#738d78}
+    .intro p{margin:0;color:var(--muted);line-height:1.9;font-size:15px}
+    .date-label{text-align:right;color:var(--muted);font-size:13px;white-space:nowrap;padding-bottom:5px}
+    .date-label strong{font-size:16px;display:block;color:var(--ink);margin-top:6px;letter-spacing:-.02em}
+    .workspace{display:grid;grid-template-columns:minmax(320px,.84fr) minmax(0,1.16fr);align-items:start;gap:22px}
+    .panel{background:var(--paper);border:1px solid var(--line);border-radius:23px;box-shadow:var(--shadow);padding:28px}
+    .panel-head{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:26px}
+    .panel-title{font-size:17px;font-weight:800;letter-spacing:-.04em;margin:0}
+    .section-number{font-size:11px;letter-spacing:.16em;font-weight:750;color:#9caaa2}
+    .caption{font-size:12px;color:var(--muted);line-height:1.7}
+    .counter-list{display:grid;gap:12px}
+    .counter-item{display:flex;justify-content:space-between;align-items:center;gap:13px;padding:20px;border:1px solid var(--line);border-radius:16px;background:#fcfcfa}
+    .counter-name{display:flex;align-items:center;gap:11px;font-size:15px;font-weight:750}
+    .key-dot{width:12px;height:12px;border-radius:4px;display:inline-block;background:var(--accent);flex:none}
+    .key-dot.minor{background:var(--minor)}
+    .counter-desc{padding-left:23px;margin:3px 0 0;font-size:12px;color:var(--muted)}
+    .stepper{display:flex;align-items:center;gap:7px;flex-shrink:0}
+    .stepper button{width:34px;height:34px;border:1px solid var(--line);background:white;border-radius:10px;display:grid;place-items:center;font-size:20px;font-weight:400;line-height:1;color:#38433d;transition:background .15s}
+    .stepper button:hover:not(:disabled){background:#eff4ef}
+    .count-output{min-width:30px;text-align:center;font-size:23px;font-weight:850;font-variant-numeric:tabular-nums;letter-spacing:-.07em}
+    .preset-area{margin-top:26px}
+    .field-label{font-size:12px;color:#69716e;font-weight:750;display:block;margin-bottom:11px}
+    .presets{display:flex;flex-wrap:wrap;gap:8px}
+    .preset{border:1px solid var(--line);border-radius:30px;padding:9px 13px;background:white;color:#5b6460;font-size:12px;font-weight:700;transition:all .15s}
+    .preset:hover{border-color:#abc8ad}
+    .preset.active{background:#e9f2e7;color:#2f6b43;border-color:#b9d4b7}
+    .draw-button{margin-top:27px;width:100%;padding:18px 19px;border:0;border-radius:13px;color:white;background:#283a2d;font-weight:750;font-size:15px;display:flex;align-items:center;justify-content:center;gap:12px;transition:transform .15s,background .15s}
+    .draw-button:hover:not(:disabled){background:#405b45;transform:translateY(-1px)}
+    .button-icon{font-size:19px;line-height:1}
+    .control-note{text-align:center;margin:13px 0 0;font-size:12px;color:#8b928e;line-height:1.7}
+    .result-panel{min-height:478px}
+    .result-controls{display:flex;gap:8px;align-items:center}
+    .icon-button{border:1px solid var(--line);background:white;color:#58665d;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:700;white-space:nowrap}
+    .icon-button:hover{background:#f5f7f3}
+    .empty-state{display:flex;align-items:center;flex-direction:column;text-align:center;justify-content:center;min-height:348px;padding:25px 12px}
+    .empty-graphic{height:132px;width:132px;border-radius:50%;background:#f0f3ec;display:grid;place-items:center;margin-bottom:23px;position:relative}
+    .empty-graphic::before,.empty-graphic::after{content:"";position:absolute;border-radius:50%;background:#d4dfce}
+    .empty-graphic::before{height:8px;width:8px;top:16px;right:12px}
+    .empty-graphic::after{height:5px;width:5px;bottom:17px;left:9px}
+    .empty-graphic svg{width:77px;height:77px;filter:drop-shadow(0 6px 10px rgba(38,51,43,.12))}
+    .empty-state h3{font-size:18px;margin:0 0 10px;letter-spacing:-.035em}
+    .empty-state p{color:var(--muted);font-size:13px;line-height:1.9;margin:0;max-width:285px}
+    .result-content{display:none}
+    .result-content.visible{display:block}
+    .result-summary{padding:19px 20px;border-radius:15px;background:#f4f7f2;margin-bottom:25px}
+    .summary-top{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;color:#556a59;font-weight:750}
+    .summary-top strong{font-size:19px;font-weight:850;font-variant-numeric:tabular-nums;color:#34533c}
+    .progress-track{margin-top:12px;width:100%;height:7px;border-radius:50px;background:#e0e8dc;overflow:hidden}
+    .progress-fill{height:100%;width:0%;background:#73a77d;border-radius:50px;transition:width .25s}
+    .key-group{margin-top:23px}
+    .key-group-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
+    .key-group-title h3{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:800;letter-spacing:-.01em;margin:0}
+    .key-group-title span{font-size:12px;color:var(--muted)}
+    .key-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .key-card{width:100%;border:1px solid #e8e9e6;background:#fff;border-radius:13px;padding:14px 14px 12px;text-align:left;display:flex;align-items:flex-start;gap:11px;transition:background .18s,border-color .18s,transform .18s;min-width:0}
+    .key-card:hover{border-color:#c3d3c0;transform:translateY(-1px)}
+    .key-card.done{background:#f5f8f2;border-color:#cce0c8}
+    .check-circle{height:20px;width:20px;border:1.7px solid #c8d1ca;border-radius:50%;display:grid;place-items:center;flex:none;margin-top:2px;color:white;font-size:13px;font-weight:800}
+    .key-card.done .check-circle{background:#5c966a;border-color:#5c966a}
+    .key-card-content{min-width:0;flex:1}
+    .key-primary{display:block;font-size:26px;line-height:1.05;letter-spacing:-.055em;font-weight:800;white-space:nowrap}
+    .key-card.done .key-primary{color:#67876b}
+    .key-secondary{display:block;font-size:11px;font-weight:650;color:#8b928e;margin-top:7px;white-space:nowrap}
+    .scale-notes{display:none;color:#596b60;font-size:11px;line-height:1.8;word-break:normal;overflow-wrap:anywhere;margin-top:8px;border-top:1px dashed #dfe6dc;padding-top:7px}
+    .show-scales .scale-notes{display:block}
+    .result-bottom{margin-top:23px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+    .toggle-wrap{display:flex;gap:8px;align-items:center;font-size:12px;color:#66706a;cursor:pointer;user-select:none}
+    .toggle-wrap input{accent-color:#3f764d;width:15px;height:15px;margin:0}
+    .hint{font-size:11px;color:#949b96;margin:14px 0 0;line-height:1.7}
+    .history-section{padding:36px 0 70px}
+    .history-heading{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:0 0 14px}
+    .history-heading h2{font-size:17px;font-weight:800;letter-spacing:-.04em;margin:0}
+    .history-list{display:grid;gap:8px}
+    .history-empty{border:1px dashed #d8ded6;border-radius:14px;padding:22px 23px;color:#8b948d;font-size:13px;background:#fbfbf8;line-height:1.8}
+    .history-row{background:#fff;border:1px solid var(--line);border-radius:14px;padding:17px 20px;display:flex;justify-content:space-between;align-items:center;gap:15px}
+    .history-date{font-weight:750;font-size:13px;min-width:86px}
+    .history-date small{display:block;color:#909894;font-size:11px;font-weight:500;margin-top:4px}
+    .history-keys{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+    .history-chip{border-radius:6px;padding:6px 9px;background:#e9f2e8;color:#395843;font-weight:750;font-size:12px}
+    .history-chip.minor{background:#f0eaf8;color:#655178}
+    footer{border-top:1px solid var(--line);padding:24px 0 33px;color:#a1a8a1;font-size:12px;display:flex;justify-content:space-between;gap:18px}
+    .toast{position:fixed;left:50%;bottom:25px;transform:translate(-50%,20px);opacity:0;pointer-events:none;border-radius:12px;padding:12px 18px;background:#283a2d;color:white;font-weight:700;font-size:13px;box-shadow:0 15px 40px rgba(0,0,0,.15);transition:opacity .2s,transform .2s;z-index:50}
+    .toast.active{opacity:1;transform:translate(-50%,0)}
+    @media(max-width:810px){.intro{padding-top:43px;grid-template-columns:1fr;gap:18px}.date-label{text-align:left}.date-label strong{display:inline;margin-left:10px}.workspace{grid-template-columns:1fr}.result-panel{min-height:0}.history-section{padding-top:31px}}
+    @media(max-width:450px){.container{width:calc(100% - 26px)}.masthead-inner{height:68px}.header-tag{font-size:10px;padding:7px 9px}.intro{padding-top:36px;padding-bottom:28px}.intro p{font-size:13px}.date-label{font-size:12px}.date-label strong{font-size:13px;margin-left:5px}.panel{padding:20px;border-radius:18px}.counter-item{padding:16px 12px}.counter-name{font-size:13px}.stepper{gap:3px}.stepper button{width:31px;height:31px}.count-output{min-width:26px;font-size:22px}.key-grid{gap:8px}.key-card{padding:13px 10px;gap:8px}.key-primary{font-size:24px}.key-secondary{font-size:10px}.history-row{align-items:flex-start;flex-direction:column;gap:11px}.history-keys{justify-content:flex-start}.result-controls .icon-button{padding:7px;font-size:11px}footer{flex-direction:column;gap:7px}}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+  </style>
+</head>
+<body>
+  <header class="masthead">
+    <div class="container masthead-inner">
+      <div class="brand">
+        <div class="brand-logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16M7 4v9M13 4v9M19 4v9"/></svg>
+        </div>
+        <span>今日練什麼調？<small>DAILY KEY PRACTICE</small></span>
+      </div>
+      <span class="header-tag">24 KEYS · 每日一練</span>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="intro" aria-labelledby="page-title">
+      <div>
+        <div class="eyebrow">Make music a little every day</div>
+        <h1 id="page-title">今天，練幾個<em>調</em>？</h1>
+        <p>從 12 個大調、12 個小調中，隨機挑選今天的練習清單。<br>少一點猶豫，多一點音樂。</p>
+      </div>
+      <div class="date-label">TODAY <strong id="today-label">—</strong></div>
+    </section>
+
+    <div class="workspace">
+      <section class="panel" aria-labelledby="settings-title">
+        <div class="panel-head"><h2 class="panel-title" id="settings-title">設定抽籤數量</h2><span class="section-number">01 / SETUP</span></div>
+        <div class="counter-list">
+          <div class="counter-item">
+            <div><div class="counter-name"><i class="key-dot" aria-hidden="true"></i>大調 <span class="caption">MAJOR</span></div><div class="counter-desc">12 個大調可抽</div></div>
+            <div class="stepper" aria-label="大調抽取數量"><button type="button" id="major-minus" aria-label="減少大調數量">−</button><output class="count-output" id="major-count" aria-live="polite">2</output><button type="button" id="major-plus" aria-label="增加大調數量">+</button></div>
+          </div>
+          <div class="counter-item">
+            <div><div class="counter-name"><i class="key-dot minor" aria-hidden="true"></i>小調 <span class="caption">MINOR</span></div><div class="counter-desc">12 個小調可抽</div></div>
+            <div class="stepper" aria-label="小調抽取數量"><button type="button" id="minor-minus" aria-label="減少小調數量">−</button><output class="count-output" id="minor-count" aria-live="polite">2</output><button type="button" id="minor-plus" aria-label="增加小調數量">+</button></div>
+          </div>
+        </div>
+        <div class="preset-area"><span class="field-label">快速設定</span><div class="presets" id="presets">
+          <button type="button" class="preset" data-major="1" data-minor="1">1 大 + 1 小</button>
+          <button type="button" class="preset" data-major="2" data-minor="2">2 大 + 2 小</button>
+          <button type="button" class="preset" data-major="3" data-minor="3">3 大 + 3 小</button>
+          <button type="button" class="preset" data-major="6" data-minor="6">6 大 + 6 小</button>
+        </div></div>
+        <button type="button" id="draw-button" class="draw-button"><span class="button-icon" aria-hidden="true">✦</span><span id="draw-text">抽取今日練習調性</span><span aria-hidden="true">↗</span></button>
+        <p class="control-note">每種調性最多 12 個；同一組不會抽到重複調性。</p>
+      </section>
+
+      <section class="panel result-panel" aria-labelledby="results-title">
+        <div class="panel-head">
+          <h2 class="panel-title" id="results-title">今日練習清單</h2>
+          <div class="result-controls" id="result-controls" hidden><button type="button" class="icon-button" id="copy-button" aria-label="複製今日清單">複製清單 ↗</button></div>
+          <span class="section-number" id="result-placeholder-code">02 / PRACTICE</span>
+        </div>
+        <div class="empty-state" id="empty-state">
+          <div class="empty-graphic" aria-hidden="true"><svg viewBox="0 0 100 100"><rect x="7" y="12" width="86" height="76" rx="9" fill="#fff" stroke="#bacdb9" stroke-width="2"/><path d="M24 13v75M42 13v75M59 13v75M77 13v75" stroke="#bbc9bb" stroke-width="2"/><path d="M19 13h12v41H19zM37 13h11v41H37zM72 13h11v41H72z" fill="#273a2e"/></svg></div>
+          <h3>你的今日練習，等著開始。</h3>
+          <p>選好大調與小調的數量，按下抽籤，讓今天的音樂有個方向。</p>
+        </div>
+        <div class="result-content" id="result-content">
+          <div class="result-summary">
+            <div class="summary-top"><span>今日完成進度</span><strong id="progress-text">0 / 4</strong></div>
+            <div class="progress-track" role="progressbar" id="progress-track" aria-label="今日練習進度" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0"><div class="progress-fill" id="progress-fill"></div></div>
+          </div>
+          <div id="key-groups"></div>
+          <div class="result-bottom">
+            <label class="toggle-wrap"><input id="scale-toggle" type="checkbox">顯示音階提示</label>
+            <span class="caption">點一下調性，即可標記完成 ✓</span>
+          </div>
+          <p class="hint">小調音階提示為自然小調（Natural Minor）。</p>
+        </div>
+      </section>
+    </div>
+
+    <section class="history-section" aria-labelledby="history-title">
+      <div class="history-heading"><h2 id="history-title">最近的練習紀錄</h2><span class="caption">僅保存在目前瀏覽器</span></div>
+      <div class="history-list" id="history-list"></div>
+    </section>
+  </main>
+  <footer class="container"><span>每日一點練習，慢慢累積成自己的聲音。</span><span>12 MAJOR + 12 MINOR · MADE FOR PRACTICE</span></footer>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    'use strict';
+    // All twelve pitch classes are represented once in each mode.
+    // Enharmonic spellings favor commonly used written keys.
+    const MAJOR_KEYS = [
+      ['C',0,'C D E F G A B'],
+      ['D♭',-5,'D♭ E♭ F G♭ A♭ B♭ C'],
+      ['D',2,'D E F♯ G A B C♯'],
+      ['E♭',-3,'E♭ F G A♭ B♭ C D'],
+      ['E',4,'E F♯ G♯ A B C♯ D♯'],
+      ['F',-1,'F G A B♭ C D E'],
+      ['F♯',6,'F♯ G♯ A♯ B C♯ D♯ E♯'],
+      ['G',1,'G A B C D E F♯'],
+      ['A♭',-4,'A♭ B♭ C D♭ E♭ F G'],
+      ['A',3,'A B C♯ D E F♯ G♯'],
+      ['B♭',-2,'B♭ C D E♭ F G A'],
+      ['B',5,'B C♯ D♯ E F♯ G♯ A♯']
+    ];
+    const MINOR_KEYS = [
+      ['C',-3,'C D E♭ F G A♭ B♭'],
+      ['C♯',4,'C♯ D♯ E F♯ G♯ A B'],
+      ['D',-1,'D E F G A B♭ C'],
+      ['E♭',-6,'E♭ F G♭ A♭ B♭ C♭ D♭'],
+      ['E',1,'E F♯ G A B C D'],
+      ['F',-4,'F G A♭ B♭ C D♭ E♭'],
+      ['F♯',3,'F♯ G♯ A B C♯ D E'],
+      ['G',-2,'G A B♭ C D E♭ F'],
+      ['G♯',5,'G♯ A♯ B C♯ D♯ E F♯'],
+      ['A',0,'A B C D E F G'],
+      ['B♭',-5,'B♭ C D♭ E♭ F G♭ A♭'],
+      ['B',2,'B C♯ D E F♯ G A']
+    ];
+    const STORAGE_KEY = 'daily-key-practice:v1';
+    const q = selector => document.querySelector(selector);
+    const state = readStore();
+    let currentDate = getLocalDate();
+    let toastTimer;
+
+    function readStore() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if (raw && raw.version === 1 && typeof raw.sessions === 'object' && raw.sessions && typeof raw.preferences === 'object') return raw;
+      } catch (_) { /* Private browsing or malformed saved data: start fresh. */ }
+      return {version:1, preferences:{majorCount:2,minorCount:2,showScale:false}, sessions:{}};
+    }
+    function persist() {
+      try { localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); }
+      catch (_) { showToast('瀏覽器無法儲存資料；本次仍可正常練習'); }
+    }
+    function getLocalDate() {
+      const d = new Date();
+      const pad = n => String(n).padStart(2,'0');
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    }
+    const clamp = n => Math.min(12,Math.max(0,Number.isFinite(Number(n))?Number(n):0));
+    const selectedId = (mode,index) => `${mode}-${index}`;
+    function keyName(mode,index){ return (mode === 'major' ? MAJOR_KEYS : MINOR_KEYS)[index][0]; }
+    function currentSession(){ return state.sessions[currentDate]; }
+    function signature(count){ return count===0?'無升降記號':(count>0?`♯ × ${count}`:`♭ × ${-count}`); }
+    function showToast(msg){
+      const el=q('#toast'); el.textContent=msg;el.classList.add('active');
+      clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('active'),2400);
+    }
+    function formatDate(date,showYear=true){
+      const parsed=new Date(`${date}T12:00:00`);
+      return new Intl.DateTimeFormat('zh-TW',{year:showYear?'numeric':undefined,month:'long',day:'numeric',weekday:'short'}).format(parsed);
+    }
+    function setCounts(major,minor){
+      state.preferences.majorCount=clamp(major);
+      state.preferences.minorCount=clamp(minor);
+      persist();renderControls();
+    }
+    function renderControls(){
+      const {majorCount,minorCount}=state.preferences;
+      q('#major-count').textContent=majorCount;
+      q('#minor-count').textContent=minorCount;
+      q('#major-minus').disabled=majorCount===0;
+      q('#major-plus').disabled=majorCount===12;
+      q('#minor-minus').disabled=minorCount===0;
+      q('#minor-plus').disabled=minorCount===12;
+      q('#draw-button').disabled=majorCount+minorCount===0;
+      q('#draw-text').textContent=currentSession()?'重新抽選今日調性':'抽取今日練習調性';
+      document.querySelectorAll('.preset').forEach(el=>{
+        const active=Number(el.dataset.major)===majorCount && Number(el.dataset.minor)===minorCount;
+        el.classList.toggle('active',active);
+        el.setAttribute('aria-pressed',String(active));
+      });
+    }
+    function chooseDistinct(n){
+      const arr=Array.from({length:12},(_,i)=>i);
+      for(let i=arr.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));
+        [arr[i],arr[j]]=[arr[j],arr[i]];
+      }
+      return arr.slice(0,n);
+    }
+    function drawToday(){
+      refreshDate();
+      if(currentSession() && !window.confirm('重新抽籤會取代今天原本的清單和完成紀錄。確定要重新抽選嗎？')) return;
+      const {majorCount,minorCount}=state.preferences;
+      if(majorCount+minorCount===0) return;
+      state.sessions[currentDate]={date:currentDate,majorIds:chooseDistinct(majorCount),minorIds:chooseDistinct(minorCount),doneIds:[],createdAt:Date.now()};
+      persist();render();showToast('新的練習清單已準備好！');
+    }
+    function createCard(mode,index,doneIds){
+      const key=(mode==='major'?MAJOR_KEYS:MINOR_KEYS)[index];
+      const id=selectedId(mode,index);
+      const done=doneIds.includes(id);
+      const button=document.createElement('button');
+      button.type='button';
+      button.className=`key-card${done?' done':''}`;
+      button.setAttribute('aria-pressed',String(done));
+      button.setAttribute('aria-label',`${key[0]} ${mode==='major'?'大調':'小調'}，${done?'已完成':'未完成'}，點擊切換`);
+      button.innerHTML=`<span class="check-circle" aria-hidden="true">${done?'✓':''}</span><span class="key-card-content"><span class="key-primary">${key[0]}</span><span class="key-secondary">${mode==='major'?'MAJOR':'MINOR'} · ${signature(key[1])}</span><span class="scale-notes">${key[2]}</span></span>`;
+      button.addEventListener('click',()=>toggleComplete(id));
+      return button;
+    }
+    function renderGroups(session){
+      const container=q('#key-groups');container.replaceChildren();
+      for(const [mode,indices,label] of [['major',session.majorIds,'大調 MAJOR'],['minor',session.minorIds,'小調 MINOR']]){
+        if(!Array.isArray(indices)||!indices.length) continue;
+        const section=document.createElement('section');section.className='key-group';
+        const heading=document.createElement('div');heading.className='key-group-title';
+        heading.innerHTML=`<h3><i class="key-dot${mode==='minor'?' minor':''}" aria-hidden="true"></i>${label}</h3><span>${indices.length} 個調性</span>`;
+        const grid=document.createElement('div');grid.className='key-grid';
+        indices.forEach(i=>grid.append(createCard(mode,i,session.doneIds)));
+        section.append(heading,grid);container.append(section);
+      }
+    }
+    function renderResults(){
+      const session=currentSession(),hasSession=Boolean(session);
+      q('#empty-state').hidden=hasSession;
+      q('#empty-state').style.display=hasSession?'none':'flex';
+      q('#result-content').classList.toggle('visible',hasSession);
+      q('#result-controls').hidden=!hasSession;
+      q('#result-placeholder-code').hidden=hasSession;
+      if(!hasSession) return;
+      const total=session.majorIds.length+session.minorIds.length;
+      session.doneIds=Array.isArray(session.doneIds)?session.doneIds:[];
+      const count=session.doneIds.length;
+      q('#progress-text').textContent=`${count} / ${total}`;
+      q('#progress-track').setAttribute('aria-valuemax',String(total));
+      q('#progress-track').setAttribute('aria-valuenow',String(count));
+      q('#progress-fill').style.width=`${total?100*count/total:0}%`;
+      q('#scale-toggle').checked=Boolean(state.preferences.showScale);
+      q('#result-content').classList.toggle('show-scales',Boolean(state.preferences.showScale));
+      renderGroups(session);
+    }
+    function toggleComplete(id){
+      const session=currentSession();if(!session)return;
+      const all=[...session.majorIds.map(i=>selectedId('major',i)),...session.minorIds.map(i=>selectedId('minor',i))];
+      if(!all.includes(id))return;
+      session.doneIds=session.doneIds.includes(id)?session.doneIds.filter(item=>item!==id):[...session.doneIds,id];
+      persist();renderResults();renderHistory();
+      if(session.doneIds.length===all.length)showToast('今天的調性全部練完了，太棒了！ 🎉');
+    }
+    function renderHistory(){
+      const list=q('#history-list');list.replaceChildren();
+      const dates=Object.keys(state.sessions).filter(d=>d<=currentDate).sort().reverse().slice(0,7);
+      if(dates.length===0){
+        const empty=document.createElement('div');empty.className='history-empty';empty.textContent='還沒有練習紀錄。抽出第一組調性，從今天開始累積！';list.append(empty);return;
+      }
+      dates.forEach(date=>{
+        const session=state.sessions[date];
+        if(!session || !Array.isArray(session.majorIds)||!Array.isArray(session.minorIds))return;
+        const row=document.createElement('div');row.className='history-row';
+        const meta=document.createElement('div');meta.className='history-date';meta.textContent=formatDate(date,false);
+        const sum=document.createElement('small');sum.textContent=`${date===currentDate?'今天 · ':''}完成 ${(session.doneIds||[]).length}/${session.majorIds.length+session.minorIds.length}`;
+        meta.append(sum);row.append(meta);
+        const chips=document.createElement('div');chips.className='history-keys';
+        for(const [mode,indices] of [['major',session.majorIds],['minor',session.minorIds]]){
+          indices.forEach(i=>{const chip=document.createElement('span');chip.className=`history-chip${mode==='minor'?' minor':''}`;chip.textContent=`${keyName(mode,i)}${mode==='major'?' 大':' 小'}`;chips.append(chip);});
+        }
+        row.append(chips);list.append(row);
+      });
+    }
+    function render(){
+      q('#today-label').textContent=formatDate(currentDate);
+      renderControls();renderResults();renderHistory();
+    }
+    function refreshDate(){
+      const next=getLocalDate();
+      if(next!==currentDate){currentDate=next;render();}
+    }
+    async function copyList(){
+      const session=currentSession();if(!session)return;
+      const lines=[`${formatDate(currentDate)}｜每日調性練習`, `大調：${session.majorIds.map(i=>keyName('major',i)).join('、')||'無'}`, `小調：${session.minorIds.map(i=>keyName('minor',i)).join('、')||'無'}`];
+      try{
+        await navigator.clipboard.writeText(lines.join('\n'));
+        showToast('已複製今日練習清單');
+      }catch(_){
+        const ta=document.createElement('textarea');ta.value=lines.join('\n');ta.style.position='fixed';ta.style.opacity='0';document.body.append(ta);ta.select();
+        const ok=document.execCommand('copy');ta.remove();showToast(ok?'已複製今日練習清單':'複製失敗，請檢查瀏覽器權限');
+      }
+    }
+    q('#major-minus').addEventListener('click',()=>setCounts(state.preferences.majorCount-1,state.preferences.minorCount));
+    q('#major-plus').addEventListener('click',()=>setCounts(state.preferences.majorCount+1,state.preferences.minorCount));
+    q('#minor-minus').addEventListener('click',()=>setCounts(state.preferences.majorCount,state.preferences.minorCount-1));
+    q('#minor-plus').addEventListener('click',()=>setCounts(state.preferences.majorCount,state.preferences.minorCount+1));
+    document.querySelectorAll('.preset').forEach(btn=>btn.addEventListener('click',()=>setCounts(Number(btn.dataset.major),Number(btn.dataset.minor))));
+    q('#draw-button').addEventListener('click',drawToday);
+    q('#copy-button').addEventListener('click',copyList);
+    q('#scale-toggle').addEventListener('change',e=>{state.preferences.showScale=e.target.checked;persist();renderResults();});
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshDate();});
+    window.addEventListener('focus',refreshDate);
+    // Remove malformed entries and keep local storage compact (last 90 days).
+    Object.keys(state.sessions).forEach(d=>{
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(d)||d<getLocalDateFromOffset(-90))delete state.sessions[d];
+    });
+    function getLocalDateFromOffset(offset){const d=new Date();d.setDate(d.getDate()+offset);const pad=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
+    render();
+  </script>
+</body>
+</html>
