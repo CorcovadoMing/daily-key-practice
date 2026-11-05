@@ -432,6 +432,16 @@ window.classroomSync = {
       return {...current,session,updatedAt:Date.now()};
     });
   },
+  replay(session) {
+    // Rehearsal mode is shared with the class but never archived as a
+    // new draw. The replayOf marker survives completion updates and reloads.
+    if(!session?.replayOf||!Array.isArray(session.majorIds)||
+      !Array.isArray(session.minorIds))return;
+    return changeRoom(current=>({
+      ...current,session:{...session,doneIds:[],createdAt:Date.now()},
+      updatedAt:Date.now()
+    }));
+  },
   toggleComplete(id) {
     return changeRoom(current => {
       const session = current.session;
