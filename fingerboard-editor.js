@@ -67,9 +67,15 @@
     function selection(){return notes()[selected]||null;}
     function placement(note){
       const m=maps[direction][String(note.midi)];
-      if(m && Number.isInteger(m.s)){
+      if(m && Number.isInteger(m.s)&&m.s>=0&&m.s<4){
         const semi=note.midi-OPEN[m.s].midi;
-        if(semi>=0&&semi<=24)return {s:m.s,semi,f:semi===0?0:m.f};
+        if(semi>=0&&semi<=24){
+          const ref=window.CelloFingeringPresets?.get(mode,key,direction,notes())?.[String(note.midi)];
+          const same=Boolean(ref&&ref.s===m.s);
+          const f=semi===0?0:([1,2,3,4].includes(m.f)?m.f:
+            same?ref.f:fb.suggestionFor(semi).finger);
+          return {s:m.s,semi,f,group:same?ref.group:null};
+        }
       }
       const refs=window.CelloFingeringPresets?.get(mode,key,direction,notes())||{};
       const proposal=refs[String(note.midi)];
