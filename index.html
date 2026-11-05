@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261106-024">
+  <meta name="site-version" content="20261106-025">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -143,7 +143,7 @@
     .empty-graphic::before,.empty-graphic::after{content:"";position:absolute;border-radius:50%;background:#d4dfce}
     .empty-graphic::before{height:8px;width:8px;top:16px;right:12px}
     .empty-graphic::after{height:5px;width:5px;bottom:17px;left:9px}
-    .empty-graphic svg{width:77px;height:77px;filter:drop-shadow(0 6px 10px rgba(38,51,43,.12))}
+    .empty-graphic img{display:block;width:112px;height:112px;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(38,51,43,.12))}
     .empty-state h3{font-size:18px;margin:0 0 10px;letter-spacing:-.035em}
     .empty-state p{color:var(--muted);font-size:13px;line-height:1.9;margin:0;max-width:285px}
     .result-content{display:none}
@@ -447,23 +447,7 @@
           <span class="section-number" id="result-placeholder-code">02 / PRACTICE</span>
         </div>
         <div class="empty-state" id="empty-state">
-          <div class="empty-graphic" aria-hidden="true"><svg viewBox="0 0 100 112" aria-hidden="true">
-              <path d="M12 18 22 98" fill="none" stroke="#819486" stroke-width="2.2" stroke-linecap="round"/>
-              <path d="M9 19 18 98" fill="none" stroke="#c3d0bf" stroke-width="1.25" stroke-linecap="round"/>
-              <rect x="39" y="18" width="22" height="4" rx="1.7" transform="rotate(-7 50 20)" fill="#4f6954"/>
-              <rect x="39" y="26" width="22" height="4" rx="1.7" transform="rotate(7 50 28)" fill="#4f6954"/>
-              <path d="M46 12v35h8V12" fill="#536b54"/>
-              <path d="M50 15c-7 0-9-6-5-10 5-6 14-1 10 5-2 3-6 2-7 0" fill="none" stroke="#304e3b" stroke-width="3.4" stroke-linecap="round"/>
-              <path d="M50 43 C43 34 30 32 25 41 C20 50 28 58 38 63 C27 62 19 69 20 82 C21 94 35 101 50 95 C65 101 79 94 80 82 C81 69 73 62 62 63 C72 58 80 50 75 41 C70 32 57 34 50 43 Z" fill="#d7bf93" stroke="#395743" stroke-width="2.5" stroke-linejoin="round"/>
-              <path d="M50 45 C46 39 32 36 28 43 C25 49 32 57 40 60 M60 60 C68 57 75 49 72 43 C68 36 54 39 50 45" fill="none" stroke="#efe2c5" stroke-width="2" opacity=".85"/>
-              <path d="M41 65c-8 2-13 9-11 17 2 8 12 12 20 11 M59 65c8 2 13 9 11 17-2 8-12 12-20 11" fill="none" stroke="#b99b6d" stroke-width="1.5" opacity=".65"/>
-              <path d="M47 32h6l4 31H43z" fill="#334a39"/>
-              <path d="M40 61c-5-3-7 1-4 4m28-4c-5-3-7 1-4 4" fill="none" stroke="#526b4a" stroke-width="2" stroke-linecap="round"/>
-              <path d="M41 73q9-7 18 0" fill="none" stroke="#fff7e8" stroke-width="3" stroke-linecap="round"/>
-              <path d="M47 77h6l-1.4 12h-3.2z" fill="#344c3c"/>
-              <path d="M50 95v13" fill="none" stroke="#405844" stroke-width="2.8" stroke-linecap="round"/>
-              <path d="M47.5 18v64 M49 18v64 M51 18v64 M52.5 18v64" fill="none" stroke="#f8f4e6" stroke-width=".65" opacity=".9"/>
-            </svg></div>
+          <div class="empty-graphic" aria-hidden="true"><img alt="" width="144" height="144" decoding="async" src="data:image/webp;base64,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"></div>
           <h3>你的今日練習，等著開始。</h3>
           <p>選好大調與小調的數量，按下抽籤，讓今天的音樂有個方向。</p>
         </div>
@@ -496,7 +480,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261106-024 · <a href="./experimental/" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Experimental</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261106-025 · <a href="./experimental/" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Experimental</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
