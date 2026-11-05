@@ -136,7 +136,7 @@
     return aside;
   }
 
-  function chartSVG(mode,key,direction,octaves,annotations={}){
+  function chartSVG(mode,key,direction,octaves,annotations={},interaction=null){
     const notes=scaleNotes(mode,key,direction,octaves);
     const map=decodeMap(direction==='up'?annotations.upMap:annotations.downMap);
     const presets=window.CelloFingeringPresets?.get(mode,key,direction,notes)||{};
@@ -176,7 +176,11 @@
       const color=isOpen?'#34483a':POSITION_COLORS[style.group];
       const explicit=[1,2,3,4].includes(note.position.finger);
       const modified=note.position.custom===true;
-      const point=svgNode('g');
+      const point=svgNode('g',interaction?{
+        role:'button',tabindex:'0',class:'cello-fb-note',
+        'aria-label':'選擇第'+note.order+'音 '+note.name+'，編輯同音高弦位及指號',
+        'aria-pressed':String(interaction.selectedMidi===note.midi)
+      }:{});
       point.append(svgNode('title',{},
         '第'+note.order+'音 '+note.name+'，'+note.position.stringName+'弦'+
         (isOpen?'，空弦':'，'+style.label+(explicit?'，第'+style.finger+'指':''))));
@@ -206,49 +210,196 @@
           },'('+style.finger+')'));
         }
       }
+      if(interaction){
+        // An invisible touch target makes the same displayed marker usable on phones.
+        point.append(svgNode('circle',{cx:x,cy:y,r:23,fill:'transparent',
+          stroke:'none','pointer-events':'all'}));
+        if(interaction.selectedMidi===note.midi){
+          point.append(svgNode('circle',{cx:x,cy:y,r:20,fill:'none',
+            stroke:'#d28747','stroke-width':3,'pointer-events':'none'}));
+        }
+        point.addEventListener('click',()=>interaction.select(note.midi));
+        point.addEventListener('keydown',event=>{
+          if(event.key==='Enter'||event.key===' '){
+            event.preventDefault();interaction.select(note.midi);
+          }
+        });
+      }
       svg.append(point);
     }
     return svg;
   }
 
-  function create(mode,key,annotations={},onEdit=null){
+  function create(mode,key,initialAnnotations={},onSave=null){
     const id=(mode==='major'?'major-':'minor-')+key[0];
+    let annotations={...initialAnnotations};
     const octaves=choices.get(id)||2;
     const root=element('div',{class:'cello-fingerboard'});
     const toolbar=element('div',{class:'cello-fb-toolbar'});
     const octaveGroup=element('div',{class:'cello-fb-group','aria-label':'音階八度數'});
     const boards=element('div',{class:'cello-fb-two-up'});
-    const panels={};
-    for(const dir of ['up','down']){
-      const section=element('section',{class:'cello-fb-direction','aria-label':dir==='up'?'上行音階':'下行音階'});
-      const heading=element('h4',{class:'cello-fb-direction-heading'},dir==='up'?'↑ 上行':'↓ 下行');
-      const map=decodeMap(dir==='up'?annotations.upMap:annotations.downMap);
-      if(Object.keys(map).length || (dir==='up'?annotations.up:annotations.down)){
-        heading.append(element('span',{class:'cello-fb-changed'},'（已修改）'));
-      }
-      const viewport=element('div',{class:'cello-fb-viewport'});
-      const memo=dir==='up'?annotations.up:annotations.down;
-      const note=memo?element('div',{class:'fingering-note'},memo):null;
-      const legend=makeLegend();
-      const edit=element('button',{
-        type:'button',class:'fingering-edit cello-fb-edit',
-        'aria-label':'記錄／編輯'+(dir==='up'?'上行':'下行')+'老師的指法'
-      },'記錄／編輯老師的指法');
-      edit.addEventListener('click',()=>{if(typeof onEdit==='function')onEdit(dir);});
-      if(typeof onEdit!=='function')edit.hidden=true;
-      section.append(heading,viewport,legend);
-      if(note)section.append(note);
-      section.append(edit);
-      boards.append(section);
-      panels[dir]=viewport;
+    const panels={},selected={up:null,down:null},draft={up:null,down:null};
+
+    function notes(dir){return scaleNotes(mode,key,dir,choices.get(id)||2);}
+    function reference(dir,midi){
+      const proposals=window.CelloFingeringPresets?.get(mode,key,dir,notes(dir))||{};
+      return notePlacement(midi,{},proposals);
     }
+    function current(dir,midi){
+      const proposals=window.CelloFingeringPresets?.get(mode,key,dir,notes(dir))||{};
+      return notePlacement(midi,decodeMap(annotations[dir+'Map']),proposals);
+    }
+    function selectedNote(dir){return notes(dir).find(n=>n.midi===selected[dir]);}
+
+    function selectNote(dir,midi){
+      if(typeof onSave!=='function')return;
+      if(selected[dir]!==midi){
+        const pos=current(dir,midi);
+        draft[dir]={s:pos.string,f:pos.finger,reset:false};
+      }
+      selected[dir]=midi;
+      renderDirection(dir);
+    }
+    function chooseString(dir,s){
+      const midi=selected[dir],entry=draft[dir];
+      if(midi===null||!entry)return;
+      const semi=midi-OPEN[s].midi;
+      if(semi<0||semi>24)return;
+      entry.s=s;
+      entry.f=semi===0?0:([1,2,3,4].includes(entry.f)?entry.f:null);
+      entry.reset=false;
+      renderDirection(dir);
+    }
+    function chooseFinger(dir,f){
+      const entry=draft[dir],midi=selected[dir];
+      if(!entry||midi===null||midi===OPEN[entry.s].midi||![1,2,3,4].includes(f))return;
+      entry.f=f;entry.reset=false;
+      renderDirection(dir);
+    }
+    function restore(dir){
+      const midi=selected[dir];
+      if(midi===null)return;
+      const orig=reference(dir,midi);
+      draft[dir]={s:orig.string,f:orig.finger,reset:true};
+      renderDirection(dir);
+    }
+    function confirm(dir){
+      const midi=selected[dir],entry=draft[dir];
+      if(midi===null||!entry)return;
+      const semi=midi-OPEN[entry.s].midi;
+      if(semi<0||semi>24||(semi>0&&![1,2,3,4].includes(entry.f)))return;
+      const previous=decodeMap(annotations[dir+'Map']);
+      const next={...previous};
+      const base=reference(dir,midi);
+      if(entry.reset||(entry.s===base.string&&entry.f===base.finger)){
+        delete next[String(midi)];
+      }else{
+        next[String(midi)]={s:entry.s,f:semi===0?0:entry.f};
+      }
+      const value=Object.keys(next).length?JSON.stringify(next):'';
+      if(value.length>1800)return;
+      annotations={...annotations,[dir+'Map']:value};
+      selected[dir]=null;draft[dir]=null;
+      renderDirection(dir);
+      onSave(dir,value);
+    }
+
+    for(const dir of ['up','down']){
+      const section=element('section',{class:'cello-fb-direction',
+        'aria-label':dir==='up'?'上行音階':'下行音階'});
+      const heading=element('h4',{class:'cello-fb-direction-heading'});
+      const viewport=element('div',{class:'cello-fb-viewport'});
+      const editor=element('div',{class:'cello-inline-editor',
+        'aria-label':(dir==='up'?'上行':'下行')+'直接編輯音符'});
+      editor.hidden=true;
+      const status=element('div',{class:'cello-inline-status'});
+      const hint=element('p',{class:'cello-inline-hint'},
+        '選擇同音高的弦位，再設定指號；按確認才會儲存。');
+      const stringChoices=element('div',{class:'cello-inline-choices'});
+      const fingerChoices=element('div',{class:'cello-inline-choices'});
+      const actions=element('div',{class:'cello-inline-actions'});
+      const reset=element('button',{type:'button',class:'cello-inline-reset',
+        title:'將選中的音符恢復成原本的 Werner 指法，按確認後儲存'},'復原');
+      const save=element('button',{type:'button',class:'cello-inline-save'},'確認修改');
+      reset.addEventListener('click',()=>restore(dir));
+      save.addEventListener('click',()=>confirm(dir));
+      actions.append(reset,save);
+      editor.append(status,hint,stringChoices,fingerChoices,actions);
+      const legend=makeLegend();
+      const memo=element('div',{class:'fingering-note'});
+      memo.hidden=true;
+      section.append(heading,viewport,editor,legend,memo);
+      boards.append(section);
+      panels[dir]={heading,viewport,editor,status,stringChoices,fingerChoices,
+        save,memo};
+    }
+
+    function renderDirection(dir){
+      const pane=panels[dir],notesForDir=notes(dir);
+      if(selected[dir]!==null&&!notesForDir.some(n=>n.midi===selected[dir])){
+        selected[dir]=null;draft[dir]=null;
+      }
+      const saved=decodeMap(annotations[dir+'Map']);
+      pane.heading.textContent=dir==='up'?'↑ 上行':'↓ 下行';
+      if(Object.keys(saved).length||(dir==='up'?annotations.up:annotations.down)){
+        pane.heading.append(element('span',{class:'cello-fb-changed'},'（已修改）'));
+      }
+      const memo=dir==='up'?annotations.up:annotations.down;
+      pane.memo.textContent=memo||'';
+      pane.memo.hidden=!memo;
+      const preview={...saved};
+      const chosen=selected[dir],entry=draft[dir];
+      if(chosen!==null&&entry){
+        if(entry.reset)delete preview[String(chosen)];
+        else preview[String(chosen)]={s:entry.s,f:entry.f};
+      }
+      const picture={...annotations,[dir+'Map']:Object.keys(preview).length?
+        JSON.stringify(preview):''};
+      pane.viewport.replaceChildren(chartSVG(mode,key,dir,choices.get(id)||2,
+        picture,typeof onSave==='function'?{
+          selectedMidi:chosen,select:midi=>selectNote(dir,midi)
+        }:null));
+      pane.editor.hidden=chosen===null;
+      if(chosen===null)return;
+      const note=selectedNote(dir);
+      if(!note||!entry)return;
+      const semi=chosen-OPEN[entry.s].midi;
+      pane.status.textContent='第 '+note.order+' 音 · '+note.name+
+        '  ｜  '+OPEN[entry.s].name+' 弦'+
+        (semi===0?'（空弦）':' · '+semi+' 個半音位置');
+      pane.stringChoices.replaceChildren();
+      for(let s=0;s<OPEN.length;s++){
+        const offset=chosen-OPEN[s].midi;
+        if(offset<0||offset>24)continue;
+        const btn=element('button',{type:'button',class:'cello-inline-choice',
+          'aria-pressed':String(entry.s===s)},
+          OPEN[s].name+' 弦'+(offset===0?' · 空弦':' · '+offset+' 半音'));
+        btn.addEventListener('click',()=>chooseString(dir,s));
+        pane.stringChoices.append(btn);
+      }
+      pane.fingerChoices.replaceChildren();
+      if(semi===0){
+        pane.fingerChoices.append(element('span',{class:'cello-inline-open'},
+          '空弦 · 指號 0'));
+      }else{
+        pane.fingerChoices.append(element('span',{class:'cello-inline-label'},
+          '左手指號'));
+        for(let finger=1;finger<=4;finger++){
+          const btn=element('button',{type:'button',class:'cello-inline-finger',
+            'aria-pressed':String(entry.f===finger)},String(finger));
+          btn.addEventListener('click',()=>chooseFinger(dir,finger));
+          pane.fingerChoices.append(btn);
+        }
+      }
+      pane.save.disabled=semi>0&&![1,2,3,4].includes(entry.f);
+    }
+
     function render(){
       const count=choices.get(id)||2;
       one.setAttribute('aria-pressed',String(count===1));
       two.setAttribute('aria-pressed',String(count===2));
-      for(const dir of ['up','down']){
-        panels[dir].replaceChildren(chartSVG(mode,key,dir,count,annotations));
-      }
+      renderDirection('up');
+      renderDirection('down');
     }
     function addButton(label,count){
       const btn=element('button',{type:'button',class:'cello-fb-button'},label);
