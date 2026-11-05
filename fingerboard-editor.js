@@ -73,16 +73,16 @@
           const ref=window.CelloFingeringPresets?.get(mode,key,direction,notes())?.[String(note.midi)];
           const same=Boolean(ref&&ref.s===m.s);
           const f=semi===0?0:([1,2,3,4].includes(m.f)?m.f:
-            same?ref.f:fb.suggestionFor(semi).finger);
-          return {s:m.s,semi,f,group:same?ref.group:null};
+            same?ref.f:null);
+          return {s:m.s,semi,f,group:same?ref.group:'custom',modified:true};
         }
       }
       const refs=window.CelloFingeringPresets?.get(mode,key,direction,notes())||{};
       const proposal=refs[String(note.midi)];
       if(proposal)return {s:proposal.s,semi:note.midi-OPEN[proposal.s].midi,f:proposal.f,
-        group:proposal.group};
+        group:proposal.group,modified:false};
       const pos=fb.positionFor(note.midi);
-      return {s:pos.string,semi:pos.semitones,f:pos.semitones===0?0:null};
+      return {s:pos.string,semi:pos.semitones,f:pos.semitones===0?0:null,group:'unverified',modified:false};
     }
     function possible(note,s){
       if(!note)return null;
@@ -154,9 +154,14 @@
         g.append(sv('text',{x,y:y+4.5,'text-anchor':'middle','font-size':12,'font-weight':850,fill:isOpen?'#34483a':'#ffffff'},n.order));
         // Match the read-only chart: open-string points show only their number.
         if(!isOpen){
-          const suggested=String(style.finger);
           g.append(sv('text',{x:x+20,y:y+1,'font-size':13,'font-weight':750,fill:'#263e2e'},n.name));
-          g.append(sv('text',{x:x+20,y:y+16,'font-size':10,'font-weight':700,fill:pos.f?'#654589':'#8b719a'},'('+suggested+')'));
+          if([1,2,3,4].includes(style.finger)){
+            if(pos.modified)g.append(sv('rect',{x:x+17,y:y+4,width:28,height:17,
+              rx:5,fill:'#fff0f5',stroke:'#d15c80','stroke-width':1}));
+            g.append(sv('text',{x:x+20,y:y+16,'font-size':pos.modified?12:10,
+              'font-weight':pos.modified?900:700,
+              fill:pos.modified?'#a82055':'#675879'},'('+style.finger+')'));
+          }
         }
         doc.append(g);
         let drag=null;
@@ -223,14 +228,14 @@
       const n=selection();
       const p=placement(n);
       const selectedStyle=fb.pointStyling({semitones:p.semi,finger:p.f,group:p.group});
-      info.textContent=`目前選擇：第 ${n.order} 音 ${n.name} · ${OPEN[p.s].name} 弦${p.semi===0?'（空弦）':'，'+selectedStyle.label+'、第 '+selectedStyle.finger+' 指'}`;
+      info.textContent=`目前選擇：第 ${n.order} 音 ${n.name} · ${OPEN[p.s].name} 弦${p.semi===0?'（空弦）':'，'+selectedStyle.label+([1,2,3,4].includes(selectedStyle.finger)?'、第 '+selectedStyle.finger+' 指':'（尚未核對指法）')}`;
       fingers.replaceChildren(el('span','teacher-finger-label','左手指號'));
       if(p.semi===0){
         fingers.append(el('span','teacher-open-label','空弦 0 · 不需要按指'));
       }else{
         const values=[null,1,2,3,4];
         for(const f of values){
-          const b=el('button','teacher-finger-button',f===null?'使用建議':String(f));
+          const b=el('button','teacher-finger-button',f===null?'未指定':String(f));
           b.type='button';
           b.setAttribute('aria-pressed',String(p.f===f));
           b.addEventListener('click',()=>assignFinger(f));
