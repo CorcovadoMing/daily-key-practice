@@ -470,6 +470,60 @@
     if(!state.fingerings || typeof state.fingerings !== 'object') state.fingerings={};
     if(!Array.isArray(state.preferences.excludedKeys))state.preferences.excludedKeys=[];
     let sharedRoom = null; // Classroom state is distinct from personal browser history.
+    const boardInstances=new Map(),cardInstances=new Map();
+    let roomEditingPreviews={};
+    // Confirmed classroom fingering changes also become personal local edits
+    // on every connected participant's browser, including the student's.
+    function inheritConfirmedFingerings(roomId,roomData){
+      if(!roomId||!roomData)return;
+      const stamp=String(roomData.createdAt||'legacy');
+      const identity=roomId+':'+stamp;
+      const incoming=roomData.fingerings&&typeof roomData.fingerings==='object'?roomData.fingerings:{};
+      const seen=state.roomFingeringSnapshots||{};
+      const prior=seen[identity]||{};
+      let changed=false;
+      for(const key of new Set([...Object.keys(prior),...Object.keys(incoming)])){
+        if(!/^(major|minor)-(?:[0-9]|10|11)$/.test(key))continue;
+        const local={...(state.fingerings[key]||{})};
+        let updated=false;
+        for(const field of ['upMap','downMap','up','down']){
+          const old=typeof prior[key]?.[field]==='string'?prior[key][field]:'';
+          const next=typeof incoming[key]?.[field]==='string'?incoming[key][field]:'';
+          if(old===next)continue;
+          if(next)local[field]=next;
+          else delete local[field];
+          updated=true;
+        }
+        if(!updated)continue;
+        if(Object.keys(local).length)state.fingerings[key]=local;
+        else delete state.fingerings[key];
+        changed=true;
+      }
+      seen[identity]=JSON.parse(JSON.stringify(incoming));
+      // Bound retained per-room snapshots; old rooms are only 24 hours long.
+      const keys=Object.keys(seen);
+      if(keys.length>32)for(const key of keys.slice(0,keys.length-32))delete seen[key];
+      state.roomFingeringSnapshots=seen;
+      if(changed||!prior||!Object.keys(prior).length)persist();
+    }
+    function roomLayoutSignature(room){
+      if(!room)return '';
+      const se=room.session;
+      return JSON.stringify([room.id,room.majorCount,room.minorCount,room.showScale,
+        room.excludedKeys,se&&[se.date,se.createdAt,se.majorIds,se.minorIds]]);
+    }
+    function setClassroomDrafts(id,records){
+      if(!sharedRoom||sharedRoom.id!==id)return;
+      roomEditingPreviews={};
+      for(const record of Object.values(records||{})){
+        if(!record||!/^(major|minor)-(?:[0-9]|10|11)$/.test(record.keyId)||
+          !['up','down'].includes(record.direction))continue;
+        if(!roomEditingPreviews[record.keyId])roomEditingPreviews[record.keyId]=[];
+        roomEditingPreviews[record.keyId].push(record);
+      }
+      for(const [key,board]of boardInstances)
+        board.setRemoteDrafts(roomEditingPreviews[key]||[]);
+    }
     let currentDate = getLocalDate();
     let toastTimer;
 
@@ -572,8 +626,33 @@
       warning.textContent=over?'候選調性不足：請增加候選調性，或減少抽籤數量。':'';
     }
     function setClassroomRoom(id,data){
-      if(!id) sharedRoom=null;
+      const previous=sharedRoom;
+      if(id)inheritConfirmedFingerings(id,data);
+      if(!id){sharedRoom=null;roomEditingPreviews={};}
       else sharedRoom={id,majorCount:clamp(data?.majorCount??2),minorCount:clamp(data?.minorCount??2),showScale:Boolean(data?.showScale),excludedKeys:Array.isArray(data?.excludedKeys)?data.excludedKeys:[],fingerings:data?.fingerings&&typeof data.fingerings==='object'?data.fingerings:{},session:data?.session?{...data.session,majorIds:Array.isArray(data.session.majorIds)?data.session.majorIds:[],minorIds:Array.isArray(data.session.minorIds)?data.session.minorIds:[],doneIds:Array.isArray(data.session.doneIds)?data.session.doneIds:[]}:null};
+      // Room updates must not destroy a teacher's unsaved batch edit. When only
+      // confirmed fingerings / checkmarks change, update existing cards in place.
+      if(previous&&sharedRoom&&roomLayoutSignature(previous)===roomLayoutSignature(sharedRoom)){
+        for(const [key,board] of boardInstances){
+          board.updateAnnotations(sharedRoom.fingerings[key]||{});
+        }
+        const session=sharedRoom.session;
+        if(session){
+          const done=Array.isArray(session.doneIds)?session.doneIds:[];
+          const total=session.majorIds.length+session.minorIds.length;
+          q('#progress-text').textContent=done.length+' / '+total;
+          q('#progress-track').setAttribute('aria-valuemax',String(total));
+          q('#progress-track').setAttribute('aria-valuenow',String(done.length));
+          q('#progress-fill').style.width=(total?100*done.length/total:0)+'%';
+          for(const [key,item]of cardInstances){
+            const finished=done.includes(key);
+            item.card.classList.toggle('done',finished);
+            item.button.setAttribute('aria-pressed',String(finished));
+            item.button.querySelector('.check-circle').textContent=finished?'✓':'';
+          }
+        }
+        return;
+      }
       render();
     }
     function signature(count){ return count===0?'無升降記號':(count>0?`♯ × ${count}`:`♭ × ${-count}`); }
@@ -658,31 +737,49 @@ function createCard(mode,index,doneIds){
  const header=document.createElement('div');header.className='fingering-title';header.textContent='大提琴指板音位圖';
  const note=visibleFingerings()[id]||{};
  // Only each direction's heading carries the modified label.
- const guide=window.CelloFingerboard.create(mode,key,note,(direction,map)=>saveInlineFingering(id,direction,map));
+ const guide=window.CelloFingerboard.create(mode,key,note,
+   (direction,map,original,resetAll)=>saveInlineFingering(id,direction,map,original,resetAll),
+   draft=>sharedRoom?window.classroomSync?.setDraft(id,draft):null);
+ boardInstances.set(id,guide);
+ cardInstances.set(id,{card,button:main});
+ guide.setRemoteDrafts(roomEditingPreviews[id]||[]);
  panel.append(header,guide);
  card.append(main,panel);
  return card;
 }
-function saveInlineFingering(id,direction,map){
+function mergeFingeringMap(latest,previous,proposed,resetAll=false){
+  const parse=text=>window.CelloFingerboard.decodeMap(text);
+  if(resetAll)return '';
+  const before=parse(previous),after=parse(proposed),current={...parse(latest)};
+  for(const pitch of new Set([...Object.keys(before),...Object.keys(after)])){
+    if(JSON.stringify(before[pitch])===JSON.stringify(after[pitch]))continue;
+    if(Object.prototype.hasOwnProperty.call(after,pitch))current[pitch]=after[pitch];
+    else delete current[pitch];
+  }
+  return Object.keys(current).length?JSON.stringify(current):'';
+}
+function saveInlineFingering(id,direction,map,original='',resetAll=false){
   if(direction!=='up'&&direction!=='down')return;
-  // Each direct edit changes only its own direction; preserve the other
-  // board and any legacy teacher notes, both locally and in classroom rooms.
   const note={...(visibleFingerings()[id]||{})};
   const field=direction+'Map';
-  if(typeof map==='string'&&map)note[field]=map;
+  const finalMap=mergeFingeringMap(note[field]||'',original,map,resetAll);
+  if(finalMap)note[field]=finalMap;
   else delete note[field];
   if(sharedRoom){
-    window.classroomSync?.setFingering(id,note,direction);
+    // Merge the delta atomically against the most recent room value, not
+    // against an older copy from before another participant's edit.
+    window.classroomSync?.setFingering(id,note,direction,original,resetAll);
   }else{
     if(note.up||note.down||note.upMap||note.downMap)state.fingerings[id]=note;
     else delete state.fingerings[id];
-    persist();
-    renderResults();
-    showToast('這個音的指法已儲存');
+    persist();renderResults();
+    showToast('指法已儲存');
   }
 }
     function renderGroups(session){
-      const container=q('#key-groups');container.replaceChildren();
+      const container=q('#key-groups');
+      boardInstances.clear();cardInstances.clear();
+      container.replaceChildren();
       if(signatureOrderedSession(session)){
         const all=[
           ...session.majorIds.map(index=>({mode:'major',index,signature:MAJOR_KEYS[index]?.[1]})),
@@ -803,7 +900,8 @@ function saveInlineFingering(id,direction,map){
     Object.keys(state.sessions).forEach(d=>{
       if(!/^\d{4}-\d{2}-\d{2}$/.test(d))delete state.sessions[d];
     });
-    window.DailyKeyPractice={setClassroomRoom,getPreferences:()=>({...state.preferences}),showToast};
+    window.DailyKeyPractice={setClassroomRoom,setClassroomDrafts,
+      getPreferences:()=>({...state.preferences}),showToast};
     render();
   </script>
   <script src="firebase-config.js?v=20261106-001"></script>
