@@ -4,7 +4,7 @@
  * Strings and hand-position colors are inferred from confirmed finger numbers,
  * open-string pitches and contiguous note patterns, NOT independently checked
  * against every string placement in the user's sheet.
- * Existing partially transcribed minors are kept unchanged.
+ * All 12 minor sequences are now also user-confirmed (29 digits each).
  */
 (function(){
 'use strict';
@@ -37,12 +37,40 @@ const MAJOR_STRINGS={
   "A♭": "111111222333333",
   "D♭": "000000111222333"
 };
-const MINOR_VERIFIED={
-    'A':['1:1:f','1:3:f','1:4:f','2:0:o','2:1:f','2:2:e','2:4:e'],
-    'E':['0:2:f','0:4:f','1:0:o','1:1:f','1:2:f','1:4:f','2:1:f','2:2:f'],
-    'B':['1:2:f','1:4:f','2:0:o','2:1:f','2:2:f','2:4:f','3:1:f','3:2:f']
+/* 29 digits: 15 ascending + 14 descending (apex not repeated).
+ * These exact digits were confirmed by the user from Werner's minor-scale page.
+ * String positions below are inferred rather than individually verified.
+ */
+const MINOR_FINGERS={
+  "A": "13401240124124342142104210431",
+  "E": "24012412412413421421310431042",
+  "B": "24012412412412321421310431042",
+  "F♯": "13412412401313424310421042131",
+  "D": "13401240124013421042104210431",
+  "G": "01240134012413421421042104210",
+  "C": "01240134012413421421042104210",
+  "C♯": "13412412412413421421421431431",
+  "G♯": "13412412412413421421421431431",
+  "F": "13412412412413421421421431431",
+  "B♭": "13412412412412321421421431431",
+  "E♭": "13412412412413421421421431431"
 };
-const MINOR_GROUP={o:'open',f:'first',e:'extended',s:'shifting'};
+const MINOR_STRINGS={
+  "A": "11122223333333333333332222111",
+  "E": "00111122222233333222222111100",
+  "B": "11222233333333333333333222211",
+  "F♯": "00011122233333333333222211100",
+  "D": "00011112222333333322221111000",
+  "G": "11112222333333333333322221111",
+  "C": "00001111222223332222211110000",
+  "C♯": "00001111122233332222111000000",
+  "G♯": "11112222233333333333222111111",
+  "F": "00011122223333333332222111000",
+  "B♭": "11122223333333333333332222111",
+  "E♭": "00011112222233333222221111000"
+};
+const MELODIC_UP=[0,2,3,5,7,9,11];
+const NATURAL_DOWN=[0,2,3,5,7,8,10];
 function positionGroup(ascending,fingers,strings,index){
   const s=Number(strings[index]),f=Number(fingers[index]);
   const semi=ascending[index].midi-OPEN[s];
@@ -80,16 +108,53 @@ function majorPreset(key,direction,notes){
   return result;
 }
 function minorPreset(key,direction,notes){
-  if(direction!=='up')return {};
-  const values=MINOR_VERIFIED[key[0]];
-  if(!values)return {};
-  const ordered=[...notes].sort((a,b)=>a.midi-b.midi),result={};
-  for(let i=0;i<Math.min(values.length,ordered.length);i++){
-    const [s,f,g]=values[i].split(':');
-    const string=Number(s),finger=Number(f),midi=ordered[i].midi;
-    if(midi-OPEN[string]<0||midi-OPEN[string]>24)continue;
-    result[String(midi)]={midi,s:string,f:finger,group:MINOR_GROUP[g],
-      source:'partially-transcribed-user-Werner-photo'};
+  const sequence=MINOR_FINGERS[key[0]],strings=MINOR_STRINGS[key[0]];
+  if(!sequence||!strings)return {};
+  if(sequence.length!==29||strings.length!==29)
+    throw Error('Minor scale must have exactly 29 fingerings: '+key[0]);
+  if(direction!=='up'&&direction!=='down')throw Error('Invalid direction');
+  if(notes.length!==8&&notes.length!==15)throw Error('Only 1 or 2 octaves supported');
+  const pitchClass=window.CelloFingerboard.pitchClass(key[0]),root=36+pitchClass;
+  const pitches=intervals=>[
+    ...intervals.map(x=>root+x),
+    ...intervals.map(x=>root+12+x),
+    root+24
+  ];
+  const twoUp=pitches(MELODIC_UP),twoDown=pitches(NATURAL_DOWN).reverse();
+  const fullPitches=[...twoUp,...twoDown.slice(1)];
+  // The first descending note is the LAST ascending digit.
+  const descendingFingers=sequence[14]+sequence.slice(15);
+  const descendingStrings=strings[14]+strings.slice(15);
+  const allMidi=direction==='up'?twoUp:twoDown;
+  const allFingers=direction==='up'?sequence.slice(0,15):descendingFingers;
+  const allStrings=direction==='up'?strings.slice(0,15):descendingStrings;
+  // Position grouping is computed in ascending pitch order, even for descent.
+  const ordered=direction==='up'?allMidi:[...allMidi].reverse();
+  const fingersAsc=direction==='up'?allFingers:allFingers.split('').reverse().join('');
+  const stringsAsc=direction==='up'?allStrings:allStrings.split('').reverse().join('');
+  for(let i=0;i<29;i++){
+    const midi=fullPitches[i],finger=Number(sequence[i]),s=Number(strings[i]);
+    const semi=midi-OPEN[s];
+    if(!Number.isInteger(s)||s<0||s>3||!Number.isInteger(finger)||finger<0||finger>4||
+       semi<0||semi>24||(finger===0)!==(semi===0))
+      throw Error('Invalid minor string/finger: '+key[0]+' note '+(i+1));
+  }
+  const expectedMidi=notes.map(n=>n.midi);
+  const sourceIndices=notes.length===15?Array.from({length:15},(_,i)=>i):
+    direction==='up'?Array.from({length:8},(_,i)=>i):
+    Array.from({length:8},(_,i)=>i+7);
+  const result={};
+  for(let n=0;n<notes.length;n++){
+    const i=sourceIndices[n],midi=allMidi[i],s=Number(allStrings[i]),finger=Number(allFingers[i]);
+    if(midi!==expectedMidi[n])
+      throw Error('Minor direction/octave note mismatch: '+key[0]+' '+direction+' note '+(n+1));
+    const idx=direction==='up'?i:14-i;
+    result[String(midi)]={
+      midi,s,f:finger,group:positionGroup(
+        ordered.map(midi=>({midi})),fingersAsc,stringsAsc,idx),
+      source:'user-confirmed-Werner-minor-finger',
+      stringSource:'inferred-from-user-fingering-and-open-strings'
+    };
   }
   return result;
 }
@@ -97,7 +162,8 @@ function get(mode,key,direction,notes){
   return mode==='major'?majorPreset(key,direction,notes):minorPreset(key,direction,notes);
 }
 window.CelloFingeringPresets={
-  get,VERIFIED:{major:MAJOR_FINGERS,minor:MINOR_VERIFIED},
-  MAJOR_FINGERS,MAJOR_STRINGS,STRING_OPEN:OPEN,source:'user-Werner-photo'
+  get,VERIFIED:{major:MAJOR_FINGERS,minor:MINOR_FINGERS},
+  MAJOR_FINGERS,MAJOR_STRINGS,MINOR_FINGERS,MINOR_STRINGS,
+  STRING_OPEN:OPEN,source:'user-Werner-photo'
 };
 })();
