@@ -352,6 +352,8 @@
     const STORAGE_KEY = 'daily-key-practice:v1';
     const q = selector => document.querySelector(selector);
     const state = readStore();
+    if(!state.fingerings || typeof state.fingerings !== 'object') state.fingerings={};
+    let editingKeyId=null;
     let sharedRoom = null; // Classroom state is distinct from personal browser history.
     let currentDate = getLocalDate();
     let toastTimer;
@@ -361,7 +363,7 @@
         const raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
         if (raw && raw.version === 1 && typeof raw.sessions === 'object' && raw.sessions && typeof raw.preferences === 'object') return raw;
       } catch (_) { /* Private browsing or malformed saved data: start fresh. */ }
-      return {version:1, preferences:{majorCount:2,minorCount:2,showScale:false}, sessions:{}};
+      return {version:1, preferences:{majorCount:2,minorCount:2,showScale:false}, sessions:{},fingerings:{}};
     }
     function persist() {
       try { localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); }
