@@ -93,6 +93,15 @@
     return {string:custom.s,stringName:OPEN[custom.s].name,semitones,finger};
   }
 
+  // Reference only: common first / fourth position finger choices.
+  // Higher positions and some extensions depend on the teacher's technique.
+  const FINGER_SUGGESTION={1:'1↓',2:'1',3:'2',4:'3',5:'4',7:'1',8:'2',9:'3',10:'4'};
+  function displayedFinger(position){
+    if(position.semitones===0)return null;
+    if([1,2,3,4].includes(position.finger))return String(position.finger);
+    return FINGER_SUGGESTION[position.semitones] || '—';
+  }
+
   function chartSVG(mode,key,direction,octaves,annotations={}){
     const notes=scaleNotes(mode,key,direction,octaves);
     const map=decodeMap(direction==='up'?annotations.upMap:annotations.downMap);
@@ -128,11 +137,12 @@
       const rootOrEnd=note.order===1||note.order===notes.length;
       const color=note.order===1?'#2e7049':rootOrEnd?'#527e5a':'#364c3b';
       const isOpen=note.position.semitones===0;
-      const label=note.name+(isOpen?' · 空弦':note.position.finger?' · '+note.position.finger+' 指':'');
+      const finger=displayedFinger(note.position);
+      const label=isOpen?'':note.name;
       const point=svgNode('g');
       point.append(svgNode('title',{},
-        '第'+note.order+'音 '+label+'，'+note.position.stringName+
-        '弦，距空弦 '+note.position.semitones+' 個半音'));
+        '第'+note.order+'音 '+note.name+'，'+note.position.stringName+
+        '弦，距空弦 '+note.position.semitones+' 個半音'+(finger?'，參考指號 '+finger:'')));
       point.append(svgNode('circle',{
         cx:x,cy:y,r:15.5,fill:isOpen?'#f7f9f6':color,stroke:isOpen?color:'#ffffff','stroke-width':isOpen?3:2.1
       }));
@@ -140,10 +150,18 @@
         x,y:y+4.5,'text-anchor':'middle','font-size':12.5,
         'font-weight':800,fill:isOpen?color:'#ffffff'
       },String(note.order)));
-      point.append(svgNode('text',{
-        x:x+21,y:y+4.2,'font-size':14,
-        'font-weight':rootOrEnd?800:650,fill:'#273c2e'
-      },label));
+      // Open strings are self-evident on the nut: circle and playing-order only.
+      // For stopped notes, show note name with a compact fingering beneath.
+      if(!isOpen){
+        point.append(svgNode('text',{
+          x:x+21,y:y+1,'font-size':13,
+          'font-weight':rootOrEnd?800:650,fill:'#273c2e'
+        },label));
+        point.append(svgNode('text',{
+          x:x+21,y:y+16,'font-size':10,
+          'font-weight':700,fill:note.position.finger?'#654589':'#8b719a'
+        },'('+finger+')'));
+      }
       svg.append(point);
     }
     return svg;
