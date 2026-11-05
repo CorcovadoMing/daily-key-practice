@@ -446,6 +446,9 @@
     }
     function exitEditor(next=null){
       if(edit.dir===null){if(next)next();return;}
+      // Pointer-up may already have opened the leave dialog before a card
+      // click fires. Update its continuation rather than opening it twice.
+      if(dialog.open){pendingAfterExit=next;return;}
       if(isDirty()){
         pendingAfterExit=next;
         dialog.showModal();
@@ -715,6 +718,8 @@
     const one=addButton('1 八度',1),two=addButton('2 八度',2);
     toolbar.append(octaveGroup);
     if(!choices.has(id))choices.set(id,2);
+    root.isEditing=()=>edit.dir!==null;
+    root.requestLeave=next=>exitEditor(next);
     root.setRemoteDrafts=(incoming)=>{
       const next=Array.isArray(incoming)?incoming.filter(Boolean).slice(0,8):[];
       if(JSON.stringify(remoteDrafts)===JSON.stringify(next))return;
