@@ -288,7 +288,7 @@
     function visiblePreferences(){ return sharedRoom || state.preferences; }
     function setClassroomRoom(id,data){
       if(!id) sharedRoom=null;
-      else sharedRoom={id,majorCount:clamp(data?.majorCount??2),minorCount:clamp(data?.minorCount??2),showScale:Boolean(data?.showScale),session:data?.session&&Array.isArray(data.session.majorIds)&&Array.isArray(data.session.minorIds)?{...data.session,doneIds:Array.isArray(data.session.doneIds)?data.session.doneIds:[]}:null};
+      else sharedRoom={id,majorCount:clamp(data?.majorCount??2),minorCount:clamp(data?.minorCount??2),showScale:Boolean(data?.showScale),session:data?.session?{...data.session,majorIds:Array.isArray(data.session.majorIds)?data.session.majorIds:[],minorIds:Array.isArray(data.session.minorIds)?data.session.minorIds:[],doneIds:Array.isArray(data.session.doneIds)?data.session.doneIds:[]}:null};
       render();
     }
     function signature(count){ return count===0?'無升降記號':(count>0?`♯ × ${count}`:`♭ × ${-count}`); }
