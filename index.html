@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="v2026.11.06-001">
+  <meta name="site-version" content="v2026.11.06-002">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日練習｜大提琴 24 調音階練習</title>
   <style>
@@ -174,9 +174,9 @@
     .fingering-remark{font-size:10px;color:#87928a;margin-top:6px;line-height:1.55}
     .fingering-edit{font-size:11px;color:#396349;background:#fff;border:1px solid #cdddcf;border-radius:8px;padding:6px 9px;margin-top:8px;font-weight:700}
     .fingering-edit:hover{background:#edf4eb}
-    .finger-dialog{border:0;border-radius:21px;background:#fff;box-shadow:0 25px 80px rgba(0,0,0,.24);padding:0;width:min(480px,calc(100% - 28px));max-width:100%}
+    .finger-dialog{border:0;border-radius:21px;background:#fff;box-shadow:0 25px 80px rgba(0,0,0,.24);padding:0;width:min(680px,calc(100% - 20px));max-width:100%;max-height:92dvh;overflow:auto}
     .finger-dialog::backdrop{background:rgba(18,30,20,.63)}
-    .finger-form{padding:26px;display:grid;gap:12px}
+    .finger-form{padding:clamp(14px,3vw,25px);display:grid;gap:12px}
     .finger-form h2{margin:0;font-size:19px}
     .finger-form p{margin:0;color:#6f7b71;font-size:12px;line-height:1.65}
     .finger-form label{font-size:12px;font-weight:800;color:#526f59}
@@ -282,16 +282,19 @@
     </dialog>
     <dialog id="finger-dialog" class="finger-dialog" aria-labelledby="finger-dialog-title">
       <form id="finger-form" class="finger-form">
-        <h2 id="finger-dialog-title">記錄大提琴指法</h2>
-        <p id="finger-dialog-key">請輸入老師指定的把位、弦別與指號。</p>
-        <label for="finger-up">上行指法</label>
-        <textarea id="finger-up" maxlength="300" placeholder="例如：G弦 4 → D弦 0-1-2-4 → A弦 0-1-2"></textarea>
-        <label for="finger-down">下行指法</label>
-        <textarea id="finger-down" maxlength="300" placeholder="例如：依老師指定的換把與指號"></textarea>
-        <p>0 表示空弦，1～4 表示左手指號。課堂房間內的老師指法會同步給所有參與者。</p>
+        <h2 id="finger-dialog-title">視覺化編輯老師的指法</h2>
+        <p id="finger-dialog-key">選擇音符並更換同音高的弦位，再設定左手指號。</p>
+        <div id="finger-editor-container"></div>
+        <details class="teacher-memo">
+          <summary>補充文字備註（選填，保留原有註記）</summary>
+          <label for="finger-up">上行指法備註</label>
+          <textarea id="finger-up" maxlength="300" placeholder="例如：特定換把位置或運弓提醒"></textarea>
+          <label for="finger-down">下行指法備註</label>
+          <textarea id="finger-down" maxlength="300" placeholder="例如：下行換弦方式"></textarea>
+        </details>
         <div class="finger-form-actions">
           <button type="button" id="finger-cancel">取消</button>
-          <button type="submit" class="primary">儲存指法</button>
+          <button type="submit" class="primary">儲存這份指板配置</button>
         </div>
       </form>
     </dialog>
@@ -346,10 +349,10 @@
           </div>
           <div id="key-groups"></div>
           <div class="result-bottom">
-            <label class="toggle-wrap"><input id="scale-toggle" type="checkbox">顯示音階提示</label>
+            
             <span class="caption">點一下調性，即可標記完成 ✓</span>
           </div>
-          <p class="hint">古典旋律小調（Classical Melodic Minor）：上行升高自然小調第 6、7 級；下行恢復自然小調。音階提示列出上行與下行兩個方向。</p>
+
         </div>
       </section>
     </div>
@@ -359,10 +362,11 @@
       <div class="history-list" id="history-list"></div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">v2026.11.06-001</span></footer>
+  <footer class="container"><span>弓弦的每日練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">v2026.11.06-002</span></footer>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="fingerboard.js?v=20261106-001"></script>
+  <script src="fingerboard.js?v=20261106-002"></script>
+  <script src="fingerboard-editor.js?v=20261106-002"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
