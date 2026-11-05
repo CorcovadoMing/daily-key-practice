@@ -48,11 +48,22 @@
     .classroom-bar h2{font-size:16px;margin:0 0 7px;letter-spacing:-.035em}
     .classroom-bar p{font-size:12px;color:#6a796d;line-height:1.7;margin:0}
     .room-status{font-size:12px;color:#42634b;display:block;margin-top:8px;font-weight:700}
-    .room-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .room-actions{display:flex;flex-direction:column;gap:12px;align-items:flex-end;min-width:245px}
+    .room-buttons{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .room-join-form{display:grid;gap:6px;width:100%}
+    .room-join-form label{font-size:12px;font-weight:700;color:#3d6247}
+    .room-join-line{display:flex;gap:8px}
+    .room-join-line input{width:142px;min-width:0;border-radius:10px;border:1px solid #b9d0be;padding:11px 12px;background:white;font:750 18px ui-monospace,monospace;letter-spacing:.12em;color:#293c2f}
+    .room-join-line input::placeholder{font-size:13px;letter-spacing:0;font-family:ui-sans-serif,system-ui,sans-serif;font-weight:500;color:#9baba0}
+    .room-code-display{margin-top:15px;background:#fff;border:1px solid #c9ddc8;border-radius:13px;padding:12px 17px;display:inline-flex;flex-direction:column;gap:4px}
+    .room-code-display .code-caption{font-size:11px;font-weight:700;color:#52735b}
+    .room-code-display strong{font:850 34px ui-monospace,monospace;letter-spacing:.12em;color:#24472e;font-variant-numeric:tabular-nums}
+    .room-code-display small{color:#7b8980;font-size:11px}
+    @media(max-width:620px){.room-actions{align-items:stretch;min-width:0}.room-join-line input{flex:1;width:auto}.room-join-line button{flex:none}.room-buttons{justify-content:flex-start}}
     .room-action{padding:10px 14px;border:1px solid #c5d8c6;border-radius:10px;background:white;font-size:12px;font-weight:750;color:#2d5838;white-space:nowrap}
     .room-action.primary{background:#304c37;color:white;border-color:#304c37}
     .room-action:hover:not(:disabled){filter:brightness(.96)}
-    @media(max-width:620px){.classroom-bar{flex-direction:column;align-items:stretch;padding:18px}.room-actions{justify-content:flex-start}}
+    @media(max-width:620px){.classroom-bar{flex-direction:column;align-items:stretch;padding:18px}}
     .workspace{display:grid;grid-template-columns:minmax(320px,.84fr) minmax(0,1.16fr);align-items:start;gap:22px}
     .panel{background:var(--paper);border:1px solid var(--line);border-radius:23px;box-shadow:var(--shadow);padding:28px}
     .panel-head{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:26px}
@@ -163,11 +174,29 @@
     </section>
 
     <section class="classroom-bar" aria-labelledby="classroom-heading">
-      <div><h2 id="classroom-heading">課堂同步模式 · CLASSROOM</h2><p>建立房間，把邀請連結傳給老師；雙方抽籤、勾選及設定會即時同步。</p><span class="room-status" id="room-status" role="status" aria-live="polite">正在檢查同步設定…</span></div>
+      <div>
+        <h2 id="classroom-heading">課堂同步模式 · CLASSROOM</h2>
+        <p>老師建立房間後告訴學生六位數房號；學生只需輸入數字，即可同步抽籤和練習進度。</p>
+        <span class="room-status" id="room-status" role="status" aria-live="polite">正在檢查同步設定…</span>
+        <div class="room-code-display" id="room-code-display" hidden>
+          <span class="code-caption">課堂房間號碼</span>
+          <strong id="room-code-number" aria-live="polite">------</strong>
+          <small>請告訴老師或學生 · 房間有效 24 小時</small>
+        </div>
+      </div>
       <div class="room-actions">
-        <button type="button" class="room-action primary" id="room-create">建立同步房間</button>
-        <button type="button" class="room-action primary" id="room-copy" hidden>複製邀請連結</button>
-        <button type="button" class="room-action" id="room-leave" hidden>離開房間</button>
+        <form id="room-join-form" class="room-join-form" autocomplete="off">
+          <label for="room-code-input">輸入六位數房號</label>
+          <div class="room-join-line">
+            <input id="room-code-input" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="例如 482731" autocomplete="off" aria-label="六位數課堂房號" required>
+            <button type="submit" class="room-action primary" id="room-join">加入房間</button>
+          </div>
+        </form>
+        <div class="room-buttons">
+          <button type="button" class="room-action primary" id="room-create">建立同步房間</button>
+          <button type="button" class="room-action primary" id="room-copy" hidden>複製邀請連結</button>
+          <button type="button" class="room-action" id="room-leave" hidden>離開房間</button>
+        </div>
       </div>
     </section>
 
