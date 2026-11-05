@@ -54,6 +54,29 @@
         },
         "expiresAt": {
           ".validate": "newData.isNumber() && newData.val() > now && newData.val() <= now + 86460000 && (!data.exists() || newData.val() === data.val())"
+        },
+        "fingerings": {
+          "$keyId": {
+            ".validate": "$keyId.matches(/^(major|minor)-(0|1|2|3|4|5|6|7|8|9|10|11)$/) && newData.hasChildren()",
+            "up": {
+              ".validate": "newData.isString() && newData.val().length <= 300"
+            },
+            "down": {
+              ".validate": "newData.isString() && newData.val().length <= 300"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        }
+      }
+    },
+    "roomPresence": {
+      "$roomId": {
+        ".read": "auth !== null && root.child('rooms').child($roomId).exists() && ($roomId.matches(/^[a-f0-9]{32}$/) || ($roomId.matches(/^[0-9]{6}$/) && root.child('rooms').child($roomId).child('expiresAt').val() > now))",
+        "$connectionId": {
+          ".write": "auth !== null && root.child('rooms').child($roomId).exists() && ($roomId.matches(/^[a-f0-9]{32}$/) || ($roomId.matches(/^[0-9]{6}$/) && root.child('rooms').child($roomId).child('expiresAt').val() > now)) && $connectionId.matches(/^[-A-Za-z0-9_]{20}$/)",
+          ".validate": "newData.isBoolean() && newData.val() === true"
         }
       }
     }
