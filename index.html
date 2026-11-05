@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="v1.0.0">
+  <meta name="site-version" content="v1.0.0-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -278,7 +278,7 @@
         </div>
         <span>弓弦的每日音階練習<small>DAILY CELLO PRACTICE</small></span>
       </div>
-      <span class="header-tag">24 KEYS · 每日一練</span>
+      <span class="header-tag">EXPERIMENTAL · 實驗版</span>
     </div>
   </header>
 
@@ -410,7 +410,7 @@
       <div class="history-list" id="history-list"></div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">v1.0.0</span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">v1.0.0-experimental · <a href="../" style="color:inherit;text-decoration:underline;text-underline-offset:3px">返回穩定版</a></span></footer>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="fingering-presets.js?v=20261106-011"></script>
@@ -449,7 +449,7 @@
       ["B♭",-5,"B♭ C D♭ E♭ F G A","B♭ C D♭ E♭ F G♭ A♭"],
       ["B",2,"B C♯ D E F♯ G♯ A♯","B C♯ D E F♯ G A"]
     ];
-    const STORAGE_KEY = 'daily-key-practice:v1';
+    const STORAGE_KEY = 'daily-key-practice:experimental:v1';
     const q = selector => document.querySelector(selector);
     const state = readStore();
     if(!state.fingerings || typeof state.fingerings !== 'object') state.fingerings={};
