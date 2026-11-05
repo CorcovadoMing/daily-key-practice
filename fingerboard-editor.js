@@ -141,7 +141,13 @@
         const color=isSelected?'#276441':'#354b3b';
         g.append(sv('circle',{cx:x,cy:y,r:15.5,fill:isOpen?'#f7f9f6':color,stroke:isOpen?color:'#ffffff','stroke-width':isOpen?3:2}));
         g.append(sv('text',{x,y:y+4.5,'text-anchor':'middle','font-size':12,'font-weight':850,fill:isOpen?color:'#ffffff'},n.order));
-        g.append(sv('text',{x:x+20,y:y+4,'font-size':13,'font-weight':750,fill:'#263e2e'},n.name+(pos.f&&pos.semi>0?' · '+pos.f+'指':'')));
+        // Match the read-only chart: open-string points show only their number.
+        if(!isOpen){
+          const firstAndFourth={1:'1↓',2:'1',3:'2',4:'3',5:'4',7:'1',8:'2',9:'3',10:'4'};
+          const suggested=pos.f==null?(firstAndFourth[pos.semi]||'—'):String(pos.f);
+          g.append(sv('text',{x:x+20,y:y+1,'font-size':13,'font-weight':750,fill:'#263e2e'},n.name));
+          g.append(sv('text',{x:x+20,y:y+16,'font-size':10,'font-weight':700,fill:pos.f?'#654589':'#8b719a'},'('+suggested+')'));
+        }
         doc.append(g);
         let drag=null;
         function point(event){
