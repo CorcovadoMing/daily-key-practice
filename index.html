@@ -945,6 +945,58 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     showToast('指法已儲存');
   }
 }
+    function jumpOrder(){
+ return [...q('#key-groups').querySelectorAll('.key-card')]
+  .map(card=>card.dataset.keyId).filter(id=>cardInstances.has(id));
+}
+    function jumpToPractice(id){
+ const item=cardInstances.get(id),session=currentSession();
+ if(!item||!session)return;
+ expandedOverride=id;syncPracticeCards(session);
+ item.button.focus({preventScroll:true});
+ item.card.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});
+}
+    function toggleCardExpansion(id){
+ const session=currentSession(),item=cardInstances.get(id);
+ if(!session||!item)return;
+ expandedOverride=item.panel.hidden?id:null;
+ syncPracticeCards(session);
+}
+    function renderPracticeNavigation(order,done,active){
+ const rail=q('#floating-practice-nav');rail.hidden=order.length===0;
+ for(const target of [q('#floating-practice-list'),q('#bottom-practice-nav')]){
+  target.replaceChildren();
+  for(const id of order){
+   const [mode,n]=id.split('-'),name=keyName(mode,Number(n))+(mode==='major'?' 大調':' 小調');
+   const button=document.createElement('button');button.type='button';
+   button.className='practice-jump'+(done.has(id)?' is-done':'')+(active===id?' is-active':'');
+   button.setAttribute('aria-label','跳轉並展開 '+name+(done.has(id)?'，已完成':'，未完成'));
+   if(active===id)button.setAttribute('aria-current','true');
+   const mark=document.createElement('span');mark.className='quick-check';
+   mark.textContent=done.has(id)?'✓':'○';mark.setAttribute('aria-hidden','true');
+   const label=document.createElement('span');label.textContent=name;
+   button.append(mark,label);
+   button.addEventListener('click',()=>jumpToPractice(id));
+   target.append(button);
+  }
+ }
+}
+    function syncPracticeCards(session){
+ const order=jumpOrder(),done=new Set(session?.doneIds||[]);
+ const active=expandedOverride===undefined?order.find(id=>!done.has(id)):
+  (expandedOverride&&cardInstances.has(expandedOverride)?expandedOverride:null);
+ for(const [id,item] of cardInstances){
+  const finished=done.has(id),opened=id===active;
+  item.card.classList.toggle('done',finished);
+  item.card.classList.toggle('is-expanded',opened);
+  item.button.setAttribute('aria-pressed',String(finished));
+  item.button.querySelector('.check-circle').textContent=finished?'✓':'';
+  item.panel.hidden=!opened;
+  item.expand.setAttribute('aria-expanded',String(opened));
+  item.expand.textContent=opened?'⌃':'⌄';
+ }
+ renderPracticeNavigation(order,done,active);
+}
     function renderGroups(session){
       const container=q('#key-groups');
       boardInstances.clear();cardInstances.clear();
