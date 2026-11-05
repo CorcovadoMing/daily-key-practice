@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="v1.0.9">
+  <meta name="site-version" content="v1.1.0">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -166,7 +166,12 @@
     .key-group-title span{font-size:12px;color:var(--muted)}
     .key-grid{display:grid;grid-template-columns:1fr;gap:12px}
     .key-card{width:100%;border:1px solid #e8e9e6;background:#fff;border-radius:13px;min-width:0;overflow:hidden;transition:background .18s,border-color .18s,transform .18s}
-    .key-card-main{width:100%;background:transparent;border:0;text-align:left;display:flex;gap:11px;align-items:flex-start;padding:14px 14px 12px;color:inherit}
+    .key-card-heading{display:flex;align-items:stretch;gap:3px}
+    .key-card-main{flex:1;min-width:0;background:transparent;border:0;text-align:left;display:flex;gap:11px;align-items:flex-start;padding:14px 14px 12px;color:inherit}
+    .key-expand{flex:none;align-self:center;border:1px solid #e1e8df;border-radius:9px;background:#f7faf6;color:#5b7160;padding:7px 10px;margin-right:11px;font-size:16px;line-height:1.2}
+    .key-expand[aria-expanded="true"]{background:#ebf3eb;border-color:#bbd3c0}
+    .key-card.is-expanded{border-color:#bacfbd;box-shadow:0 3px 14px rgba(34,65,41,.05)}
+    .key-card{scroll-margin-top:18px}
     .key-card:hover{border-color:#c3d3c0;transform:translateY(-1px)}
     .key-card.done{background:#f5f8f2;border-color:#cce0c8}
     .check-circle{height:20px;width:20px;border:1.7px solid #c8d1ca;border-radius:50%;display:grid;place-items:center;flex:none;margin-top:2px;color:white;font-size:13px;font-weight:800}
@@ -295,7 +300,18 @@
     .show-scales .scale-notes{display:block}
     .scale-line{display:block;margin:5px 0;line-height:1.8}
     .scale-line b{display:block;color:var(--minor-ink);font-weight:750;font-size:10px}
-    .result-bottom{margin-top:23px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+    .result-bottom{margin-top:19px;display:grid;gap:9px}
+    .practice-quick-list{display:flex;gap:6px;flex-wrap:wrap}
+    .practice-jump{display:inline-flex;align-items:center;gap:5px;justify-content:center;background:#fff;border:1px solid #dfe7e0;border-radius:9px;padding:8px 10px;color:#455a49;font-size:11px;font-weight:800;min-height:33px;white-space:nowrap}
+    .practice-jump:hover{background:#eef4ef;border-color:#a9c4ae}
+    .practice-jump.is-done{background:#eff1ef;border-color:#d9deda;color:#77857b}
+    .practice-jump.is-active{border-color:#69a079;background:#e9f3e9;color:#2f6641;box-shadow:0 0 0 1px #a6c7ad}
+    .practice-jump .quick-check{font-size:10px}
+    .practice-float{position:fixed;top:50%;right:10px;transform:translateY(-50%);width:112px;max-height:min(78vh,720px);overflow:auto;z-index:20;padding:10px 7px;background:rgba(255,255,255,.97);border:1px solid #dce6dd;box-shadow:0 12px 40px rgba(39,61,45,.13);border-radius:15px}
+    .practice-float-title{display:block;text-align:center;font-size:11px;font-weight:850;color:#3c5f45;margin:3px 0 9px}
+    .practice-float-list{display:grid;gap:5px}
+    .practice-float .practice-jump{width:100%;padding:8px 3px;font-size:10px;white-space:normal}
+    @media(max-width:1349px){.practice-float{display:none!important}}
     .toggle-wrap{display:flex;gap:8px;align-items:center;font-size:12px;color:#66706a;cursor:pointer;user-select:none}
     .toggle-wrap input{accent-color:#3f764d;width:15px;height:15px;margin:0}
     .hint{font-size:11px;color:#949b96;margin:14px 0 0;line-height:1.7}
@@ -319,14 +335,16 @@
     .history-choice-actions button.cancel{grid-column:1/-1;border:0;color:#75847a;background:#f3f6f2}
     @media(max-width:700px){.history-columns{grid-template-columns:1fr}.history-panel{padding:16px}}
     .history-empty{border:1px dashed #d8ded6;border-radius:14px;padding:22px 23px;color:#8b948d;font-size:13px;background:#fbfbf8;line-height:1.8}
-    .history-row{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px}
-    .history-date{font-weight:750;font-size:12px;min-width:0}
+    .history-row{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"meta replay" "keys keys" ". remove";align-items:start;gap:10px}
+    .history-date{grid-area:meta;font-weight:750;font-size:12px;min-width:0}
     .history-date small{display:block;color:#909894;font-size:11px;font-weight:500;margin-top:4px}
-    .history-keys{display:flex;gap:6px;justify-content:flex-start;flex-wrap:wrap;flex:1 1 100%;min-width:0;order:3}
-    .history-delete{flex:none;background:#fff;color:#a45454;border:1px solid #ead2d2;padding:7px 10px;border-radius:9px;font-size:11px;font-weight:750}
+    .history-keys{grid-area:keys;display:flex;gap:6px;justify-content:flex-start;flex-wrap:wrap;min-width:0}
+    .history-replay{grid-area:replay;justify-self:end;max-width:155px;border:1px solid #bad0ee;background:#eef5ff;color:#315d91;border-radius:9px;padding:8px 10px;font-size:11px;font-weight:800;line-height:1.5;text-align:center}
+    .history-replay:hover{background:#e1edff;border-color:#8bb1df}
+    .history-delete{grid-area:remove;justify-self:end;background:#fff;color:#a45454;border:1px solid #ead2d2;padding:7px 10px;border-radius:9px;font-size:11px;font-weight:750}
     .history-delete:hover{background:#fdf1f1;border-color:#dba7a7}
     .history-delete:focus-visible{outline:3px solid #bb8181;outline-offset:2px}
-    @media(max-width:480px){.history-row{flex-wrap:wrap;gap:10px}.history-keys{justify-content:flex-start;flex-basis:calc(100% - 85px)}.history-delete{margin-left:auto}}
+    @media(max-width:480px){.history-row{gap:8px;padding:11px}.history-replay{max-width:136px;padding:7px 6px;font-size:10px}}
     .history-chip{border-radius:6px;padding:6px 9px;background:#e9f2e8;color:#395843;font-weight:750;font-size:12px}
     .history-chip.minor{background:#f0eaf8;color:#655178}
     footer{border-top:1px solid var(--line);padding:24px 0 33px;color:#a1a8a1;font-size:12px;display:flex;justify-content:space-between;gap:18px}
@@ -450,8 +468,8 @@
           </div>
           <div id="key-groups"></div>
           <div class="result-bottom">
-            
-            <span class="caption">點一下調性，即可標記完成 ✓</span>
+            <span class="caption">點標題切換完成狀態；使用右側箭頭摺疊指板，或點下方調性快速跳轉。</span>
+            <nav class="practice-quick-list" id="bottom-practice-nav" aria-label="快速跳轉練習調性"></nav>
           </div>
 
         </div>
@@ -472,7 +490,11 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">v1.0.9 · <a href="./experimental/" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Experimental</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">v1.1.0 · <a href="./experimental/" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Experimental</a></span></footer>
+  <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
+    <span class="practice-float-title">今日練習清單</span>
+    <div class="practice-float-list" id="floating-practice-list"></div>
+  </nav>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <dialog id="draw-choice-dialog" class="history-choice-dialog" aria-labelledby="draw-choice-title">
     <h3 id="draw-choice-title">這次要如何保存練習紀錄？</h3>
