@@ -1,0 +1,55 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "rooms": {
+      "$roomId": {
+        ".read": "auth !== null && $roomId.matches(/^[a-f0-9]{32}$/)",
+        ".write": "auth !== null && $roomId.matches(/^[a-f0-9]{32}$/) && newData.exists()",
+        ".validate": "newData.hasChildren(['majorCount','minorCount','showScale','updatedAt'])",
+        "majorCount": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 12"
+        },
+        "minorCount": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 12"
+        },
+        "showScale": {
+          ".validate": "newData.isBoolean()"
+        },
+        "updatedAt": {
+          ".validate": "newData.isNumber() && newData.val() > 0"
+        },
+        "session": {
+          ".validate": "newData.hasChildren(['date','createdAt'])",
+          "date": {
+            ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)"
+          },
+          "createdAt": {
+            ".validate": "newData.isNumber() && newData.val() > 0"
+          },
+          "majorIds": {
+            "$index": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 12"
+            }
+          },
+          "minorIds": {
+            "$index": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 12"
+            }
+          },
+          "doneIds": {
+            "$index": {
+              ".validate": "newData.isString() && newData.val().matches(/^(major|minor)-(0|1|2|3|4|5|6|7|8|9|10|11)$/)"
+            }
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    }
+  }
+}
