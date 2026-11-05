@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="v1.0.6">
+  <meta name="site-version" content="v1.0.7">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -78,10 +78,13 @@
     .setup-stack>.panel{padding:22px;min-width:0}
     .workspace>.result-panel{min-width:0}
     .practice-overflow{margin-top:20px;padding:24px;min-width:0}
-    .practice-overflow #continued-key-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+    .practice-overflow #continued-key-groups{display:block}
     .practice-overflow .key-group{margin-top:0;min-width:0}
-    .practice-overflow .key-grid{display:grid;grid-template-columns:1fr;gap:12px}
-    @media(min-width:1100px){.practice-overflow #continued-key-groups{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    .practice-overflow .key-group+.key-group{margin-top:22px}
+    .practice-overflow .key-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+    @media(min-width:760px) and (max-width:1039px){
+      .practice-overflow .key-grid{grid-template-columns:1fr}
+    }
     @media(min-width:760px) and (max-width:920px){
       .workspace{grid-template-columns:minmax(292px,.85fr) minmax(0,1.15fr);gap:13px}
       .setup-stack>.panel,.workspace>.result-panel{padding:15px}
@@ -227,10 +230,12 @@
     .cello-inline-label,.cello-inline-open{font-size:11px;font-weight:750;color:#597460}
     .cello-inline-range{justify-self:start;background:#e9f0fc;border:1px solid #afc9ee;color:#315b91;border-radius:8px;padding:8px 11px;font-size:11px;font-weight:800}
     .cello-inline-range[aria-pressed="true"]{background:#cfe1fc;border-color:#6f9acb}
-    .cello-inline-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;padding-top:3px}
-    .cello-inline-actions button{min-width:0;border-radius:8px;padding:8px 3px;font-weight:800;font-size:11px;white-space:nowrap}
-    @media(max-width:390px){.cello-inline-actions{gap:4px}.cello-inline-actions button{font-size:10px;padding:8px 2px}}
+    .cello-inline-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding-top:3px}
+    .cello-inline-actions button{min-width:0;min-height:36px;border-radius:8px;padding:7px 2px;
+      font-weight:800;font-size:10px;line-height:1.4;white-space:normal;overflow-wrap:anywhere}
+    @media(max-width:390px){.cello-inline-actions{gap:3px}.cello-inline-actions button{font-size:9px;padding:6px 1px}}
     .cello-inline-undo{border:1px solid #a6c5e8;background:#eaf3ff;color:#2b5990}
+    .cello-inline-restore-selected{border:1px solid #dbabc0;background:#fce9f1;color:#9f3b66}
     .cello-inline-reset{border:1px solid #e8ac6e;background:#fff0dd;color:#9a4d0f}
     .cello-inline-save{border:1px solid #2e5d3b;background:#2e5d3b;color:#fff}
     .cello-inline-actions button:hover:not(:disabled),.cello-inline-range:hover{filter:brightness(.96)}
@@ -458,11 +463,11 @@
       <div class="history-list" id="history-list"></div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">v1.0.6 · <a href="./experimental/" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Experimental</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">v1.0.7 · <a href="./experimental/" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Experimental</a></span></footer>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="fingering-presets.js?v=20261106-012"></script>
-  <script src="fingerboard.js?v=20261106-017"></script>
+  <script src="fingerboard.js?v=20261106-018"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
@@ -847,7 +852,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       q('#result-content').classList.toggle('visible',hasSession);
       q('#result-controls').hidden=!hasSession;
       q('#result-placeholder-code').hidden=hasSession;
-      if(!hasSession) return;
+      if(!hasSession){q('#practice-overflow').hidden=true;q('#continued-key-groups').replaceChildren();return;}
       const total=session.majorIds.length+session.minorIds.length;
       session.doneIds=Array.isArray(session.doneIds)?session.doneIds:[];
       const count=session.doneIds.length;
@@ -996,6 +1001,6 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     render();
   </script>
   <script src="firebase-config.js?v=20261106-001"></script>
-  <script type="module" src="classroom.js?v=20261106-016"></script>
+  <script type="module" src="classroom.js?v=20261106-018"></script>
 </body>
 </html>
