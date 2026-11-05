@@ -518,6 +518,18 @@
       renderDirection(edit.dir);
       announceDraft();
     }
+    function resetSelected(){
+      if(edit.dir===null||edit.midi===null)return;
+      const midi=String(edit.midi);
+      if(!Object.prototype.hasOwnProperty.call(edit.pending,midi))return;
+      // This is one undoable operation in the same global batch stack.
+      edit.undo.push({map:clone(edit.pending),midi:edit.midi});
+      const changed=clone(edit.pending);
+      delete changed[midi];
+      edit.pending=changed;
+      renderDirection(edit.dir);
+      announceDraft();
+    }
     function resetAll(){
       if(edit.dir===null)return;
       const dir=edit.dir;
@@ -546,14 +558,17 @@
       const fingerChoices=element('div',{class:'cello-inline-choices'});
       const actions=element('div',{class:'cello-inline-actions'});
       const back=element('button',{type:'button',class:'cello-inline-undo'},'上一步');
+      const restoreSelected=element('button',{type:'button',class:'cello-inline-restore-selected',
+        title:'將目前選取的粉紅色修改音符還原 Werner 預設，並保留其他音'},'復原選取的修改');
       const reset=element('button',{type:'button',class:'cello-inline-reset',
-        title:'將整個方向的指法還原成 Werner 預設'},'復原預設');
+        title:'將整個方向全部自訂指法還原 Werner 預設'},'復原所有修改');
       const save=element('button',{type:'button',class:'cello-inline-save'},'確認修改');
       back.addEventListener('click',undo);
+      restoreSelected.addEventListener('click',resetSelected);
       reset.addEventListener('click',resetAll);
       save.addEventListener('click',saveSession);
       range.addEventListener('click',()=>{edit.showMore=!edit.showMore;renderDirection(dir);});
-      actions.append(back,reset,save);
+      actions.append(back,restoreSelected,reset,save);
       editor.append(status,hint,range,stringChoices,fingerChoices,actions);
       const legend=makeLegend();
       const memo=element('div',{class:'fingering-note'});
@@ -561,7 +576,7 @@
       section.append(heading,viewport,editor,legend,memo);
       boards.append(section);
       panels[dir]={heading,viewport,editor,status,hint,stringChoices,
-        fingerChoices,range,back,save,memo};
+        fingerChoices,range,back,restoreSelected,save,memo};
     }
     root.append(toolbar,boards,dialog);
 
@@ -600,6 +615,8 @@
       pane.range.textContent=edit.showMore?'收起高把位':'顯示更多把位';
       pane.range.setAttribute('aria-pressed',String(edit.showMore));
       pane.back.disabled=edit.undo.length===0;
+      pane.restoreSelected.disabled=edit.midi===null||
+        !Object.prototype.hasOwnProperty.call(edit.pending,String(edit.midi));
       pane.save.disabled=!isDirty()||invalid>0;
       pane.stringChoices.replaceChildren();
       pane.fingerChoices.replaceChildren();
