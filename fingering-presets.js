@@ -145,7 +145,13 @@ function minorPreset(key,direction,notes){
     Array.from({length:8},(_,i)=>i+7);
   const result={};
   for(let n=0;n<notes.length;n++){
-    const i=sourceIndices[n],midi=allMidi[i],s=Number(allStrings[i]),finger=Number(allFingers[i]);
+    const i=sourceIndices[n],midi=allMidi[i],s=Number(allStrings[i]);
+    // One-octave descent starts at the ascending first-octave apex.
+    // Its finger must agree with the last note of that ascending diagram,
+    // even when the full two-octave descent uses a different middle register
+    // fingering at the same pitch (notably E and B minor).
+    const finger=Number(direction==='down'&&notes.length===8&&n===0?
+      sequence[7]:allFingers[i]);
     if(midi!==expectedMidi[n])
       throw Error('Minor direction/octave note mismatch: '+key[0]+' '+direction+' note '+(n+1));
     const idx=direction==='up'?i:14-i;
