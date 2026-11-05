@@ -319,13 +319,28 @@
     .history-section{padding:36px 0 70px}
     .history-heading{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:0 0 14px}
     .history-heading h2{font-size:17px;font-weight:800;letter-spacing:-.04em;margin:0}
+    .history-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}
+    .history-panel{min-width:0;background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:var(--shadow)}
+    .history-panel-heading{display:flex;align-items:center;gap:9px;margin:0 0 14px;font-size:14px;font-weight:800;color:#3b5844}
+    .history-panel-heading.classroom{color:#536d9b}
+    .history-panel-heading .key-dot{width:10px;height:10px}
+    .history-panel-heading.classroom .key-dot{background:#9fb7df}
     .history-list{display:grid;gap:8px}
+    .history-choice-dialog{width:min(430px,calc(100% - 28px));max-width:100%;padding:23px;border:1px solid #d9e4d9;border-radius:19px;background:#fff;box-shadow:0 20px 75px rgba(25,35,27,.2);color:var(--ink)}
+    .history-choice-dialog::backdrop{background:rgba(20,36,26,.48)}
+    .history-choice-dialog h3{font-size:17px;margin:0 0 10px;letter-spacing:-.02em}
+    .history-choice-dialog p{color:#6b796f;font-size:13px;line-height:1.8;margin:0 0 18px}
+    .history-choice-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+    .history-choice-actions button{border:1px solid #cbdccd;background:#fff;color:#31573b;border-radius:10px;padding:12px 7px;font-weight:800;font-size:12px}
+    .history-choice-actions button.primary{background:#2f523a;color:white;border-color:#2f523a}
+    .history-choice-actions button.cancel{grid-column:1/-1;border:0;color:#75847a;background:#f3f6f2}
+    @media(max-width:700px){.history-columns{grid-template-columns:1fr}.history-panel{padding:16px}}
     .history-empty{border:1px dashed #d8ded6;border-radius:14px;padding:22px 23px;color:#8b948d;font-size:13px;background:#fbfbf8;line-height:1.8}
-    .history-row{background:#fff;border:1px solid var(--line);border-radius:14px;padding:17px 20px;display:flex;justify-content:space-between;align-items:center;gap:15px}
-    .history-date{font-weight:750;font-size:13px;min-width:86px}
+    .history-row{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px}
+    .history-date{font-weight:750;font-size:12px;min-width:0}
     .history-date small{display:block;color:#909894;font-size:11px;font-weight:500;margin-top:4px}
-    .history-keys{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;flex:1;min-width:0}
-    .history-delete{flex:none;background:#fff;color:#a45454;border:1px solid #ead2d2;padding:8px 11px;border-radius:9px;font-size:11px;font-weight:750}
+    .history-keys{display:flex;gap:6px;justify-content:flex-start;flex-wrap:wrap;flex:1 1 100%;min-width:0;order:3}
+    .history-delete{flex:none;background:#fff;color:#a45454;border:1px solid #ead2d2;padding:7px 10px;border-radius:9px;font-size:11px;font-weight:750}
     .history-delete:hover{background:#fdf1f1;border-color:#dba7a7}
     .history-delete:focus-visible{outline:3px solid #bb8181;outline-offset:2px}
     @media(max-width:480px){.history-row{flex-wrap:wrap;gap:10px}.history-keys{justify-content:flex-start;flex-basis:calc(100% - 85px)}.history-delete{margin-left:auto}}
@@ -473,12 +488,30 @@
     </div>
 
     <section class="history-section" aria-labelledby="history-title">
-      <div class="history-heading"><h2 id="history-title">最近的練習紀錄</h2><span class="caption">僅保存在目前瀏覽器</span></div>
-      <div class="history-list" id="history-list"></div>
+      <div class="history-heading"><h2 id="history-title">最近的練習紀錄</h2><span class="caption">兩種紀錄分開保存於目前瀏覽器</span></div>
+      <div class="history-columns">
+        <section class="history-panel" aria-labelledby="personal-history-title">
+          <h3 class="history-panel-heading" id="personal-history-title"><i class="key-dot" aria-hidden="true"></i>個人練習紀錄</h3>
+          <div class="history-list" id="personal-history-list"></div>
+        </section>
+        <section class="history-panel" aria-labelledby="classroom-history-title">
+          <h3 class="history-panel-heading classroom" id="classroom-history-title"><i class="key-dot" aria-hidden="true"></i>課堂連線紀錄</h3>
+          <div class="history-list" id="classroom-history-list"></div>
+        </section>
+      </div>
     </section>
   </main>
   <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">v1.0.8-experimental · <a href="../" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Experimental</a></span></footer>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <dialog id="draw-choice-dialog" class="history-choice-dialog" aria-labelledby="draw-choice-title">
+    <h3 id="draw-choice-title">這次要如何保存練習紀錄？</h3>
+    <p>今天已有練習紀錄。你可以覆蓋目前這筆，或保留它並新增另一筆紀錄。</p>
+    <div class="history-choice-actions">
+      <button type="button" data-history-choice="overwrite">覆蓋本次紀錄</button>
+      <button type="button" class="primary" data-history-choice="new">新增一筆紀錄</button>
+      <button type="button" class="cancel" data-history-choice="cancel">取消</button>
+    </div>
+  </dialog>
 
   <script src="fingering-presets.js?v=20261106-012"></script>
   <script src="fingerboard.js?v=20261106-019"></script>
@@ -520,6 +553,9 @@
     const state = readStore();
     if(!state.fingerings || typeof state.fingerings !== 'object') state.fingerings={};
     if(!Array.isArray(state.preferences.excludedKeys))state.preferences.excludedKeys=[];
+    if(!Array.isArray(state.personalHistory))state.personalHistory=[];
+    if(!Array.isArray(state.classroomHistory))state.classroomHistory=[];
+    if(!Array.isArray(state.deletedClassroomHistoryIds))state.deletedClassroomHistoryIds=[];
     let sharedRoom = null; // Classroom state is distinct from personal browser history.
     const boardInstances=new Map(),cardInstances=new Map();
     let roomEditingPreviews={};
