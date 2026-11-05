@@ -144,7 +144,12 @@
       const position=notePlacement(note.midi,map,presets);
       return {...note,position,style:pointStyling(position)};
     });
-    const maxPosition=Math.max(7,...plotted.map(item=>item.position.semitones));
+    // While editing, reveal nearby equivalent pitches on other strings.
+    // Very high alternatives remain available in the buttons below.
+    const editableMidi=interaction?.selectedMidi;
+    const nearby=editableMidi===null||editableMidi===undefined?[]:
+      OPEN.map(item=>editableMidi-item.midi).filter(n=>n>=0&&n<=14);
+    const maxPosition=Math.max(7,...plotted.map(item=>item.position.semitones),...nearby);
     const top=68,step=35,height=top+maxPosition*step+47;
     const xPositions=[42,126,210,294], end=top+maxPosition*step+22;
     const svg=svgNode('svg',{
@@ -168,6 +173,33 @@
       if(fret>=maxPosition)continue;
       const y=top+fret*step;
       svg.append(svgNode('line',{x1:24,y1:y,x2:340,y2:y,stroke:'#e3eae2','stroke-width':1,'stroke-dasharray':'3 6'}));
+    }
+
+    if(interaction && editableMidi!==null && editableMidi!==undefined){
+      const active=plotted.find(n=>n.midi===editableMidi);
+      if(active){
+        for(let s=0;s<OPEN.length;s++){
+          const semi=editableMidi-OPEN[s].midi;
+          if(semi<0||semi>maxPosition||s===active.position.string)continue;
+          const x=xPositions[s],y=top+semi*step;
+          const target=svgNode('g',{role:'button',tabindex:'0',
+            class:'cello-fb-alt',
+            'aria-label':'將音符換到'+OPEN[s].name+'弦，同音高位置'});
+          target.append(svgNode('circle',{cx:x,cy:y,r:11,fill:'#d6f1da',
+            stroke:'#428455','stroke-width':2,'stroke-dasharray':'2 2'}));
+          target.append(svgNode('text',{x,y:y+4,'text-anchor':'middle',
+            'font-size':13,'font-weight':850,fill:'#356f44'},'+'));
+          target.append(svgNode('circle',{cx:x,cy:y,r:19,
+            fill:'transparent','pointer-events':'all'}));
+          target.addEventListener('click',()=>interaction.chooseString(s));
+          target.addEventListener('keydown',event=>{
+            if(event.key==='Enter'||event.key===' '){
+              event.preventDefault();interaction.chooseString(s);
+            }
+          });
+          svg.append(target);
+        }
+      }
     }
 
     for(const note of plotted){
@@ -314,7 +346,7 @@
       editor.hidden=true;
       const status=element('div',{class:'cello-inline-status'});
       const hint=element('p',{class:'cello-inline-hint'},
-        '選擇同音高的弦位，再設定指號；按確認才會儲存。');
+        '點圖上的綠色＋位置，或選擇下方同音高弦位，再設定指號。按確認才會儲存。');
       const stringChoices=element('div',{class:'cello-inline-choices'});
       const fingerChoices=element('div',{class:'cello-inline-choices'});
       const actions=element('div',{class:'cello-inline-actions'});
@@ -357,7 +389,8 @@
         JSON.stringify(preview):''};
       pane.viewport.replaceChildren(chartSVG(mode,key,dir,choices.get(id)||2,
         picture,typeof onSave==='function'?{
-          selectedMidi:chosen,select:midi=>selectNote(dir,midi)
+          selectedMidi:chosen,select:midi=>selectNote(dir,midi),
+          chooseString:s=>chooseString(dir,s)
         }:null));
       pane.editor.hidden=chosen===null;
       if(chosen===null)return;
