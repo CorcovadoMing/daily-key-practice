@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="v1.0.2-experimental">
+  <meta name="site-version" content="v1.0.3-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -219,12 +219,16 @@
     .cello-inline-choice[aria-pressed="true"],.cello-inline-finger[aria-pressed="true"]{border-color:#397149;background:#dceede;color:#245335;box-shadow:inset 0 0 0 1px #397149}
     .cello-inline-finger{min-width:36px;font-size:13px}
     .cello-inline-label,.cello-inline-open{font-size:11px;font-weight:750;color:#597460}
-    .cello-inline-actions{display:flex;gap:8px;padding-top:3px}
-    .cello-inline-actions button{flex:1;border-radius:9px;padding:10px 8px;font-weight:800;font-size:12px}
-    .cello-inline-reset{border:1px solid #ccdad0;background:white;color:#56725d}
+    .cello-inline-range{justify-self:start;background:#e9f0fc;border:1px solid #afc9ee;color:#315b91;border-radius:8px;padding:8px 11px;font-size:11px;font-weight:800}
+    .cello-inline-range[aria-pressed="true"]{background:#cfe1fc;border-color:#6f9acb}
+    .cello-inline-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding-top:3px}
+    .cello-inline-actions button{min-width:0;border-radius:9px;padding:10px 7px;font-weight:800;font-size:12px}
+    .cello-inline-undo{border:1px solid #a6c5e8;background:#eaf3ff;color:#2b5990}
+    .cello-inline-reset{border:1px solid #e8ac6e;background:#fff0dd;color:#9a4d0f}
+    .cello-inline-cancel{border:1px solid #e5a7b1;background:#fee8ec;color:#9a2845}
     .cello-inline-save{border:1px solid #2e5d3b;background:#2e5d3b;color:#fff}
-    .cello-inline-actions button:hover:not(:disabled){filter:brightness(.96)}
-    .cello-inline-save:disabled{opacity:.4}
+    .cello-inline-actions button:hover:not(:disabled),.cello-inline-range:hover{filter:brightness(.96)}
+    .cello-inline-actions button:disabled{opacity:.43;cursor:not-allowed}
     .fingering-changed,.cello-fb-changed{font-size:11px;font-weight:850;color:#ad315c;margin-left:5px}
     .cello-fb-changed{font-size:10px}
     @media(max-width:1250px){
@@ -439,11 +443,11 @@
       <div class="history-list" id="history-list"></div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">v1.0.2-experimental · <a href="../" style="color:inherit;text-decoration:underline;text-underline-offset:3px">返回穩定版</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">v1.0.3-experimental · <a href="../" style="color:inherit;text-decoration:underline;text-underline-offset:3px">返回穩定版</a></span></footer>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="fingering-presets.js?v=20261106-012"></script>
-  <script src="fingerboard.js?v=20261106-013"></script>
+  <script src="fingerboard.js?v=20261106-014"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
