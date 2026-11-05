@@ -895,23 +895,25 @@
     }
 function createCard(mode,index,doneIds){
  const key=(mode==='major'?MAJOR_KEYS:MINOR_KEYS)[index],id=selectedId(mode,index),done=doneIds.includes(id);
- const card=document.createElement('div');card.className=`key-card${done?' done':''}`;
+ const card=document.createElement('div');card.className=`key-card${done?' done':''}`;card.dataset.keyId=id;
+ const heading=document.createElement('div');heading.className='key-card-heading';
  const main=document.createElement('button');main.type='button';main.className='key-card-main';main.setAttribute('aria-pressed',String(done));
  main.setAttribute('aria-label',`${key[0]} ${mode==='major'?'大調':'小調'}，點擊切換完成`);
- main.innerHTML=`<span class="check-circle" aria-hidden="true">${done?'✓':''}</span><span class="key-card-content"><span class="key-primary">${key[0]}</span><span class="key-secondary">${mode==='major'?`MAJOR · ${signature(key[1])}`:'CLASSICAL MELODIC MINOR'}</span></span>`;
+ main.innerHTML=`<span class="check-circle" aria-hidden="true">${done?'✓':''}</span><span class="key-card-content"><span class="key-primary">${key[0]} ${mode==='major'?'大調':'小調'}</span><span class="key-secondary">${signature(key[1])}</span></span>`;
  main.addEventListener('click',()=>toggleComplete(id));
- const panel=document.createElement('div');panel.className='fingering-section';
+ const expand=document.createElement('button');expand.type='button';expand.className='key-expand';expand.textContent='⌄';
+ expand.setAttribute('aria-label','展開或收合 '+key[0]+(mode==='major'?'大調':'小調')+' 的指板圖');
+ expand.setAttribute('aria-controls','fingering-'+id);
+ expand.addEventListener('click',()=>toggleCardExpansion(id));
+ heading.append(main,expand);
+ const panel=document.createElement('div');panel.className='fingering-section';panel.id='fingering-'+id;
  const header=document.createElement('div');header.className='fingering-title';header.textContent='大提琴指板音位圖';
  const note=visibleFingerings()[id]||{};
- // Only each direction's heading carries the modified label.
  const guide=window.CelloFingerboard.create(mode,key,note,
-   (direction,map,original,resetAll)=>saveInlineFingering(id,direction,map,original,resetAll),
-   draft=>sharedRoom?window.classroomSync?.setDraft(id,draft):null);
- boardInstances.set(id,guide);
- cardInstances.set(id,{card,button:main});
- guide.setRemoteDrafts(roomEditingPreviews[id]||[]);
- panel.append(header,guide);
- card.append(main,panel);
+  (direction,map,original,resetAll)=>saveInlineFingering(id,direction,map,original,resetAll),
+  draft=>sharedRoom?window.classroomSync?.setDraft(id,draft):null);
+ boardInstances.set(id,guide);cardInstances.set(id,{card,button:main,panel,expand});
+ guide.setRemoteDrafts(roomEditingPreviews[id]||[]);panel.append(header,guide);card.append(heading,panel);
  return card;
 }
 function mergeFingeringMap(latest,previous,proposed,resetAll=false){
