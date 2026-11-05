@@ -389,6 +389,7 @@
     const q = selector => document.querySelector(selector);
     const state = readStore();
     if(!state.fingerings || typeof state.fingerings !== 'object') state.fingerings={};
+    if(!Array.isArray(state.preferences.excludedKeys))state.preferences.excludedKeys=[];
     let editingKeyId=null;
     let sharedRoom = null; // Classroom state is distinct from personal browser history.
     let currentDate = getLocalDate();
@@ -416,9 +417,44 @@
     function currentSession(){ return sharedRoom ? sharedRoom.session : state.sessions[currentDate]; }
     function visiblePreferences(){ return sharedRoom || state.preferences; }
     function visibleFingerings(){ return sharedRoom ? (sharedRoom.fingerings||{}) : state.fingerings; }
+    function excludedKeys(){return Array.isArray(visiblePreferences().excludedKeys)?visiblePreferences().excludedKeys:[];}
+    function eligible(mode){return (mode==='major'?MAJOR_KEYS:MINOR_KEYS).map((_,i)=>i).filter(i=>!excludedKeys().includes(selectedId(mode,i)));}
+    function updateExclusions(next){
+      if(sharedRoom){window.classroomSync?.setExcludedKeys(next);return;}
+      state.preferences.excludedKeys=next;persist();renderControls();
+    }
+    function renderKeyFilters(){
+      for(const mode of ['major','minor']){
+        const container=q('#'+mode+'-filter');
+        container.replaceChildren();
+        const arr=mode==='major'?MAJOR_KEYS:MINOR_KEYS;
+        const sorted=arr.map((key,index)=>({key,index})).sort((a,b)=>a.key[1]-b.key[1]);
+        for(const {key,index} of sorted){
+          const id=selectedId(mode,index),selected=!excludedKeys().includes(id);
+          const button=document.createElement('button');
+          button.type='button';button.className='filter-key'+(mode==='minor'?' minor':'');
+          button.setAttribute('aria-pressed',String(selected));
+          button.setAttribute('aria-label',key[0]+(mode==='major'?'大調':'小調')+' '+signature(key[1])+(selected?' 已加入抽籤':' 已排除'));
+          const label=document.createElement('strong');label.textContent=key[0];
+          const detail=document.createElement('small');detail.textContent=key[1]===0?'無升降':key[1]>0?'♯ '+key[1]:'♭ '+(-key[1]);
+          button.append(label,detail);
+          button.addEventListener('click',()=>{
+            const set=new Set(excludedKeys());
+            if(set.has(id))set.delete(id);else set.add(id);
+            updateExclusions([...set]);
+          });
+          container.append(button);
+        }
+        q('#'+mode+'-eligible').textContent=eligible(mode).length+' / 12';
+      }
+      const p=visiblePreferences(),over=p.majorCount>eligible('major').length||p.minorCount>eligible('minor').length;
+      const warning=q('#filter-warning');
+      warning.hidden=!over;
+      warning.textContent=over?'目前選擇的候選調性少於要抽的數量；請增加候選調性或減少抽籤數量。':'';
+    }
     function setClassroomRoom(id,data){
       if(!id) sharedRoom=null;
-      else sharedRoom={id,majorCount:clamp(data?.majorCount??2),minorCount:clamp(data?.minorCount??2),showScale:Boolean(data?.showScale),fingerings:data?.fingerings&&typeof data.fingerings==='object'?data.fingerings:{},session:data?.session?{...data.session,majorIds:Array.isArray(data.session.majorIds)?data.session.majorIds:[],minorIds:Array.isArray(data.session.minorIds)?data.session.minorIds:[],doneIds:Array.isArray(data.session.doneIds)?data.session.doneIds:[]}:null};
+      else sharedRoom={id,majorCount:clamp(data?.majorCount??2),minorCount:clamp(data?.minorCount??2),showScale:Boolean(data?.showScale),excludedKeys:Array.isArray(data?.excludedKeys)?data.excludedKeys:[],fingerings:data?.fingerings&&typeof data.fingerings==='object'?data.fingerings:{},session:data?.session?{...data.session,majorIds:Array.isArray(data.session.majorIds)?data.session.majorIds:[],minorIds:Array.isArray(data.session.minorIds)?data.session.minorIds:[],doneIds:Array.isArray(data.session.doneIds)?data.session.doneIds:[]}:null};
       render();
     }
     function signature(count){ return count===0?'無升降記號':(count>0?`♯ × ${count}`:`♭ × ${-count}`); }
@@ -444,7 +480,8 @@
       q('#major-plus').disabled=majorCount===12;
       q('#minor-minus').disabled=minorCount===0;
       q('#minor-plus').disabled=minorCount===12;
-      q('#draw-button').disabled=majorCount+minorCount===0;
+      q('#draw-button').disabled=majorCount+minorCount===0 || majorCount>eligible('major').length || minorCount>eligible('minor').length;
+      renderKeyFilters();
       q('#draw-text').textContent=currentSession()?(sharedRoom?'重新抽選課堂調性':'重新抽選今日調性'):(sharedRoom?'抽取課堂練習調性':'抽取今日練習調性');
       document.querySelectorAll('.preset').forEach(el=>{
         const active=Number(el.dataset.major)===majorCount && Number(el.dataset.minor)===minorCount;
@@ -452,8 +489,8 @@
         el.setAttribute('aria-pressed',String(active));
       });
     }
-    function chooseDistinct(n){
-      const arr=Array.from({length:12},(_,i)=>i);
+    function chooseDistinct(n,mode){
+      const arr=eligible(mode).slice();
       for(let i=arr.length-1;i>0;i--){
         const j=Math.floor(Math.random()*(i+1));
         [arr[i],arr[j]]=[arr[j],arr[i]];
@@ -464,12 +501,12 @@
       refreshDate();
       if(currentSession() && !window.confirm('重新抽籤會取代今天原本的清單和完成紀錄。確定要重新抽選嗎？')) return;
       const {majorCount,minorCount}=visiblePreferences();
-      if(majorCount+minorCount===0) return;
+      if(majorCount+minorCount===0 || majorCount>eligible('major').length || minorCount>eligible('minor').length) return;
       if(sharedRoom){
-        window.classroomSync?.draw({date:currentDate,majorIds:chooseDistinct(majorCount),minorIds:chooseDistinct(minorCount),doneIds:[],createdAt:Date.now()});
+        window.classroomSync?.draw({date:currentDate,majorIds:chooseDistinct(majorCount,'major'),minorIds:chooseDistinct(minorCount,'minor'),doneIds:[],createdAt:Date.now()});
         return;
       }
-      state.sessions[currentDate]={date:currentDate,majorIds:chooseDistinct(majorCount),minorIds:chooseDistinct(minorCount),doneIds:[],createdAt:Date.now()};
+      state.sessions[currentDate]={date:currentDate,majorIds:chooseDistinct(majorCount,'major'),minorIds:chooseDistinct(minorCount,'minor'),doneIds:[],createdAt:Date.now()};
       persist();render();showToast('新的練習清單已準備好！');
     }
 function createCard(mode,index,doneIds){
@@ -597,6 +634,7 @@ function saveFingering(){
     document.querySelectorAll('.preset').forEach(btn=>btn.addEventListener('click',()=>setCounts(Number(btn.dataset.major),Number(btn.dataset.minor))));
     q('#draw-button').addEventListener('click',drawToday);
     q('#copy-button').addEventListener('click',copyList);
+    q('#filter-all').addEventListener('click',()=>updateExclusions([]));
     q('#finger-cancel').addEventListener('click',()=>q('#finger-dialog').close());
     q('#finger-form').addEventListener('submit',event=>{event.preventDefault();saveFingering();});
     q('#scale-toggle').addEventListener('change',e=>{
