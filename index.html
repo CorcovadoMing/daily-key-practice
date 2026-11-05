@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="v2026.11.06-011">
+  <meta name="site-version" content="v1.0.0">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
-  <title>弓弦的每日練習｜大提琴 24 調音階練習</title>
+  <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
     :root {
       color-scheme: light;
@@ -116,6 +116,14 @@
     .draw-button:hover:not(:disabled){background:#405b45;transform:translateY(-1px)}
     .button-icon{font-size:19px;line-height:1}
     .control-note{text-align:center;margin:13px 0 0;font-size:12px;color:#8b928e;line-height:1.7}
+    .ordered-practice{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;margin-top:12px;background:#f8faf7;border:1px solid #e1e9dd;border-radius:12px}
+    .ordered-practice-copy{display:flex;flex-direction:column;gap:3px;min-width:0}
+    .ordered-practice-copy strong{color:#3c5945;font-size:12px;font-weight:800}
+    .ordered-practice-copy strong span{color:#829286;font-size:10px;font-weight:700}
+    .ordered-practice-copy small{font-size:10px;color:#829087;line-height:1.5}
+    .ordered-practice-button{flex:none;border:1px solid #c2d6c2;border-radius:9px;background:#fff;color:#376144;padding:8px 11px;font-size:11px;font-weight:750}
+    .ordered-practice-button:hover:not(:disabled){background:#ecf4eb}
+    @media(max-width:430px){.ordered-practice{gap:8px;padding:10px}.ordered-practice-button{font-size:10px;padding:8px 9px}}
     .result-panel{min-height:478px}
     .result-controls{display:flex;gap:8px;align-items:center}
     .icon-button{border:1px solid var(--line);background:white;color:#58665d;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:700;white-space:nowrap}
@@ -268,7 +276,7 @@
         <div class="brand-logo" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><ellipse cx="6" cy="18.5" rx="3" ry="2"/><ellipse cx="17" cy="16.5" rx="3" ry="2"/></svg>
         </div>
-        <span>弓弦的每日練習<small>DAILY CELLO PRACTICE</small></span>
+        <span>弓弦的每日音階練習<small>DAILY CELLO PRACTICE</small></span>
       </div>
       <span class="header-tag">24 KEYS · 每日一練</span>
     </div>
@@ -278,7 +286,7 @@
     <section class="intro" aria-labelledby="page-title">
       <div>
         <div class="eyebrow">A little surprise in every scale</div>
-        <h1 id="page-title">弓弦的<em>每日練習</em></h1>
+        <h1 id="page-title">弓弦的<em>每日音階練習</em></h1>
         <p>挑好想練的調性，讓一點隨機帶來每天的新挑戰。<br>12 個大調、12 個古典旋律小調，從音階開始，拉出更好的聲音。</p>
       </div>
       <div class="date-label">TODAY <strong id="today-label">—</strong></div>
@@ -362,6 +370,13 @@
         </div></div>
         <button type="button" id="draw-button" class="draw-button"><span class="button-icon" aria-hidden="true">✦</span><span id="draw-text">抽取今日練習調性</span><span aria-hidden="true">↗</span></button>
         <p class="control-note">每種調性最多 12 個；同一組不會抽到重複調性。</p>
+        <div class="ordered-practice" aria-label="循序練習">
+          <div class="ordered-practice-copy">
+            <strong>循序練習 <span>依調號</span></strong>
+            <small>勾選的調性全部練習 · 0 → ♯1–6 → ♭1–6</small>
+          </div>
+          <button type="button" id="ordered-button" class="ordered-practice-button">開始循序練習</button>
+        </div>
       </section>
 
       <section class="panel result-panel" aria-labelledby="results-title">
@@ -395,7 +410,7 @@
       <div class="history-list" id="history-list"></div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">v2026.11.06-011</span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">v1.0.0</span></footer>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="fingering-presets.js?v=20261106-011"></script>
@@ -468,6 +483,27 @@
     function currentSession(){ return sharedRoom ? sharedRoom.session : state.sessions[currentDate]; }
     function visiblePreferences(){ return sharedRoom || state.preferences; }
     function visibleFingerings(){ return sharedRoom ? (sharedRoom.fingerings||{}) : state.fingerings; }
+    // Follow the exact ascending-signature progression displayed in the filters:
+    // natural first, then one through six sharps, then one through six flats.
+    function signatureRank(count){return count===0?0:count>0?count:6-count;}
+    function orderedSelections(modes=['major','minor']){
+      return modes.flatMap(mode=>eligible(mode).map(index=>({
+        mode,index,
+        signature:(mode==='major'?MAJOR_KEYS:MINOR_KEYS)[index][1]
+      }))).sort((a,b)=>signatureRank(a.signature)-signatureRank(b.signature)||
+        (a.mode===b.mode?0:a.mode==='major'?-1:1));
+    }
+    function signatureOrderedSession(session){
+      if(!session||!Array.isArray(session.majorIds)||!Array.isArray(session.minorIds))return false;
+      if(session.sequenceMode==='signature')return true;
+      // Firebase session rules are unchanged: recognize the ordered full-pool
+      // variant from its complete ordered lists (without adding DB fields).
+      const order=orderedSelections(),major=order.filter(v=>v.mode==='major').map(v=>v.index),
+        minor=order.filter(v=>v.mode==='minor').map(v=>v.index);
+      return (major.length+minor.length>0)&&
+        JSON.stringify(session.majorIds)===JSON.stringify(major)&&
+        JSON.stringify(session.minorIds)===JSON.stringify(minor);
+    }
     function excludedKeys(){return Array.isArray(visiblePreferences().excludedKeys)?visiblePreferences().excludedKeys:[];}
     function eligible(mode){return (mode==='major'?MAJOR_KEYS:MINOR_KEYS).map((_,i)=>i).filter(i=>!excludedKeys().includes(selectedId(mode,i)));}
     function updateExclusions(next){
@@ -552,6 +588,7 @@
       q('#minor-minus').disabled=minorCount===0;
       q('#minor-plus').disabled=minorCount===12;
       q('#draw-button').disabled=majorCount+minorCount===0 || majorCount>eligible('major').length || minorCount>eligible('minor').length;
+      q('#ordered-button').disabled=orderedSelections().length===0;
       renderKeyFilters();
       q('#draw-text').textContent=currentSession()?(sharedRoom?'重新抽選課堂調性':'重新抽選今日調性'):(sharedRoom?'抽取課堂練習調性':'抽取今日練習調性');
       document.querySelectorAll('.preset').forEach(el=>{
@@ -579,6 +616,24 @@
       }
       state.sessions[currentDate]={date:currentDate,majorIds:chooseDistinct(majorCount,'major'),minorIds:chooseDistinct(minorCount,'minor'),doneIds:[],createdAt:Date.now()};
       persist();render();showToast('新的練習清單已準備好！');
+    }
+    function practiceInSignatureOrder(){
+      refreshDate();
+      const selected=orderedSelections();
+      if(!selected.length)return;
+      if(currentSession() && !window.confirm('循序練習會取代今天原本的清單和完成紀錄。確定要開始嗎？'))return;
+      const majorIds=selected.filter(v=>v.mode==='major').map(v=>v.index),
+        minorIds=selected.filter(v=>v.mode==='minor').map(v=>v.index);
+      // Keep the existing session schema so Firebase Realtime Database rules
+      // and both stable/experimental room clients remain compatible.
+      const session={date:currentDate,majorIds,minorIds,doneIds:[],createdAt:Date.now()};
+      if(sharedRoom){
+        window.classroomSync?.draw(session);
+        return;
+      }
+      session.sequenceMode='signature'; // local-only metadata; never sent to Firebase
+      state.sessions[currentDate]=session;
+      persist();render();showToast('已依調號排好全部選取的調性！');
     }
 function createCard(mode,index,doneIds){
  const key=(mode==='major'?MAJOR_KEYS:MINOR_KEYS)[index],id=selectedId(mode,index),done=doneIds.includes(id);
@@ -643,6 +698,21 @@ function saveFingering(){
 }
     function renderGroups(session){
       const container=q('#key-groups');container.replaceChildren();
+      if(signatureOrderedSession(session)){
+        const all=[
+          ...session.majorIds.map(index=>({mode:'major',index,signature:MAJOR_KEYS[index]?.[1]})),
+          ...session.minorIds.map(index=>({mode:'minor',index,signature:MINOR_KEYS[index]?.[1]}))
+        ].filter(v=>Number.isInteger(v.signature)).sort((a,b)=>
+          signatureRank(a.signature)-signatureRank(b.signature)||
+          (a.mode===b.mode?0:a.mode==='major'?-1:1));
+        const section=document.createElement('section');section.className='key-group';
+        const heading=document.createElement('div');heading.className='key-group-title';
+        heading.innerHTML=`<h3>依調號循序練習</h3><span>${all.length} 個調性</span>`;
+        const grid=document.createElement('div');grid.className='key-grid';
+        all.forEach(item=>grid.append(createCard(item.mode,item.index,session.doneIds)));
+        section.append(heading,grid);container.append(section);
+        return;
+      }
       for(const [mode,indices,label] of [['major',session.majorIds,'大調 MAJOR'],['minor',session.minorIds,'古典旋律小調 MELODIC MINOR']]){
         if(!Array.isArray(indices)||!indices.length) continue;
         const section=document.createElement('section');section.className='key-group';
@@ -738,6 +808,7 @@ function saveFingering(){
     q('#minor-plus').addEventListener('click',()=>setCounts(visiblePreferences().majorCount,visiblePreferences().minorCount+1));
     document.querySelectorAll('.preset').forEach(btn=>btn.addEventListener('click',()=>setCounts(Number(btn.dataset.major),Number(btn.dataset.minor))));
     q('#draw-button').addEventListener('click',drawToday);
+    q('#ordered-button').addEventListener('click',practiceInSignatureOrder);
     q('#copy-button').addEventListener('click',copyList);
     q('#filter-all').addEventListener('click',()=>updateExclusions([]));
     q('#filter-none').addEventListener('click',()=>updateExclusions([...MAJOR_KEYS.map((_,i)=>selectedId('major',i)),...MINOR_KEYS.map((_,i)=>selectedId('minor',i))]));
