@@ -14,6 +14,8 @@ const copyButton = el('room-copy');
 const leaveButton = el('room-leave');
 const roomCodeDisplay = el('room-code-display');
 const roomCodeNumber = el('room-code-number');
+const onlineCount=el('online-count');
+const onlineNumber=el('online-number');
 const copyCodeButton = el('room-copy-code');
 const createdDialog = el('room-created-dialog');
 const dialogCode = el('room-dialog-code');
@@ -36,6 +38,8 @@ let roomRef = null;
 let roomExpiresAt = null;
 let unsubscribeRoom = null;
 let unsubscribeConnection = null;
+let unsubscribePresence=null;
+let presenceConnectionRef=null;
 let joining = false;
 
 function setStatus(message) { status.textContent = message; }
@@ -53,6 +57,7 @@ function updateButtons() {
   joinButton.disabled = !configured || joining;
   joinInput.disabled = joining;
   copyButton.disabled = !ready;
+  onlineCount.hidden = !activeId || !ready;
 }
 function revealCreatedRoomCode(id) {
   if(!shortCodePattern.test(id)) return;
