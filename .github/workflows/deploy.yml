@@ -32,6 +32,11 @@ jobs:
         with:
           path: .
           name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Clear stale Pages deployment from previous failed run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/${{ github.repository }}/pages/deployments/df24bad9fda51ef1f1c1dcd7d33bd054deb5f88e/cancel" || echo "Prior deployment already canceled or could not be canceled"
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
