@@ -94,9 +94,53 @@ function hashRoom() {
   const match = window.location.hash.match(/^#room=([0-9]{6}|[a-f0-9]{32})$/);
   return match ? match[1] : null;
 }
+function stopPresence(){
+ if(unsubscribePresence)unsubscribePresence();
+ unsubscribePresence=null;
+ const old=presenceConnectionRef;
+ presenceConnectionRef=null;
+ onlineCount.hidden=true;
+ onlineNumber.textContent='—';
+ if(old && firebase){
+   firebase.remove(old).then(()=>firebase.onDisconnect(old).cancel()).catch(error=>console.debug('Presence cleanup pending server disconnect:',error));
+ }
+}
+
+function watchPresence(id){
+ const ref=firebase.ref(database,'roomPresence/'+id);
+ onlineNumber.textContent='…';
+ unsubscribePresence=firebase.onValue(ref,snapshot=>{
+   if(activeId!==id)return;
+   const connections=snapshot.val();
+   onlineNumber.textContent=String(connections?Object.keys(connections).length:0);
+ },error=>{
+   if(activeId!==id)return;
+   onlineNumber.textContent='未啟用';
+   console.warn('Realtime presence unavailable: update Firebase Rules.',error);
+ });
+}
+
+async function markPresent(id){
+ if(!ready||!connected||activeId!==id||presenceConnectionRef)return;
+ const presenceRef=firebase.push(firebase.ref(database,'roomPresence/'+id));
+ presenceConnectionRef=presenceRef;
+ try{
+   await firebase.onDisconnect(presenceRef).remove();
+   if(activeId!==id||!connected){
+     await firebase.onDisconnect(presenceRef).cancel();
+     presenceConnectionRef=null;
+     return;
+   }
+   await firebase.set(presenceRef,true);
+ }catch(error){
+   if(presenceConnectionRef===presenceRef)presenceConnectionRef=null;
+   console.warn('Could not register classroom presence:',error);
+ }
+}
 function cleanupListeners() {
   if(unsubscribeRoom) unsubscribeRoom();
   if(unsubscribeConnection) unsubscribeConnection();
+  stopPresence();
   unsubscribeRoom = null;
   unsubscribeConnection = null;
 }
