@@ -207,6 +207,7 @@
         <h2 id="classroom-heading">課堂同步模式 · CLASSROOM</h2>
         <p>老師建立房間後告訴學生六位數房號；學生只需輸入數字，即可同步抽籤和練習進度。</p>
         <span class="room-status" id="room-status" role="status" aria-live="polite">正在檢查同步設定…</span>
+        <span class="online-count" id="online-count" hidden>目前連線：<strong id="online-number">—</strong><small>每個裝置或瀏覽器分頁計算一次</small></span>
         <div class="room-code-display" id="room-code-display" hidden>
           <span class="code-caption">課堂房間號碼</span>
           <strong id="room-code-number" aria-live="polite">------</strong>
@@ -242,6 +243,21 @@
         </div>
         <p class="room-dialog-help">關閉後，房號仍會保留在網頁上方，24 小時內有效。</p>
       </div>
+    </dialog>
+    <dialog id="finger-dialog" class="finger-dialog" aria-labelledby="finger-dialog-title">
+      <form id="finger-form" class="finger-form">
+        <h2 id="finger-dialog-title">記錄大提琴指法</h2>
+        <p id="finger-dialog-key">請輸入老師指定的把位、弦別與指號。</p>
+        <label for="finger-up">上行指法</label>
+        <textarea id="finger-up" maxlength="300" placeholder="例如：G弦 4 → D弦 0-1-2-4 → A弦 0-1-2"></textarea>
+        <label for="finger-down">下行指法</label>
+        <textarea id="finger-down" maxlength="300" placeholder="例如：依老師指定的換把與指號"></textarea>
+        <p>0 表示空弦，1～4 表示左手指號。課堂房間內的老師指法會同步給所有參與者。</p>
+        <div class="finger-form-actions">
+          <button type="button" id="finger-cancel">取消</button>
+          <button type="submit" class="primary">儲存指法</button>
+        </div>
+      </form>
     </dialog>
     <div class="workspace">
       <section class="panel" aria-labelledby="settings-title">
