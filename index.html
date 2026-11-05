@@ -379,9 +379,14 @@
     function keyName(mode,index){ return (mode === 'major' ? MAJOR_KEYS : MINOR_KEYS)[index][0]; }
     function currentSession(){ return sharedRoom ? sharedRoom.session : state.sessions[currentDate]; }
     function visiblePreferences(){ return sharedRoom || state.preferences; }
+    function visibleFingerings(){ return sharedRoom ? (sharedRoom.fingerings||{}) : state.fingerings; }
+    const REFERENCE_FINGERING={
+      major:{up:'1–2–4 · 1–2–4 · 1–2–4 · 1–2–4 · 1–3–4',down:'4–3–1 · 4–2–1 · 4–2–1 · 4–2–1 · 4–2–1'},
+      minor:{up:'1–3–4 · 1–2–4 · 1–2–4 · 1–2–4 · 1–3–4',down:'4–2–1 · 4–2–1 · 4–2–1 · 4–3–1 · 4–3–1'}
+    };
     function setClassroomRoom(id,data){
       if(!id) sharedRoom=null;
-      else sharedRoom={id,majorCount:clamp(data?.majorCount??2),minorCount:clamp(data?.minorCount??2),showScale:Boolean(data?.showScale),session:data?.session?{...data.session,majorIds:Array.isArray(data.session.majorIds)?data.session.majorIds:[],minorIds:Array.isArray(data.session.minorIds)?data.session.minorIds:[],doneIds:Array.isArray(data.session.doneIds)?data.session.doneIds:[]}:null};
+      else sharedRoom={id,majorCount:clamp(data?.majorCount??2),minorCount:clamp(data?.minorCount??2),showScale:Boolean(data?.showScale),fingerings:data?.fingerings&&typeof data.fingerings==='object'?data.fingerings:{},session:data?.session?{...data.session,majorIds:Array.isArray(data.session.majorIds)?data.session.majorIds:[],minorIds:Array.isArray(data.session.minorIds)?data.session.minorIds:[],doneIds:Array.isArray(data.session.doneIds)?data.session.doneIds:[]}:null};
       render();
     }
     function signature(count){ return count===0?'無升降記號':(count>0?`♯ × ${count}`:`♭ × ${-count}`); }
