@@ -665,7 +665,8 @@
       const index=state.classroomHistory.findIndex(item=>item.id===id);
       const old=index>=0?state.classroomHistory[index]:null;
       const redrawn=old&&(JSON.stringify(old.majorIds)!==JSON.stringify(session.majorIds)||
-        JSON.stringify(old.minorIds)!==JSON.stringify(session.minorIds));
+        JSON.stringify(old.minorIds)!==JSON.stringify(session.minorIds)||
+        ((old.doneIds||[]).length>0&&(session.doneIds||[]).length===0));
       const drawnAt=redrawn&&Number.isFinite(data.updatedAt)?data.updatedAt:(old?.drawnAt||session.createdAt);
       const next=recordSnapshot({...session,drawnAt},{id,roomId});
       if(old&&JSON.stringify(old)===JSON.stringify(next))return false;
@@ -1009,7 +1010,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       function createRow(record,kind){
         const row=document.createElement('div');row.className='history-row';
         const meta=document.createElement('div');meta.className='history-date';
-        const dateText=formatDate(record.date,false);
+        const dateText=formatDate(record.date,record.date.slice(0,4)!==currentDate.slice(0,4));
         const timestamp=Number(record.drawnAt||record.createdAt);
         const hour=Number.isFinite(timestamp)&&timestamp>0?
           ' · '+new Date(timestamp).getHours()+' 點':' · 時間未記錄';
