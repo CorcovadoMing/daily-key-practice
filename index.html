@@ -550,6 +550,8 @@
     if(!Array.isArray(state.classroomHistory))state.classroomHistory=[];
     if(!Array.isArray(state.deletedClassroomHistoryIds))state.deletedClassroomHistoryIds=[];
     let sharedRoom = null; // Classroom state is distinct from personal browser history.
+    let replaySession=null; // Temporary rehearsal: never added to personal history.
+    let expandedOverride=undefined,renderedSessionKey=null;
     const boardInstances=new Map(),cardInstances=new Map();
     let roomEditingPreviews={};
     // Confirmed classroom fingering changes also become personal local edits
@@ -592,7 +594,7 @@
       if(!room)return '';
       const se=room.session;
       return JSON.stringify([room.id,room.majorCount,room.minorCount,room.showScale,
-        room.excludedKeys,se&&[se.date,se.createdAt,se.majorIds,se.minorIds]]);
+        room.excludedKeys,se&&[se.date,se.createdAt,se.majorIds,se.minorIds,se.replayOf]]);
     }
     function setClassroomDrafts(id,records){
       if(!sharedRoom||sharedRoom.id!==id)return;
@@ -628,7 +630,7 @@
     const clamp = n => Math.min(12,Math.max(0,Number.isFinite(Number(n))?Number(n):0));
     const selectedId = (mode,index) => `${mode}-${index}`;
     function keyName(mode,index){ return (mode === 'major' ? MAJOR_KEYS : MINOR_KEYS)[index][0]; }
-    function currentSession(){ return sharedRoom ? sharedRoom.session : state.sessions[currentDate]; }
+    function currentSession(){ return sharedRoom ? sharedRoom.session : (replaySession||state.sessions[currentDate]); }
     function visiblePreferences(){ return sharedRoom || state.preferences; }
     function visibleFingerings(){ return sharedRoom ? (sharedRoom.fingerings||{}) : state.fingerings; }
     function recordSnapshot(session,extra={}){
@@ -651,6 +653,7 @@
     }
     function archiveClassroomSession(roomId,data){
       const session=data?.session;
+      if(session?.replayOf)return false; // Replaying history is not a new draw.
       if(!roomId||!session||!Array.isArray(session.majorIds)||!Array.isArray(session.minorIds)||
         !session.date||!Number.isFinite(session.createdAt))return false;
       const id='room:'+roomId+':'+session.createdAt;
@@ -776,12 +779,9 @@
           q('#progress-track').setAttribute('aria-valuemax',String(total));
           q('#progress-track').setAttribute('aria-valuenow',String(done.length));
           q('#progress-fill').style.width=(total?100*done.length/total:0)+'%';
-          for(const [key,item]of cardInstances){
-            const finished=done.includes(key);
-            item.card.classList.toggle('done',finished);
-            item.button.setAttribute('aria-pressed',String(finished));
-            item.button.querySelector('.check-circle').textContent=finished?'✓':'';
-          }
+          if(JSON.stringify(previous.session?.doneIds||[])!==JSON.stringify(done))
+            expandedOverride=undefined;
+          syncPracticeCards(session);
         }
         if(historyChanged)renderHistory();
         return;
@@ -869,6 +869,7 @@
         window.classroomSync?.draw(session,action,previous?.createdAt);
         return;
       }
+      replaySession=null;
       storePersonalSession(session,action);
       render();showToast('新的練習清單已準備好！');
     }
@@ -888,6 +889,7 @@
         return;
       }
       session.sequenceMode='signature'; // local-only; Firebase room schema unchanged
+      replaySession=null;
       storePersonalSession(session,action);
       render();showToast('已依調號排好全部選取的調性！');
     }
