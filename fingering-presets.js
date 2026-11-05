@@ -37,17 +37,17 @@
     let previousString=0;
     for(let i=0;i<ascending.length;i+=3){
       const block=ascending.slice(i,i+3);
-      if(block.length!==3)throw Error('Expected groups of 3 in 2-octave scale');
+      if(block.length<1)continue;
       const candidate=STRING_OPEN.map((open,s)=>{
         const semis=block.map(n=>n.midi-open);
-        if(semis[0]<0||semis[2]>24||semis[2]-semis[0]>5)return null;
+        if(semis[0]<0||semis[semis.length-1]>24||semis[semis.length-1]-semis[0]>5)return null;
         const first=semis[0],openStart=first===0;
         return {s,semis,score:(s<previousString?18:0)+(openStart?-5:0)+
           (first>=12?10:0)+Math.abs(first-3)*.6+(s===previousString&&first>=9?5:0)};
       }).filter(Boolean).sort((a,b)=>a.score-b.score);
       if(!candidate.length)throw Error('No viable string for minor scale group');
       const best=candidate[0];
-      const rel1=best.semis[1]-best.semis[0],rel2=best.semis[2]-best.semis[0];
+      const rel1=best.semis[1]===undefined?0:best.semis[1]-best.semis[0],rel2=best.semis[2]===undefined?rel1:best.semis[2]-best.semis[0];
       let finger;
       if(best.semis[0]===0)finger=[0,rel1===1?1:1,rel2<=3?2:3];
       else if(best.semis[0]>=12)finger=[1,2,3];
