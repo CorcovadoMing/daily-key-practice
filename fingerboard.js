@@ -149,7 +149,8 @@
     const editableMidi=interaction?.selectedMidi;
     const nearby=editableMidi===null||editableMidi===undefined?[]:
       OPEN.map(item=>editableMidi-item.midi).filter(n=>n>=0&&n<=14);
-    const maxPosition=Math.max(7,...plotted.map(item=>item.position.semitones),...nearby);
+    const maxPosition=Math.max(7,...plotted.map(item=>item.position.semitones),...nearby,
+      interaction?.showMore?24:0);
     const top=68,step=35,height=top+maxPosition*step+47;
     const xPositions=[42,126,210,294], end=top+maxPosition*step+22;
     const svg=svgNode('svg',{
@@ -270,7 +271,62 @@
     const toolbar=element('div',{class:'cello-fb-toolbar'});
     const octaveGroup=element('div',{class:'cello-fb-group','aria-label':'音階八度數'});
     const boards=element('div',{class:'cello-fb-two-up'});
-    const panels={},selected={up:null,down:null},draft={up:null,down:null};
+    const panels={},selected={up:null,down:null},draft={up:null,down:null},
+      history={up:[],down:[]},showMore={up:false,down:false};
+    let outsideListening=false;
+
+    function closeSelection(dir){
+      selected[dir]=null;
+      draft[dir]=null;
+      history[dir]=[];
+      showMore[dir]=false;
+      renderDirection(dir);
+      syncOutsideListener();
+    }
+    function closeAll(){
+      for(const dir of ['up','down']){
+        if(selected[dir]!==null)closeSelection(dir);
+      }
+    }
+    function outsidePointer(event){
+      if(root.isConnected===false){
+        document.removeEventListener('pointerdown',outsidePointer,true);
+        outsideListening=false;
+        return;
+      }
+      const target=event.target;
+      // A scale note, green alternative, or editor control keeps editing.
+      // Any blank space (even outside the card) discards the draft.
+      if(root.contains(target) &&
+         target?.closest?.('.cello-fb-note, .cello-fb-alt, .cello-inline-editor'))return;
+      closeAll();
+    }
+    function syncOutsideListener(){
+      if(typeof onSave!=='function')return;
+      const active=selected.up!==null||selected.down!==null;
+      if(active&&!outsideListening){
+        document.addEventListener('pointerdown',outsidePointer,true);
+        outsideListening=true;
+      }else if(!active&&outsideListening){
+        document.removeEventListener('pointerdown',outsidePointer,true);
+        outsideListening=false;
+      }
+    }
+    function rememberStep(dir){
+      const old=draft[dir];
+      if(old)history[dir].push({...old});
+    }
+    function undo(dir){
+      if(!history[dir].length)return;
+      draft[dir]=history[dir].pop();
+      renderDirection(dir);
+    }
+    function cancel(dir){if(selected[dir]!==null)closeSelection(dir);}
+    function toggleRange(dir){
+      if(selected[dir]===null)return;
+      showMore[dir]=!showMore[dir];
+      renderDirection(dir);
+    }
 
     function notes(dir){return scaleNotes(mode,key,dir,choices.get(id)||2);}
     function reference(dir,midi){
@@ -285,35 +341,49 @@
 
     function selectNote(dir,midi){
       if(typeof onSave!=='function')return;
-      if(selected[dir]!==midi){
-        const pos=current(dir,midi);
-        draft[dir]={s:pos.string,f:pos.finger,reset:false};
-      }
+      if(selected[dir]===midi){closeSelection(dir);return;}
+      const other=dir==='up'?'down':'up';
+      if(selected[other]!==null)closeSelection(other);
+      const pos=current(dir,midi);
+      draft[dir]={s:pos.string,f:pos.finger,reset:false};
+      history[dir]=[];
+      showMore[dir]=false;
       selected[dir]=midi;
       renderDirection(dir);
+      syncOutsideListener();
     }
     function chooseString(dir,s){
       const midi=selected[dir],entry=draft[dir];
       if(midi===null||!entry)return;
       const semi=midi-OPEN[s].midi;
       if(semi<0||semi>24)return;
+      const newFinger=semi===0?0:([1,2,3,4].includes(entry.f)?entry.f:null);
+      if(entry.s===s&&entry.f===newFinger&&!entry.reset)return;
+      rememberStep(dir);
       entry.s=s;
-      entry.f=semi===0?0:([1,2,3,4].includes(entry.f)?entry.f:null);
+      entry.f=newFinger;
       entry.reset=false;
       renderDirection(dir);
     }
     function chooseFinger(dir,f){
       const entry=draft[dir],midi=selected[dir];
       if(!entry||midi===null||midi===OPEN[entry.s].midi||![1,2,3,4].includes(f))return;
+      if(entry.f===f&&!entry.reset)return;
+      rememberStep(dir);
       entry.f=f;entry.reset=false;
       renderDirection(dir);
     }
     function restore(dir){
       const midi=selected[dir];
       if(midi===null)return;
-      const orig=reference(dir,midi);
-      draft[dir]={s:orig.string,f:orig.finger,reset:true};
-      renderDirection(dir);
+      const next=decodeMap(annotations[dir+'Map']);
+      const hadChange=Object.prototype.hasOwnProperty.call(next,String(midi));
+      delete next[String(midi)];
+      const value=Object.keys(next).length?JSON.stringify(next):'';
+      annotations={...annotations,[dir+'Map']:value};
+      // Restore this one note, close the editor, preserve other custom notes.
+      closeSelection(dir);
+      if(hadChange)onSave(dir,value);
     }
     function confirm(dir){
       const midi=selected[dir],entry=draft[dir];
@@ -331,8 +401,7 @@
       const value=Object.keys(next).length?JSON.stringify(next):'';
       if(value.length>1800)return;
       annotations={...annotations,[dir+'Map']:value};
-      selected[dir]=null;draft[dir]=null;
-      renderDirection(dir);
+      closeSelection(dir);
       onSave(dir,value);
     }
 
@@ -346,24 +415,32 @@
       editor.hidden=true;
       const status=element('div',{class:'cello-inline-status'});
       const hint=element('p',{class:'cello-inline-hint'},
-        '點圖上的綠色＋位置，或選擇下方同音高弦位，再設定指號。按確認才會儲存。');
+        '點綠色＋選擇同音高弦位，並設定指號；點空白處或取消編輯可離開。');
       const stringChoices=element('div',{class:'cello-inline-choices'});
       const fingerChoices=element('div',{class:'cello-inline-choices'});
+      const range=element('button',{type:'button',class:'cello-inline-range',
+        'aria-pressed':'false'},'顯示更多把位');
       const actions=element('div',{class:'cello-inline-actions'});
+      const back=element('button',{type:'button',class:'cello-inline-undo'},'上一步');
       const reset=element('button',{type:'button',class:'cello-inline-reset',
-        title:'將選中的音符恢復成原本的 Werner 指法，按確認後儲存'},'復原');
+        title:'立即清除這個音的自訂位置，恢復 Werner 預設並離開編輯'},'復原預設');
+      const cancelButton=element('button',{type:'button',
+        class:'cello-inline-cancel'},'取消編輯');
       const save=element('button',{type:'button',class:'cello-inline-save'},'確認修改');
+      range.addEventListener('click',()=>toggleRange(dir));
+      back.addEventListener('click',()=>undo(dir));
       reset.addEventListener('click',()=>restore(dir));
+      cancelButton.addEventListener('click',()=>cancel(dir));
       save.addEventListener('click',()=>confirm(dir));
-      actions.append(reset,save);
-      editor.append(status,hint,stringChoices,fingerChoices,actions);
+      actions.append(back,reset,cancelButton,save);
+      editor.append(status,hint,range,stringChoices,fingerChoices,actions);
       const legend=makeLegend();
       const memo=element('div',{class:'fingering-note'});
       memo.hidden=true;
       section.append(heading,viewport,editor,legend,memo);
       boards.append(section);
       panels[dir]={heading,viewport,editor,status,stringChoices,fingerChoices,
-        save,memo};
+        range,back,save,memo};
     }
 
     function renderDirection(dir){
@@ -390,10 +467,13 @@
       pane.viewport.replaceChildren(chartSVG(mode,key,dir,choices.get(id)||2,
         picture,typeof onSave==='function'?{
           selectedMidi:chosen,select:midi=>selectNote(dir,midi),
-          chooseString:s=>chooseString(dir,s)
+          chooseString:s=>chooseString(dir,s),showMore:showMore[dir]
         }:null));
       pane.editor.hidden=chosen===null;
       if(chosen===null)return;
+      pane.range.textContent=showMore[dir]?'收起高把位':'顯示更多把位';
+      pane.range.setAttribute('aria-pressed',String(showMore[dir]));
+      pane.back.disabled=history[dir].length===0;
       const note=selectedNote(dir);
       if(!note||!entry)return;
       const semi=chosen-OPEN[entry.s].midi;
