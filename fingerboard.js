@@ -227,6 +227,8 @@
         heading.append(element('span',{class:'cello-fb-changed'},'（已修改）'));
       }
       const viewport=element('div',{class:'cello-fb-viewport'});
+      const memo=dir==='up'?annotations.up:annotations.down;
+      const note=memo?element('div',{class:'fingering-note'},memo):null;
       const legend=makeLegend();
       const edit=element('button',{
         type:'button',class:'fingering-edit cello-fb-edit',
@@ -234,7 +236,9 @@
       },'記錄／編輯老師的指法');
       edit.addEventListener('click',()=>{if(typeof onEdit==='function')onEdit(dir);});
       if(typeof onEdit!=='function')edit.hidden=true;
-      section.append(heading,viewport,legend,edit);
+      section.append(heading,viewport,legend);
+      if(note)section.append(note);
+      section.append(edit);
       boards.append(section);
       panels[dir]=viewport;
     }
