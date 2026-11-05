@@ -30,13 +30,6 @@
     button:focus-visible,input:focus-visible{outline:3px solid #5e886f;outline-offset:3px}
     button:disabled{cursor:not-allowed;opacity:.46}
     .container{width:min(1120px,calc(100% - 44px));margin:0 auto}
-    .masthead{border-bottom:1px solid var(--line);background:rgba(247,246,242,.94)}
-    .masthead-inner{height:76px;display:flex;justify-content:space-between;align-items:center;gap:18px}
-    .brand{display:flex;align-items:center;gap:12px;font-size:16px;letter-spacing:-.035em;font-weight:800;white-space:nowrap}
-    .brand-logo{width:38px;height:38px;border-radius:12px;background:#26332b;display:grid;place-items:center;color:white}
-    .brand-logo svg{width:21px;height:21px}
-    .brand small{display:block;font-weight:500;color:var(--muted);font-size:10px;letter-spacing:.14em;line-height:1.5}
-    .header-tag{font-size:12px;letter-spacing:.02em;color:#62726b;background:#e9eee8;padding:8px 13px;border-radius:40px;white-space:nowrap}
     .experiment-roadmap{margin:0 0 22px;padding:13px 15px 11px;border-radius:15px;border:1px solid #dbe4ee;background:#f4f7fb;color:#33485d}
     .experiment-roadmap-heading{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-bottom:9px}
     .experiment-roadmap-heading strong{font-size:11px;letter-spacing:.03em;font-weight:850}
@@ -1131,13 +1124,15 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     function historyProgress(record){
       const ids=[...record.majorIds.map(i=>selectedId('major',i)),
         ...record.minorIds.map(i=>selectedId('minor',i))];
-      const valid=new Set(ids),done=new Set((record.doneIds||[]).filter(id=>valid.has(id)));
+      const storedDone=Array.isArray(record.doneIds)?record.doneIds:[];
+      const valid=new Set(ids),done=new Set(storedDone.filter(id=>valid.has(id)));
       return {total:ids.length,count:done.size,done};
     }
     function replayHistoricalScale(record,kind){
       if(!record||!Array.isArray(record.majorIds)||!Array.isArray(record.minorIds))return;
       if(sharedRoom){
-        q('#history-unavailable-dialog').showModal();
+        const dialog=q('#history-unavailable-dialog');
+        if(!dialog.open)dialog.showModal();
         return;
       }
       requestCardAction(()=>{
