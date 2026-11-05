@@ -459,6 +459,28 @@ function createCard(mode,index,doneIds){
  edit.addEventListener('click',()=>openFingeringEditor(id));panel.append(edit);card.append(main,panel);
  return card;
 }
+function openFingeringEditor(id){
+ editingKeyId=id;
+ const [mode,index]=id.split('-');
+ q('#finger-dialog-key').textContent=`${keyName(mode,Number(index))} ${mode==='major'?'大調':'古典旋律小調'} · 記錄老師指定的弦、把位與指號。`;
+ const note=visibleFingerings()[id]||{};
+ q('#finger-up').value=note.up||'';
+ q('#finger-down').value=note.down||'';
+ q('#finger-dialog').showModal();
+}
+function saveFingering(){
+ if(!editingKeyId)return;
+ const id=editingKeyId;
+ const note={up:q('#finger-up').value.trim().slice(0,300),down:q('#finger-down').value.trim().slice(0,300)};
+ q('#finger-dialog').close();
+ editingKeyId=null;
+ if(sharedRoom)window.classroomSync?.setFingering(id,note);
+ else{
+  if(note.up||note.down)state.fingerings[id]=note;
+  else delete state.fingerings[id];
+  persist();renderResults();
+ }
+}
     function renderGroups(session){
       const container=q('#key-groups');container.replaceChildren();
       for(const [mode,indices,label] of [['major',session.majorIds,'大調 MAJOR'],['minor',session.minorIds,'古典旋律小調 MELODIC MINOR']]){
@@ -545,6 +567,8 @@ function createCard(mode,index,doneIds){
     document.querySelectorAll('.preset').forEach(btn=>btn.addEventListener('click',()=>setCounts(Number(btn.dataset.major),Number(btn.dataset.minor))));
     q('#draw-button').addEventListener('click',drawToday);
     q('#copy-button').addEventListener('click',copyList);
+    q('#finger-cancel').addEventListener('click',()=>q('#finger-dialog').close());
+    q('#finger-form').addEventListener('submit',event=>{event.preventDefault();saveFingering();});
     q('#scale-toggle').addEventListener('change',e=>{
       if(sharedRoom){window.classroomSync?.setShowScale(e.target.checked);return;}
       state.preferences.showScale=e.target.checked;persist();renderResults();
