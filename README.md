@@ -24,6 +24,16 @@
 
 當顯示音階提示時，網站會分別列出上行與下行。十二組音階均使用正確音名拼法（例如 G♯ 旋律小調上行的 F𝄪）。
 
+## 指法參考如何使用
+
+網站採用的兩個八度指型參考傳統《School of Cello Playing》：
+- 大調：上行 `124 / 124 / 124 / 124 / 134`；下行 `431 / 421 / 421 / 421 / 421`。
+- 古典旋律小調：上行 `134 / 124 / 124 / 124 / 134`；下行 `421 / 421 / 421 / 431 / 431`。
+
+**注意：**這是一指起、連續換把位的通用指型，不是每個調性的逐音固定指法。C、G 調起點、使用空弦以及老師安排的音域可能需要不同弦位。實際上課以老師教的版本為準，使用「記錄／編輯老師的指法」填入可同步的註記。
+
+參考來源：<https://uidaho.pressbooks.pub/violoncellschule/chapter/s3-a03-md/>
+
 ## 使用六位數課堂房間
 
 1. 雙方打開 <https://corcovadoming.github.io/daily-key-practice/>。
@@ -48,9 +58,9 @@
 2. 到 **Build → Authentication → Sign-in method** 啟用 **Anonymous**，按 Save。
 3. 到 **Build → Realtime Database** 確認資料庫已建立，網址為：
    `https://daily-key-practice-default-rtdb.asia-southeast1.firebasedatabase.app/`
-4. **最重要**：到 **Realtime Database → Rules**，將本儲存庫的 [firebase-rules.json](firebase-rules.json) **整份內容**貼上，按 **Publish**。**即使之前貼過舊版規則，也必須重新發布新版**，否則六位數房間會出現 `Permission denied`。
+4. **最重要**：到 **Realtime Database → Rules**，將本儲存庫的 [firebase-rules.json](firebase-rules.json) **整份內容**貼上，按 **Publish**。**已設定過舊版規則也必須重新發布**，否則連線人數及共用指法註記可能無法正常同步（Permission denied）。
 5. Web App 公開設定與 `databaseURL` 已經寫在 [firebase-config.js](firebase-config.js)。**不需要再次修改**。
-6. 重新整理網站後，可先用手機與電腦建立 / 加入同一房間測試。
+6. 重新整理網站後，先用手機和電腦加入同一間房：在線連線應由 1 增為 2；關閉一個分頁後應降回 1。再在其中一端編輯指法，確認另一端的調性卡顯示相同註記。
 
 > 資料庫規則只允許匿名認證後存取符合格式的房號、限制新六位數房間使用期限，並阻止整個資料庫的根目錄被公開讀取。六位數仍可能被猜中，因此不應用於敏感內容。
 
