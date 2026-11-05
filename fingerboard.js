@@ -300,6 +300,6 @@
   window.CelloFingerboard={
     create,
     // Pure helpers exported for automated pitch and placement checks.
-    scaleNotes,positionFor,pitchClass,decodeMap,suggestionFor,pointStyling,POSITION_COLORS
+    scaleNotes,positionFor,pitchClass,decodeMap,suggestionFor,pointStyling,POSITION_COLORS,makeLegend
   };
 })();
