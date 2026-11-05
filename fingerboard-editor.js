@@ -71,6 +71,10 @@
         const semi=note.midi-OPEN[m.s].midi;
         if(semi>=0&&semi<=24)return {s:m.s,semi,f:semi===0?0:m.f};
       }
+      const refs=window.CelloFingeringPresets?.get(mode,key,direction,notes())||{};
+      const proposal=refs[String(note.midi)];
+      if(proposal)return {s:proposal.s,semi:note.midi-OPEN[proposal.s].midi,f:proposal.f,
+        group:proposal.group};
       const pos=fb.positionFor(note.midi);
       return {s:pos.string,semi:pos.semitones,f:pos.semitones===0?0:null};
     }
@@ -131,21 +135,13 @@
           doc.append(g);
         }
       }
-      let lastHand=null;
       for(let i=0;i<ns.length;i++){
         const n=ns[i],pos=placement(n),x=XX[pos.s],y=NUT+pos.semi*STEP;
-        const style=fb.suggestionFor(pos.semi,pos.f);
-        const shift=style.hand!=='open'&&lastHand!==null&&style.hand!==lastHand;
-        if(style.hand!=='open')lastHand=style.hand;
+        const style=fb.pointStyling({semitones:pos.semi,finger:pos.f,group:pos.group});
         if(pos.semi>maxFret)continue;
         const isOpen=pos.semi===0,isSelected=i===selected;
         const g=sv('g',{role:'button',tabindex:'0','aria-label':`第${n.order}音 ${n.name}；${OPEN[pos.s].name}弦；${isOpen?'空弦':pos.semi+'半音位置'}`,class:'teacher-note-marker'});
         g.append(sv('title',{},`第${n.order}音 ${n.name}`));
-        if(shift){
-          g.append(sv('circle',{cx:x,cy:y,r:20.5,fill:'none',stroke:'#3d3658',
-            'stroke-width':2.2,'stroke-dasharray':'3 3'}));
-          g.append(sv('text',{x:x-24,y:y-12,'font-size':15,'font-weight':800,fill:'#514476'},'↗'));
-        }
         if(isSelected)g.append(sv('circle',{cx:x,cy:y,r:23,fill:'none',stroke:'#78a888','stroke-width':3}));
         const color=isOpen?'#34483a':fb.POSITION_COLORS[style.group];
         g.append(sv('circle',{cx:x,cy:y,r:15.5,fill:isOpen?'#f7f9f6':color,stroke:isOpen?color:'#ffffff','stroke-width':isOpen?3:2}));
@@ -220,7 +216,7 @@
       stage.replaceChildren(board());
       const n=selection();
       const p=placement(n);
-      const selectedStyle=fb.suggestionFor(p.semi,p.f);
+      const selectedStyle=fb.pointStyling({semitones:p.semi,finger:p.f,group:p.group});
       info.textContent=`目前選擇：第 ${n.order} 音 ${n.name} · ${OPEN[p.s].name} 弦${p.semi===0?'（空弦）':'，'+selectedStyle.label+'、第 '+selectedStyle.finger+' 指'}`;
       fingers.replaceChildren(el('span','teacher-finger-label','左手指號'));
       if(p.semi===0){
