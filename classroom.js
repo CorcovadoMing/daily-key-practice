@@ -14,6 +14,11 @@ const copyButton = el('room-copy');
 const leaveButton = el('room-leave');
 const roomCodeDisplay = el('room-code-display');
 const roomCodeNumber = el('room-code-number');
+const copyCodeButton = el('room-copy-code');
+const createdDialog = el('room-created-dialog');
+const dialogCode = el('room-dialog-code');
+const dialogClose = el('room-dialog-close');
+const dialogCopy = el('room-dialog-copy');
 const shortCodePattern = /^[0-9]{6}$/;
 const legacyRoomPattern = /^[a-f0-9]{32}$/;
 const validRoom = id => shortCodePattern.test(id) || legacyRoomPattern.test(id);
@@ -36,7 +41,9 @@ let joining = false;
 function setStatus(message) { status.textContent = message; }
 function updateButtons() {
   const inRoom = Boolean(activeId);
-  createButton.hidden = inRoom;
+  // Keep this button in the SAME position. Replacing it with "copy link" was confusing.
+  createButton.hidden = false;
+  createButton.textContent = inRoom ? '建立另一間房間' : '建立同步房間';
   copyButton.hidden = !inRoom;
   leaveButton.hidden = !inRoom;
   joinForm.hidden = inRoom;
@@ -46,6 +53,27 @@ function updateButtons() {
   joinButton.disabled = !configured || joining;
   joinInput.disabled = joining;
   copyButton.disabled = !ready;
+}
+function revealCreatedRoomCode(id) {
+  if(!shortCodePattern.test(id)) return;
+  roomCodeNumber.textContent = id;
+  roomCodeDisplay.hidden = false;
+  dialogCode.textContent = id;
+  if(typeof createdDialog.showModal === 'function') {
+    if(!createdDialog.open) createdDialog.showModal();
+  } else {
+    // On browsers without dialog support, the persistent in-page room code is still visible.
+    practice.showToast('課堂六位數房號：' + id);
+  }
+}
+async function copyRoomCode() {
+  if(!activeId || !shortCodePattern.test(activeId)) return;
+  try {
+    await navigator.clipboard.writeText(activeId);
+    practice.showToast('六位數房號已複製');
+  } catch (_) {
+    window.prompt('這是六位數房號，請告訴對方：', activeId);
+  }
 }
 function roomURL(id) {
   const url = new URL(window.location.href);
@@ -69,6 +97,7 @@ function cleanupListeners() {
 }
 function leaveRoom() {
   cleanupListeners();
+  if(createdDialog.open) createdDialog.close();
   activeId = null;
   roomRef = null;
   roomExpiresAt = null;
@@ -174,7 +203,11 @@ function randomSixDigits() {
 }
 async function createRoom() {
   if(!configured) { practice.showToast('請先完成 Firebase 設定'); return; }
-  if(joining || activeId) return;
+  if(joining) return;
+  if(activeId) {
+    if(!window.confirm('確定要建立新房間嗎？目前的房間仍存在，但你會離開原房間。')) return;
+    leaveRoom();
+  }
   if(!window.crypto?.getRandomValues) { practice.showToast('需要 HTTPS 才能安全產生房號'); return; }
   joining = true;
   setStatus('正在產生六位數房號…');
@@ -200,7 +233,10 @@ async function createRoom() {
       if(!result.committed) continue;
       joining = false;
       const joined = await joinRoom(id);
-      if(joined) practice.showToast('房間建立成功！告訴對方六位數房號即可');
+      if(joined) {
+        revealCreatedRoomCode(id);
+        practice.showToast('已建立六位數房間，直接將號碼告訴老師或學生');
+      }
       return;
     }
     throw Error('暫時無法取得空房號，請再試一次');
@@ -261,6 +297,9 @@ window.classroomSync = {
   }
 };
 createButton.addEventListener('click', createRoom);
+copyCodeButton.addEventListener('click', copyRoomCode);
+dialogCopy.addEventListener('click', copyRoomCode);
+dialogClose.addEventListener('click', () => createdDialog.close());
 joinInput.addEventListener('input', () => { joinInput.value = joinInput.value.replace(/[^0-9]/g, '').slice(0, 6); });
 joinForm.addEventListener('submit', async event => {
   event.preventDefault();
