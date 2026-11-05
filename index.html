@@ -540,7 +540,7 @@
   </dialog>
 
   <script src="fingering-presets.js?v=20261106-012"></script>
-  <script src="fingerboard.js?v=20261106-019"></script>
+  <script src="fingerboard.js?v=20261106-020"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
@@ -933,11 +933,11 @@ function createCard(mode,index,doneIds){
  const main=document.createElement('button');main.type='button';main.className='key-card-main';main.setAttribute('aria-pressed',String(done));
  main.setAttribute('aria-label',`${key[0]} ${mode==='major'?'大調':'小調'}，點擊切換完成`);
  main.innerHTML=`<span class="check-circle" aria-hidden="true">${done?'✓':''}</span><span class="key-card-content"><span class="key-primary">${key[0]} ${mode==='major'?'大調':'小調'}</span><span class="key-secondary">${signature(key[1])}</span></span>`;
- main.addEventListener('click',()=>toggleComplete(id));
+ main.addEventListener('click',()=>requestCardAction(()=>toggleComplete(id)));
  const expand=document.createElement('button');expand.type='button';expand.className='key-expand';expand.textContent='⌄';
  expand.setAttribute('aria-label','展開或收合 '+key[0]+(mode==='major'?'大調':'小調')+' 的指板圖');
  expand.setAttribute('aria-controls','fingering-'+id);
- expand.addEventListener('click',()=>toggleCardExpansion(id));
+ expand.addEventListener('click',()=>requestCardAction(()=>toggleCardExpansion(id)));
  heading.append(main,expand);
  const panel=document.createElement('div');panel.className='fingering-section';panel.id='fingering-'+id;
  const header=document.createElement('div');header.className='fingering-title';header.textContent='大提琴指板音位圖';
@@ -945,7 +945,7 @@ function createCard(mode,index,doneIds){
  const guide=window.CelloFingerboard.create(mode,key,note,
   (direction,map,original,resetAll)=>saveInlineFingering(id,direction,map,original,resetAll),
   draft=>sharedRoom?window.classroomSync?.setDraft(id,draft):null);
- boardInstances.set(id,guide);cardInstances.set(id,{card,button:main,panel,expand});
+ boardInstances.set(id,guide);cardInstances.set(id,{card,button:main,panel,expand,guide});
  guide.setRemoteDrafts(roomEditingPreviews[id]||[]);panel.append(header,guide);card.append(heading,panel);
  return card;
 }
@@ -978,16 +978,25 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     showToast('指法已儲存');
   }
 }
+    function requestCardAction(action){
+ const editing=[...cardInstances.values()].find(item=>item.guide?.isEditing?.());
+ if(editing){editing.guide.requestLeave(()=>requestCardAction(action));return;}
+ action();
+}
     function jumpOrder(){
  return [...q('#key-groups').querySelectorAll('.key-card')]
   .map(card=>card.dataset.keyId).filter(id=>cardInstances.has(id));
 }
     function jumpToPractice(id){
- const item=cardInstances.get(id),session=currentSession();
- if(!item||!session)return;
- expandedOverride=id;syncPracticeCards(session);
- item.button.focus({preventScroll:true});
- item.card.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});
+ const session=currentSession();
+ if(!cardInstances.has(id)||!session)return;
+ requestCardAction(()=>{
+  const item=cardInstances.get(id),current=currentSession();
+  if(!item||!current)return;
+  expandedOverride=id;syncPracticeCards(current);
+  item.button.focus({preventScroll:true});
+  item.card.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});
+ });
 }
     function toggleCardExpansion(id){
  const session=currentSession(),item=cardInstances.get(id);
