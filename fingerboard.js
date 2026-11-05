@@ -569,6 +569,9 @@
       const pane=panels[dir],editing=edit.dir===dir;
       const saved=decodeMap(annotations[dir+'Map']);
       pane.heading.textContent=dir==='up'?'↑ 上行':'↓ 下行';
+      if(remoteDrafts.some(remote=>remote.direction===dir)){
+        pane.heading.append(element('span',{class:'cello-fb-remote-label'},'（其他人編輯中）'));
+      }
       if(Object.keys(saved).length||(dir==='up'?annotations.up:annotations.down)){
         pane.heading.append(element('span',{class:'cello-fb-changed'},'（已修改）'));
       }
