@@ -29,7 +29,7 @@
     button{font:inherit;cursor:pointer}
     button:focus-visible,input:focus-visible{outline:3px solid #5e886f;outline-offset:3px}
     button:disabled{cursor:not-allowed;opacity:.46}
-    .container{width:min(1110px,calc(100% - 40px));margin:0 auto}
+    .container{width:min(1360px,calc(100% - 40px));margin:0 auto}
     .masthead{border-bottom:1px solid var(--line);background:rgba(247,246,242,.94)}
     .masthead-inner{height:76px;display:flex;justify-content:space-between;align-items:center;gap:18px}
     .brand{display:flex;align-items:center;gap:12px;font-size:16px;letter-spacing:-.035em;font-weight:800;white-space:nowrap}
@@ -65,7 +65,29 @@
     .room-action.primary{background:#304c37;color:white;border-color:#304c37}
     .room-action:hover:not(:disabled){filter:brightness(.96)}
     @media(max-width:620px){.classroom-bar{flex-direction:column;align-items:stretch;padding:18px}}
-    .workspace{display:grid;grid-template-columns:minmax(320px,.84fr) minmax(0,1.16fr);align-items:start;gap:22px}
+    .workspace{display:grid;grid-template-columns:minmax(300px,.82fr) minmax(0,1.18fr);align-items:start;gap:18px}
+    .setup-stack{display:flex;flex-direction:column;gap:16px;min-width:0}
+    .setup-stack>.classroom-bar{margin:0;flex-direction:column;align-items:stretch;gap:12px;padding:16px 18px;border-radius:17px}
+    .setup-stack .classroom-bar p{font-size:11px;line-height:1.5}
+    .setup-stack .room-actions{align-items:stretch;min-width:0;gap:8px}
+    .setup-stack .room-buttons{justify-content:flex-start}
+    .setup-stack .room-join-form{width:100%}
+    .setup-stack .room-join-line input{flex:1;width:0;min-width:0}
+    .setup-stack .room-code-display{padding:11px 14px;margin-top:8px}
+    .setup-stack .room-code-display strong{font-size:26px}
+    .setup-stack>.panel{padding:22px;min-width:0}
+    .workspace>.result-panel{min-width:0}
+    .practice-overflow{margin-top:20px;padding:24px;min-width:0}
+    .practice-overflow #continued-key-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+    .practice-overflow .key-group{margin-top:0;min-width:0}
+    .practice-overflow .key-grid{display:grid;grid-template-columns:1fr;gap:12px}
+    @media(min-width:1100px){.practice-overflow #continued-key-groups{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(min-width:760px) and (max-width:920px){
+      .workspace{grid-template-columns:minmax(292px,.85fr) minmax(0,1.15fr);gap:13px}
+      .setup-stack>.panel,.workspace>.result-panel{padding:15px}
+      .workspace .cello-fb-two-up{grid-template-columns:1fr}
+      .workspace .cello-fb-direction>.cello-fb-legend{grid-template-columns:repeat(3,minmax(0,1fr))}
+    }
     .panel{background:var(--paper);border:1px solid var(--line);border-radius:23px;box-shadow:var(--shadow);padding:28px}
     .panel-head{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:26px}
     .panel-title{font-size:17px;font-weight:800;letter-spacing:-.04em;margin:0}
@@ -299,7 +321,7 @@
     .site-version{white-space:nowrap;font-variant-numeric:tabular-nums;font-weight:700;letter-spacing:.02em}
     .toast{position:fixed;left:50%;bottom:25px;transform:translate(-50%,20px);opacity:0;pointer-events:none;border-radius:12px;padding:12px 18px;background:#283a2d;color:white;font-weight:700;font-size:13px;box-shadow:0 15px 40px rgba(0,0,0,.15);transition:opacity .2s,transform .2s;z-index:50}
     .toast.active{opacity:1;transform:translate(-50%,0)}
-    @media(max-width:810px){.intro{padding-top:43px;grid-template-columns:1fr;gap:18px}.date-label{text-align:left}.date-label strong{display:inline;margin-left:10px}.workspace{grid-template-columns:1fr}.result-panel{min-height:0}.history-section{padding-top:31px}}
+    @media(max-width:759px){.intro{padding-top:43px;grid-template-columns:1fr;gap:18px}.date-label{text-align:left}.date-label strong{display:inline;margin-left:10px}.workspace{grid-template-columns:1fr}.result-panel{min-height:0}.history-section{padding-top:31px}.practice-overflow{display:none!important}}
     @media(max-width:450px){.container{width:calc(100% - 26px)}.masthead-inner{height:68px}.header-tag{font-size:10px;padding:7px 9px}.intro{padding-top:36px;padding-bottom:28px}.intro p{font-size:13px}.date-label{font-size:12px}.date-label strong{font-size:13px;margin-left:5px}.panel{padding:20px;border-radius:18px}.counter-item{padding:16px 12px}.counter-name{font-size:13px}.stepper{gap:3px}.stepper button{width:31px;height:31px}.count-output{min-width:26px;font-size:22px}.key-grid{gap:8px}.key-card-main{padding:13px 10px;gap:8px}.fingering-section{padding:10px 8px}.key-primary{font-size:24px}.key-secondary{font-size:10px}.history-row{align-items:flex-start;flex-direction:column;gap:11px}.history-keys{justify-content:flex-start}.result-controls .icon-button{padding:7px;font-size:11px}footer{flex-direction:column;gap:7px}}
     @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
   </style>
@@ -327,6 +349,8 @@
       <div class="date-label">TODAY <strong id="today-label">—</strong></div>
     </section>
 
+    <div class="workspace">
+      <div class="setup-stack">
     <section class="classroom-bar" aria-labelledby="classroom-heading">
       <div>
         <h2 id="classroom-heading">課堂同步模式 · CLASSROOM</h2>
@@ -356,7 +380,6 @@
       </div>
     </section>
 
-    <div class="workspace">
       <section class="panel" aria-labelledby="settings-title">
         <div class="panel-head"><h2 class="panel-title" id="settings-title">設定抽籤數量</h2><span class="section-number">01 / SETUP</span></div>
         <section class="key-filter" aria-labelledby="key-filter-title">
@@ -395,6 +418,7 @@
           <button type="button" id="ordered-button" class="ordered-practice-button">開始循序練習</button>
         </div>
       </section>
+      </div>
 
       <section class="panel result-panel" aria-labelledby="results-title">
         <div class="panel-head">
@@ -421,6 +445,13 @@
         </div>
       </section>
     </div>
+    <section id="practice-overflow" class="panel practice-overflow" aria-label="後續練習清單" hidden>
+      <div class="panel-head">
+        <h2 class="panel-title">接續練習的調性</h2>
+        <span class="section-number">CONTINUE</span>
+      </div>
+      <div id="continued-key-groups"></div>
+    </section>
 
     <section class="history-section" aria-labelledby="history-title">
       <div class="history-heading"><h2 id="history-title">最近的練習紀錄</h2><span class="caption">僅保存在目前瀏覽器</span></div>
@@ -826,6 +857,53 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       q('#progress-fill').style.width=`${total?100*count/total:0}%`;
       q('#result-content').classList.remove('show-scales');
       renderGroups(session);
+      // On tablets and desktops, use the right column for the first cards,
+      // then span both columns with the remaining long practice list.
+      distributePracticeCards();
+    }
+    function distributePracticeCards(){
+      const initial=q('#key-groups'),continued=q('#continued-key-groups');
+      const overflow=q('#practice-overflow');
+      continued.replaceChildren();overflow.hidden=true;
+      if(!window.matchMedia('(min-width:760px)').matches)return;
+      const groups=[...initial.querySelectorAll('.key-group')];
+      const cards=[...initial.querySelectorAll('.key-card')];
+      if(cards.length<2)return;
+      const left=q('.setup-stack'),top=q('.result-panel');
+      // Avoid constraining the whole practice list to half the tablet width.
+      const first=cards[0].getBoundingClientRect();
+      const leftHeight=left.getBoundingClientRect().height;
+      const available=Math.max(0,leftHeight-(first.top-top.getBoundingClientRect().top));
+      const capacity=Math.max(1,Math.min(3,
+        Math.round(available/Math.max(1,first.height+12))));
+      let placed=0;
+      for(const group of groups){
+        const grid=group.querySelector('.key-grid');
+        if(!grid)continue;
+        const extra=[];
+        for(const card of [...grid.children]){
+          if(placed++>=capacity)extra.push(card);
+        }
+        if(extra.length){
+          const section=document.createElement('section');
+          section.className='key-group';
+          const heading=group.querySelector('.key-group-title')?.cloneNode(true);
+          if(heading){
+            const count=heading.querySelector('span');
+            if(count)count.textContent=extra.length+' 個調性';
+            section.append(heading);
+          }
+          const list=document.createElement('div');list.className='key-grid';
+          extra.forEach(card=>list.append(card));
+          section.append(list);continued.append(section);
+        }
+        if(!grid.children.length)group.remove();
+        else{
+          const count=group.querySelector('.key-group-title span');
+          if(count)count.textContent=grid.children.length+' 個調性';
+        }
+      }
+      overflow.hidden=!continued.children.length;
     }
     function toggleComplete(id){
       const session=currentSession();if(!session)return;
@@ -900,6 +978,15 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     q('#filter-none').addEventListener('click',()=>updateExclusions([...MAJOR_KEYS.map((_,i)=>selectedId('major',i)),...MINOR_KEYS.map((_,i)=>selectedId('minor',i))]));
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshDate();});
     window.addEventListener('focus',refreshDate);
+    // Re-distribute on orientation change without destroying an active draft.
+    let lastWide=window.matchMedia('(min-width:760px)').matches;
+    window.addEventListener('resize',()=>{
+      const next=window.matchMedia('(min-width:760px)').matches;
+      if(next===lastWide)return;
+      lastWide=next;
+      if(document.querySelector('.cello-inline-editor:not([hidden])'))return;
+      renderResults();
+    });
     // Preserve valid personal history until explicitly deleted by the user.
     Object.keys(state.sessions).forEach(d=>{
       if(!/^\d{4}-\d{2}-\d{2}$/.test(d))delete state.sessions[d];
