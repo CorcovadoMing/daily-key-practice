@@ -1,0 +1,30 @@
+name: Verify experimental branch
+
+on:
+  push:
+    branches:
+      - experimental
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: experimental
+      - name: Validate source JavaScript
+        run: |
+          node --check fingering-presets.js
+          node --check fingerboard.js
+          node --check fingerboard-editor.js
+          node --check classroom.js
+      - name: Verify experimental scope and roadmap
+        run: |
+          grep -q "experimental-roadmap" index.html
+          grep -q "即時大提琴調音器" index.html
+          grep -q "音階自動追蹤" index.html
+          grep -q "音準練習報告" index.html
