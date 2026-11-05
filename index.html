@@ -806,35 +806,67 @@
       }
       return arr.slice(0,n);
     }
-    function drawToday(){
+    const drawDialog=q('#draw-choice-dialog');
+    function requestDrawAction(){
+      return new Promise(resolve=>{
+        if(drawDialog.open){resolve(null);return;}
+        let settled=false;
+        const finish=value=>{
+          if(settled)return;
+          settled=true;
+          drawDialog.removeEventListener('close',closed);
+          if(drawDialog.open)drawDialog.close();
+          resolve(value);
+        };
+        const closed=()=>finish(null);
+        drawDialog.addEventListener('close',closed);
+        drawDialog.querySelectorAll('[data-history-choice]').forEach(button=>{
+          button.onclick=()=>finish(button.dataset.historyChoice==='cancel'?
+            null:button.dataset.historyChoice);
+        });
+        drawDialog.showModal();
+      });
+    }
+    function planDraw(){
+      const previous=currentSession();
+      return previous&&previous.date===currentDate?
+        requestDrawAction():Promise.resolve('new');
+    }
+    async function drawToday(){
       refreshDate();
-      if(currentSession() && !window.confirm('重新抽籤會取代今天原本的清單和完成紀錄。確定要重新抽選嗎？')) return;
       const {majorCount,minorCount}=visiblePreferences();
-      if(majorCount+minorCount===0 || majorCount>eligible('major').length || minorCount>eligible('minor').length) return;
+      if(majorCount+minorCount===0||majorCount>eligible('major').length||
+        minorCount>eligible('minor').length)return;
+      const previous=currentSession();
+      const action=await planDraw();
+      if(!action)return;
+      const session={date:currentDate,majorIds:chooseDistinct(majorCount,'major'),
+        minorIds:chooseDistinct(minorCount,'minor'),doneIds:[],createdAt:Date.now()};
       if(sharedRoom){
-        window.classroomSync?.draw({date:currentDate,majorIds:chooseDistinct(majorCount,'major'),minorIds:chooseDistinct(minorCount,'minor'),doneIds:[],createdAt:Date.now()});
+        window.classroomSync?.draw(session,action,previous?.createdAt);
         return;
       }
-      state.sessions[currentDate]={date:currentDate,majorIds:chooseDistinct(majorCount,'major'),minorIds:chooseDistinct(minorCount,'minor'),doneIds:[],createdAt:Date.now()};
-      persist();render();showToast('新的練習清單已準備好！');
+      storePersonalSession(session,action);
+      render();showToast('新的練習清單已準備好！');
     }
-    function practiceInSignatureOrder(){
+    async function practiceInSignatureOrder(){
       refreshDate();
       const selected=orderedSelections();
       if(!selected.length)return;
-      if(currentSession() && !window.confirm('循序練習會取代今天原本的清單和完成紀錄。確定要開始嗎？'))return;
-      const majorIds=selected.filter(v=>v.mode==='major').map(v=>v.index),
-        minorIds=selected.filter(v=>v.mode==='minor').map(v=>v.index);
-      // Keep the existing session schema so Firebase Realtime Database rules
-      // and both stable/experimental room clients remain compatible.
-      const session={date:currentDate,majorIds,minorIds,doneIds:[],createdAt:Date.now()};
+      const previous=currentSession();
+      const action=await planDraw();
+      if(!action)return;
+      const session={date:currentDate,
+        majorIds:selected.filter(v=>v.mode==='major').map(v=>v.index),
+        minorIds:selected.filter(v=>v.mode==='minor').map(v=>v.index),
+        doneIds:[],createdAt:Date.now()};
       if(sharedRoom){
-        window.classroomSync?.draw(session);
+        window.classroomSync?.draw(session,action,previous?.createdAt);
         return;
       }
-      session.sequenceMode='signature'; // local-only metadata; never sent to Firebase
-      state.sessions[currentDate]=session;
-      persist();render();showToast('已依調號排好全部選取的調性！');
+      session.sequenceMode='signature'; // local-only; Firebase room schema unchanged
+      storePersonalSession(session,action);
+      render();showToast('已依調號排好全部選取的調性！');
     }
 function createCard(mode,index,doneIds){
  const key=(mode==='major'?MAJOR_KEYS:MINOR_KEYS)[index],id=selectedId(mode,index),done=doneIds.includes(id);
