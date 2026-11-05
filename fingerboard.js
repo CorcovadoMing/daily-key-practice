@@ -83,14 +83,19 @@
     }catch{return {};}
   }
 
-  function notePlacement(midi,map){
-    const fallback=positionFor(midi);
+  function notePlacement(midi,map,presets={}){
+    const p=presets[String(midi)],fallback=positionFor(midi);
+    const base=p?{string:p.s,stringName:OPEN[p.s].name,semitones:midi-OPEN[p.s].midi,
+      finger:p.f,group:p.group,custom:false}:{...fallback,finger:null,group:null,custom:false};
     const custom=map[String(midi)];
-    if(!custom || !Number.isInteger(custom.s) || custom.s<0 || custom.s>3)return {...fallback,finger:null};
-    const semitones=midi-OPEN[custom.s].midi;
-    if(semitones<0 || semitones>24)return {...fallback,finger:null};
-    const finger=semitones===0?0:([1,2,3,4].includes(custom.f)?custom.f:null);
-    return {string:custom.s,stringName:OPEN[custom.s].name,semitones,finger};
+    if(!custom||!Number.isInteger(custom.s)||custom.s<0||custom.s>3)return base;
+    const semi=midi-OPEN[custom.s].midi;
+    if(semi<0||semi>24)return base;
+    const same=Boolean(p&&p.s===custom.s);
+    const finger=semi===0?0:([1,2,3,4].includes(custom.f)?custom.f:
+      same?p.f:suggestionFor(semi).finger);
+    return {string:custom.s,stringName:OPEN[custom.s].name,semitones:semi,
+      finger,group:same?p.group:null,custom:true};
   }
 
   // Suggested fingerings, based on common closed-hand and 1–2 extension
@@ -154,7 +159,11 @@
     };
   }
   function pointStyling(position){
-    return suggestionFor(position.semitones,position.finger);
+    const base=suggestionFor(position.semitones,position.finger);
+    return position.group&&position.semitones!==0?
+      {...base,group:position.group,finger:position.finger,label:
+        position.group==='extended'?'延伸手型':position.group==='half'?'半把位':
+        position.group==='first'?'第一把位':position.group==='high'?'高把位':'其他把位'}:base;
   }
   function makeLegend(){
     const aside=element('aside',{class:'cello-fb-legend','aria-label':'把位顏色圖例'});
@@ -171,9 +180,6 @@
       item.append(marker,element('span',{},label));
       aside.append(item);
     }
-    const shift=element('div',{class:'cello-legend-item'});
-    shift.append(element('span',{class:'cello-legend-shift'},'↗'),element('span',{},'換把起點'));
-    aside.append(shift);
     aside.append(element('p',{class:'cello-legend-note'},'顏色依參考指法的把位分類；同音可有不同指法，老師可在下方修改。'));
     return aside;
   }
@@ -181,13 +187,10 @@
   function chartSVG(mode,key,direction,octaves,annotations={}){
     const notes=scaleNotes(mode,key,direction,octaves);
     const map=decodeMap(direction==='up'?annotations.upMap:annotations.downMap);
-    let lastHand=null;
+    const presets=window.CelloFingeringPresets?.get(mode,key,direction,notes)||{};
     const plotted=notes.map(note=>{
-      const position=notePlacement(note.midi,map);
-      const style=pointStyling(position);
-      const shift=style.hand!=='open' && lastHand!==null && style.hand!==lastHand;
-      if(style.hand!=='open')lastHand=style.hand;
-      return {...note,position,style,shift};
+      const position=notePlacement(note.midi,map,presets);
+      return {...note,position,style:pointStyling(position)};
     });
     const maxPosition=Math.max(7,...plotted.map(item=>item.position.semitones));
     const top=68,step=35,height=top+maxPosition*step+47;
@@ -223,14 +226,7 @@
       const point=svgNode('g');
       point.append(svgNode('title',{},
         '第'+note.order+'音 '+note.name+'，'+note.position.stringName+'弦'+
-        (isOpen?'，空弦':'，'+style.label+'，參考第'+style.finger+'指')+
-        (note.shift?'（這裡建議換把）':'')));
-      if(note.shift){
-        point.append(svgNode('circle',{cx:x,cy:y,r:20.5,fill:'none',
-          stroke:'#3d3658','stroke-width':2.2,'stroke-dasharray':'3 3'}));
-        point.append(svgNode('text',{x:x-24,y:y-12,'font-size':15,
-          'font-weight':800,fill:'#514476'},'↗'));
-      }
+        (isOpen?'，空弦':'，'+style.label+'，參考第'+style.finger+'指')));
       point.append(svgNode('circle',{
         cx:x,cy:y,r:15.5,fill:isOpen?'#f7f9f6':color,
         stroke:isOpen?'#34483a':'#ffffff','stroke-width':isOpen?3:2.1
@@ -300,6 +296,6 @@
   window.CelloFingerboard={
     create,
     // Pure helpers exported for automated pitch and placement checks.
-    scaleNotes,positionFor,pitchClass,decodeMap,suggestionFor,pointStyling,POSITION_COLORS,makeLegend
+    scaleNotes,positionFor,pitchClass,decodeMap,suggestionFor,pointStyling,POSITION_COLORS,makeLegend,notePlacement
   };
 })();
