@@ -354,6 +354,8 @@
     @media(max-width:480px){.history-row{gap:8px;padding:11px}.history-replay{max-width:136px;padding:7px 6px;font-size:10px}}
     .history-chip{border-radius:6px;padding:6px 9px;background:#e9f2e8;color:#395843;font-weight:750;font-size:12px}
     .history-chip.minor{background:#f0eaf8;color:#655178}
+    .history-chip.done{background:#eef1ef;color:#77847c;border:1px solid #d9e0db}
+    .history-choice-actions:has(> button:only-child){grid-template-columns:1fr}
     footer{border-top:1px solid var(--line);padding:24px 0 33px;color:#a1a8a1;font-size:12px;display:flex;justify-content:space-between;gap:18px}
     .site-version{white-space:nowrap;font-variant-numeric:tabular-nums;font-weight:700;letter-spacing:.02em}
     .toast{position:fixed;left:50%;bottom:25px;transform:translate(-50%,20px);opacity:0;pointer-events:none;border-radius:12px;padding:12px 18px;background:#283a2d;color:white;font-weight:700;font-size:13px;box-shadow:0 15px 40px rgba(0,0,0,.15);transition:opacity .2s,transform .2s;z-index:50}
@@ -498,6 +500,13 @@
       <button type="button" data-history-choice="overwrite">覆蓋本次紀錄</button>
       <button type="button" class="primary" data-history-choice="new">新增一筆紀錄</button>
       <button type="button" class="cancel" data-history-choice="cancel">取消</button>
+    </div>
+  </dialog>
+  <dialog id="history-unavailable-dialog" class="history-choice-dialog" aria-labelledby="history-unavailable-title">
+    <h3 id="history-unavailable-title">課堂連線時無法繼續或重現練習</h3>
+    <p>目前不支援在課堂連線期間使用「繼續這次練習」或「重現這次練習」。請先離開同步房間，再從練習紀錄開啟。</p>
+    <div class="history-choice-actions">
+      <button type="button" class="primary" id="history-unavailable-dismiss">知道了</button>
     </div>
   </dialog>
 
@@ -1089,22 +1098,42 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       syncPracticeCards(session);
       if(count===total)showToast('今天的調性全部練完了，太棒了！ 🎉');
     }
-    function replayHistoricalScale(record){
- if(!record||!Array.isArray(record.majorIds)||!Array.isArray(record.minorIds))return;
- const session={date:currentDate,majorIds:[...record.majorIds],minorIds:[...record.minorIds],
-  doneIds:[],createdAt:Date.now(),replayOf:record.id};
- if(record.sequenceMode==='signature'&&!sharedRoom)session.sequenceMode='signature';
- expandedOverride=undefined;
- if(sharedRoom){
-  window.classroomSync?.replay(session);
-  showToast('已送出這次練習的重現清單，等待課堂同步');
- }else{
-  replaySession=session;
-  renderResults();
-  showToast('已重現這次練習的調性，不會新增紀錄');
- }
- q('.result-panel').scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});
-}
+    function historyProgress(record){
+      const ids=[...record.majorIds.map(i=>selectedId('major',i)),
+        ...record.minorIds.map(i=>selectedId('minor',i))];
+      const valid=new Set(ids),done=new Set((record.doneIds||[]).filter(id=>valid.has(id)));
+      return {total:ids.length,count:done.size,done};
+    }
+    function replayHistoricalScale(record,kind){
+      if(!record||!Array.isArray(record.majorIds)||!Array.isArray(record.minorIds))return;
+      if(sharedRoom){
+        q('#history-unavailable-dialog').showModal();
+        return;
+      }
+      requestCardAction(()=>{
+        const progress=historyProgress(record),isComplete=progress.total>0&&progress.count===progress.total;
+        const session={date:currentDate,majorIds:[...record.majorIds],minorIds:[...record.minorIds],
+          doneIds:isComplete?[]:[...progress.done],createdAt:Date.now(),replayOf:record.id};
+        if(record.sequenceMode==='signature')session.sequenceMode='signature';
+        expandedOverride=undefined;
+        if(isComplete){
+          // Rehearsal is temporary. The completed source record must never be reset.
+          state.continuedSession=null;
+          replaySession=session;
+          persist();renderResults();
+          showToast('已重新開始這次練習，不會新增紀錄');
+        }else{
+          // An unfinished source stays linked to its original ID and date.
+          session.historyId=record.id;
+          session.sourceKind=kind;
+          state.continuedSession=session;
+          replaySession=null;
+          persist();renderResults();
+          showToast('已接續這次練習，完成進度會更新到原紀錄');
+        }
+        q('.result-panel').scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});
+      });
+    }
     function renderHistory(){
       function createRow(record,kind){
         const row=document.createElement('div');row.className='history-row';
@@ -1115,29 +1144,34 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
           ' · '+new Date(timestamp).getHours()+' 點':' · 時間未記錄';
         meta.textContent=dateText+hour;
         const sum=document.createElement('small');
-        sum.textContent='完成 '+(record.doneIds||[]).length+'/'+
-          (record.majorIds.length+record.minorIds.length);
+        const progress=historyProgress(record);
+        sum.textContent='已完成 '+progress.count+' / '+progress.total;
         // Keep room codes private: only show date, hour and completed notes.
         meta.append(sum);row.append(meta);
         const chips=document.createElement('div');chips.className='history-keys';
         for(const [mode,indices] of [['major',record.majorIds],['minor',record.minorIds]]){
           indices.forEach(i=>{
             const chip=document.createElement('span');
-            chip.className='history-chip'+(mode==='minor'?' minor':'');
-            chip.textContent=keyName(mode,i)+(mode==='major'?' 大調':' 小調');
+            const finished=progress.done.has(selectedId(mode,i));
+            chip.className='history-chip'+(finished?' done':mode==='minor'?' minor':'');
+            chip.textContent=(finished?'✓ ':'')+keyName(mode,i)+(mode==='major'?' 大調':' 小調');
             chips.append(chip);
           });
         }
         const replay=document.createElement('button');replay.type='button';
-        replay.className='history-replay';replay.textContent='重現這次練習的調性';
-        replay.setAttribute('aria-label','重現 '+dateText+hour+' 的練習調性');
-        replay.addEventListener('click',()=>replayHistoricalScale(record));
+        const canContinue=progress.count<progress.total;
+        replay.className='history-replay';
+        replay.textContent=canContinue?'繼續這次練習':'重現這次練習';
+        replay.setAttribute('aria-label',replay.textContent+'：'+dateText+hour);
+        replay.addEventListener('click',()=>replayHistoricalScale(record,kind));
         const remove=document.createElement('button');remove.type='button';
         remove.className='history-delete';remove.textContent='刪除';
         remove.setAttribute('aria-label','刪除 '+dateText+hour+' 的'+
           (kind==='personal'?'個人':'課堂')+'練習紀錄');
         remove.addEventListener('click',()=>{
           if(!window.confirm('確定刪除這筆練習紀錄嗎？此操作無法復原。'))return;
+          const wasContinuing=state.continuedSession?.historyId===record.id;
+          if(wasContinuing)state.continuedSession=null;
           if(kind==='classroom'){
             state.classroomHistory=state.classroomHistory.filter(item=>item.id!==record.id);
             if(!state.deletedClassroomHistoryIds.includes(record.id))
@@ -1157,7 +1191,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
             }
           }
           persist();renderHistory();
-          if(kind==='personal'&&record.date===currentDate&&!sharedRoom)renderResults();
+          if(!sharedRoom&&(wasContinuing||(kind==='personal'&&record.date===currentDate)))renderResults();
           showToast('已刪除這筆練習紀錄');
         });
         row.append(replay,chips,remove);
@@ -1207,6 +1241,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     q('#draw-button').addEventListener('click',drawToday);
     q('#ordered-button').addEventListener('click',practiceInSignatureOrder);
     q('#copy-button').addEventListener('click',copyList);
+    q('#history-unavailable-dismiss').addEventListener('click',()=>q('#history-unavailable-dialog').close());
     q('#filter-all').addEventListener('click',()=>updateExclusions([]));
     q('#filter-none').addEventListener('click',()=>updateExclusions([...MAJOR_KEYS.map((_,i)=>selectedId('major',i)),...MINOR_KEYS.map((_,i)=>selectedId('minor',i))]));
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshDate();});
