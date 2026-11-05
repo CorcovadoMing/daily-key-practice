@@ -278,6 +278,7 @@ async function createRoom() {
         return {
           majorCount: prefs.majorCount,
           minorCount: prefs.minorCount,
+          excludedKeys: Array.isArray(prefs.excludedKeys)?prefs.excludedKeys:[],
           showScale: Boolean(prefs.showScale),
           updatedAt: createdAt,
           createdAt,
@@ -328,6 +329,10 @@ async function changeRoom(update) {
 window.classroomSync = {
   setCounts(major, minor) {
     return changeRoom(current => ({...current, majorCount:major, minorCount:minor, updatedAt:Date.now()}));
+  },
+  setExcludedKeys(excludedKeys) {
+    const valid=Array.isArray(excludedKeys)?[...new Set(excludedKeys)].filter(id=>/^(major|minor)-(?:[0-9]|10|11)$/.test(id)):[];
+    return changeRoom(current => ({...current,excludedKeys:valid,updatedAt:Date.now()}));
   },
   draw(session) {
     return changeRoom(current => ({...current, session, updatedAt:Date.now()}));
