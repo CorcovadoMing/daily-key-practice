@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="v1.0.1-experimental">
+  <meta name="site-version" content="v1.0.2-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -205,8 +205,23 @@
     .cello-fb-direction{display:flex;flex-direction:column;align-items:stretch;min-width:0;border:1px solid #e6ece6;border-radius:11px;padding:10px 8px;background:#fff;gap:8px}
     .cello-fb-direction>.cello-fb-legend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 8px;margin-top:3px}
     .cello-fb-direction>.cello-fb-legend .cello-legend-title{grid-column:1/-1}
-    .cello-fb-direction>.cello-fb-edit{margin-top:auto;align-self:stretch;width:100%;padding:10px}
     .cello-fb-direction-heading{margin:0 0 8px;font-size:13px;font-weight:850;color:#365a42;text-align:center}
+    .cello-fb-note{cursor:pointer;outline:none}
+    .cello-fb-note:focus-visible circle:first-of-type{stroke:#af6b30;stroke-width:4}
+    .cello-inline-editor{border:1px solid #d5e4d4;background:#f5f9f4;border-radius:11px;padding:12px;display:grid;gap:9px}
+    .cello-inline-status{font-weight:800;font-size:12px;color:#2f5a3a}
+    .cello-inline-hint{margin:0;font-size:10px;color:#7b887d;line-height:1.6}
+    .cello-inline-choices{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+    .cello-inline-choice,.cello-inline-finger{border:1px solid #cbdccf;background:white;color:#436149;border-radius:8px;min-height:35px;padding:7px 10px;font-size:11px;font-weight:750}
+    .cello-inline-choice[aria-pressed="true"],.cello-inline-finger[aria-pressed="true"]{border-color:#397149;background:#dceede;color:#245335;box-shadow:inset 0 0 0 1px #397149}
+    .cello-inline-finger{min-width:36px;font-size:13px}
+    .cello-inline-label,.cello-inline-open{font-size:11px;font-weight:750;color:#597460}
+    .cello-inline-actions{display:flex;gap:8px;padding-top:3px}
+    .cello-inline-actions button{flex:1;border-radius:9px;padding:10px 8px;font-weight:800;font-size:12px}
+    .cello-inline-reset{border:1px solid #ccdad0;background:white;color:#56725d}
+    .cello-inline-save{border:1px solid #2e5d3b;background:#2e5d3b;color:#fff}
+    .cello-inline-actions button:hover:not(:disabled){filter:brightness(.96)}
+    .cello-inline-save:disabled{opacity:.4}
     .fingering-changed,.cello-fb-changed{font-size:11px;font-weight:850;color:#ad315c;margin-left:5px}
     .cello-fb-changed{font-size:10px}
     @media(max-width:1250px){
@@ -350,24 +365,6 @@
       </div>
     </section>
 
-    <dialog id="finger-dialog" class="finger-dialog" aria-labelledby="finger-dialog-title">
-      <form id="finger-form" class="finger-form">
-        <h2 id="finger-dialog-title">視覺化編輯老師的指法</h2>
-        <p id="finger-dialog-key">選擇音符並更換同音高的弦位，再設定左手指號。</p>
-        <div id="finger-editor-container"></div>
-        <details class="teacher-memo">
-          <summary>補充文字備註（選填，保留原有註記）</summary>
-          <label for="finger-up">上行指法備註</label>
-          <textarea id="finger-up" maxlength="300" placeholder="例如：特定換把位置或運弓提醒"></textarea>
-          <label for="finger-down">下行指法備註</label>
-          <textarea id="finger-down" maxlength="300" placeholder="例如：下行換弦方式"></textarea>
-        </details>
-        <div class="finger-form-actions">
-          <button type="button" id="finger-cancel">取消</button>
-          <button type="submit" class="primary">儲存這份指板配置</button>
-        </div>
-      </form>
-    </dialog>
     <div class="workspace">
       <section class="panel" aria-labelledby="settings-title">
         <div class="panel-head"><h2 class="panel-title" id="settings-title">設定抽籤數量</h2><span class="section-number">01 / SETUP</span></div>
@@ -439,12 +436,11 @@
       <div class="history-list" id="history-list"></div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">v1.0.1-experimental · <a href="../" style="color:inherit;text-decoration:underline;text-underline-offset:3px">返回穩定版</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">v1.0.2-experimental · <a href="../" style="color:inherit;text-decoration:underline;text-underline-offset:3px">返回穩定版</a></span></footer>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="fingering-presets.js?v=20261106-012"></script>
-  <script src="fingerboard.js?v=20261106-011"></script>
-  <script src="fingerboard-editor.js?v=20261106-011"></script>
+  <script src="fingerboard.js?v=20261106-013"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
@@ -483,9 +479,6 @@
     const state = readStore();
     if(!state.fingerings || typeof state.fingerings !== 'object') state.fingerings={};
     if(!Array.isArray(state.preferences.excludedKeys))state.preferences.excludedKeys=[];
-    let editingKeyId=null;
-    let editingDirection=null;
-    let editingBoard=null;
     let sharedRoom = null; // Classroom state is distinct from personal browser history.
     let currentDate = getLocalDate();
     let toastTimer;
@@ -680,49 +673,27 @@ function createCard(mode,index,doneIds){
    mark.textContent='（已修改）';
    header.append(mark);
  }
- const guide=window.CelloFingerboard.create(mode,key,note,direction=>openFingeringEditor(id,direction));
+ const guide=window.CelloFingerboard.create(mode,key,note,(direction,map)=>saveInlineFingering(id,direction,map));
  panel.append(header,guide);
  card.append(main,panel);
  return card;
 }
-function openFingeringEditor(id,direction){
+function saveInlineFingering(id,direction,map){
   if(direction!=='up'&&direction!=='down')return;
-  editingKeyId=id;
-  editingDirection=direction;
-  const [mode,index]=id.split('-');
-  const key=(mode==='major'?MAJOR_KEYS:MINOR_KEYS)[Number(index)];
-  const note=visibleFingerings()[id]||{};
-  const label=direction==='up'?'上行':'下行';
-  q('#finger-dialog-title').textContent='編輯'+label+'老師的指法';
-  q('#finger-dialog-key').textContent=`${key[0]} ${mode==='major'?'大調':'古典旋律小調'} · ${label} · 拖曳或點選音符，移到同音高的另一個弦位。`;
-  editingBoard=window.CelloFingerboard.createEditor(mode,key,note,direction);
-  q('#finger-editor-container').replaceChildren(editingBoard.element);
-  q('#finger-up').value=note.up||'';
-  q('#finger-down').value=note.down||'';
-  q('#finger-up').hidden=direction!=='up';
-  q('#finger-down').hidden=direction!=='down';
-  q('label[for="finger-up"]').hidden=direction!=='up';
-  q('label[for="finger-down"]').hidden=direction!=='down';
-  q('#finger-dialog').showModal();
-}
-function saveFingering(){
-  if(!editingKeyId||!editingBoard||!editingDirection)return;
-  const id=editingKeyId,direction=editingDirection;
-  const maps=editingBoard.getValue();
-  // Merge with latest local or shared data; never overwrite the other direction.
+  // Each direct edit changes only its own direction; preserve the other
+  // board and any legacy teacher notes, both locally and in classroom rooms.
   const note={...(visibleFingerings()[id]||{})};
-  note[direction]=q('#finger-'+direction).value.trim().slice(0,300);
-  note[direction+'Map']=maps[direction+'Map'];
-  q('#finger-dialog').close();
-  editingKeyId=null;
-  editingDirection=null;
-  editingBoard=null;
+  const field=direction+'Map';
+  if(typeof map==='string'&&map)note[field]=map;
+  else delete note[field];
   if(sharedRoom){
     window.classroomSync?.setFingering(id,note,direction);
   }else{
     if(note.up||note.down||note.upMap||note.downMap)state.fingerings[id]=note;
     else delete state.fingerings[id];
-    persist();renderResults();
+    persist();
+    renderResults();
+    showToast('這個音的指法已儲存');
   }
 }
     function renderGroups(session){
@@ -841,8 +812,6 @@ function saveFingering(){
     q('#copy-button').addEventListener('click',copyList);
     q('#filter-all').addEventListener('click',()=>updateExclusions([]));
     q('#filter-none').addEventListener('click',()=>updateExclusions([...MAJOR_KEYS.map((_,i)=>selectedId('major',i)),...MINOR_KEYS.map((_,i)=>selectedId('minor',i))]));
-    q('#finger-cancel').addEventListener('click',()=>q('#finger-dialog').close());
-    q('#finger-form').addEventListener('submit',event=>{event.preventDefault();saveFingering();});
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshDate();});
     window.addEventListener('focus',refreshDate);
     // Preserve valid personal history until explicitly deleted by the user.
