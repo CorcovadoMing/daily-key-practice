@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="v1.0.0-experimental">
+  <meta name="site-version" content="v1.0.1-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -37,6 +37,23 @@
     .brand-logo svg{width:21px;height:21px}
     .brand small{display:block;font-weight:500;color:var(--muted);font-size:10px;letter-spacing:.14em;line-height:1.5}
     .header-tag{font-size:12px;letter-spacing:.02em;color:#62726b;background:#e9eee8;padding:8px 13px;border-radius:40px;white-space:nowrap}
+    .experiment-roadmap{margin:17px 0 -30px;padding:13px 15px 11px;border-radius:15px;border:1px solid #dbe4ee;background:#f4f7fb;color:#33485d}
+    .experiment-roadmap-heading{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-bottom:9px}
+    .experiment-roadmap-heading strong{font-size:11px;letter-spacing:.03em;font-weight:850}
+    .experiment-roadmap-heading span,.experiment-roadmap-scope{font-size:10px;color:#718396}
+    .experiment-roadmap-items{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));list-style:none;margin:0;padding:0;gap:8px}
+    .experiment-roadmap-items li{display:flex;align-items:flex-start;gap:7px;padding:9px 10px;background:white;border:1px solid #e3e9ef;border-radius:9px}
+    .experiment-roadmap-items li div{display:flex;flex-direction:column;gap:3px;min-width:0}
+    .experiment-roadmap-items strong{font-size:11px;line-height:1.4}
+    .experiment-roadmap-items small{font-size:10px;color:#77899a;line-height:1.5}
+    .experiment-roadmap-check{flex:none;width:13px;height:13px;border:1.5px solid #9aabbc;border-radius:4px;margin-top:1px}
+    .experiment-roadmap-scope{display:block;line-height:1.6;margin-top:8px}
+    @media(max-width:660px){
+      .experiment-roadmap{margin-bottom:-36px}
+      .experiment-roadmap-items{grid-template-columns:1fr}
+      .experiment-roadmap-items li{padding:7px 9px}
+      .experiment-roadmap-heading{align-items:flex-start;flex-wrap:wrap}
+    }
     .intro{padding:67px 0 45px;display:grid;grid-template-columns:1fr auto;align-items:end;gap:20px}
     .eyebrow{font-size:11px;font-weight:800;letter-spacing:.20em;color:#6e876f;text-transform:uppercase;display:flex;align-items:center;gap:9px}
     .eyebrow::before{content:"";width:7px;height:7px;background:#93bd98;border-radius:50%}
@@ -283,6 +300,18 @@
   </header>
 
   <main class="container">
+    <section class="experiment-roadmap" aria-labelledby="experimental-roadmap-title">
+      <div class="experiment-roadmap-heading">
+        <strong id="experimental-roadmap-title">EXPERIMENTAL TODO · 麥克風音準分析</strong>
+        <span>規劃中 · 尚未啟用麥克風</span>
+      </div>
+      <ol class="experiment-roadmap-items">
+        <li><span class="experiment-roadmap-check" aria-hidden="true"></span><div><strong>即時大提琴調音器</strong><small>顯示演奏音名、頻率與音準偏差</small></div></li>
+        <li><span class="experiment-roadmap-check" aria-hidden="true"></span><div><strong>音階自動追蹤</strong><small>辨識目前演奏的音與上下行進度</small></div></li>
+        <li><span class="experiment-roadmap-check" aria-hidden="true"></span><div><strong>音準練習報告</strong><small>統計偏高、偏低及不穩定的音</small></div></li>
+      </ol>
+      <small class="experiment-roadmap-scope">規劃為本機單人練習功能，不在課堂模式啟用，也不將麥克風音訊上傳 Firebase。</small>
+    </section>
     <section class="intro" aria-labelledby="page-title">
       <div>
         <div class="eyebrow">A little surprise in every scale</div>
@@ -410,10 +439,10 @@
       <div class="history-list" id="history-list"></div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">v1.0.0-experimental · <a href="../" style="color:inherit;text-decoration:underline;text-underline-offset:3px">返回穩定版</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">v1.0.1-experimental · <a href="../" style="color:inherit;text-decoration:underline;text-underline-offset:3px">返回穩定版</a></span></footer>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="fingering-presets.js?v=20261106-011"></script>
+  <script src="fingering-presets.js?v=20261106-012"></script>
   <script src="fingerboard.js?v=20261106-011"></script>
   <script src="fingerboard-editor.js?v=20261106-011"></script>
   <script>
