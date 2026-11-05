@@ -37,6 +37,9 @@ let unsubscribeConnection = null;
 let unsubscribePresence=null;
 let presenceConnectionRef=null;
 let joining = false;
+let editorUserId = null;
+let ownDraftRef = null;
+let unsubscribeEdits = null;
 
 function setStatus(message) { status.textContent = message; }
 function updateButtons() {
@@ -129,9 +132,57 @@ async function markPresent(id){
    console.warn('Could not register classroom presence:',error);
  }
 }
+function clearOwnDraft(){
+  const old=ownDraftRef;ownDraftRef=null;
+  if(old&&firebase){
+    firebase.remove(old).then(()=>firebase.onDisconnect(old).cancel())
+      .catch(error=>console.debug('Editing preview cleanup pending disconnect:',error));
+  }
+}
+function watchEdits(id){
+  if(unsubscribeEdits)unsubscribeEdits();
+  const ref=firebase.ref(database,'roomEdits/'+id);
+  unsubscribeEdits=firebase.onValue(ref,snapshot=>{
+    if(activeId!==id)return;
+    const entries=snapshot.val()||{},remotes={};
+    const now=Date.now();
+    for(const [editorKey,draft] of Object.entries(entries)){
+      if(!draft||editorKey===ownDraftRef?.key||draft.owner===editorUserId||
+        !/^(major|minor)-(?:[0-9]|10|11)$/.test(draft.keyId)||
+        !['up','down'].includes(draft.direction)||
+        !Number.isInteger(draft.selectedMidi)||
+        !Number.isFinite(draft.updatedAt)||now-draft.updatedAt>300000)continue;
+      let changed=[];
+      try{changed=JSON.parse(draft.changed);}catch{}
+      if(!Array.isArray(changed))changed=[];
+      remotes[editorKey]={keyId:draft.keyId,direction:draft.direction,
+        selectedMidi:draft.selectedMidi,previewMap:draft.previewMap||'{}',
+        changed:changed.filter(x=>Number.isInteger(x)&&x>=36&&x<=100).slice(0,30)};
+    }
+    practice.setClassroomDrafts(id,remotes);
+  },error=>console.warn('Live classroom edit preview unavailable; room fingering saves still work.',error));
+}
+async function registerDraftPresence(id){
+  if(!connected||!ready||activeId!==id||ownDraftRef)return;
+  const ref=firebase.push(firebase.ref(database,'roomEdits/'+id));
+  ownDraftRef=ref;
+  try{
+    await firebase.onDisconnect(ref).remove();
+    if(activeId!==id||!connected){
+      await firebase.onDisconnect(ref).cancel();
+      if(ownDraftRef===ref)ownDraftRef=null;
+    }
+  }catch(error){
+    if(ownDraftRef===ref)ownDraftRef=null;
+    console.warn('Could not prepare temporary classroom editing status:',error);
+  }
+}
 function cleanupListeners() {
   if(unsubscribeRoom) unsubscribeRoom();
   if(unsubscribeConnection) unsubscribeConnection();
+  if(unsubscribeEdits)unsubscribeEdits();
+  unsubscribeEdits=null;
+  clearOwnDraft();
   stopPresence();
   unsubscribeRoom = null;
   unsubscribeConnection = null;
@@ -145,6 +196,7 @@ function leaveRoom() {
   connected = false;
   joining = false;
   replaceHash(null);
+  practice.setClassroomDrafts(activeId, {});
   practice.setClassroomRoom(null, null);
   setStatus(configured ? '個人模式 · 可建立房間或輸入六位數房號' : '課堂同步尚未啟用：請檢查 Firebase 設定');
   updateButtons();
@@ -162,6 +214,7 @@ async function loadFirebase() {
   const auth = authSdk.getAuth(app);
   await auth.authStateReady();
   if(!auth.currentUser) await authSdk.signInAnonymously(auth);
+  editorUserId=auth.currentUser?.uid||null;
   database = dbSdk.getDatabase(app);
   firebase = dbSdk;
 }
@@ -219,13 +272,21 @@ async function joinRoom(id) {
     unsubscribeConnection = firebase.onValue(firebase.ref(database, '.info/connected'), snapshot => {
       const wasConnected=connected;
       connected = snapshot.val() === true;
-      if(!connected){presenceConnectionRef=null;onlineNumber.textContent='離線';}
-      else if(ready && !wasConnected)void markPresent(id);
+      if(!connected){
+        presenceConnectionRef=null;
+        ownDraftRef=null; // onDisconnect removes the remote ghost
+        onlineNumber.textContent='離線';
+      }
+      else if(ready && !wasConnected){
+        void markPresent(id);
+        void registerDraftPresence(id);
+      }
       updateConnectionState();
     });
     watchPresence(id);
+    watchEdits(id);
     ready = true;
-    if(connected)void markPresent(id);
+    if(connected){void markPresent(id);void registerDraftPresence(id);}
     updateConnectionState();
     return true;
   } catch(error) {
@@ -345,29 +406,63 @@ window.classroomSync = {
   setShowScale(showScale) {
     return changeRoom(current => ({...current, showScale:Boolean(showScale), updatedAt:Date.now()}));
   },
-  setFingering(id, note, direction=null) {
+  setDraft(keyId,draft){
+    if(!ready||!connected||!ownDraftRef||!editorUserId)return;
+    if(!draft){firebase.remove(ownDraftRef).catch(()=>{});return;}
+    if(!/^(major|minor)-(?:[0-9]|10|11)$/.test(keyId)||
+      !['up','down'].includes(draft.direction)||!Number.isInteger(draft.selectedMidi))return;
+    const previewMap=typeof draft.previewMap==='string'?draft.previewMap:'{}';
+    if(previewMap.length>1800)return;
+    const changed=JSON.stringify(Array.isArray(draft.changed)?draft.changed.slice(0,30):[]);
+    if(changed.length>160)return;
+    firebase.set(ownDraftRef,{
+      owner:editorUserId,keyId,direction:draft.direction,
+      selectedMidi:draft.selectedMidi,previewMap,changed,updatedAt:Date.now()
+    }).catch(error=>console.debug('Live classroom editing preview not sent:',error));
+  },
+  setFingering(id,note,direction=null,originalMap=null,resetAll=false) {
     if(!/^(major|minor)-(?:[0-9]|10|11)$/.test(id)) return;
-    return changeRoom(current => {
+    const parse=text=>{
+      if(typeof text!=='string')return {};
+      try{
+        const object=JSON.parse(text);
+        return object&&typeof object==='object'&&!Array.isArray(object)?object:{};
+      }catch{return {};}
+    };
+    return changeRoom(current=>{
       const fingerings={...(current.fingerings||{})};
-      // Update only the requested direction against the newest room state;
-      // another participant's edits to the opposite direction are untouched.
-      const fields=direction==='up'||direction==='down'?
-        [direction,direction+'Map']:['up','down','upMap','downMap'];
-      const next=direction?{...(fingerings[id]||{})}:{};
-      for(const field of fields){
-        const max=field.endsWith('Map')?1800:300;
-        const value=typeof note?.[field]==='string'?note[field].slice(0,max):'';
-        if(value)next[field]=value;
+      const next={...(fingerings[id]||{})};
+      if(direction==='up'||direction==='down'){
+        const field=direction+'Map';
+        const proposed=parse(note?.[field]),previous=parse(originalMap);
+        const saved=resetAll?{}:{...parse(next[field])};
+        if(!resetAll){
+          const keys=originalMap===null?Object.keys({...saved,...proposed}):
+            [...new Set([...Object.keys(previous),...Object.keys(proposed)])];
+          for(const pitch of keys){
+            if(originalMap!==null&&
+              JSON.stringify(previous[pitch])===JSON.stringify(proposed[pitch]))continue;
+            if(Object.prototype.hasOwnProperty.call(proposed,pitch))saved[pitch]=proposed[pitch];
+            else delete saved[pitch];
+          }
+        }
+        const serialized=Object.keys(saved).length?JSON.stringify(saved):'';
+        if(serialized.length>1800)return;
+        if(serialized)next[field]=serialized;
         else delete next[field];
+        // Keep existing teacher notes and the opposite direction untouched.
+      }else{
+        for(const field of ['up','down','upMap','downMap']){
+          const value=typeof note?.[field]==='string'?note[field].slice(0,field.endsWith('Map')?1800:300):'';
+          if(value)next[field]=value;
+          else delete next[field];
+        }
       }
       if(Object.keys(next).length)fingerings[id]=next;
       else delete fingerings[id];
-      if(!Object.keys(fingerings).length) {
-        const {...rest}=current;
-        delete rest.fingerings;
-        return {...rest,updatedAt:Date.now()};
-      }
-      return {...current,fingerings,updatedAt:Date.now()};
+      const updated={...current,fingerings,updatedAt:Date.now()};
+      if(!Object.keys(fingerings).length)delete updated.fingerings;
+      return updated;
     });
   }
 };
