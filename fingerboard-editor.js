@@ -61,7 +61,7 @@
       render();
     });
     toolbar.append(directionGroup,octaveGroup,rangeGroup);
-    root.append(toolbar,noteStrip,help,stage,info,fingers,reset,foot);
+    root.append(toolbar,noteStrip,help,stage,fb.makeLegend(),info,fingers,reset,foot);
 
     function notes(){return fb.scaleNotes(mode,key,direction,octaves);}
     function selection(){return notes()[selected]||null;}
@@ -82,8 +82,8 @@
     function place(s){
       const n=selection(),semi=possible(n,s);
       if(semi===null)return;
-      const prev=placement(n);
-      maps[direction][String(n.midi)]={s,f:semi===0?0:(prev.f===0?null:prev.f)};
+      const prev=maps[direction][String(n.midi)];
+      maps[direction][String(n.midi)]={s,f:semi===0?0:(prev&&prev.s===s&&[1,2,3,4].includes(prev.f)?prev.f:null)};
       render();
     }
     function assignFinger(f){
@@ -131,20 +131,28 @@
           doc.append(g);
         }
       }
+      let lastHand=null;
       for(let i=0;i<ns.length;i++){
         const n=ns[i],pos=placement(n),x=XX[pos.s],y=NUT+pos.semi*STEP;
+        const style=fb.suggestionFor(pos.semi,pos.f);
+        const shift=style.hand!=='open'&&lastHand!==null&&style.hand!==lastHand;
+        if(style.hand!=='open')lastHand=style.hand;
         if(pos.semi>maxFret)continue;
         const isOpen=pos.semi===0,isSelected=i===selected;
         const g=sv('g',{role:'button',tabindex:'0','aria-label':`第${n.order}音 ${n.name}；${OPEN[pos.s].name}弦；${isOpen?'空弦':pos.semi+'半音位置'}`,class:'teacher-note-marker'});
         g.append(sv('title',{},`第${n.order}音 ${n.name}`));
-        if(isSelected)g.append(sv('circle',{cx:x,cy:y,r:21,fill:'none',stroke:'#78a888','stroke-width':2.8}));
-        const color=isSelected?'#276441':'#354b3b';
+        if(shift){
+          g.append(sv('circle',{cx:x,cy:y,r:20.5,fill:'none',stroke:'#3d3658',
+            'stroke-width':2.2,'stroke-dasharray':'3 3'}));
+          g.append(sv('text',{x:x-24,y:y-12,'font-size':15,'font-weight':800,fill:'#514476'},'↗'));
+        }
+        if(isSelected)g.append(sv('circle',{cx:x,cy:y,r:23,fill:'none',stroke:'#78a888','stroke-width':3}));
+        const color=isOpen?'#34483a':fb.POSITION_COLORS[style.group];
         g.append(sv('circle',{cx:x,cy:y,r:15.5,fill:isOpen?'#f7f9f6':color,stroke:isOpen?color:'#ffffff','stroke-width':isOpen?3:2}));
-        g.append(sv('text',{x,y:y+4.5,'text-anchor':'middle','font-size':12,'font-weight':850,fill:isOpen?color:'#ffffff'},n.order));
+        g.append(sv('text',{x,y:y+4.5,'text-anchor':'middle','font-size':12,'font-weight':850,fill:isOpen?'#34483a':'#ffffff'},n.order));
         // Match the read-only chart: open-string points show only their number.
         if(!isOpen){
-          const firstAndFourth={1:'1↓',2:'1',3:'2',4:'3',5:'4',7:'1',8:'2',9:'3',10:'4'};
-          const suggested=pos.f==null?(firstAndFourth[pos.semi]||'—'):String(pos.f);
+          const suggested=String(style.finger);
           g.append(sv('text',{x:x+20,y:y+1,'font-size':13,'font-weight':750,fill:'#263e2e'},n.name));
           g.append(sv('text',{x:x+20,y:y+16,'font-size':10,'font-weight':700,fill:pos.f?'#654589':'#8b719a'},'('+suggested+')'));
         }
@@ -212,14 +220,15 @@
       stage.replaceChildren(board());
       const n=selection();
       const p=placement(n);
-      info.textContent=`目前選擇：第 ${n.order} 音 ${n.name} · ${OPEN[p.s].name} 弦${p.semi===0?'（空弦）':'，距空弦 '+p.semi+' 個半音'}`;
+      const selectedStyle=fb.suggestionFor(p.semi,p.f);
+      info.textContent=`目前選擇：第 ${n.order} 音 ${n.name} · ${OPEN[p.s].name} 弦${p.semi===0?'（空弦）':'，'+selectedStyle.label+'、第 '+selectedStyle.finger+' 指'}`;
       fingers.replaceChildren(el('span','teacher-finger-label','左手指號'));
       if(p.semi===0){
         fingers.append(el('span','teacher-open-label','空弦 0 · 不需要按指'));
       }else{
         const values=[null,1,2,3,4];
         for(const f of values){
-          const b=el('button','teacher-finger-button',f===null?'未指定':String(f));
+          const b=el('button','teacher-finger-button',f===null?'使用建議':String(f));
           b.type='button';
           b.setAttribute('aria-pressed',String(p.f===f));
           b.addEventListener('click',()=>assignFinger(f));
