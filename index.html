@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="v2026.11.06-008">
+  <meta name="site-version" content="v2026.11.06-009">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日練習｜大提琴 24 調音階練習</title>
   <style>
@@ -395,12 +395,12 @@
       <div class="history-list" id="history-list"></div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">v2026.11.06-008</span></footer>
+  <footer class="container"><span>弓弦的每日練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">v2026.11.06-009</span></footer>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="fingering-presets.js?v=20261106-008"></script>
-  <script src="fingerboard.js?v=20261106-008"></script>
-  <script src="fingerboard-editor.js?v=20261106-008"></script>
+  <script src="fingering-presets.js?v=20261106-009"></script>
+  <script src="fingerboard.js?v=20261106-009"></script>
+  <script src="fingerboard-editor.js?v=20261106-009"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
@@ -634,7 +634,7 @@ function saveFingering(){
   editingDirection=null;
   editingBoard=null;
   if(sharedRoom){
-    window.classroomSync?.setFingering(id,note);
+    window.classroomSync?.setFingering(id,note,direction);
   }else{
     if(note.up||note.down||note.upMap||note.downMap)state.fingerings[id]=note;
     else delete state.fingerings[id];
@@ -753,6 +753,6 @@ function saveFingering(){
     render();
   </script>
   <script src="firebase-config.js?v=20261106-001"></script>
-  <script type="module" src="classroom.js?v=20261106-003"></script>
+  <script type="module" src="classroom.js?v=20261106-009"></script>
 </body>
 </html>
