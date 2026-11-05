@@ -1,81 +1,47 @@
-/* Per-key major scale fingering references (two octaves), Cassia Harvey-style.
- * String indices: 0=C, 1=G, 2=D, 3=A. Each token is string:finger:group.
- * Minor scales: grouped three-note 1-3-4 / 1-2-4 pedagogical algorithm;
- * explicitly NOT a claimed transcription of Werner or Schroeder.
- * Instructor modifications are applied separately by fingerboard.js.
+/* Werner photo only. Confirmed digits from the user's supplied photograph,
+ * page 76: major (left) and minor (right), 2026-11-06.
+ * IMPORTANT: Only clearly legible ascending scale beginnings are transcribed.
+ * Do not synthesize or borrow any other method's fingerings for missing notes.
+ * Tokens: string index C=0,G=1,D=2,A=3 : left hand finger (0=open)
+ *        : position class for visual annotation.
+ * Enharmonic name is pitch-matched; no fingering is inferred from spelling.
+ * Unverified descending / higher notes stay unannotated until photo verified.
  */
 (function(){
-  'use strict';
-  const STRING_OPEN=[36,43,50,57];
-  const SIGNATURES={
-  "C": "0:0:o 0:1:f 0:3:f 0:4:f 1:0:o 1:1:f 1:3:f 1:4:f 2:0:o 2:1:f 2:2:f 2:4:f 3:0:o 3:1:f 3:2:f",
-  "D♭": "0:1:e 0:2:e 0:4:e 0:1:s 0:2:s 0:4:s 1:1:s 1:2:s 1:4:s 2:1:s 2:2:s 2:4:s 3:1:s 3:3:s 3:4:s",
-  "D": "0:1:e 0:2:e 0:4:e 1:0:o 1:1:e 1:2:e 1:4:e 2:0:o 2:1:f 2:3:f 2:4:f 3:0:o 3:1:f 3:3:f 3:4:f",
-  "E♭": "0:2:f 0:4:f 1:0:o 1:1:e 1:2:e 1:4:e 2:0:o 2:1:h 2:2:e 2:1:s 2:2:s 2:4:s 3:1:s 3:3:s 3:4:s",
-  "E": "0:1:s 0:2:s 0:4:s 1:1:e 1:2:e 1:4:e 2:1:h 2:2:h 2:4:h 2:1:s 2:2:s 2:4:s 3:1:s 3:3:s 3:4:s",
-  "F": "0:4:f 1:0:o 1:1:f 1:2:f 1:4:f 2:0:o 2:1:f 2:2:f 2:4:f 3:0:o 3:1:e 3:2:e 3:1:s 3:3:s 3:4:s",
-  "F♯": "0:1:s 0:2:s 0:4:s 1:1:e 1:2:e 1:4:e 2:1:f 2:2:f 2:4:f 3:1:h 3:2:h 3:4:h 3:1:s 3:3:s 3:4:s",
-  "G": "1:0:o 1:1:f 1:3:f 1:4:f 2:0:o 2:1:f 2:3:f 2:4:f 3:0:o 3:1:f 3:2:f 3:4:f 3:1:s 3:3:s 3:4:s",
-  "A♭": "1:1:e 1:2:e 1:4:e 1:1:s 1:2:s 1:4:s 2:1:s 2:2:s 2:4:s 3:1:s 3:2:s 3:4:s 3:1:s 3:3:s 3:4:s",
-  "A": "1:1:e 1:2:e 1:4:e 2:0:o 2:1:e 2:2:e 2:4:e 3:0:o 3:1:f 3:3:f 3:1:s 3:3:s 3:1:s 3:2:s 3:3:s",
-  "B♭": "1:1:e 1:2:e 1:4:e 2:1:h 2:2:e 2:4:e 2:1:s 2:2:s 2:4:s 3:1:s 3:2:s 3:4:s 3:1:s 3:3:s 3:4:s",
-  "B": "1:1:s 1:2:s 1:4:s 2:1:e 2:2:e 2:4:e 3:1:h 3:2:h 3:4:h 3:1:s 3:2:s 3:4:s 3:1:s 3:3:s 3:4:s"
+'use strict';
+const OPEN=[36,43,50,57];
+const VERIFIED={
+  major:{
+    'C':['0:0:o','0:1:f','0:3:f','0:4:f','1:0:o','1:1:f','1:3:f','1:4:f'],
+    'G':['1:0:o','1:1:f','1:3:f','1:4:f','2:0:o','2:1:f','2:3:f','2:4:f'],
+    'D':['0:1:f','0:2:f','0:4:e','1:0:o','1:1:f','1:2:f','1:4:e','2:0:o'],
+    'A':['1:1:e','1:2:e','1:4:e','2:0:o','2:1:e','2:2:e','2:4:e','3:0:o'],
+    'F':['0:4:f','1:0:o','1:1:f','1:2:f','1:4:f','2:0:o','2:1:f'],
+    'B♭':['1:1:e','1:2:e','1:4:e','2:1:s']
+  },
+  minor:{
+    'A':['1:1:f','1:3:f','1:4:f','2:0:o','2:1:f','2:2:e','2:4:e'],
+    'E':['0:2:f','0:4:f','1:0:o']
+  }
 };
-  const GROUPS={"o":"open","h":"half","f":"first","e":"extended","s":"shifting","H":"high"};
-  function majorPreset(key,ascending){
-    const spec=SIGNATURES[key[0]];
-    if(!spec)return null;
-    const tokens=spec.split(' ');
-    if(tokens.length!==15)throw Error('Expected 15 fingerings for '+key[0]);
-    return ascending.map((n,i)=>{
-      const [s,f,g]=tokens[i].split(':');
-      return {midi:n.midi,s:Number(s),f:Number(f),group:GROUPS[g],source:'major-key-chart'};
-    });
+const GROUP={o:'open',f:'first',e:'extended',s:'shifting'};
+function get(mode,key,direction,notes){
+  // The photograph provides explicit separate descending fingering numbers;
+  // these are not yet reliably transcribed. Never reuse the ascending fingering
+  // without verification.
+  if(direction!=='up')return {};
+  const values=VERIFIED[mode]?.[key[0]];
+  if(!values)return {};
+  const ordered=[...notes].sort((a,b)=>a.midi-b.midi);
+  const map={};
+  for(let i=0;i<Math.min(ordered.length,values.length);i++){
+    const [s,f,g]=values[i].split(':');
+    const string=Number(s),finger=Number(f);
+    const semi=ordered[i].midi-OPEN[string];
+    if(semi<0||semi>24)continue;
+    map[ordered[i].midi]={midi:ordered[i].midi,s:string,f:finger,group:GROUP[g],source:'user-werner-photo'};
   }
-  function minorPreset(ascending){
-    const results=[];
-    let previousString=0;
-    for(let i=0;i<ascending.length;i+=3){
-      const block=ascending.slice(i,i+3);
-      if(block.length<1)continue;
-      const candidate=STRING_OPEN.map((open,s)=>{
-        const semis=block.map(n=>n.midi-open);
-        if(semis[0]<0||semis[semis.length-1]>24||semis[semis.length-1]-semis[0]>5)return null;
-        const first=semis[0],openStart=first===0;
-        return {s,semis,score:(s<previousString?18:0)+(openStart?-5:0)+
-          (first>=12?10:0)+Math.abs(first-3)*.6+(s===previousString&&first>=9?5:0)};
-      }).filter(Boolean).sort((a,b)=>a.score-b.score);
-      if(!candidate.length)throw Error('No viable string for minor scale group');
-      const best=candidate[0];
-      const rel1=best.semis[1]===undefined?0:best.semis[1]-best.semis[0],rel2=best.semis[2]===undefined?rel1:best.semis[2]-best.semis[0];
-      let finger;
-      if(best.semis[0]===0)finger=[0,rel1===1?1:1,rel2<=3?2:3];
-      else if(best.semis[0]>=12)finger=[1,2,3];
-      else if(rel1===2&&rel2===3)finger=[1,3,4];
-      else finger=[1,2,4];
-      const base=best.semis[0],extension=rel1===2&&rel2===4;
-      const group=base===0?'open':base===1?'half':base<=4?
-        (extension?'extended':'first'):base<12?'shifting':'high';
-      block.forEach((n,j)=>results.push({
-        midi:n.midi,s:best.s,f:finger[j],
-        group:best.semis[j]===0?'open':group,
-        source:'minor-grouped-reference'
-      }));
-      previousString=best.s;
-    }
-    return results;
-  }
-  function get(mode,key,direction,notes){
-    const ascending=direction==='down'?[...notes].reverse():notes;
-    let proposals=mode==='major'?majorPreset(key,ascending):minorPreset(ascending);
-    if(!proposals)return {};
-    const result={};
-    for(const p of proposals){
-      const semi=p.midi-STRING_OPEN[p.s];
-      if(!Number.isInteger(semi)||semi<0||semi>24)throw Error('Invalid reference placement: '+mode+' '+key[0]+' '+p.midi);
-      result[String(p.midi)]=p;
-    }
-    return result;
-  }
-  window.CelloFingeringPresets={get,SIGNATURES,STRING_OPEN};
+  return map;
+}
+window.CelloFingeringPresets={get,VERIFIED,STRING_OPEN:OPEN,source:'user-werner-photo'};
 })();
