@@ -4,9 +4,9 @@
     ".write": false,
     "rooms": {
       "$roomId": {
-        ".read": "auth !== null && $roomId.matches(/^[a-f0-9]{32}$/)",
-        ".write": "auth !== null && $roomId.matches(/^[a-f0-9]{32}$/) && newData.exists()",
-        ".validate": "newData.hasChildren(['majorCount','minorCount','showScale','updatedAt'])",
+        ".read": "auth !== null && (($roomId.matches(/^[0-9]{6}$/) && (!data.exists() || data.child('expiresAt').val() > now)) || $roomId.matches(/^[a-f0-9]{32}$/))",
+        ".write": "auth !== null && newData.exists() && (($roomId.matches(/^[0-9]{6}$/) && (!data.exists() || data.child('expiresAt').val() > now)) || $roomId.matches(/^[a-f0-9]{32}$/))",
+        ".validate": "newData.hasChildren(['majorCount','minorCount','showScale','updatedAt']) && (!$roomId.matches(/^[0-9]{6}$/) || newData.hasChildren(['createdAt','expiresAt']))",
         "majorCount": {
           ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 12"
         },
@@ -48,6 +48,12 @@
         },
         "$other": {
           ".validate": false
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber() && newData.val() > 0 && (!data.exists() || newData.val() === data.val())"
+        },
+        "expiresAt": {
+          ".validate": "newData.isNumber() && newData.val() > now && newData.val() <= now + 86460000 && (!data.exists() || newData.val() === data.val())"
         }
       }
     }
