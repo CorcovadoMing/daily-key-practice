@@ -440,19 +440,25 @@
       state.sessions[currentDate]={date:currentDate,majorIds:chooseDistinct(majorCount),minorIds:chooseDistinct(minorCount),doneIds:[],createdAt:Date.now()};
       persist();render();showToast('新的練習清單已準備好！');
     }
-    function createCard(mode,index,doneIds){
-      const key=(mode==='major'?MAJOR_KEYS:MINOR_KEYS)[index];
-      const id=selectedId(mode,index);
-      const done=doneIds.includes(id);
-      const button=document.createElement('button');
-      button.type='button';
-      button.className=`key-card${done?' done':''}`;
-      button.setAttribute('aria-pressed',String(done));
-      button.setAttribute('aria-label',`${key[0]} ${mode==='major'?'大調':'小調'}，${done?'已完成':'未完成'}，點擊切換`);
-      button.innerHTML=`<span class="check-circle" aria-hidden="true">${done?'✓':''}</span><span class="key-card-content"><span class="key-primary">${key[0]}</span><span class="key-secondary">${mode==='major'?`MAJOR · ${signature(key[1])}`:'CLASSICAL MELODIC MINOR'}</span><span class="scale-notes">${mode==='major' ? key[2] : `<span class="scale-line"><b>↑ 上行</b> ${[...key[2].split(' '),key[0]].join(' ')}</span><span class="scale-line"><b>↓ 下行</b> ${[key[0],...key[3].split(' ').slice(1).reverse(),key[0]].join(' ')}</span>`}</span></span>`;
-      button.addEventListener('click',()=>toggleComplete(id));
-      return button;
-    }
+function createCard(mode,index,doneIds){
+ const key=(mode==='major'?MAJOR_KEYS:MINOR_KEYS)[index],id=selectedId(mode,index),done=doneIds.includes(id);
+ const card=document.createElement('div');card.className=`key-card${done?' done':''}`;
+ const main=document.createElement('button');main.type='button';main.className='key-card-main';main.setAttribute('aria-pressed',String(done));
+ main.setAttribute('aria-label',`${key[0]} ${mode==='major'?'大調':'小調'}，點擊切換完成`);
+ main.innerHTML=`<span class="check-circle" aria-hidden="true">${done?'✓':''}</span><span class="key-card-content"><span class="key-primary">${key[0]}</span><span class="key-secondary">${mode==='major'?`MAJOR · ${signature(key[1])}`:'CLASSICAL MELODIC MINOR'}</span><span class="scale-notes">${mode==='major'?key[2]:`↑ ${[...key[2].split(' '),key[0]].join(' ')}　↓ ${[key[0],...key[3].split(' ').slice(1).reverse(),key[0]].join(' ')}`}</span></span>`;
+ main.addEventListener('click',()=>toggleComplete(id));
+ const panel=document.createElement('div');panel.className='fingering-section';
+ const header=document.createElement('div');header.className='fingering-title';header.textContent='大提琴指法 · 兩個八度參考指型';
+ const guide=document.createElement('div');guide.className='fingering-pattern';
+ guide.textContent=`↑ ${REFERENCE_FINGERING[mode].up}\n↓ ${REFERENCE_FINGERING[mode].down}`;
+ const remark=document.createElement('div');remark.className='fingering-remark';remark.textContent='一指起、移把位的通用指型；C/G 調與空弦需依實際把位調整。';
+ panel.append(header,guide,remark);
+ const note=visibleFingerings()[id];
+ if(note&&(note.up||note.down)){const n=document.createElement('div');n.className='fingering-note';n.textContent=[note.up&&'↑ '+note.up,note.down&&'↓ '+note.down].filter(Boolean).join('\n');panel.append(n);}
+ const edit=document.createElement('button');edit.type='button';edit.className='fingering-edit';edit.textContent='記錄／編輯老師的指法';
+ edit.addEventListener('click',()=>openFingeringEditor(id));panel.append(edit);card.append(main,panel);
+ return card;
+}
     function renderGroups(session){
       const container=q('#key-groups');container.replaceChildren();
       for(const [mode,indices,label] of [['major',session.majorIds,'大調 MAJOR'],['minor',session.minorIds,'古典旋律小調 MELODIC MINOR']]){
