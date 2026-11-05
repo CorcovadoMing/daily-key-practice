@@ -760,7 +760,7 @@
     }
     function setClassroomRoom(id,data){
       const previous=sharedRoom;
-      if(previous?.id!==id)roomEditingPreviews={};
+      if(previous?.id!==id){roomEditingPreviews={};replaySession=null;}
       if(id)inheritConfirmedFingerings(id,data);
       const historyChanged=id?archiveClassroomSession(id,data):false;
       if(!id){sharedRoom=null;roomEditingPreviews={};}
@@ -1074,6 +1074,22 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       syncPracticeCards(session);
       if(count===total)showToast('今天的調性全部練完了，太棒了！ 🎉');
     }
+    function replayHistoricalScale(record){
+ if(!record||!Array.isArray(record.majorIds)||!Array.isArray(record.minorIds))return;
+ const session={date:currentDate,majorIds:[...record.majorIds],minorIds:[...record.minorIds],
+  doneIds:[],createdAt:Date.now(),replayOf:record.id};
+ if(record.sequenceMode==='signature'&&!sharedRoom)session.sequenceMode='signature';
+ expandedOverride=undefined;
+ if(sharedRoom){
+  window.classroomSync?.replay(session);
+  showToast('已送出這次練習的重現清單，等待課堂同步');
+ }else{
+  replaySession=session;
+  renderResults();
+  showToast('已重現這次練習的調性，不會新增紀錄');
+ }
+ q('.result-panel').scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});
+}
     function renderHistory(){
       function createRow(record,kind){
         const row=document.createElement('div');row.className='history-row';
@@ -1086,7 +1102,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         const sum=document.createElement('small');
         sum.textContent='完成 '+(record.doneIds||[]).length+'/'+
           (record.majorIds.length+record.minorIds.length);
-        if(kind==='classroom')sum.textContent+=' · 房間 '+record.roomId;
+        // Keep room codes private: only show date, hour and completed notes.
         meta.append(sum);row.append(meta);
         const chips=document.createElement('div');chips.className='history-keys';
         for(const [mode,indices] of [['major',record.majorIds],['minor',record.minorIds]]){
@@ -1097,6 +1113,10 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
             chips.append(chip);
           });
         }
+        const replay=document.createElement('button');replay.type='button';
+        replay.className='history-replay';replay.textContent='重現這次練習的調性';
+        replay.setAttribute('aria-label','重現 '+dateText+hour+' 的練習調性');
+        replay.addEventListener('click',()=>replayHistoricalScale(record));
         const remove=document.createElement('button');remove.type='button';
         remove.className='history-delete';remove.textContent='刪除';
         remove.setAttribute('aria-label','刪除 '+dateText+hour+' 的'+
@@ -1125,7 +1145,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
           if(kind==='personal'&&record.date===currentDate&&!sharedRoom)renderResults();
           showToast('已刪除這筆練習紀錄');
         });
-        row.append(chips,remove);
+        row.append(replay,chips,remove);
         return row;
       }
       for(const [kind,id,emptyMessage] of [
@@ -1151,7 +1171,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     }
     function refreshDate(){
       const next=getLocalDate();
-      if(next!==currentDate){currentDate=next;render();}
+      if(next!==currentDate){currentDate=next;replaySession=null;render();}
     }
     async function copyList(){
       const session=currentSession();if(!session)return;
