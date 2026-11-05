@@ -136,7 +136,7 @@
     return aside;
   }
 
-  function chartSVG(mode,key,direction,octaves,annotations={},interaction=null){
+  function chartSVG(mode,key,direction,octaves,annotations={},interaction=null,remoteDrafts=[]){
     const notes=scaleNotes(mode,key,direction,octaves);
     const map=decodeMap(direction==='up'?annotations.upMap:annotations.downMap);
     const presets=window.CelloFingeringPresets?.get(mode,key,direction,notes)||{};
@@ -149,8 +149,20 @@
     const editableMidi=interaction?.selectedMidi;
     const nearby=editableMidi===null||editableMidi===undefined?[]:
       OPEN.map(item=>editableMidi-item.midi).filter(n=>n>=0&&n<=14);
+    const ghosts=Array.isArray(remoteDrafts)?remoteDrafts.filter(d=>d?.direction===direction).slice(0,6):[];
+    const ghostPositions=[];
+    for(const remote of ghosts){
+      const proposed=decodeMap(remote.previewMap);
+      const pitches=[...(Array.isArray(remote.changed)?remote.changed:[]),remote.selectedMidi];
+      for(const midi of pitches){
+        const n=plotted.find(note=>note.midi===midi);
+        if(!n)continue;
+        const p=notePlacement(midi,proposed,presets);
+        if(p.semitones>=0&&p.semitones<=24)ghostPositions.push(p.semitones);
+      }
+    }
     const maxPosition=Math.max(7,...plotted.map(item=>item.position.semitones),...nearby,
-      interaction?.showMore?24:0);
+      ...ghostPositions,interaction?.showMore?24:0);
     const top=68,step=35,height=top+maxPosition*step+47;
     const xPositions=[42,126,210,294], end=top+maxPosition*step+22;
     const svg=svgNode('svg',{
@@ -260,17 +272,51 @@
       }
       svg.append(point);
     }
+    // Ghost note locations are not committed fingerings: hollow translucent
+    // pink preview means a remote participant is still editing; dashed blue
+    // outline marks the remote participant's selected note.
+    for(const remote of ghosts){
+      const previewMap=decodeMap(remote.previewMap);
+      for(const midi of Array.isArray(remote.changed)?remote.changed:[]){
+        const note=plotted.find(n=>n.midi===midi);
+        if(!note)continue;
+        const pos=notePlacement(midi,previewMap,presets);
+        const x=xPositions[pos.string],y=top+pos.semitones*step;
+        if(pos.semitones>maxPosition)continue;
+        svg.append(svgNode('circle',{
+          cx:x,cy:y,r:18,fill:'rgba(207,71,116,0.11)',
+          stroke:'#ce5078','stroke-width':2.4,'stroke-dasharray':'3 3',
+          'pointer-events':'none'
+        }));
+        if(Number.isInteger(pos.finger)){
+          svg.append(svgNode('text',{
+            x:x+23,y:y+14,'font-size':13,'font-weight':850,fill:'#bd3c6b',
+            opacity:.78,'pointer-events':'none'
+          },'('+pos.finger+')'));
+        }
+      }
+      const picked=plotted.find(n=>n.midi===remote.selectedMidi);
+      if(picked){
+        const pos=notePlacement(picked.midi,previewMap,presets);
+        const x=xPositions[pos.string],y=top+pos.semitones*step;
+        svg.append(svgNode('rect',{x:x-24,y:y-24,width:48,height:48,rx:9,
+          fill:'none',stroke:'#5773b4','stroke-width':2.5,
+          'stroke-dasharray':'6 4','pointer-events':'none'
+        }));
+      }
+    }
     return svg;
   }
 
-  function create(mode,key,initialAnnotations={},onSave=null){
+  function create(mode,key,initialAnnotations={},onSave=null,onPreview=null){
     const id=(mode==='major'?'major-':'minor-')+key[0];
-    const annotations={...initialAnnotations};
+    let annotations={...initialAnnotations};
     const root=element('div',{class:'cello-fingerboard'});
     const toolbar=element('div',{class:'cello-fb-toolbar'});
     const octaveGroup=element('div',{class:'cello-fb-group','aria-label':'音階八度數'});
     const boards=element('div',{class:'cello-fb-two-up'});
     const panels={};
+    let remoteDrafts=[];
     // A single transaction stages any number of note edits for one direction.
     // Only clicking Confirm (or Save in the leave dialog) persists the map.
     const edit={dir:null,midi:null,original:{},pending:{},undo:[],showMore:false};
@@ -321,11 +367,20 @@
       document.addEventListener('scroll',onScroll,true);
       document.addEventListener('keydown',onKeydown,true);
     }
+    function announceDraft(){
+      if(typeof onPreview!=='function')return;
+      if(edit.dir===null){onPreview(null);return;}
+      const changed=Object.keys({...edit.original,...edit.pending}).filter(k=>
+        JSON.stringify(edit.original[k])!==JSON.stringify(edit.pending[k])).map(Number);
+      onPreview({direction:edit.dir,selectedMidi:edit.midi,
+        previewMap:JSON.stringify(edit.pending),changed});
+    }
     function closeEditor(){
       edit.dir=null;edit.midi=null;edit.original={};edit.pending={};
       edit.undo=[];edit.showMore=false;
       stopTracking();
       render();
+      announceDraft();
     }
     function saveSession(){
       if(edit.dir===null)return;
@@ -341,11 +396,12 @@
         return;
       }
       const dir=edit.dir,value=Object.keys(edit.pending).length?JSON.stringify(edit.pending):'';
-      // Update only the selected direction. The caller merges the other direction
-      // with the freshest local/Firebase room state.
+      const previous=JSON.stringify(edit.original);
+      // The caller merges this transaction's per-note delta into the latest
+      // room map so simultaneous changes to different pitches are preserved.
       annotations[dir+'Map']=value;
       closeEditor();
-      onSave(dir,value);
+      onSave(dir,value,previous,false);
     }
     function exitEditor(next=null){
       if(edit.dir===null){if(next)next();return;}
@@ -423,6 +479,7 @@
       // Selecting a different note never discards staged modifications.
       edit.midi=midi;
       render();
+      announceDraft();
     }
     function applyChange(s,f){
       if(edit.dir===null||edit.midi===null)return;
@@ -439,6 +496,7 @@
       edit.undo.push({map:clone(edit.pending),midi});
       edit.pending=changed;
       renderDirection(edit.dir);
+      announceDraft();
     }
     function chooseString(s){
       if(edit.dir===null||edit.midi===null)return;
@@ -458,15 +516,17 @@
       if(edit.dir===null||!edit.undo.length)return;
       const prior=edit.undo.pop();edit.pending=prior.map;edit.midi=prior.midi;
       renderDirection(edit.dir);
+      announceDraft();
     }
     function resetAll(){
       if(edit.dir===null)return;
       const dir=edit.dir;
       // Clear every saved/unsaved custom fingering in this direction.
       const hadSaved=Object.keys(decodeMap(annotations[dir+'Map'])).length>0;
+      const previous=JSON.stringify(edit.original);
       annotations[dir+'Map']='';
       closeEditor();
-      if(hadSaved)onSave(dir,'');
+      if(hadSaved)onSave(dir,'',previous,true);
     }
 
     for(const dir of ['up','down']){
@@ -509,6 +569,9 @@
       const pane=panels[dir],editing=edit.dir===dir;
       const saved=decodeMap(annotations[dir+'Map']);
       pane.heading.textContent=dir==='up'?'↑ 上行':'↓ 下行';
+      if(remoteDrafts.some(remote=>remote.direction===dir)){
+        pane.heading.append(element('span',{class:'cello-fb-remote-label'},'（其他人編輯中）'));
+      }
       if(Object.keys(saved).length||(dir==='up'?annotations.up:annotations.down)){
         pane.heading.append(element('span',{class:'cello-fb-changed'},'（已修改）'));
       }
@@ -522,7 +585,7 @@
           selectedMidi:editing?edit.midi:null,
           select:midi=>begin(dir,midi),
           chooseString:s=>chooseString(s),showMore:editing&&edit.showMore
-        }:null));
+        }:null,remoteDrafts));
       pane.editor.hidden=!editing;
       if(!editing)return;
       const count=Object.keys(edit.pending).length;
@@ -592,6 +655,18 @@
     const one=addButton('1 八度',1),two=addButton('2 八度',2);
     toolbar.append(octaveGroup);
     if(!choices.has(id))choices.set(id,2);
+    root.setRemoteDrafts=(incoming)=>{
+      const next=Array.isArray(incoming)?incoming.filter(Boolean).slice(0,8):[];
+      if(JSON.stringify(remoteDrafts)===JSON.stringify(next))return;
+      remoteDrafts=next;
+      renderDirection('up');renderDirection('down');
+    };
+    root.updateAnnotations=(incoming)=>{
+      const value=incoming&&typeof incoming==='object'?incoming:{};
+      if(JSON.stringify(value)===JSON.stringify(annotations))return;
+      annotations={...value};
+      renderDirection('up');renderDirection('down');
+    };
     render();
     return root;
   }
