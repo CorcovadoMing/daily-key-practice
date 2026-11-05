@@ -294,6 +294,20 @@ window.classroomSync = {
   },
   setShowScale(showScale) {
     return changeRoom(current => ({...current, showScale:Boolean(showScale), updatedAt:Date.now()}));
+  },
+  setFingering(id, note) {
+    if(!/^(major|minor)-(?:[0-9]|10|11)$/.test(id)) return;
+    return changeRoom(current => {
+      const fingerings={...(current.fingerings||{})};
+      if(note.up || note.down) fingerings[id]={up:String(note.up||'').slice(0,300),down:String(note.down||'').slice(0,300)};
+      else delete fingerings[id];
+      if(!Object.keys(fingerings).length) {
+        const {...rest}=current;
+        delete rest.fingerings;
+        return {...rest,updatedAt:Date.now()};
+      }
+      return {...current,fingerings,updatedAt:Date.now()};
+    });
   }
 };
 createButton.addEventListener('click', createRoom);
