@@ -1,73 +1,71 @@
 # 今日練什麼調？ 🎻
 
-大提琴課專用的手機友善 24 調練習抽籤器：12 個大調 + 12 個 **Classical Melodic Minor（古典旋律小調）**。
+一個專為**大提琴課**設計的 24 調抽籤網頁：12 個大調 + 12 個**古典旋律小調（Classical Melodic Minor）**。
+
+正式網站：<https://corcovadoming.github.io/daily-key-practice/>
 
 ## 功能
 
-- 設定大調、小調各抽 0–12 個，內建 1+1、2+2、3+3、6+6 快速設定。
-- 隨機抽選：同一調式內不重複；完成後可勾選，觀看進度與音階提示。
-- 個人模式：當日清單與近 7 次練習紀錄只保存在這台瀏覽器的 localStorage。
-- **課堂同步模式（Firebase 設定後啟用）：**建立房間、複製邀請網址給老師；兩人即時共享抽籤數量、結果、完成勾選與顯示音階開關。刷新網頁會恢復相同房間清單。
-- 課堂模式的資料不會自動寫入兩端的個人練習歷史。
+- 大調、小調各抽 0～12 個（可使用 1+1、2+2、3+3、6+6 快速設定），單次抽籤不重複。
+- 點選調性標記完成、查看練習進度；可選擇顯示音階提示。
+- **個人練習模式**：今日清單、完成進度與最近練習歷史保存在本機瀏覽器。
+- **課堂同步模式**：老師或學生按「建立同步房間」，得到六位數字（例如 `482731`）；另一人直接在同一個網站輸入這六位數，即可進入同一間房。也可以使用「複製邀請連結」直接加入。
+- 共同即時同步：抽籤數量、結果、完成勾選與「顯示音階」設定；手機與電腦皆可用。
+- 課堂狀態與個人本機歷史分開，離開房間即返回個人模式。
 
-### 旋律小調的定義
+## 古典旋律小調
 
-使用**古典旋律小調**：
+- 上行：比自然小調升高第 6、7 級，走到高八度主音。
+- 下行：回到**自然小調**，由高八度主音下降至原主音。
+- A 小調：上行 `A B C D E F♯ G♯ A`，下行 `A G F E D C B A`。
+- C 小調：上行 `C D E♭ F G A B C`，下行 `C B♭ A♭ G F E♭ D C`。
 
-- **上行**：自然小調升高第 6、7 級，且延伸至高八度主音。
-- **下行**：自然小調，由高八度主音下行至起始主音。
-- A 小調示範：上行 `A B C D E F♯ G♯ A`，下行 `A G F E D C B A`。
-- C 小調示範：上行 `C D E♭ F G A B C`，下行 `C B♭ A♭ G F E♭ D C`。
+當顯示音階提示時，網站會分別列出上行與下行。十二組音階均使用正確音名拼法（例如 G♯ 旋律小調上行的 F𝄪）。
 
-音階提示會同時顯示**上行 / 下行**。G♯ 古典旋律小調的上行第 7 級是 `F𝄪`（重升 F，等音 G），以正確音階字母拼寫為準。
+## 使用六位數課堂房間
 
-## 網站部署
+1. 雙方打開 <https://corcovadoming.github.io/daily-key-practice/>。
+2. 其中一人按 **建立同步房間**，頁面出現六位數房號。
+3. 另一人輸入六位數，按 **加入房間**，就會看到同一份抽籤和勾選結果。
+4. 任何一方都能抽籤，另一方會即時看到更新。亦可複製邀請連結直接加入。
+5. 房間在建立後 **24 小時內可用**；過期後新開一間即可。舊的 32 位十六進位房間連結仍相容。
 
-靜態檔可直接放在 GitHub Pages，無須 build：
+### 六位數安全取捨
 
-1. Repository **Settings → Pages → Build and deployment → Source** 選 **GitHub Actions**。
-2. Actions 執行 `Deploy website to GitHub Pages`。
-3. 網址：<https://corcovadoming.github.io/daily-key-practice/>。
+- 六位數只有一百萬種組合，不是高安全性的密碼。**可能被猜中**，因此房間只應存放不敏感的練習清單；不要儲存姓名、電話、帳號或其他個資。
+- 「加入房間」不會因輸入錯誤房號而自動建立新房間；建房時使用 Firebase transaction 避免與既有房間碰撞。
+- 六位數房間過期後由 Realtime Database **安全規則阻止讀寫**；這**不代表資料會自動刪除**。如需清理過期資料，可在 Firebase Console 移除。
+- 不需登入 Google：網站使用 Firebase Anonymous Authentication（匿名驗證）；任何取得有效房號的人均可讀寫該房間。
+- 需要網路連線；網路中斷期間無法保證雙向同步。
 
-純個人模式不需要 Firebase，離線打開本機 `index.html` 也可以使用。
+## Firebase 初次設定（僅專案擁有者執行一次）
 
-## 啟用老師與學生即時同步
+網站放在 GitHub Pages，跨裝置同步由 **Firebase Realtime Database + Anonymous Authentication** 提供。
 
-因為 GitHub Pages 不能儲存兩個瀏覽器之間的共用狀態，需配置 **Firebase Authentication（Anonymous）** 和 **Firebase Realtime Database**。不需要讓老師註冊或登入帳號。這段設定由 Firebase 專案擁有者完成一次。
+1. 在 <https://console.firebase.google.com/project/daily-key-practice/overview> 開啟 Firebase 專案。
+2. 到 **Build → Authentication → Sign-in method** 啟用 **Anonymous**，按 Save。
+3. 到 **Build → Realtime Database** 確認資料庫已建立，網址為：
+   `https://daily-key-practice-default-rtdb.asia-southeast1.firebasedatabase.app/`
+4. **最重要**：到 **Realtime Database → Rules**，將本儲存庫的 [firebase-rules.json](firebase-rules.json) **整份內容**貼上，按 **Publish**。**即使之前貼過舊版規則，也必須重新發布新版**，否則六位數房間會出現 `Permission denied`。
+5. Web App 公開設定與 `databaseURL` 已經寫在 [firebase-config.js](firebase-config.js)。**不需要再次修改**。
+6. 重新整理網站後，可先用手機與電腦建立 / 加入同一房間測試。
 
-1. 到 <https://console.firebase.google.com/> 建立 Firebase 專案。
-2. 在專案設定中新增 **Web App**（`</>` 圖示），取得 `firebaseConfig` 的公開設定物件。
-3. 在 **Build → Realtime Database** 建立 Database，記下 **databaseURL**。**不要啟用公開測試規則**；使用下面指定的安全規則。
-4. 到 **Authentication → Sign-in method** 開啟 **Anonymous** 登入。
-5. 到 Realtime Database 的 **Rules** 分頁，將本 Repository 的 [firebase-rules.json](./firebase-rules.json) **內容貼上並 Publish**。這些規則只開放已匿名認證、且擁有難以猜測房間 ID 的訪客讀寫各自的房間，不開放整個資料庫任意讀寫。
-6. 修改 Repository 根目錄 [firebase-config.js](./firebase-config.js)，將 `null` 改為 Firebase Console 提供的 Web App 設定物件（記得包含 `databaseURL`），例如：
+> 資料庫規則只允許匿名認證後存取符合格式的房號、限制新六位數房間使用期限，並阻止整個資料庫的根目錄被公開讀取。六位數仍可能被猜中，因此不應用於敏感內容。
 
-   ```js
-   window.DAILY_KEY_FIREBASE_CONFIG = {
-     apiKey: "your-public-web-api-key",
-     authDomain: "your-project.firebaseapp.com",
-     databaseURL: "https://your-db.REGION.firebasedatabase.app",
-     projectId: "your-project",
-     appId: "your-app-id"
-   };
-   ```
+Firebase Web App `apiKey` 是公開的用戶端設定，不是 Firebase Admin 私鑰。**永遠不要提交 Service Account JSON 或管理員私鑰到 GitHub**。
 
-7. Commit 修改後，GitHub Pages 自動部署。開啟網站，點 **建立同步房間** → **複製邀請連結** → 傳給老師。老師只需點開連結，兩邊都可以抽籤、勾選完成及修改數量。你也能在不同瀏覽器或手機測試。
+## GitHub Pages 部署
 
-### 課堂模式的安全與限制
-
-- 房間使用加密安全亂數產生的 **128-bit 房間識別碼**，放在網址的 `#room=...` 後面；這是分享型存取憑證，**有連結的人就能查看與修改房間內容**，只傳給信任的人。
-- Firebase Web App 設定中的 `apiKey` 是設計上可公開的用戶端識別資訊，**絕對不要在 Repository 中放 Firebase Admin 私鑰、Service Account JSON 或任何秘密金鑰**。
-- 房間資料會持續保留在 Firebase，直到專案擁有者刪除；這版尚未提供自動到期與房主權限管控。
-- 雙方都需連上網路；離線期間不保證同步。課堂已在使用時不應把資料庫規則改為公開。
-- Firebase 專案仍有配額和可能的收費限制，請在 Firebase Console 設定使用量警示。若有人取得房間連結，可能干擾該房間的練習結果。
+- 本專案為靜態 HTML、CSS、JS，不需 npm build。
+- GitHub Repository → **Settings → Pages → Build and deployment → Source → GitHub Actions**。
+- 提交到 `main` 後由 `.github/workflows/deploy.yml` 自動部署。
 
 ## 檔案
 
-- `index.html`：UI、24 調及個人練習功能
-- `classroom.js`：Firebase 匿名登入、加入房間、Realtime Database 同步
-- `firebase-config.js`：公開 Web App 設定（需要自行填入）
-- `firebase-rules.json`：需要貼到 Firebase Realtime Database Console 的安全規則
-- `.github/workflows/deploy.yml`：GitHub Pages 部署設定
+- `index.html` — 大提琴音階抽籤與操作介面。
+- `classroom.js` — 即時同步與六位數房間、碰撞保護和過期處理。
+- `firebase-config.js` — Firebase Web App 公開設定（包含 databaseURL）。
+- `firebase-rules.json` — **必須手動發布到 Firebase Console** 的資料庫安全規則。
+- `.github/workflows/deploy.yml` — GitHub Pages 部署。
 
-Firebase JS SDK 使用 Google 官方 CDN，僅同步模式啟用時載入。
+免費 Spark 方案的 Realtime Database 有使用量限制；兩人上課使用通常遠低於限制。留意 Firebase Console 的 Usage 分頁。
