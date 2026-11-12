@@ -350,8 +350,8 @@
   }
 
   // Fixed two-octave scale, independent of the fingerboard octave toggle.
-  // Every pitch carries an explicit accidental: no hidden carry across octaves
-  // or the melodic-minor descent. These are pitch illustrations, not rhythm.
+  // Key signatures apply globally; explicit accidentals carry per written octave
+  // across this unbarred exercise, including melodic-minor descent cancellations. Sixteenth-note groups use four-note beams, without asserting a time signature.
   function staffStep(note){
     const letters='CDEFGAB',letter=note.name[0];
     let accidental=0;
@@ -359,28 +359,59 @@
     const octave=Math.round((note.midi-PITCH[letter]-accidental)/12)-1;
     return octave*7+letters.indexOf(letter);
   }
+  function scoreAccidentals(sequence,signature){
+    const letters=signature>=0?'FCGDAEB':'BEADGCF',base={};
+    for(const letter of letters.slice(0,Math.abs(signature)))base[letter]=signature>0?'♯':'♭';
+    const active=new Map();
+    return sequence.map(note=>{
+      const key=staffStep(note),written=note.name.slice(1)||'♮';
+      const previous=active.has(key)?active.get(key):(base[note.name[0]]||'♮');
+      active.set(key,written);return written===previous?null:written;
+    });
+  }
   function makeScore(mode,key){
     const sequence=[...scaleNotes(mode,key,'up',2),...scaleNotes(mode,key,'down',2).slice(1)];
+    const signature=key[1],startX=88+Math.abs(signature)*13,width=1220+Math.abs(signature)*13;
+    const accidentals=scoreAccidentals(sequence,signature);
     const wrap=element('div',{class:'cello-scale-score',tabindex:'0','aria-label':'兩個八度上下行五線譜，可橫向捲動'});
-    const svg=svgNode('svg',{viewBox:'0 0 1220 185',width:1220,height:185,role:'img','aria-label':key[0]+(mode==='major'?'大調':'旋律小調')+'，低音譜號，兩個八度上下行'});
-    svg.append(svgNode('title',{},'兩個八度上行與下行，逐音標示升降記號；向右捲動查看全行'));
-    for(let i=0;i<5;i++)svg.append(svgNode('line',{x1:14,x2:1205,y1:110-i*10,y2:110-i*10,stroke:'#81917f','stroke-width':1}));
+    const svg=svgNode('svg',{viewBox:`0 0 ${width} 185`,width,height:185,role:'img','aria-label':key[0]+(mode==='major'?'大調':'旋律小調')+'，低音譜號，兩個八度上下行十六分音符'});
+    svg.append(svgNode('title',{},'兩個八度上行與下行，調號與必要臨時記號；向右捲動查看全行'));
+    for(let i=0;i<5;i++)svg.append(svgNode('line',{x1:14,x2:width-15,y1:110-i*10,y2:110-i*10,stroke:'#81917f','stroke-width':1}));
     // Bass-clef curve and dots anchor the F3 line, avoiding music-font dependency.
     svg.append(svgNode('path',{d:'M 22 82 C 22 63 55 64 51 84 C 49 99 34 108 23 111 C 38 101 45 89 43 78 C 42 70 31 69 28 77',fill:'#34483a'}));
     svg.append(svgNode('circle',{cx:26,cy:79,r:4,fill:'#34483a'}));
     for(const y of [75,85])svg.append(svgNode('circle',{cx:57,cy:y,r:2,fill:'#34483a'}));
+    const signatureY=signature>=0?[80,95,75,90,105,85,100]:[100,85,105,90,110,95,115];
+    for(let i=0;i<Math.abs(signature);i++)svg.append(svgNode('text',{class:'scale-key-signature',x:72+i*13,y:signatureY[i]+5,'text-anchor':'middle','font-size':19,fill:'#34483a'},signature>0?'♯':'♭'));
     sequence.forEach((note,i)=>{
-      const x=88+i*39,y=110-(staffStep(note)-18)*5;
+      const x=startX+i*39,y=110-(staffStep(note)-18)*5;
       for(let ly=120;ly<=y;ly+=10)svg.append(svgNode('line',{x1:x-11,x2:x+11,y1:ly,y2:ly,stroke:'#60725e'}));
       for(let ly=60;ly>=y;ly-=10)svg.append(svgNode('line',{x1:x-11,x2:x+11,y1:ly,y2:ly,stroke:'#60725e'}));
-      const g=svgNode('g',{'data-midi':note.midi,'data-note':note.name});
+      const g=svgNode('g',{'data-midi':note.midi,'data-note':note.name,'data-duration':'16'});
       g.append(svgNode('title',{},note.name+' · MIDI '+note.midi));
-      g.append(svgNode('text',{x:x-18,y:y+5,'text-anchor':'middle','font-size':17,fill:'#34483a'},note.name.slice(1)||'♮'));
-      g.append(svgNode('ellipse',{cx:x,cy:y,rx:6,ry:4,transform:'rotate(-20 '+x+' '+y+')',fill:'#fffffc',stroke:'#34483a','stroke-width':2}));
+      if(accidentals[i])g.append(svgNode('text',{class:'scale-accidental',x:x-18,y:y+5,'text-anchor':'middle','font-size':17,fill:'#34483a'},accidentals[i]));
+      g.append(svgNode('ellipse',{cx:x,cy:y,rx:6,ry:4,transform:'rotate(-20 '+x+' '+y+')',fill:'#34483a',stroke:'#34483a','stroke-width':1}));
       svg.append(g);
     });
-    svg.append(svgNode('text',{x:88,y:164,'font-size':12,fill:'#647461'},'上行 →'));
-    svg.append(svgNode('text',{x:88+15*39,y:164,'font-size':12,fill:'#647461'},'下行 →'));
+    // Four-note visual groups; no meter or barlines are imposed on the exercise.
+    for(let start=0;start<sequence.length;start+=4){
+      const group=sequence.slice(start,start+4).map((note,j)=>({x:startX+(start+j)*39,y:110-(staffStep(note)-18)*5}));
+      const down=group.reduce((sum,n)=>sum+n.y,0)/group.length<90;
+      const beamY=down?Math.max(...group.map(n=>n.y))+32:Math.min(...group.map(n=>n.y))-32;
+      const stemX=n=>n.x+(down?-5:5);
+      for(const n of group)svg.append(svgNode('line',{class:'scale-stem',x1:stemX(n),x2:stemX(n),y1:n.y,y2:beamY,stroke:'#34483a','stroke-width':1.6}));
+      if(group.length>1){
+        for(let level=0;level<2;level++)svg.append(svgNode('line',{class:'scale-beam','data-level':level+1,x1:stemX(group[0]),x2:stemX(group[group.length-1]),y1:beamY+(down?-6:6)*level,y2:beamY+(down?-6:6)*level,stroke:'#34483a','stroke-width':3.5}));
+      }else{
+        const x=stemX(group[0]),dir=down?-1:1;
+        for(let level=0;level<2;level++){
+          const y=beamY+dir*6*level;
+          svg.append(svgNode('path',{class:'scale-flag',d:`M ${x} ${y} C ${x+12} ${y+dir*4}, ${x+14} ${y+dir*10}, ${x+7} ${y+dir*16} C ${x+11} ${y+dir*8}, ${x+3} ${y+dir*7}, ${x} ${y+dir*6} Z`,fill:'#34483a'}));
+        }
+      }
+    }
+    svg.append(svgNode('text',{x:startX,y:164,'font-size':12,fill:'#647461'},'上行 →'));
+    svg.append(svgNode('text',{x:startX+15*39,y:164,'font-size':12,fill:'#647461'},'下行 →'));
     wrap.append(svg);return wrap;
   }
 
@@ -774,6 +805,6 @@
   window.CelloFingerboard={
     create,
     // Pure helpers exported for automated pitch and placement checks.
-    staffStep,makeScore,scaleNotes,positionFor,pitchClass,decodeMap,pointStyling,POSITION_COLORS,makeLegend,notePlacement
+    scoreAccidentals,staffStep,makeScore,scaleNotes,positionFor,pitchClass,decodeMap,pointStyling,POSITION_COLORS,makeLegend,notePlacement
   };
 })();
