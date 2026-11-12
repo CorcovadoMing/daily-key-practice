@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261112-001-experimental">
+  <meta name="site-version" content="20261112-002-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -387,6 +387,19 @@
     .audio-panel p{font-size:12px;color:#647461;line-height:1.7;margin:10px 0}.audio-note{text-align:center;font-size:48px;font-weight:800;font-variant-numeric:tabular-nums}.audio-cents{text-align:center;min-height:24px;font-variant-numeric:tabular-nums}
     .audio-meter{height:28px;position:relative;background:linear-gradient(90deg,#e9ebdd 0%,#d6e6ce 45%,#d6e6ce 55%,#e9ebdd 100%);border-radius:8px;margin:12px 0}.audio-meter:before{content:'';position:absolute;left:50%;height:100%;border-left:2px solid #527049}.audio-needle{position:absolute;left:50%;height:28px;width:3px;background:#234c36;transform:translateX(-50%)}
     .audio-mini{font-size:12px;font-weight:700}.audio-error{color:#9b3939!important}.audio-pulse{display:inline-block;width:12px;height:12px;background:#8a9f88;border-radius:50%;margin-right:6px}.audio-pulse.beat{background:#2d6339;transform:scale(1.25)}
+    #tuner-panel{padding:12px}
+    #tuner-panel .audio-note{font-size:40px;line-height:1.15}
+    #tuner-panel .audio-cents{font-size:13px;min-height:20px;line-height:20px}
+    #tuner-panel .audio-meter{height:18px;margin:6px 0 2px}
+    #tuner-panel .audio-needle{height:18px}
+    #tuner-panel .audio-row{margin-bottom:0}
+    #tuner-panel .tuner-reference{display:flex;align-items:center;justify-content:center;gap:10px;margin:4px 0}
+    #tuner-panel .tuner-reference label{margin:0;font-size:12px}
+    #tuner-panel .tuner-reference input{min-height:44px;height:44px;box-sizing:border-box;padding:6px 10px}
+    #tuner-panel .tuner-actions{gap:6px}
+    #tuner-panel .tuner-actions button:last-child{min-width:44px;font-size:20px}
+    #tuner-status:empty{display:none}
+    #tuner-panel #tuner-status{margin:4px 0 0;line-height:1.4}
     @media(max-width:600px){.audio-tools{left:12px;right:12px;max-width:none;bottom:max(8px,env(safe-area-inset-bottom))}.audio-panel{width:100%;max-width:none}.audio-dock{justify-content:center}.audio-tools button{padding:8px 10px}.toast{bottom:100px}}
   </style>
 </head>
@@ -512,7 +525,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261112-001-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261112-002-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -546,14 +559,13 @@
       <div class="audio-row"><button id="metro-toggle" class="audio-primary">開始打拍</button><button id="metro-close">關閉並停止</button></div>
       <p id="metro-status" role="status">收合仍會打拍；切到其他分頁或鎖屏會停止。</p>
     </section>
-    <section id="tuner-panel" class="audio-panel" aria-labelledby="tuner-heading" hidden>
-      <div class="audio-heading"><h2 id="tuner-heading">調音器</h2><button data-collapse="tuner">收合</button></div>
+    <section id="tuner-panel" class="audio-panel" aria-label="調音器" hidden>
       <div id="tuner-note" class="audio-note">—</div><div id="tuner-cents" class="audio-cents">等待開始收音</div>
       <div class="audio-meter" aria-hidden="true"><span class="audio-needle" id="tuner-needle"></span></div>
       <div class="audio-row"><small>偏低 ♭</small><small>準</small><small>偏高 ♯</small></div>
-      <label for="tuner-a">基準 A4（Hz）</label><input id="tuner-a" type="number" min="430" max="450" value="440" step="1">
-      <div class="audio-row" style="margin-top:14px"><button id="tuner-toggle" class="audio-primary">開始收音</button><button id="tuner-close">關閉並停止</button></div>
-      <p id="tuner-status" role="status">聲音僅在此裝置分析，不錄音、不上傳。開始時會詢問麥克風權限。</p><p>一次拉一個音，讓讀數穩定。節拍聲可能干擾調音，建議調音時停止打拍。</p>
+      <div class="tuner-reference"><label for="tuner-a">A4 · Hz</label><input id="tuner-a" type="number" min="430" max="450" value="440" step="1" inputmode="numeric"></div>
+      <div class="audio-row tuner-actions"><button id="tuner-toggle" class="audio-primary">開始收音</button><button id="tuner-close">關閉並停止</button><button data-collapse="tuner" aria-label="收合調音器" title="收合調音器">⌄</button></div>
+      <p id="tuner-status" role="status"></p>
     </section>
     <div class="audio-dock"><button id="metronome-open" aria-expanded="false" aria-controls="metronome-panel">♩ 節拍器</button><button id="tuner-open" aria-expanded="false" aria-controls="tuner-panel">♮ 調音器</button><span id="metro-mini" class="audio-mini" hidden></span><button id="metro-stop" hidden>停止打拍</button><span id="tuner-mini" class="audio-mini" hidden>● 麥克風使用中</span><button id="tuner-stop" hidden>停止收音</button></div>
   </aside>
@@ -1432,7 +1444,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     $('tuner-mini').hidden = $('tuner-stop').hidden = !(pending || tunerRunning);
     $('tuner-mini').textContent = pending ? '等待麥克風授權' : '● 麥克風使用中';
   }
-  function stopTuner(message = '收音已停止，麥克風已釋放。') {
+  function stopTuner(message = '麥克風已關閉') {
     tunerGeneration++; pending = tunerRunning = false; clearInterval(tunerTimer);
     if (stream) stream.getTracks().forEach(t => t.stop()); stream = null;
     if (source) source.disconnect(); source = null;
@@ -1452,7 +1464,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       if (generation !== tunerGeneration) { requestedStream.getTracks().forEach(t => t.stop()); return; }
       stream = requestedStream; source = context.createMediaStreamSource(stream); analyser = context.createAnalyser(); analyser.fftSize = 8192; source.connect(analyser);
       const samples = new Float32Array(analyser.fftSize); smooth.reset(); lastSignal = performance.now();
-      pending = false; tunerRunning = true; tunerUI(); $('tuner-status').textContent = '正在本機分析；不錄音、不上傳。';
+      pending = false; tunerRunning = true; tunerUI(); $('tuner-status').textContent = '● 收音中';
       stream.getAudioTracks().forEach(track => track.onended = () => { if (generation === tunerGeneration) stopTuner('麥克風已中斷，請重新開始。'); });
       tunerTimer = setInterval(() => {
         if (context.state !== 'running') { stopTuner('收音已暫停，請重新開始。'); return; }
