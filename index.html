@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261112-002-experimental">
+  <meta name="site-version" content="20261112-003-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -381,6 +381,7 @@
     .audio-tools button,.audio-tools input,.audio-tools select{font:inherit;min-height:44px;border:1px solid #c4d3c2;border-radius:10px;background:#fff;color:inherit;padding:8px 12px}
     .audio-tools button{cursor:pointer;font-weight:700}.audio-tools button[aria-expanded=true],.audio-tools .audio-primary{background:#315b3b;color:white}
     .audio-tools button:focus-visible,.audio-tools input:focus-visible,.audio-tools select:focus-visible{outline:3px solid #4c81b3;outline-offset:2px}
+    .cello-scale-score{max-width:100%;overflow-x:auto;margin:8px 0 16px;border:1px solid #dce5d9;border-radius:10px;background:#fffffc}.cello-scale-score svg{display:block;max-width:none}.cello-scale-score:focus-visible{outline:2px solid #527049}
     .audio-panel{width:310px;max-width:calc(100vw - 32px);box-sizing:border-box;background:#fffffc;border:1px solid #c4d3c2;border-radius:18px;padding:18px;margin-bottom:10px;box-shadow:0 10px 36px #243a2525;max-height:65dvh;overflow:auto}
     .audio-panel[hidden],.audio-tools [hidden]{display:none!important}.audio-panel h2{font-size:18px;margin:0}.audio-heading,.audio-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.audio-heading button{font-size:12px}
     .audio-panel label{display:block;margin:12px 0 6px}.audio-panel input[type=number]{width:90px}.audio-panel input[type=range]{width:100%;box-sizing:border-box;padding:0}
@@ -525,7 +526,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261112-002-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261112-003-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -570,7 +571,7 @@
     <div class="audio-dock"><button id="metronome-open" aria-expanded="false" aria-controls="metronome-panel">♩ 節拍器</button><button id="tuner-open" aria-expanded="false" aria-controls="tuner-panel">♮ 調音器</button><span id="metro-mini" class="audio-mini" hidden></span><button id="metro-stop" hidden>停止打拍</button><span id="tuner-mini" class="audio-mini" hidden>● 麥克風使用中</span><button id="tuner-stop" hidden>停止收音</button></div>
   </aside>
   <script src="fingering-presets.js?v=20261106-012"></script>
-  <script src="fingerboard.js?v=20261106-023"></script>
+  <script src="fingerboard.js?v=20261112-003"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.

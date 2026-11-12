@@ -1,5 +1,5 @@
 /* Clean cello fingerboard note-position diagrams for scale practice.
- * Standard open strings: C2 G2 D3 A3. Circles show scale order, NOT left-hand fingers.
+ * Standard open strings: C2 G2 D3 A3. Circles show left-hand fingers (0 = open string, ? = not specified).
  * A schematic semitone spacing is used for legibility; physical distances are not to scale.
  * Per-note string choices favor the highest possible open string / lowest stopped position.
  */
@@ -272,7 +272,7 @@
       point.append(svgNode('text',{
         x,y:y+4.5,'text-anchor':'middle','font-size':12.5,
         'font-weight':800,fill:isOpen?'#34483a':'#ffffff'
-      },String(note.order)));
+      },isOpen?'0':explicit?String(style.finger):'?'));
       if(!isOpen){
         point.append(svgNode('text',{
           x:x+21,y:y+1,'font-size':13,
@@ -327,7 +327,7 @@
           svg.append(svgNode('text',{
             x,y:y+4.5,'text-anchor':'middle','font-size':12,
             'font-weight':850,fill:'#bd3c6b','pointer-events':'none'
-          },String(note.order)));
+          },Number.isInteger(pos.finger)?String(pos.finger):'?'));
         }
         if(Number.isInteger(pos.finger)){
           svg.append(svgNode('text',{
@@ -347,6 +347,41 @@
       }
     }
     return svg;
+  }
+
+  // Fixed two-octave scale, independent of the fingerboard octave toggle.
+  // Every pitch carries an explicit accidental: no hidden carry across octaves
+  // or the melodic-minor descent. These are pitch illustrations, not rhythm.
+  function staffStep(note){
+    const letters='CDEFGAB',letter=note.name[0];
+    let accidental=0;
+    for(const c of note.name.slice(1))accidental+=c==='♯'||c==='#'?1:c==='♭'||c==='b'?-1:c==='𝄪'?2:0;
+    const octave=Math.round((note.midi-PITCH[letter]-accidental)/12)-1;
+    return octave*7+letters.indexOf(letter);
+  }
+  function makeScore(mode,key){
+    const sequence=[...scaleNotes(mode,key,'up',2),...scaleNotes(mode,key,'down',2).slice(1)];
+    const wrap=element('div',{class:'cello-scale-score',tabindex:'0','aria-label':'兩個八度上下行五線譜，可橫向捲動'});
+    const svg=svgNode('svg',{viewBox:'0 0 1220 185',width:1220,height:185,role:'img','aria-label':key[0]+(mode==='major'?'大調':'旋律小調')+'，低音譜號，兩個八度上下行'});
+    svg.append(svgNode('title',{},'兩個八度上行與下行，逐音標示升降記號；向右捲動查看全行'));
+    for(let i=0;i<5;i++)svg.append(svgNode('line',{x1:14,x2:1205,y1:110-i*10,y2:110-i*10,stroke:'#81917f','stroke-width':1}));
+    // Bass-clef curve and dots anchor the F3 line, avoiding music-font dependency.
+    svg.append(svgNode('path',{d:'M 22 82 C 22 63 55 64 51 84 C 49 99 34 108 23 111 C 38 101 45 89 43 78 C 42 70 31 69 28 77',fill:'#34483a'}));
+    svg.append(svgNode('circle',{cx:26,cy:79,r:4,fill:'#34483a'}));
+    for(const y of [75,85])svg.append(svgNode('circle',{cx:57,cy:y,r:2,fill:'#34483a'}));
+    sequence.forEach((note,i)=>{
+      const x=88+i*39,y=110-(staffStep(note)-18)*5;
+      for(let ly=120;ly<=y;ly+=10)svg.append(svgNode('line',{x1:x-11,x2:x+11,y1:ly,y2:ly,stroke:'#60725e'}));
+      for(let ly=60;ly>=y;ly-=10)svg.append(svgNode('line',{x1:x-11,x2:x+11,y1:ly,y2:ly,stroke:'#60725e'}));
+      const g=svgNode('g',{'data-midi':note.midi,'data-note':note.name});
+      g.append(svgNode('title',{},note.name+' · MIDI '+note.midi));
+      g.append(svgNode('text',{x:x-18,y:y+5,'text-anchor':'middle','font-size':17,fill:'#34483a'},note.name.slice(1)||'♮'));
+      g.append(svgNode('ellipse',{cx:x,cy:y,rx:6,ry:4,transform:'rotate(-20 '+x+' '+y+')',fill:'#fffffc',stroke:'#34483a','stroke-width':2}));
+      svg.append(g);
+    });
+    svg.append(svgNode('text',{x:88,y:164,'font-size':12,fill:'#647461'},'上行 →'));
+    svg.append(svgNode('text',{x:88+15*39,y:164,'font-size':12,fill:'#647461'},'下行 →'));
+    wrap.append(svg);return wrap;
   }
 
   function create(mode,key,initialAnnotations={},onSave=null,onPreview=null){
@@ -621,7 +656,7 @@
       panels[dir]={heading,viewport,editor,status,hint,stringChoices,
         fingerChoices,range,back,restoreSelected,reset,save,memo};
     }
-    root.append(toolbar,boards,dialog);
+    root.append(makeScore(mode,key),toolbar,boards,dialog);
 
     function renderDirection(dir){
       const pane=panels[dir],editing=edit.dir===dir;
@@ -739,6 +774,6 @@
   window.CelloFingerboard={
     create,
     // Pure helpers exported for automated pitch and placement checks.
-    scaleNotes,positionFor,pitchClass,decodeMap,pointStyling,POSITION_COLORS,makeLegend,notePlacement
+    staffStep,makeScore,scaleNotes,positionFor,pitchClass,decodeMap,pointStyling,POSITION_COLORS,makeLegend,notePlacement
   };
 })();

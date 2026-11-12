@@ -18,4 +18,4 @@ jobs:
           node --check fingerboard.js
           node --check fingerboard-editor.js
           node --check classroom.js
-          node --test tests/audio-tools.test.cjs
+          node --test tests/*.test.cjs

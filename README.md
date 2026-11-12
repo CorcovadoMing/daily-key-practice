@@ -32,3 +32,5 @@
 
 - **正式版 Stable**：<https://corcovadoming.github.io/daily-key-practice/>
 - **實驗版 Experimental**：<https://corcovadoming.github.io/daily-key-practice/experimental/>
+
+實驗版音階譜：各調以低音譜號、兩八度上行接下行共 29 音單列顯示，手機可橫向捲動。逐音明示升降／還原，空心音符僅作音高練習圖示，不指定節奏。指板中央顯示既有確認指法或老師／學生自訂指號，0 為空弦、? 為尚未指定；同步與保存格式不變。
