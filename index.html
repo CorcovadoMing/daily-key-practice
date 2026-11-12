@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261112-011-experimental">
+  <meta name="site-version" content="20261112-012-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -421,10 +421,10 @@
 <div id="tuner-preferences" class="tuner-preferences" role="dialog" aria-label="調音器設定" hidden><label class="a4-control" for="tuner-a"><span>A4</span><input id="tuner-a" type="number" min="430" max="450" value="442" step="1" inputmode="numeric" aria-label="A4基準頻率，Hz"></label><button id="tuner-settings-close" aria-label="關閉調音器設定">×</button></div>
         <section id="metronome-panel" class="audio-panel tuner-preferences" role="dialog" aria-label="節拍器控制" hidden>
           <label for="metro-bpm">BPM</label><input id="metro-bpm" type="number" min="30" max="240" value="80" inputmode="numeric">
-          <label for="metro-beats">每小節</label><select id="metro-beats"><option value="1">1 拍</option><option value="2">2 拍</option><option value="3">3 拍</option><option value="4" selected>4 拍</option><option value="6">6 拍</option></select>
+          <input id="metro-slider" aria-label="節拍器速度 BPM" type="range" min="30" max="240" step="1" value="80" style="grid-column:1 / -1;width:100%"><label for="metro-beats">每小節</label><select id="metro-beats"><option value="1">1 拍</option><option value="2">2 拍</option><option value="3">3 拍</option><option value="4" selected>4 拍</option><option value="6">6 拍</option></select>
           <label for="metro-accent">重拍</label><select id="metro-accent"><option value="0">無</option><option value="1" selected>第 1 拍</option><option value="2">第 2 拍</option><option value="3">第 3 拍</option><option value="4">第 4 拍</option></select><span id="metro-beat" aria-hidden="true">●</span>
           <input id="metro-volume" type="hidden" value="40">
-        <button id="metro-settings-close" aria-label="關閉節拍器設定">×</button></section>
+        </section>
       <div class="audio-controls" tabindex="0" aria-label="工具控制列，可左右捲動">
         <section id="tuner-panel" class="audio-panel" aria-label="調音器控制" hidden>
           <div class="audio-meter-wrap"><div class="audio-meter" aria-hidden="true"><span id="tuner-needle" class="audio-needle"></span></div><div id="tuner-cents" class="audio-cents">等待開始收音</div></div>
@@ -546,7 +546,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261112-011-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261112-012-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -1437,7 +1437,8 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       $('metro-status').textContent = ''; metroUI(); schedule(); metroTimer = setInterval(schedule, 25);
     } catch (error) { stopMetro('無法播放：' + error.message); }
   }
-  $('metro-bpm').onchange = () => { $('metro-bpm').value = bpm(); metroUI(); };
+  $('metro-bpm').onchange = () => { $('metro-bpm').value = bpm(); $('metro-slider').value=bpm(); metroUI(); };
+  $('metro-slider').oninput=()=>{$('metro-bpm').value=$('metro-slider').value;metroUI();};
   $('metro-beats').onchange = () => {
     beat=0; const selected=Number($('metro-accent').value),count=Number($('metro-beats').value);
     $('metro-accent').replaceChildren(...Array.from({length:count+1},(_,i)=>{const o=document.createElement('option');o.value=i;o.textContent=i?'第 '+i+' 拍':'無';return o;}));
@@ -1502,8 +1503,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   $('tuner-preferences').addEventListener('keydown',e=>{if(e.key==='Escape'){tunerSettings(false);$('tuner-settings').focus();}});
   document.addEventListener('pointerdown',e=>{if(!$('tuner-preferences').hidden&&!$('tuner-preferences').contains(e.target)&&!$('tuner-settings').contains(e.target))tunerSettings(false);});
   $('metronome-open').onclick=startMetro;
-  $('metro-settings').onclick=()=>{showPanel('metronome',$('metronome-panel').hidden);if(!$('metronome-panel').hidden)$('metro-bpm').focus();};
-  $('metro-settings-close').onclick=()=>{showPanel('metronome',false);$('metro-settings').focus();};
+  $('metro-settings').onclick=()=>{showPanel('metronome',$('metronome-panel').hidden);};
   document.addEventListener('pointerdown',e=>{if(!$('metronome-panel').hidden&&!$('metronome-panel').contains(e.target)&&!$('metro-settings').contains(e.target))showPanel('metronome',false);});
   $('tuner-open').onclick=()=>{
     if(!$('tuner-panel').hidden){closeTool('tuner');return;}
