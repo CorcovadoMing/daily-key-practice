@@ -1,0 +1,8 @@
+const test=require('node:test'), assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const html=fs.readFileSync('index.html','utf8'); const code=html.split('// AUDIO_TOOLS_START')[1].split('// AUDIO_TOOLS_END')[0];
+const sandbox={module:{exports:{}},Float32Array,Float64Array,Math,Number};vm.runInNewContext(code,sandbox);const {detectPitch,pitchReading,PitchWindow}=sandbox.module.exports;
+for(const rate of [44100,48000])for(const frequency of [65.406,98,146.832,220,440,880])test(`pitch ${frequency} at ${rate}`,()=>{const x=Float32Array.from({length:8192},(_,i)=>0.2*Math.sin(2*Math.PI*frequency*i/rate)+0.12*Math.sin(4*Math.PI*frequency*i/rate));const got=detectPitch(x,rate);assert.ok(got);assert.ok(Math.abs(1200*Math.log2(got/frequency))<5,`${got}`);});
+test('silence and low amplitude return null',()=>{assert.equal(detectPitch(new Float32Array(8192),48000),null);assert.equal(detectPitch(Float32Array.from({length:8192},(_,i)=>.001*Math.sin(i)),48000),null);});
+test('note, reference and cents',()=>{assert.equal(pitchReading(440).name,'A4');assert.equal(pitchReading(442,442).cents,0);assert.ok(Math.abs(pitchReading(440*2**(20/1200)).cents-20)<1e-8)});
+test('window averages jitter without blurring new note',()=>{const s=new PitchWindow();s.push(440*2**(-10/1200));assert.ok(Math.abs(s.push(440*2**(10/1200))-440)<.001);assert.ok(Math.abs(s.push(220)-220)<1e-8);s.reset();assert.ok(Math.abs(s.push(440)-440)<1e-8)});
+test('roadmap removed and tools isolated to experiment html',()=>{assert.ok(!html.includes('<section class="experiment-roadmap"'));assert.ok(html.includes('id="tuner-panel"'));});
