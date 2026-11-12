@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261112-003-experimental">
+  <meta name="site-version" content="20261112-004-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -376,32 +376,23 @@
 
     /* Experiments-only practice tools: modeless and local to this device. */
     body{padding-bottom:85px}
-    .audio-tools{position:fixed;bottom:max(16px,env(safe-area-inset-bottom));left:20px;z-index:40;font-size:14px;color:#263e2e;max-width:calc(100vw - 32px)}
-    .audio-dock{display:flex;gap:8px;padding:8px;background:#fff;border:1px solid #ccd8c9;border-radius:16px;box-shadow:0 5px 25px #243a2520;align-items:center;flex-wrap:wrap}
-    .audio-tools button,.audio-tools input,.audio-tools select{font:inherit;min-height:44px;border:1px solid #c4d3c2;border-radius:10px;background:#fff;color:inherit;padding:8px 12px}
-    .audio-tools button{cursor:pointer;font-weight:700}.audio-tools button[aria-expanded=true],.audio-tools .audio-primary{background:#315b3b;color:white}
-    .audio-tools button:focus-visible,.audio-tools input:focus-visible,.audio-tools select:focus-visible{outline:3px solid #4c81b3;outline-offset:2px}
-    .cello-scale-score{max-width:100%;overflow-x:auto;margin:8px 0 16px;border:1px solid #dce5d9;border-radius:10px;background:#fffffc}.cello-scale-score svg{display:block;max-width:none}.cello-scale-score:focus-visible{outline:2px solid #527049}
-    .audio-panel{width:310px;max-width:calc(100vw - 32px);box-sizing:border-box;background:#fffffc;border:1px solid #c4d3c2;border-radius:18px;padding:18px;margin-bottom:10px;box-shadow:0 10px 36px #243a2525;max-height:65dvh;overflow:auto}
-    .audio-panel[hidden],.audio-tools [hidden]{display:none!important}.audio-panel h2{font-size:18px;margin:0}.audio-heading,.audio-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.audio-heading button{font-size:12px}
-    .audio-panel label{display:block;margin:12px 0 6px}.audio-panel input[type=number]{width:90px}.audio-panel input[type=range]{width:100%;box-sizing:border-box;padding:0}
-    .audio-panel p{font-size:12px;color:#647461;line-height:1.7;margin:10px 0}.audio-note{text-align:center;font-size:48px;font-weight:800;font-variant-numeric:tabular-nums}.audio-cents{text-align:center;min-height:24px;font-variant-numeric:tabular-nums}
-    .audio-meter{height:28px;position:relative;background:linear-gradient(90deg,#e9ebdd 0%,#d6e6ce 45%,#d6e6ce 55%,#e9ebdd 100%);border-radius:8px;margin:12px 0}.audio-meter:before{content:'';position:absolute;left:50%;height:100%;border-left:2px solid #527049}.audio-needle{position:absolute;left:50%;height:28px;width:3px;background:#234c36;transform:translateX(-50%)}
-    .audio-mini{font-size:12px;font-weight:700}.audio-error{color:#9b3939!important}.audio-pulse{display:inline-block;width:12px;height:12px;background:#8a9f88;border-radius:50%;margin-right:6px}.audio-pulse.beat{background:#2d6339;transform:scale(1.25)}
-    #tuner-panel{padding:12px}
-    #tuner-panel .audio-note{font-size:40px;line-height:1.15}
-    #tuner-panel .audio-cents{font-size:13px;min-height:20px;line-height:20px}
-    #tuner-panel .audio-meter{height:18px;margin:6px 0 2px}
-    #tuner-panel .audio-needle{height:18px}
-    #tuner-panel .audio-row{margin-bottom:0}
-    #tuner-panel .tuner-reference{display:flex;align-items:center;justify-content:center;gap:10px;margin:4px 0}
-    #tuner-panel .tuner-reference label{margin:0;font-size:12px}
-    #tuner-panel .tuner-reference input{min-height:44px;height:44px;box-sizing:border-box;padding:6px 10px}
-    #tuner-panel .tuner-actions{gap:6px}
-    #tuner-panel .tuner-actions button:last-child{min-width:44px;font-size:20px}
-    #tuner-status:empty{display:none}
-    #tuner-panel #tuner-status{margin:4px 0 0;line-height:1.4}
-    @media(max-width:600px){.audio-tools{left:12px;right:12px;max-width:none;bottom:max(8px,env(safe-area-inset-bottom))}.audio-panel{width:100%;max-width:none}.audio-dock{justify-content:center}.audio-tools button{padding:8px 10px}.toast{bottom:100px}}
+    .cello-scale-score{max-width:100%;overflow-x:auto;margin:8px 0 16px;border:1px solid #dce5d9;border-radius:10px;background:#fffffc}.cello-scale-score svg{display:block;max-width:none}
+    .audio-tools{display:flex;align-items:center;gap:8px;min-width:0;max-width:100%;margin:0 0 20px;padding:8px;border:1px solid #ccd8c9;border-radius:12px;background:#fffffc;color:#263e2e;font-size:14px;box-sizing:border-box}
+    .audio-buttons{display:flex;gap:6px;flex-shrink:0}
+    .audio-tools button,.audio-tools input,.audio-tools select{font:inherit;min-height:44px;box-sizing:border-box;border:1px solid #c4d3c2;border-radius:8px;background:#fff;color:inherit;padding:8px}
+    .audio-tools button{cursor:pointer;font-weight:700;white-space:nowrap}.audio-tools button[aria-pressed=true]{background:#315b3b;color:#fff}
+    .audio-tools :focus-visible,.cello-scale-score:focus-visible{outline:3px solid #4c81b3;outline-offset:-3px}
+    .audio-controls{min-width:0;flex:1;overflow-x:auto;overscroll-behavior-x:contain}
+    .audio-panel{display:flex;align-items:center;gap:10px;width:max-content;min-height:52px;padding:2px}
+    .audio-tools [hidden]{display:none!important}
+    .audio-panel label{white-space:nowrap;font-size:12px}.audio-panel input[type=number]{width:72px}.audio-panel input[type=range]{width:100px;padding:0}
+    .audio-note{font-size:26px;font-weight:800;min-width:46px;text-align:center;font-variant-numeric:tabular-nums}
+    .audio-cents{font-size:12px;min-height:16px;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .audio-meter-wrap{width:185px;flex-shrink:0}.audio-meter{height:16px;position:relative;background:linear-gradient(90deg,#e9ebdd,#d6e6ce 45%,#d6e6ce 55%,#e9ebdd);border-radius:6px;margin:3px 0}
+    .audio-meter:before{content:'';position:absolute;left:50%;height:100%;border-left:2px solid #527049}.audio-needle{position:absolute;left:50%;height:16px;width:3px;background:#234c36;transform:translateX(-50%)}
+    .audio-status{font-size:12px;margin:0;max-width:200px}.audio-status:empty{display:none}.audio-error{color:#9b3939!important}
+    #metro-beat{min-width:36px;font-variant-numeric:tabular-nums}
+    @media(max-width:600px){.audio-tools{gap:6px;padding:6px}.audio-buttons{gap:4px}.audio-tools button{font-size:13px;padding:8px 6px}}
   </style>
 </head>
 <body>
@@ -414,6 +405,22 @@
       </div>
       <div class="date-label">TODAY <strong id="today-label">—</strong></div>
     </section>
+
+    <aside class="audio-tools" aria-label="練習工具">
+      <div class="audio-buttons"><button id="tuner-open" aria-pressed="false" aria-expanded="false" aria-controls="tuner-panel" aria-label="啟用調音器並開始收音">調音器</button><button id="metronome-open" aria-pressed="false" aria-expanded="false" aria-controls="metronome-panel" aria-label="啟用節拍器並開始打拍">節拍器</button></div>
+      <div class="audio-controls" tabindex="0" aria-label="工具控制列，可左右捲動">
+        <section id="tuner-panel" class="audio-panel" aria-label="調音器控制" hidden>
+          <div class="audio-meter-wrap"><div class="audio-meter" aria-hidden="true"><span id="tuner-needle" class="audio-needle"></span></div><div id="tuner-cents" class="audio-cents">等待開始收音</div></div>
+          <span id="tuner-note" class="audio-note">—</span><p id="tuner-status" class="audio-status" role="status"></p><label for="tuner-a">A4 · Hz</label><input id="tuner-a" type="number" min="430" max="450" value="442" step="1" inputmode="numeric">
+        </section>
+        <section id="metronome-panel" class="audio-panel" aria-label="節拍器控制" hidden>
+          <label for="metro-bpm">BPM</label><input id="metro-bpm" type="number" min="30" max="240" value="80" inputmode="numeric">
+          <label for="metro-beats">每小節</label><select id="metro-beats"><option value="1">1 拍</option><option value="2">2 拍</option><option value="3">3 拍</option><option value="4" selected>4 拍</option><option value="6">6 拍</option></select>
+          <label for="metro-accent">重拍</label><select id="metro-accent"><option value="0">無</option><option value="1" selected>第 1 拍</option><option value="2">第 2 拍</option><option value="3">第 3 拍</option><option value="4">第 4 拍</option></select><span id="metro-beat" aria-hidden="true">●</span>
+          <input id="metro-volume" type="hidden" value="40"><p id="metro-status" class="audio-status" role="status"></p>
+        </section>
+      </div>
+    </aside>
 
     <div class="workspace">
       <div class="setup-stack">
@@ -526,7 +533,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261112-003-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261112-004-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -550,26 +557,7 @@
   </dialog>
 
 
-  <aside class="audio-tools" aria-label="練習工具（本機實驗版）">
-    <section id="metronome-panel" class="audio-panel" aria-labelledby="metronome-heading" hidden>
-      <div class="audio-heading"><h2 id="metronome-heading">節拍器</h2><button data-collapse="metronome">收合</button></div>
-      <label for="metro-bpm">速度 BPM</label><div class="audio-row"><input id="metro-bpm" type="number" min="30" max="240" value="80" inputmode="numeric"><span id="metro-beat" aria-hidden="true">●</span></div>
-      <input id="metro-slider" aria-label="節拍器速度" type="range" min="30" max="240" value="80">
-      <label for="metro-beats">每小節拍數</label><select id="metro-beats"><option value="1">1 拍（無重音）</option><option value="2">2 拍</option><option value="3">3 拍</option><option value="4" selected>4 拍</option><option value="6">6 拍</option></select>
-      <label for="metro-volume">音量</label><input id="metro-volume" type="range" min="0" max="100" value="40">
-      <div class="audio-row"><button id="metro-toggle" class="audio-primary">開始打拍</button><button id="metro-close">關閉並停止</button></div>
-      <p id="metro-status" role="status">收合仍會打拍；切到其他分頁或鎖屏會停止。</p>
-    </section>
-    <section id="tuner-panel" class="audio-panel" aria-label="調音器" hidden>
-      <div id="tuner-note" class="audio-note">—</div><div id="tuner-cents" class="audio-cents">等待開始收音</div>
-      <div class="audio-meter" aria-hidden="true"><span class="audio-needle" id="tuner-needle"></span></div>
-      <div class="audio-row"><small>偏低 ♭</small><small>準</small><small>偏高 ♯</small></div>
-      <div class="tuner-reference"><label for="tuner-a">A4 · Hz</label><input id="tuner-a" type="number" min="430" max="450" value="440" step="1" inputmode="numeric"></div>
-      <div class="audio-row tuner-actions"><button id="tuner-toggle" class="audio-primary">開始收音</button><button id="tuner-close">關閉並停止</button><button data-collapse="tuner" aria-label="收合調音器" title="收合調音器">⌄</button></div>
-      <p id="tuner-status" role="status"></p>
-    </section>
-    <div class="audio-dock"><button id="metronome-open" aria-expanded="false" aria-controls="metronome-panel">♩ 節拍器</button><button id="tuner-open" aria-expanded="false" aria-controls="tuner-panel">♮ 調音器</button><span id="metro-mini" class="audio-mini" hidden></span><button id="metro-stop" hidden>停止打拍</button><span id="tuner-mini" class="audio-mini" hidden>● 麥克風使用中</span><button id="tuner-stop" hidden>停止收音</button></div>
-  </aside>
+
   <script src="fingering-presets.js?v=20261106-012"></script>
   <script src="fingerboard.js?v=20261112-003"></script>
   <script>
@@ -1373,27 +1361,17 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   }
   if (typeof module !== 'undefined' && module.exports) { module.exports = { detectPitch, pitchReading, PitchWindow }; return; }
   const $ = id => document.getElementById(id);
-  function showPanel(name, visible, returnFocus = false) {
-    $(name + '-panel').hidden = !visible;
-    $(name + '-open').setAttribute('aria-expanded', String(visible));
-    if (visible) {
-      const other = name === 'tuner' ? 'metronome' : 'tuner';
-      $(other + '-panel').hidden = true; $(other + '-open').setAttribute('aria-expanded', 'false');
-    } else if (returnFocus) $(name + '-open').focus();
+  function showPanel(name, visible) {
+    $(name+'-panel').hidden=!visible;
+    $(name+'-open').setAttribute('aria-expanded',String(visible));
   }
-  ['tuner', 'metronome'].forEach(name => {
-    $(name + '-open').onclick = () => showPanel(name, $(name + '-panel').hidden);
-    document.querySelector('[data-collapse="' + name + '"]').onclick = () => showPanel(name, false, true);
-    $(name + '-panel').addEventListener('keydown', e => { if (e.key === 'Escape') { showPanel(name, false, true); e.stopPropagation(); } });
-  });
   const Context = window.AudioContext || window.webkitAudioContext;
   let metroContext, metroTimer, metroRunning = false, nextBeat = 0, beat = 0, metroGeneration = 0;
   const oscillators = new Set(), visuals = new Set();
   const bpm = () => Math.max(30, Math.min(240, Number($('metro-bpm').value) || 80));
   function metroUI() {
-    $('metro-toggle').textContent = metroRunning ? '停止打拍' : '開始打拍';
-    $('metro-mini').hidden = $('metro-stop').hidden = !metroRunning;
-    $('metro-mini').textContent = '♩ ' + bpm() + ' BPM';
+    $('metronome-open').setAttribute('aria-pressed',String(metroRunning));
+    $('metronome-open').setAttribute('aria-label',metroRunning?'停止節拍器並收起':'啟用節拍器並開始打拍');
   }
   function stopMetro(message = '已停止打拍') {
     metroGeneration++; metroRunning = false; clearInterval(metroTimer);
@@ -1407,7 +1385,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     // Never emit a burst of missed beats after a blocked/backgrounded tab.
     if (nextBeat < metroContext.currentTime - 0.03) { nextBeat = metroContext.currentTime + 0.03; beat = 0; }
     while (nextBeat < metroContext.currentTime + 0.12) {
-      const count = Number($('metro-beats').value), accent = beat === 0;
+      const count = Number($('metro-beats').value), accent = beat + 1 === Number($('metro-accent').value);
       const o = metroContext.createOscillator(), gain = metroContext.createGain();
       o.frequency.value = accent ? 1200 : 850;
       gain.gain.setValueAtTime(0, nextBeat);
@@ -1430,20 +1408,23 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       if (generation !== metroGeneration) return;
       if (metroContext.state !== 'running') throw new Error('請點擊開始以啟用聲音');
       metroRunning = true; beat = 0; nextBeat = metroContext.currentTime + 0.05;
-      $('metro-status').textContent = '打拍中；收合不會停止。離開頁面會自動停止。'; metroUI(); schedule(); metroTimer = setInterval(schedule, 25);
+      $('metro-status').textContent = '打拍中'; metroUI(); schedule(); metroTimer = setInterval(schedule, 25);
     } catch (error) { stopMetro('無法播放：' + error.message); }
   }
-  $('metro-toggle').onclick = startMetro; $('metro-stop').onclick = () => stopMetro();
-  $('metro-close').onclick = () => { stopMetro(); showPanel('metronome', false, true); };
-  $('metro-bpm').onchange = () => { $('metro-bpm').value = bpm(); $('metro-slider').value = bpm(); metroUI(); };
-  $('metro-slider').oninput = () => { $('metro-bpm').value = $('metro-slider').value; metroUI(); };
-  $('metro-beats').onchange = () => { beat = 0; };
+  $('metro-bpm').onchange = () => { $('metro-bpm').value = bpm(); metroUI(); };
+  $('metro-beats').onchange = () => {
+    beat=0; const selected=Number($('metro-accent').value),count=Number($('metro-beats').value);
+    $('metro-accent').replaceChildren(...Array.from({length:count+1},(_,i)=>{const o=document.createElement('option');o.value=i;o.textContent=i?'第 '+i+' 拍':'無';return o;}));
+    $('metro-accent').value=selected<=count?selected:1;
+  };
+  $('metro-accent').onchange=()=>{beat=0;};
   let tunerContext, stream, analyser, source, tunerTimer, tunerRunning = false, pending = false, tunerGeneration = 0;
   const smooth = new PitchWindow(); let lastSignal = 0;
   function tunerUI() {
-    $('tuner-toggle').textContent = pending ? '取消等待' : tunerRunning ? '停止收音' : '開始收音';
-    $('tuner-mini').hidden = $('tuner-stop').hidden = !(pending || tunerRunning);
-    $('tuner-mini').textContent = pending ? '等待麥克風授權' : '● 麥克風使用中';
+    $('tuner-open').textContent=pending?'等待收音':tunerRunning?'● 調音器':'調音器';
+    $('tuner-open').setAttribute('aria-pressed',String(pending||tunerRunning));
+    $('tuner-open').setAttribute('aria-label',pending?'取消麥克風授權等待並收起':tunerRunning?'停止收音並收起':'啟用調音器並開始收音');
+    if(pending)$('tuner-status').textContent='等待麥克風授權';
   }
   function stopTuner(message = '麥克風已關閉') {
     tunerGeneration++; pending = tunerRunning = false; clearInterval(tunerTimer);
@@ -1473,7 +1454,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         if (!frequency) {
           if (performance.now() - lastSignal > 500) { smooth.reset(); $('tuner-note').textContent = '—'; $('tuner-cents').textContent = '請拉一個穩定的單音'; $('tuner-needle').style.left = '50%'; } return;
         }
-        lastSignal = performance.now(); const reference = Math.max(430, Math.min(450, Number($('tuner-a').value) || 440));
+        lastSignal = performance.now(); const reference = Math.max(430, Math.min(450, Number($('tuner-a').value) || 442));
         const reading = pitchReading(smooth.push(frequency), reference), cents = Math.round(reading.cents);
         $('tuner-note').textContent = reading.name;
         $('tuner-cents').textContent = (Math.abs(cents) <= 3 ? '準' : cents < 0 ? '偏低' : '偏高') + ' · ' + (cents > 0 ? '+' : '') + cents + ' cents · ' + reading.frequency.toFixed(1) + ' Hz';
@@ -1485,10 +1466,21 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       stopTuner(message);
     }
   }
-  $('tuner-toggle').onclick = startTuner; $('tuner-stop').onclick = () => stopTuner();
-  $('tuner-close').onclick = () => { stopTuner(); showPanel('tuner', false, true); };
-  $('tuner-a').onchange = () => { $('tuner-a').value = Math.max(430, Math.min(450, Number($('tuner-a').value) || 440)); smooth.reset(); };
-  document.addEventListener('visibilitychange', () => { if (document.hidden) { if (pending || tunerRunning) stopTuner('離開頁面已停止收音；回來後可重新開始。'); if (metroRunning) stopMetro('離開頁面已停止打拍；回來後可重新開始。'); } });
+  $('tuner-a').onchange = () => { $('tuner-a').value = Math.max(430, Math.min(450, Number($('tuner-a').value) || 442)); smooth.reset(); };
+  function closeTool(name){
+    if(name==='tuner')stopTuner();else stopMetro();
+    showPanel(name,false);
+  }
+  ['tuner','metronome'].forEach(name=>{
+    $(name+'-open').onclick=()=>{
+      if(!$(name+'-panel').hidden){closeTool(name);return;}
+      closeTool(name==='tuner'?'metronome':'tuner');
+      showPanel(name,true);$('tuner-panel').parentElement.scrollLeft=0;
+      if(name==='tuner')startTuner();else startMetro();
+    };
+    $(name+'-panel').addEventListener('keydown',e=>{if(e.key==='Escape'){closeTool(name);$(name+'-open').focus();}});
+  });
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){closeTool('tuner');closeTool('metronome');}});
   window.addEventListener('pagehide', () => { stopTuner(); stopMetro(); });
 })();
 // AUDIO_TOOLS_END
