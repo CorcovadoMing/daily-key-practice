@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261112-007-experimental">
+  <meta name="site-version" content="20261112-008-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -377,7 +377,7 @@
     /* Experiments-only practice tools: modeless and local to this device. */
     body{padding-bottom:85px}
     .cello-scale-score{max-width:100%;overflow-x:auto;margin:8px 0 16px;border:1px solid #dce5d9;border-radius:10px;background:#fffffc}.cello-scale-score svg{display:block;max-width:none}
-    .audio-tools{position:fixed;z-index:50;left:12px;right:12px;bottom:max(8px,env(safe-area-inset-bottom));display:flex;align-items:center;gap:8px;min-width:0;max-width:100%;margin:0;padding:8px;border:1px solid #ccd8c9;border-radius:12px;background:#fffffc;color:#263e2e;font-size:14px;box-sizing:border-box}
+    .audio-tools{position:fixed;z-index:50;left:12px;right:auto;width:var(--tools-width,196px);max-width:calc(100vw - 24px);transition:width .28s cubic-bezier(.22,.8,.3,1);bottom:max(8px,env(safe-area-inset-bottom));display:flex;align-items:center;gap:8px;min-width:0;margin:0;padding:8px;border:1px solid #ccd8c9;border-radius:22px;background:#fffffc;color:#263e2e;font-size:14px;box-sizing:border-box}
     body{padding-bottom:calc(100px + env(safe-area-inset-bottom))}html{scroll-padding-bottom:110px}.toast{bottom:110px}.practice-float{bottom:100px}
     .tuner-preferences{position:absolute;bottom:calc(100% + 8px);left:0;display:flex;align-items:center;gap:12px;padding:12px;background:#fffffc;border:1px solid #ccd8c9;border-radius:12px;box-shadow:0 4px 24px #243a2520;max-width:calc(100vw - 48px)}
     #tuner-settings{border-left:0;margin-left:-6px;border-radius:0 8px 8px 0}#tuner-open{border-radius:8px 0 0 8px}
@@ -391,7 +391,7 @@
     .audio-tools button{cursor:pointer;font-weight:700;white-space:nowrap}.audio-tools button[aria-pressed=true]{background:#315b3b;color:#fff}
     .audio-tools :focus-visible,.cello-scale-score:focus-visible{outline:3px solid #4c81b3;outline-offset:-3px}
     .audio-controls{display:flex;gap:14px;min-width:0;flex:1;overflow-x:auto;overscroll-behavior-x:contain}
-    .audio-panel{display:flex;align-items:center;gap:10px;width:max-content;min-height:52px;padding:2px}
+    .audio-panel{flex-shrink:0;display:flex;align-items:center;gap:10px;width:max-content;min-height:52px;padding:2px}
     .audio-tools [hidden]{display:none!important}
     .audio-panel label{white-space:nowrap;font-size:12px}.audio-panel input[type=number]{width:72px}.audio-panel input[type=range]{width:100px;padding:0}
     .audio-note{font-size:26px;font-weight:800;min-width:46px;text-align:center;font-variant-numeric:tabular-nums}
@@ -400,6 +400,7 @@
     .audio-meter:before{content:'';position:absolute;left:50%;height:100%;border-left:2px solid #527049}.audio-needle{position:absolute;left:50%;height:16px;width:3px;background:#234c36;transform:translateX(-50%)}
     .audio-status{font-size:12px;margin:0;max-width:200px}.audio-status:empty{display:none}.audio-error{color:#9b3939!important}
     #metro-beat{min-width:36px;font-variant-numeric:tabular-nums}
+    @media(prefers-reduced-motion:reduce){.audio-tools{transition:none}}
     @media(max-width:600px){.audio-meter-wrap{width:106px}.audio-note{min-width:30px;font-size:22px}.audio-cents{font-size:10px;white-space:normal;line-height:13px}.audio-panel{gap:6px}.audio-tools{gap:6px;padding:6px}.audio-buttons{gap:4px}.audio-tools button{font-size:13px;padding:8px 6px}}
   </style>
 </head>
@@ -543,7 +544,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261112-007-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261112-008-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -1371,10 +1372,22 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   }
   if (typeof module !== 'undefined' && module.exports) { module.exports = { detectPitch, pitchReading, PitchWindow }; return; }
   const $ = id => document.getElementById(id);
+  function sizeTools(){
+    const tools=document.querySelector('.audio-tools'),controls=document.querySelector('.audio-controls');
+    const visible=[...controls.children].filter(e=>!e.hidden&&e.getBoundingClientRect().width>0&&!(e.matches('.audio-status')&&!e.textContent));
+    const controlWidth=visible.reduce((n,e)=>n+e.getBoundingClientRect().width,0)+Math.max(0,visible.length-1)*14;
+    const style=getComputedStyle(tools),padding=parseFloat(style.paddingLeft)+parseFloat(style.paddingRight)+2;
+    const target=document.querySelector('.audio-buttons').getBoundingClientRect().width+padding+(controlWidth?parseFloat(style.gap)+controlWidth:0);
+    tools.style.setProperty('--tools-width',Math.ceil(Math.min(innerWidth-24,target))+'px');
+  }
+  const toolResize=new ResizeObserver(()=>requestAnimationFrame(sizeTools));
+  document.querySelectorAll('.audio-panel,.audio-status,.audio-buttons').forEach(e=>toolResize.observe(e));
+  window.addEventListener('resize',sizeTools);requestAnimationFrame(sizeTools);
   function showPanel(name, visible) {
     $(name+'-panel').hidden=!visible;
     $(name==='metronome'?'metro-settings':name+'-open').setAttribute('aria-expanded',String(visible));
     if(name==='metronome')$('metro-settings').setAttribute('aria-label',visible?'收起節拍器設定':'展開節拍器設定');
+    requestAnimationFrame(sizeTools);
   }
   const Context = window.AudioContext || window.webkitAudioContext;
   let metroContext, metroTimer, metroRunning = false, metroPending = false, nextBeat = 0, beat = 0, metroGeneration = 0;
