@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261112-004-experimental">
+  <meta name="site-version" content="20261112-005-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -377,12 +377,13 @@
     /* Experiments-only practice tools: modeless and local to this device. */
     body{padding-bottom:85px}
     .cello-scale-score{max-width:100%;overflow-x:auto;margin:8px 0 16px;border:1px solid #dce5d9;border-radius:10px;background:#fffffc}.cello-scale-score svg{display:block;max-width:none}
-    .audio-tools{display:flex;align-items:center;gap:8px;min-width:0;max-width:100%;margin:0 0 20px;padding:8px;border:1px solid #ccd8c9;border-radius:12px;background:#fffffc;color:#263e2e;font-size:14px;box-sizing:border-box}
+    .audio-tools{position:fixed;z-index:50;left:12px;right:12px;bottom:max(8px,env(safe-area-inset-bottom));display:flex;align-items:center;gap:8px;min-width:0;max-width:100%;margin:0;padding:8px;border:1px solid #ccd8c9;border-radius:12px;background:#fffffc;color:#263e2e;font-size:14px;box-sizing:border-box}
+    body{padding-bottom:calc(100px + env(safe-area-inset-bottom))}html{scroll-padding-bottom:110px}.toast{bottom:110px}.practice-float{bottom:100px}
     .audio-buttons{display:flex;gap:6px;flex-shrink:0}
     .audio-tools button,.audio-tools input,.audio-tools select{font:inherit;min-height:44px;box-sizing:border-box;border:1px solid #c4d3c2;border-radius:8px;background:#fff;color:inherit;padding:8px}
     .audio-tools button{cursor:pointer;font-weight:700;white-space:nowrap}.audio-tools button[aria-pressed=true]{background:#315b3b;color:#fff}
     .audio-tools :focus-visible,.cello-scale-score:focus-visible{outline:3px solid #4c81b3;outline-offset:-3px}
-    .audio-controls{min-width:0;flex:1;overflow-x:auto;overscroll-behavior-x:contain}
+    .audio-controls{display:flex;gap:14px;min-width:0;flex:1;overflow-x:auto;overscroll-behavior-x:contain}
     .audio-panel{display:flex;align-items:center;gap:10px;width:max-content;min-height:52px;padding:2px}
     .audio-tools [hidden]{display:none!important}
     .audio-panel label{white-space:nowrap;font-size:12px}.audio-panel input[type=number]{width:72px}.audio-panel input[type=range]{width:100px;padding:0}
@@ -533,7 +534,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261112-004-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261112-005-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -1359,12 +1360,30 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       return 2 ** (this.values.reduce((a, b) => a + b, 0) / this.values.length);
     }
   }
-  if (typeof module !== 'undefined' && module.exports) { module.exports = { detectPitch, pitchReading, PitchWindow }; return; }
+  class BeatGate {
+    constructor(){this.beats=[];}
+    add(time){this.beats.push(time);}
+    reset(){this.beats=[];}
+    blocked(now,windowMs,inputDelayMs=30){
+      this.beats=this.beats.filter(t=>t>now-2000);
+      const end=now-inputDelayMs,start=end-windowMs;
+      // Estimated output time, 20ms leading margin, 50ms click + 80ms decay.
+      return this.beats.some(t=>start<=t+130&&end>=t-20);
+    }
+  }
+  function outputTime(context,time,now){
+    const stamp=context.getOutputTimestamp?.();
+    if(stamp&&stamp.performanceTime>0&&Number.isFinite(stamp.contextTime))
+      return stamp.performanceTime+(time-stamp.contextTime)*1000;
+    return now+(time-context.currentTime+(context.baseLatency||0)+(context.outputLatency||0))*1000;
+  }
+  if (typeof module !== 'undefined' && module.exports) { module.exports = { detectPitch, pitchReading, PitchWindow, BeatGate, outputTime }; return; }
   const $ = id => document.getElementById(id);
   function showPanel(name, visible) {
     $(name+'-panel').hidden=!visible;
     $(name+'-open').setAttribute('aria-expanded',String(visible));
   }
+  const beatGate=new BeatGate();
   const Context = window.AudioContext || window.webkitAudioContext;
   let metroContext, metroTimer, metroRunning = false, nextBeat = 0, beat = 0, metroGeneration = 0;
   const oscillators = new Set(), visuals = new Set();
@@ -1393,6 +1412,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       gain.gain.exponentialRampToValueAtTime(0.001, nextBeat + 0.045);
       o.connect(gain); gain.connect(metroContext.destination); oscillators.add(o);
       o.onended = () => { oscillators.delete(o); o.disconnect(); gain.disconnect(); };
+      beatGate.add(outputTime(metroContext,nextBeat,performance.now()));
       o.start(nextBeat); o.stop(nextBeat + 0.05);
       const label = (beat + 1) + ' / ' + count;
       const timer = setTimeout(() => { visuals.delete(timer); if (metroRunning) $('metro-beat').textContent = label; }, Math.max(0, (nextBeat - metroContext.currentTime) * 1000));
@@ -1431,7 +1451,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     if (stream) stream.getTracks().forEach(t => t.stop()); stream = null;
     if (source) source.disconnect(); source = null;
     if (tunerContext) { tunerContext.close().catch(() => {}); tunerContext = null; }
-    smooth.reset(); $('tuner-note').textContent = '—'; $('tuner-cents').textContent = '未收音'; $('tuner-needle').style.left = '50%';
+    smooth.reset(); $('tuner-needle').style.visibility='visible'; $('tuner-note').textContent = '—'; $('tuner-cents').textContent = '未收音'; $('tuner-needle').style.left = '50%';
     $('tuner-status').textContent = message; tunerUI();
   }
   async function startTuner() {
@@ -1444,22 +1464,29 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       if (generation !== tunerGeneration) return;
       requestedStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, video: false });
       if (generation !== tunerGeneration) { requestedStream.getTracks().forEach(t => t.stop()); return; }
-      stream = requestedStream; source = context.createMediaStreamSource(stream); analyser = context.createAnalyser(); analyser.fftSize = 8192; source.connect(analyser);
+      stream = requestedStream; source = context.createMediaStreamSource(stream); analyser = context.createAnalyser(); analyser.fftSize = 4096; source.connect(analyser);
+      const reportedLatency=stream.getAudioTracks()[0]?.getSettings?.().latency;
+      const inputDelayMs=Number.isFinite(reportedLatency)&&reportedLatency>=0?reportedLatency*1000:30;
       const samples = new Float32Array(analyser.fftSize); smooth.reset(); lastSignal = performance.now();
       pending = false; tunerRunning = true; tunerUI(); $('tuner-status').textContent = '● 收音中';
       stream.getAudioTracks().forEach(track => track.onended = () => { if (generation === tunerGeneration) stopTuner('麥克風已中斷，請重新開始。'); });
       tunerTimer = setInterval(() => {
         if (context.state !== 'running') { stopTuner('收音已暫停，請重新開始。'); return; }
+        const now=performance.now();
+        if(beatGate.blocked(now,samples.length/context.sampleRate*1000,inputDelayMs)){
+          smooth.reset();$('tuner-note').textContent='—';$('tuner-cents').textContent='避開拍點 · 等待乾淨訊號';$('tuner-needle').style.visibility='hidden';return;
+        }
+        $('tuner-needle').style.visibility='visible';
         analyser.getFloatTimeDomainData(samples); const frequency = detectPitch(samples, context.sampleRate);
         if (!frequency) {
-          if (performance.now() - lastSignal > 500) { smooth.reset(); $('tuner-note').textContent = '—'; $('tuner-cents').textContent = '請拉一個穩定的單音'; $('tuner-needle').style.left = '50%'; } return;
+          if (performance.now() - lastSignal > 500) { smooth.reset(); $('tuner-needle').style.visibility='visible'; $('tuner-note').textContent = '—'; $('tuner-cents').textContent = '請拉一個穩定的單音'; $('tuner-needle').style.left = '50%'; } return;
         }
         lastSignal = performance.now(); const reference = Math.max(430, Math.min(450, Number($('tuner-a').value) || 442));
         const reading = pitchReading(smooth.push(frequency), reference), cents = Math.round(reading.cents);
         $('tuner-note').textContent = reading.name;
         $('tuner-cents').textContent = (Math.abs(cents) <= 3 ? '準' : cents < 0 ? '偏低' : '偏高') + ' · ' + (cents > 0 ? '+' : '') + cents + ' cents · ' + reading.frequency.toFixed(1) + ' Hz';
         $('tuner-needle').style.left = (50 + Math.max(-50, Math.min(50, cents))) + '%';
-      }, 80);
+      }, 40);
     } catch (error) {
       if (generation !== tunerGeneration) { if (requestedStream) requestedStream.getTracks().forEach(t => t.stop()); return; }
       const message = error.name === 'NotAllowedError' ? '未取得麥克風權限。請在瀏覽器允許後再開始。' : error.name === 'NotFoundError' ? '找不到麥克風，請檢查裝置。' : '無法收音：' + error.message;
@@ -1474,8 +1501,8 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   ['tuner','metronome'].forEach(name=>{
     $(name+'-open').onclick=()=>{
       if(!$(name+'-panel').hidden){closeTool(name);return;}
-      closeTool(name==='tuner'?'metronome':'tuner');
-      showPanel(name,true);$('tuner-panel').parentElement.scrollLeft=0;
+      showPanel(name,true);
+      $(name+'-panel').scrollIntoView({block:'nearest',inline:'nearest'});
       if(name==='tuner')startTuner();else startMetro();
     };
     $(name+'-panel').addEventListener('keydown',e=>{if(e.key==='Escape'){closeTool(name);$(name+'-open').focus();}});

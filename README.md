@@ -24,8 +24,8 @@
 ## 實驗版練習工具
 
 - 同列本機節拍器：30–240 BPM、1/2/3/4/6 拍及可選重拍位置（含無重拍）。使用 Web Audio 時鐘排程，再按啟用按鈕即停止收起；切換分頁／鎖屏自動停止。
-- 本機調音器：A4 預設 442 Hz，可調 430–450 Hz，音名、Hz、cents 及指針。YIN 式週期估測＋五次對數頻率短窗平均；這不是 Tonal Energy 演算法的複製或聲稱。開始才請求麥克風；關閉、停止、離頁與取消等待會釋放音軌，不錄音或上傳。工具不會同步到課堂；切換工具會停止前一工具，避免節拍聲干擾收音。
-- 頁面內同列工具控制，沒有浮動視窗；按鈕固定可見，手機控制列可橫向捲動，不撐寬整頁。頁首舊實驗待辦已移除，Capacities 任務不受影響。
+- Tuner: A4 defaults to 442 Hz (430-450 adjustable). Local microphone analysis, no recording/upload. Stops release tracks; cancellation also releases delayed grants. Both tools may run together. Beat avoidance clears old pitch readings while waiting for a clean analysis window.
+- Fixed floating bottom toolbar; controls expand inline, not in a popup. Buttons stay visible; only the control area scrolls horizontally on mobile. Bottom content padding preserves access to the footer.
 - 驗證：`node --test tests/*.test.cjs`；合成 C2–A5 音訊與瀏覽器模擬通過不等於實際大提琴／手機麥克風驗收。節拍聲、泛音、環境噪音與手機低音收音須實機試用。
 
 ## 網站
@@ -34,3 +34,5 @@
 - **實驗版 Experimental**：<https://corcovadoming.github.io/daily-key-practice/experimental/>
 
 實驗版音階譜：各調以低音譜號、兩八度上行接下行共 29 音單列顯示，手機可橫向捲動。逐音明示升降／還原，空心音符僅作音高練習圖示，不指定節奏。指板中央顯示既有確認指法或老師／學生自訂指號，0 為空弦、? 為尚未指定；同步與保存格式不變。
+
+Beat avoidance experiment: output timestamps (audio-clock + output latency fallback), reported input latency (30ms fallback), 20ms leading margin and 50ms click + 80ms decay. 4096-sample window and 40ms updates. Unknown device latency, Bluetooth and long room echoes can exceed this model. At high BPM clean windows may be too sparse: show waiting, not stale pitch. Tests cover mixed click/continuous tone at 30/80/240 BPM and 0/30/100/250ms modeled input latency. Real-device accuracy remains unverified.
