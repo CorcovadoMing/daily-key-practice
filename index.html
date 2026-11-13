@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261113-018-experimental">
+  <meta name="site-version" content="20261113-019-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -411,10 +411,12 @@
     .draw-button{background:#42533e}.draw-button:hover:not(:disabled){background:#52664c}
     .audio-tools,.tuner-preferences{background:var(--paper)}
     .intro .eyebrow{color:#697b5e}h1 em{color:#718067}
-    #metronome-open,#tuner-open{width:72px;min-width:72px}
+    #metronome-open,#tuner-open{width:60px;min-width:60px}
     #metro-settings,#tuner-settings{width:24px;min-width:24px;margin-left:0;padding:4px!important;font-size:13px;background:transparent;border-color:transparent}
     #metro-settings span,#tuner-settings span{display:block;line-height:1;font-size:13px}
     .audio-needle[data-band=green]{background:#295b33}.audio-needle[data-band=yellow]{background:#82641b}.audio-needle[data-band=red]{background:#a43a2a}
+    .audio-tools{padding-left:12px;padding-right:12px}
+    .audio-note{width:44px;min-width:44px;flex:0 0 44px;font-size:18px;white-space:nowrap;overflow:hidden}
     /* Quiet hierarchy: sections, not nested decorative cards. */
     .panel,.key-card{box-shadow:none}.key-card:hover{transform:none}
     .panel{border-radius:16px}.classroom-bar{background:#f1f4ef;border-radius:14px}
@@ -568,7 +570,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261113-018-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261113-019-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -594,7 +596,7 @@
 
 
   <script src="fingering-presets.js?v=20261106-012"></script>
-  <script src="fingerboard.js?v=20261113-018"></script>
+  <script src="fingerboard.js?v=20261113-019"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
