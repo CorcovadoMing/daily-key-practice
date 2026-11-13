@@ -371,47 +371,49 @@
   }
   function makeScore(mode,key){
     const sequence=[...scaleNotes(mode,key,'up',2),...scaleNotes(mode,key,'down',2).slice(1)];
-    const signature=key[1],startX=88+Math.abs(signature)*13,width=1220+Math.abs(signature)*13;
+    const signature=key[1],startX=82+Math.abs(signature)*11,width=940+Math.abs(signature)*11;
     const accidentals=scoreAccidentals(sequence,signature);
     const wrap=element('div',{class:'cello-scale-score',tabindex:'0','aria-label':'兩個八度上下行五線譜，可橫向捲動'});
     const svg=svgNode('svg',{viewBox:`0 0 ${width} 185`,width,height:185,role:'img','aria-label':key[0]+(mode==='major'?'大調':'旋律小調')+'，低音譜號，兩個八度上下行十六分音符'});
     svg.append(svgNode('title',{},'兩個八度上行與下行，調號與必要臨時記號；向右捲動查看全行'));
-    for(let i=0;i<5;i++)svg.append(svgNode('line',{x1:14,x2:width-15,y1:110-i*10,y2:110-i*10,stroke:'#81917f','stroke-width':1}));
+    for(let i=0;i<5;i++)svg.append(svgNode('line',{x1:14,x2:width-15,y1:110-i*10,y2:110-i*10,stroke:'#777','stroke-width':0.8}));
     // Bass-clef curve and dots anchor the F3 line, avoiding music-font dependency.
-    svg.append(svgNode('path',{d:'M 22 82 C 22 63 55 64 51 84 C 49 99 34 108 23 111 C 38 101 45 89 43 78 C 42 70 31 69 28 77',fill:'#34483a'}));
-    svg.append(svgNode('circle',{cx:26,cy:79,r:4,fill:'#34483a'}));
-    for(const y of [75,85])svg.append(svgNode('circle',{cx:57,cy:y,r:2,fill:'#34483a'}));
+    svg.append(svgNode('path',{d:'M 22 82 C 22 63 55 64 51 84 C 49 99 34 108 23 111 C 38 101 45 89 43 78 C 42 70 31 69 28 77',fill:'#222'}));
+    svg.append(svgNode('circle',{cx:26,cy:79,r:4,fill:'#222'}));
+    for(const y of [75,85])svg.append(svgNode('circle',{cx:57,cy:y,r:2,fill:'#222'}));
     const signatureY=signature>=0?[80,95,75,90,105,85,100]:[100,85,105,90,110,95,115];
-    for(let i=0;i<Math.abs(signature);i++)svg.append(svgNode('text',{class:'scale-key-signature',x:72+i*13,y:signatureY[i]+5,'text-anchor':'middle','font-size':19,fill:'#34483a'},signature>0?'♯':'♭'));
+    for(let i=0;i<Math.abs(signature);i++)svg.append(svgNode('text',{class:'scale-key-signature',x:68+i*11,y:signatureY[i]+5,'text-anchor':'middle','font-family':'Georgia, serif','font-size':20,fill:'#222'},signature>0?'♯':'♭'));
     sequence.forEach((note,i)=>{
-      const x=startX+i*39,y=110-(staffStep(note)-18)*5;
-      for(let ly=120;ly<=y;ly+=10)svg.append(svgNode('line',{x1:x-11,x2:x+11,y1:ly,y2:ly,stroke:'#60725e'}));
-      for(let ly=60;ly>=y;ly-=10)svg.append(svgNode('line',{x1:x-11,x2:x+11,y1:ly,y2:ly,stroke:'#60725e'}));
+      const x=startX+i*29,y=110-(staffStep(note)-18)*5;
+      for(let ly=120;ly<=y;ly+=10)svg.append(svgNode('line',{x1:x-11,x2:x+11,y1:ly,y2:ly,stroke:'#444','stroke-width':1}));
+      for(let ly=60;ly>=y;ly-=10)svg.append(svgNode('line',{x1:x-11,x2:x+11,y1:ly,y2:ly,stroke:'#444','stroke-width':1}));
       const g=svgNode('g',{'data-midi':note.midi,'data-note':note.name,'data-duration':'16'});
       g.append(svgNode('title',{},note.name+' · MIDI '+note.midi));
-      if(accidentals[i])g.append(svgNode('text',{class:'scale-accidental',x:x-18,y:y+5,'text-anchor':'middle','font-size':17,fill:'#34483a'},accidentals[i]));
-      g.append(svgNode('ellipse',{cx:x,cy:y,rx:6,ry:4,transform:'rotate(-20 '+x+' '+y+')',fill:'#34483a',stroke:'#34483a','stroke-width':1}));
+      if(accidentals[i])g.append(svgNode('text',{class:'scale-accidental',x:x-18,y:y+5,'text-anchor':'middle','font-family':'Georgia, serif','font-size':18,fill:'#222'},accidentals[i]));
+      g.append(svgNode('ellipse',{cx:x,cy:y,rx:5.8,ry:3.7,transform:'rotate(-20 '+x+' '+y+')',fill:'#222'}));
       svg.append(g);
     });
     // Four-note visual groups; no meter or barlines are imposed on the exercise.
     for(let start=0;start<sequence.length;start+=4){
-      const group=sequence.slice(start,start+4).map((note,j)=>({x:startX+(start+j)*39,y:110-(staffStep(note)-18)*5}));
+      const group=sequence.slice(start,start+4).map((note,j)=>({x:startX+(start+j)*29,y:110-(staffStep(note)-18)*5}));
       const down=group.reduce((sum,n)=>sum+n.y,0)/group.length<90;
       const beamY=down?Math.max(...group.map(n=>n.y))+32:Math.min(...group.map(n=>n.y))-32;
       const stemX=n=>n.x+(down?-5:5);
-      for(const n of group)svg.append(svgNode('line',{class:'scale-stem',x1:stemX(n),x2:stemX(n),y1:n.y,y2:beamY,stroke:'#34483a','stroke-width':1.6}));
+      const slope=Math.max(-0.08,Math.min(0.08,(group.at(-1).y-group[0].y)/Math.max(1,group.at(-1).x-group[0].x)));
+      const beamAt=n=>beamY+slope*(n.x-group[0].x)+(down?Math.max(0,-slope*(group.at(-1).x-group[0].x)):Math.min(0,-slope*(group.at(-1).x-group[0].x)));
+      for(const n of group)svg.append(svgNode('line',{class:'scale-stem',x1:stemX(n),x2:stemX(n),y1:n.y,y2:beamAt(n),stroke:'#222','stroke-width':1.25}));
       if(group.length>1){
-        for(let level=0;level<2;level++)svg.append(svgNode('line',{class:'scale-beam','data-level':level+1,x1:stemX(group[0]),x2:stemX(group[group.length-1]),y1:beamY+(down?-6:6)*level,y2:beamY+(down?-6:6)*level,stroke:'#34483a','stroke-width':3.5}));
+        for(let level=0;level<2;level++)svg.append(svgNode('line',{class:'scale-beam','data-level':level+1,x1:stemX(group[0]),x2:stemX(group[group.length-1]),y1:beamAt(group[0])+(down?-6:6)*level,y2:beamAt(group.at(-1))+(down?-6:6)*level,stroke:'#222','stroke-width':3.5}));
       }else{
         const x=stemX(group[0]),dir=down?-1:1;
         for(let level=0;level<2;level++){
           const y=beamY+dir*6*level;
-          svg.append(svgNode('path',{class:'scale-flag',d:`M ${x} ${y} C ${x+12} ${y+dir*4}, ${x+14} ${y+dir*10}, ${x+7} ${y+dir*16} C ${x+11} ${y+dir*8}, ${x+3} ${y+dir*7}, ${x} ${y+dir*6} Z`,fill:'#34483a'}));
+          svg.append(svgNode('path',{class:'scale-flag',d:`M ${x} ${y} C ${x+12} ${y+dir*4}, ${x+14} ${y+dir*10}, ${x+7} ${y+dir*16} C ${x+11} ${y+dir*8}, ${x+3} ${y+dir*7}, ${x} ${y+dir*6} Z`,fill:'#222'}));
         }
       }
     }
     svg.append(svgNode('text',{x:startX,y:164,'font-size':12,fill:'#647461'},'上行 →'));
-    svg.append(svgNode('text',{x:startX+15*39,y:164,'font-size':12,fill:'#647461'},'下行 →'));
+    svg.append(svgNode('text',{x:startX+15*29,y:164,'font-size':12,fill:'#647461'},'下行 →'));
     wrap.append(svg);return wrap;
   }
 
