@@ -374,7 +374,7 @@
     const signature=key[1],startX=82+Math.abs(signature)*11,width=940+Math.abs(signature)*11;
     const accidentals=scoreAccidentals(sequence,signature);
     const wrap=element('div',{class:'cello-scale-score',tabindex:'0','aria-label':'兩個八度上下行五線譜，可橫向捲動'});
-    const svg=svgNode('svg',{viewBox:`0 0 ${width} 185`,width,height:185,role:'img','aria-label':key[0]+(mode==='major'?'大調':'旋律小調')+'，低音譜號，兩個八度上下行十六分音符'});
+    const svg=svgNode('svg',{viewBox:`0 0 ${width} 185`,width,height:185,role:'img','aria-label':key[0]+(mode==='major'?'大調':'旋律小調')+'，低音譜號，兩個八度上下行十六分音符，末音四分音符'});
     svg.append(svgNode('title',{},'兩個八度上行與下行，調號與必要臨時記號；向右捲動查看全行'));
     for(let i=0;i<5;i++)svg.append(svgNode('line',{x1:14,x2:width-15,y1:110-i*10,y2:110-i*10,stroke:'#777','stroke-width':0.8}));
     // Bass-clef curve and dots anchor the F3 line, avoiding music-font dependency.
@@ -387,7 +387,7 @@
       const x=startX+i*29,y=110-(staffStep(note)-18)*5;
       for(let ly=120;ly<=y;ly+=10)svg.append(svgNode('line',{x1:x-11,x2:x+11,y1:ly,y2:ly,stroke:'#444','stroke-width':1}));
       for(let ly=60;ly>=y;ly-=10)svg.append(svgNode('line',{x1:x-11,x2:x+11,y1:ly,y2:ly,stroke:'#444','stroke-width':1}));
-      const g=svgNode('g',{'data-midi':note.midi,'data-note':note.name,'data-duration':'16'});
+      const g=svgNode('g',{'data-midi':note.midi,'data-note':note.name,'data-duration':i===sequence.length-1?'4':'16'});
       g.append(svgNode('title',{},note.name+' · MIDI '+note.midi));
       if(accidentals[i])g.append(svgNode('text',{class:'scale-accidental',x:x-18,y:y+5,'text-anchor':'middle','font-family':'Georgia, serif','font-size':18,fill:'#222'},accidentals[i]));
       g.append(svgNode('ellipse',{cx:x,cy:y,rx:5.8,ry:3.7,transform:'rotate(-20 '+x+' '+y+')',fill:'#222'}));
@@ -404,13 +404,7 @@
       for(const n of group)svg.append(svgNode('line',{class:'scale-stem',x1:stemX(n),x2:stemX(n),y1:n.y,y2:beamAt(n),stroke:'#222','stroke-width':1.25}));
       if(group.length>1){
         for(let level=0;level<2;level++)svg.append(svgNode('line',{class:'scale-beam','data-level':level+1,x1:stemX(group[0]),x2:stemX(group[group.length-1]),y1:beamAt(group[0])+(down?-6:6)*level,y2:beamAt(group.at(-1))+(down?-6:6)*level,stroke:'#222','stroke-width':3.5}));
-      }else{
-        const x=stemX(group[0]),dir=down?-1:1;
-        for(let level=0;level<2;level++){
-          const y=beamY+dir*6*level;
-          svg.append(svgNode('path',{class:'scale-flag',d:`M ${x} ${y} C ${x+12} ${y+dir*4}, ${x+14} ${y+dir*10}, ${x+7} ${y+dir*16} C ${x+11} ${y+dir*8}, ${x+3} ${y+dir*7}, ${x} ${y+dir*6} Z`,fill:'#222'}));
-        }
-      }
+      } // The final tonic keeps its stem but has no flags: a quarter note.
     }
     svg.append(svgNode('text',{x:startX,y:164,'font-size':12,fill:'#647461'},'上行 →'));
     svg.append(svgNode('text',{x:startX+15*29,y:164,'font-size':12,fill:'#647461'},'下行 →'));
