@@ -371,18 +371,31 @@
   }
   function makeScore(mode,key){
     const sequence=[...scaleNotes(mode,key,'up',2),...scaleNotes(mode,key,'down',2).slice(1)];
-    const signature=key[1],startX=82+Math.abs(signature)*11,width=940+Math.abs(signature)*11;
+    const signature=key[1],startX=70+Math.abs(signature)*8,width=928+Math.abs(signature)*8;
     const accidentals=scoreAccidentals(sequence,signature);
     const wrap=element('div',{class:'cello-scale-score',tabindex:'0','aria-label':'兩個八度上下行五線譜，可橫向捲動'});
     const svg=svgNode('svg',{viewBox:`0 0 ${width} 185`,width,height:185,role:'img','aria-label':key[0]+(mode==='major'?'大調':'旋律小調')+'，低音譜號，兩個八度上下行十六分音符，末音四分音符'});
     svg.append(svgNode('title',{},'兩個八度上行與下行，調號與必要臨時記號；向右捲動查看全行'));
     for(let i=0;i<5;i++)svg.append(svgNode('line',{x1:14,x2:width-15,y1:110-i*10,y2:110-i*10,stroke:'#777','stroke-width':0.8}));
     // Bass-clef curve and dots anchor the F3 line, avoiding music-font dependency.
-    svg.append(svgNode('path',{d:'M 22 82 C 22 63 55 64 51 84 C 49 99 34 108 23 111 C 38 101 45 89 43 78 C 42 70 31 69 28 77',fill:'#222'}));
-    svg.append(svgNode('circle',{cx:26,cy:79,r:4,fill:'#222'}));
-    for(const y of [75,85])svg.append(svgNode('circle',{cx:57,cy:y,r:2,fill:'#222'}));
+    const clef=svgNode('g',{transform:'translate(4 16) scale(.8)'});
+    clef.append(svgNode('path',{d:'M 22 82 C 22 63 55 64 51 84 C 49 99 34 108 23 111 C 38 101 45 89 43 78 C 42 70 31 69 28 77',fill:'#222'}));
+    clef.append(svgNode('circle',{cx:26,cy:79,r:4,fill:'#222'}));
+    for(const y of [75,85])clef.append(svgNode('circle',{cx:57,cy:y,r:2,fill:'#222'}));
+    svg.append(clef);
+    // Compact glyph-specific spacing (0.8 staff spaces), not text-font advance widths.
+    // Reference: LilyPond key-signature-interface; preserve bass-clef pitch positions.
     const signatureY=signature>=0?[80,95,75,90,105,85,100]:[100,85,105,90,110,95,115];
-    for(let i=0;i<Math.abs(signature);i++)svg.append(svgNode('text',{class:'scale-key-signature',x:68+i*11,y:signatureY[i]+5,'text-anchor':'middle','font-family':'Georgia, serif','font-size':20,fill:'#222'},signature>0?'♯':'♭'));
+    for(let i=0;i<Math.abs(signature);i++){
+      const mark=svgNode('g',{class:'scale-key-signature',transform:`translate(${58+i*8} ${signatureY[i]})`,'data-symbol':signature>0?'♯':'♭'});
+      if(signature>0){
+        mark.append(svgNode('path',{d:'M -2 -10 V 11 M 2 -11 V 10',stroke:'#222','stroke-width':1,fill:'none'}));
+        mark.append(svgNode('path',{d:'M -4 -4 L 4 -6 L 4 -3 L -4 -1 Z M -4 3 L 4 1 L 4 4 L -4 6 Z',fill:'#222'}));
+      }else{
+        mark.append(svgNode('path',{d:'M -2 -16 L -2 4 Q 6 0 3 -4 Q 1 -7 -2 -2',stroke:'#222','stroke-width':1.4,fill:'none'}));
+      }
+      svg.append(mark);
+    }
     sequence.forEach((note,i)=>{
       const x=startX+i*29,y=110-(staffStep(note)-18)*5;
       for(let ly=120;ly<=y;ly+=10)svg.append(svgNode('line',{x1:x-11,x2:x+11,y1:ly,y2:ly,stroke:'#444','stroke-width':1}));
