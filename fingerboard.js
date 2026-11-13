@@ -20,6 +20,7 @@
     natural:[0,2,3,5,7,8,10]
   };
   const choices=new Map();
+  const stringOrders=new Map();
 
   function pitchClass(name){
     let value=PITCH[name[0]];
@@ -136,7 +137,7 @@
     return aside;
   }
 
-  function chartSVG(mode,key,direction,octaves,annotations={},interaction=null,remoteDrafts=[]){
+  function chartSVG(mode,key,direction,octaves,annotations={},interaction=null,remoteDrafts=[],reverseStrings=false){
     const notes=scaleNotes(mode,key,direction,octaves);
     const map=decodeMap(direction==='up'?annotations.upMap:annotations.downMap);
     const presets=window.CelloFingeringPresets?.get(mode,key,direction,notes)||{};
@@ -186,7 +187,7 @@
     const maxPosition=Math.max(7,...plotted.map(item=>item.position.semitones),...nearby,
       ...ghostPositions,interaction?.showMore?24:0);
     const top=68,step=35,height=top+maxPosition*step+47;
-    const xPositions=[42,126,210,294], end=top+maxPosition*step+22;
+    const xPositions=reverseStrings?[294,210,126,42]:[42,126,210,294], end=top+maxPosition*step+22;
     const svg=svgNode('svg',{
       viewBox:'0 0 370 '+height,
       role:'img',
@@ -202,7 +203,7 @@
       svg.append(svgNode('text',{x,y:36,'text-anchor':'middle','font-size':15,'font-weight':800,fill:'#34513d'},OPEN[i].name));
       svg.append(svgNode('text',{x,y:49,'text-anchor':'middle','font-size':9,fill:'#889a8e'},'弦'));
     }
-    svg.append(svgNode('line',{x1:xPositions[0]-12,y1:68,x2:xPositions[3]+12,y2:68,stroke:'#34483a','stroke-width':5,'stroke-linecap':'round'}));
+    svg.append(svgNode('line',{x1:30,y1:68,x2:306,y2:68,stroke:'#34483a','stroke-width':5,'stroke-linecap':'round'}));
     // Subtle position guides. Not literal physical frets (a cello has no frets).
     for(const fret of [4,7,12,17,24]){
       if(fret>=maxPosition)continue;
@@ -714,7 +715,7 @@
           confirmedMap:annotations[dir+'Map']||'',
           select:midi=>begin(dir,midi),
           chooseString:s=>chooseString(s),showMore:editing&&edit.showMore
-        }:null,remoteDrafts));
+        }:null,remoteDrafts,stringOrders.get(id)==='ADGC'));
       pane.editor.hidden=!editing;
       if(!editing)return;
       const count=Object.keys(edit.pending).length;
@@ -770,6 +771,8 @@
       const count=choices.get(id)||2;
       one.setAttribute('aria-pressed',String(count===1));
       two.setAttribute('aria-pressed',String(count===2));
+      standardOrder.setAttribute('aria-pressed',String(stringOrders.get(id)!=='ADGC'));
+      reverseOrder.setAttribute('aria-pressed',String(stringOrders.get(id)==='ADGC'));
       renderDirection('up');renderDirection('down');
     }
     function addButton(label,count){
@@ -785,7 +788,14 @@
       octaveGroup.append(btn);return btn;
     }
     const one=addButton('1 八度',1),two=addButton('2 八度',2);
-    toolbar.append(octaveGroup);
+    const orderGroup=element('div',{class:'cello-fb-group','aria-label':'指板弦排列，由左至右'});
+    function addOrder(order){
+      const button=element('button',{type:'button',class:'cello-fb-button','aria-label':'弦排列由左至右 '+order},order);
+      button.addEventListener('click',()=>{stringOrders.set(id,order);render();});
+      orderGroup.append(button);return button;
+    }
+    const standardOrder=addOrder('CGDA'),reverseOrder=addOrder('ADGC');
+    toolbar.append(octaveGroup,orderGroup);
     if(!choices.has(id))choices.set(id,2);
     root.isEditing=()=>edit.dir!==null;
     root.requestLeave=next=>exitEditor(next);
