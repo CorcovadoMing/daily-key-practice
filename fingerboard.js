@@ -20,7 +20,7 @@
     natural:[0,2,3,5,7,8,10]
   };
   const choices=new Map();
-  const stringOrders=new Map();
+  let stringOrder='CGDA';
 
   function pitchClass(name){
     let value=PITCH[name[0]];
@@ -715,7 +715,7 @@
           confirmedMap:annotations[dir+'Map']||'',
           select:midi=>begin(dir,midi),
           chooseString:s=>chooseString(s),showMore:editing&&edit.showMore
-        }:null,remoteDrafts,stringOrders.get(id)==='ADGC'));
+        }:null,remoteDrafts,stringOrder==='ADGC'));
       pane.editor.hidden=!editing;
       if(!editing)return;
       const count=Object.keys(edit.pending).length;
@@ -771,8 +771,8 @@
       const count=choices.get(id)||2;
       one.setAttribute('aria-pressed',String(count===1));
       two.setAttribute('aria-pressed',String(count===2));
-      standardOrder.setAttribute('aria-pressed',String(stringOrders.get(id)!=='ADGC'));
-      reverseOrder.setAttribute('aria-pressed',String(stringOrders.get(id)==='ADGC'));
+      standardOrder.setAttribute('aria-pressed',String(stringOrder!=='ADGC'));
+      reverseOrder.setAttribute('aria-pressed',String(stringOrder==='ADGC'));
       renderDirection('up');renderDirection('down');
     }
     function addButton(label,count){
@@ -791,12 +791,16 @@
     const orderGroup=element('div',{class:'cello-fb-group','aria-label':'指板弦排列，由左至右'});
     function addOrder(order){
       const button=element('button',{type:'button',class:'cello-fb-button','aria-label':'弦排列由左至右 '+order},order);
-      button.addEventListener('click',()=>{stringOrders.set(id,order);render();});
+      button.addEventListener('click',()=>{
+        stringOrder=order;render();
+        document.querySelectorAll('.cello-fingerboard').forEach(board=>{if(board!==root)board.refreshStringOrder?.();});
+      });
       orderGroup.append(button);return button;
     }
     const standardOrder=addOrder('CGDA'),reverseOrder=addOrder('ADGC');
     toolbar.append(octaveGroup,orderGroup);
     if(!choices.has(id))choices.set(id,2);
+    root.refreshStringOrder=()=>render();
     root.isEditing=()=>edit.dir!==null;
     root.requestLeave=next=>exitEditor(next);
     root.setRemoteDrafts=(incoming)=>{
