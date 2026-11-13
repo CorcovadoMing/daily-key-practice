@@ -4,22 +4,22 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261113-015-experimental">
+  <meta name="site-version" content="20261113-016-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
     :root {
       color-scheme: light;
-      --page:#f7f6f2;
-      --paper:#ffffff;
-      --ink:#202525;
-      --muted:#747c7b;
-      --line:#e7e9e4;
-      --accent:#b6d6b3;
+      --page:#f4f2eb;
+      --paper:#fffef9;
+      --ink:#30372f;
+      --muted:#686e64;
+      --line:#dedfd4;
+      --accent:#bdcdb1;
       --accent-ink:#234b37;
-      --minor:#e2d7f3;
+      --minor:#ded8e5;
       --minor-ink:#594371;
-      --soft:#f2f3ee;
+      --soft:#eeeee5;
       --shadow:0 20px 60px rgba(32,37,37,.035);
     }
     *,*::before,*::after{box-sizing:border-box}
@@ -305,7 +305,7 @@
     .finger-form-actions button.primary{background:#304c37;color:white;border-color:#304c37}
     .online-count{display:block;margin-top:9px;font-size:13px;font-weight:850;color:#205a35;background:#fff;border:1px solid #c2dbc4;border-radius:10px;padding:9px 12px;width:max-content}
     .online-count small{font-size:10px;color:#66806e;font-weight:500;display:block;margin-top:3px}
-    .key-secondary{display:block;font-size:11px;font-weight:650;color:#8b928e;margin-top:7px;white-space:nowrap}
+    .key-secondary{display:block;font-size:11px;font-weight:650;color:#737c76;margin-top:7px;white-space:normal;line-height:1.7}
     .scale-notes{display:none;color:#596b60;font-size:11px;line-height:1.8;word-break:normal;overflow-wrap:anywhere;margin-top:8px;border-top:1px dashed #dfe6dc;padding-top:7px}
     .show-scales .scale-notes{display:block}
     .scale-line{display:block;margin:5px 0;line-height:1.8}
@@ -376,7 +376,7 @@
 
     /* Experiments-only practice tools: modeless and local to this device. */
     body{padding-bottom:85px}
-    .cello-scale-score{max-width:100%;overflow-x:auto;margin:8px 0 16px;border:1px solid #dce5d9;border-radius:10px;background:#fffffc}.cello-scale-score svg{display:block;max-width:none}
+    .cello-scale-score{width:100%;min-width:0;margin:8px 0 16px;border:1px solid #dce5d9;border-radius:10px;background:#fffffc}.cello-scale-score svg{display:block;width:100%;height:auto;max-width:100%}
     .audio-tools{position:fixed;z-index:50;left:12px;right:auto;width:var(--tools-width,196px);max-width:calc(100vw - 24px);transition:width .28s cubic-bezier(.22,.8,.3,1);bottom:max(8px,env(safe-area-inset-bottom));display:flex;align-items:center;gap:8px;min-width:0;margin:0;padding:8px;border:1px solid #ccd8c9;border-radius:22px;background:#fffffc;color:#263e2e;font-size:14px;box-sizing:border-box}
     body{padding-bottom:calc(100px + env(safe-area-inset-bottom))}html{scroll-padding-bottom:110px}.toast{bottom:110px}.practice-float{bottom:100px}
     .tuner-preferences{position:absolute;bottom:calc(100% + 8px);left:0;display:flex;align-items:center;gap:12px;padding:12px;background:#fffffc;border:1px solid #ccd8c9;border-radius:12px;box-shadow:0 4px 24px #243a2520;max-width:calc(100vw - 48px)}
@@ -403,6 +403,27 @@
     #metro-beat{min-width:36px;font-variant-numeric:tabular-nums}
     @media(prefers-reduced-motion:reduce){.audio-tools{transition:none}}
     @media(max-width:600px){.audio-meter-wrap{width:106px}.audio-note{min-width:30px;font-size:22px}.audio-cents{font-size:10px;white-space:normal;line-height:13px}.audio-panel{gap:6px}.audio-tools{gap:6px;padding:6px}.audio-buttons{gap:4px}.audio-tools button{font-size:13px;padding:8px 6px}}
+    .key-card,.counter-item,.signature-card,.room-action,.icon-button{background:var(--paper)}
+    .classroom-bar,.key-filter{background:#eef0e6;border-color:#d9dfcf}
+    .fingering-section{background:var(--paper)!important}
+    .filter-key{background:#e8eddf;border-color:#d2dcc6;color:#354f38}
+    .filter-key.minor{background:#eeebf0;border-color:#dcd6e1;color:#594e61}
+    .draw-button{background:#42533e}.draw-button:hover:not(:disabled){background:#52664c}
+    .audio-tools,.tuner-preferences{background:var(--paper)}
+    .intro .eyebrow{color:#697b5e}h1 em{color:#718067}
+    #metronome-open,#tuner-open{width:72px;min-width:72px}
+    #metro-settings,#tuner-settings{width:24px;min-width:24px;margin-left:0;padding:4px!important;font-size:13px;background:transparent;border-color:transparent}
+    #metro-settings span,#tuner-settings span{display:block;line-height:1;font-size:13px}
+    /* Quiet hierarchy: sections, not nested decorative cards. */
+    .panel,.key-card{box-shadow:none}.key-card:hover{transform:none}
+    .panel{border-radius:16px}.classroom-bar{background:#f1f4ef;border-radius:14px}
+    .fingering-section{background:#fff;padding:16px 12px}
+    .music-section-title{font-size:12px;font-weight:750;color:#4f6254;margin:0 0 10px}
+    .score-section{min-width:0}.fingerboard-section{min-width:0;border-top:1px solid var(--line);padding-top:18px;display:grid;gap:10px}
+    .fingerboard-section>.music-section-title{margin-bottom:0}
+    .cello-scale-score{border:0;border-radius:0;background:transparent;margin:0 0 8px}
+    .cello-fb-direction{box-shadow:none;background:transparent;border-color:#edf0ea;border-radius:8px}
+    .result-summary{background:transparent;border-bottom:1px solid var(--line);border-radius:0;padding:0 0 18px}
   </style>
 </head>
 <body>
@@ -546,7 +567,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261113-015-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261113-016-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -572,7 +593,7 @@
 
 
   <script src="fingering-presets.js?v=20261106-012"></script>
-  <script src="fingerboard.js?v=20261113-015"></script>
+  <script src="fingerboard.js?v=20261113-016"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
@@ -855,6 +876,10 @@
       }
       render();
     }
+    function scaleNameSummary(mode,key){
+      const names=dir=>window.CelloFingerboard.scaleNotes(mode,key,dir,1).map(n=>n.name).join(' · ');
+      return mode==='major'?names('up'):'上行 '+names('up')+'<br>下行 '+names('down');
+    }
     function signature(count){ return count===0?'無升降記號':(count>0?`♯ × ${count}`:`♭ × ${-count}`); }
     function showToast(msg){
       const el=q('#toast'); el.textContent=msg;el.classList.add('active');
@@ -968,21 +993,20 @@ function createCard(mode,index,doneIds){
  const heading=document.createElement('div');heading.className='key-card-heading';
  const main=document.createElement('button');main.type='button';main.className='key-card-main';main.setAttribute('aria-pressed',String(done));
  main.setAttribute('aria-label',`${key[0]} ${mode==='major'?'大調':'小調'}，點擊切換完成`);
- main.innerHTML=`<span class="check-circle" aria-hidden="true">${done?'✓':''}</span><span class="key-card-content"><span class="key-primary">${key[0]} ${mode==='major'?'大調':'小調'}</span><span class="key-secondary">${signature(key[1])}</span></span>`;
+ main.innerHTML=`<span class="check-circle" aria-hidden="true">${done?'✓':''}</span><span class="key-card-content"><span class="key-primary">${key[0]} ${mode==='major'?'大調':'小調'}</span><span class="key-secondary">${scaleNameSummary(mode,key)}</span></span>`;
  main.addEventListener('click',()=>requestCardAction(()=>toggleComplete(id)));
  const expand=document.createElement('button');expand.type='button';expand.className='key-expand';expand.textContent='⌄';
- expand.setAttribute('aria-label','展開或收合 '+key[0]+(mode==='major'?'大調':'小調')+' 的指板圖');
+ expand.setAttribute('aria-label','展開或收合 '+key[0]+(mode==='major'?'大調':'小調')+' 的音階與指板');
  expand.setAttribute('aria-controls','fingering-'+id);
  expand.addEventListener('click',()=>requestCardAction(()=>toggleCardExpansion(id)));
  heading.append(main,expand);
  const panel=document.createElement('div');panel.className='fingering-section';panel.id='fingering-'+id;
- const header=document.createElement('div');header.className='fingering-title';header.textContent='大提琴指板音位圖';
  const note=visibleFingerings()[id]||{};
  const guide=window.CelloFingerboard.create(mode,key,note,
   (direction,map,original,resetAll)=>saveInlineFingering(id,direction,map,original,resetAll),
   draft=>sharedRoom?window.classroomSync?.setDraft(id,draft):null);
  boardInstances.set(id,guide);cardInstances.set(id,{card,button:main,panel,expand,guide});
- guide.setRemoteDrafts(roomEditingPreviews[id]||[]);panel.append(header,guide);card.append(heading,panel);
+ guide.setRemoteDrafts(roomEditingPreviews[id]||[]);panel.append(guide);card.append(heading,panel);
  return card;
 }
 function mergeFingeringMap(latest,previous,proposed,resetAll=false){
