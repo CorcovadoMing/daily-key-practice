@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261113-020-experimental">
+  <meta name="site-version" content="20261113-021-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -305,6 +305,7 @@
     .finger-form-actions button.primary{background:#304c37;color:white;border-color:#304c37}
     .online-count{display:block;margin-top:9px;font-size:13px;font-weight:850;color:#205a35;background:#fff;border:1px solid #c2dbc4;border-radius:10px;padding:9px 12px;width:max-content}
     .online-count small{font-size:10px;color:#66806e;font-weight:500;display:block;margin-top:3px}
+    .key-relative{display:block;font-size:11px;color:#596650;margin-top:6px;line-height:1.5}
     .key-secondary{display:block;font-size:11px;font-weight:650;color:#737c76;margin-top:7px;white-space:normal;line-height:1.7}
     .scale-notes{display:none;color:#596b60;font-size:11px;line-height:1.8;word-break:normal;overflow-wrap:anywhere;margin-top:8px;border-top:1px dashed #dfe6dc;padding-top:7px}
     .show-scales .scale-notes{display:block}
@@ -570,7 +571,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261113-020-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261113-021-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -596,7 +597,7 @@
 
 
   <script src="fingering-presets.js?v=20261106-012"></script>
-  <script src="fingerboard.js?v=20261113-020"></script>
+  <script src="fingerboard.js?v=20261113-021"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
@@ -879,6 +880,12 @@
       }
       render();
     }
+    function relativeKeyLabel(mode,key){
+      // Use diatonic spelling, not pitch-class matching: F♯ major → D♯ minor,
+      // and E♭ minor → G♭ major even when the draw pool uses enharmonic keys.
+      const name=(mode==='major'?key[2]:key[3]).split(' ')[mode==='major'?5:2];
+      return '關係'+(mode==='major'?'小調：':'大調：')+name;
+    }
     function scaleNameSummary(mode,key){
       const names=dir=>window.CelloFingerboard.scaleNotes(mode,key,dir,1).map(n=>n.name).join(' · ');
       return mode==='major'?names('up'):'上行 '+names('up')+'<br>下行 '+names('down');
@@ -996,7 +1003,7 @@ function createCard(mode,index,doneIds){
  const heading=document.createElement('div');heading.className='key-card-heading';
  const main=document.createElement('button');main.type='button';main.className='key-card-main';main.setAttribute('aria-pressed',String(done));
  main.setAttribute('aria-label',`${key[0]} ${mode==='major'?'大調':'小調'}，點擊切換完成`);
- main.innerHTML=`<span class="check-circle" aria-hidden="true">${done?'✓':''}</span><span class="key-card-content"><span class="key-primary">${key[0]} ${mode==='major'?'大調':'小調'}</span><span class="key-secondary">${scaleNameSummary(mode,key)}</span></span>`;
+ main.innerHTML=`<span class="check-circle" aria-hidden="true">${done?'✓':''}</span><span class="key-card-content"><span class="key-primary">${key[0]} ${mode==='major'?'大調':'小調'}</span><span class="key-relative">${relativeKeyLabel(mode,key)}</span><span class="key-secondary">${scaleNameSummary(mode,key)}</span></span>`;
  main.addEventListener('click',()=>requestCardAction(()=>toggleComplete(id)));
  const expand=document.createElement('button');expand.type='button';expand.className='key-expand';expand.textContent='⌄';
  expand.setAttribute('aria-label','展開或收合 '+key[0]+(mode==='major'?'大調':'小調')+' 的音階與指板');
