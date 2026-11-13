@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261113-021-experimental">
+  <meta name="site-version" content="20261113-022-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -571,7 +571,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261113-021-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261113-022-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -1501,17 +1501,37 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     let requestedStream = null, context = null;
     try {
       if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia || !Context) throw new Error('需要 HTTPS 及支援麥克風的瀏覽器');
-      context = new Context(); tunerContext = context; await context.resume();
+      context = new Context(); tunerContext = context;
+      // Unlock during the tap, but do not let a stalled Safari resume prevent
+      // the microphone request. Capture can itself change the audio session.
+      context.resume().catch(() => {});
       if (generation !== tunerGeneration) return;
       requestedStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, video: false });
       if (generation !== tunerGeneration) { requestedStream.getTracks().forEach(t => t.stop()); return; }
       stream = requestedStream; source = context.createMediaStreamSource(stream); analyser = context.createAnalyser(); analyser.fftSize = 8192; source.connect(analyser);
-      const samples = new Float32Array(analyser.fftSize); smooth.reset(); lastSignal = performance.now();
+      $('tuner-status').textContent = '正在啟動音訊';
+      if (context.state !== 'running') {
+        let timeout;
+        try { await Promise.race([context.resume(), new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error('音訊啟動逾時，請關閉再開啟調音器；若仍無反應請重新載入 Safari。')), 4000); })]); }
+        finally { clearTimeout(timeout); }
+      }
+      if (generation !== tunerGeneration) return;
+      if (context.state !== 'running') throw new Error('音訊未啟動，請關閉再開啟調音器。');
+      const samples = new Float32Array(analyser.fftSize), bytes = new Uint8Array(analyser.fftSize);
+      const readSamples = typeof analyser.getFloatTimeDomainData === 'function'
+        ? () => analyser.getFloatTimeDomainData(samples)
+        : () => { analyser.getByteTimeDomainData(bytes); for(let i=0;i<bytes.length;i++)samples[i]=(bytes[i]-128)/128; };
+      smooth.reset(); lastSignal = performance.now(); let lastInput = lastSignal;
       pending = false; tunerRunning = true; tunerUI(); $('tuner-status').textContent = '';
       stream.getAudioTracks().forEach(track => track.onended = () => { if (generation === tunerGeneration) stopTuner('麥克風已中斷，請重新開始。'); });
       tunerTimer = setInterval(() => {
         if (context.state !== 'running') { stopTuner('收音已暫停，請重新開始。'); return; }
-        analyser.getFloatTimeDomainData(samples); const frequency = detectPitch(samples, context.sampleRate);
+        try { readSamples(); } catch (error) { stopTuner('無法讀取收音資料：' + error.message); return; }
+        const rms = Math.sqrt(samples.reduce((sum,v)=>sum+v*v,0)/samples.length);
+        if(rms > .0001)lastInput=performance.now();
+        const muted=stream.getAudioTracks().some(track=>track.muted);
+        $('tuner-status').textContent=muted?'麥克風被系統暫停，請檢查其他收音 App。':performance.now()-lastInput>2500?'已取得麥克風，但沒有輸入訊號。請檢查 iPad 收音裝置，或重新開啟調音器。':'';
+        const frequency = muted ? null : detectPitch(samples, context.sampleRate);
         if (!frequency) {
           if (performance.now() - lastSignal > 500) { smooth.reset(); $('tuner-needle').style.visibility='visible'; $('tuner-note').textContent = '—'; $('tuner-cents').textContent = '請拉一個穩定的單音'; $('tuner-needle').style.left = '50%'; } return;
         }
