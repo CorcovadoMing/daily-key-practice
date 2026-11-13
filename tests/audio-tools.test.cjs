@@ -7,3 +7,5 @@ test('note, reference and cents',()=>{assert.equal(pitchReading(440).name,'A4');
 test('window averages jitter without blurring new note',()=>{const s=new PitchWindow();s.push(440*2**(-10/1200));assert.ok(Math.abs(s.push(440*2**(10/1200))-440)<.001);assert.ok(Math.abs(s.push(220)-220)<1e-8);s.reset();assert.ok(Math.abs(s.push(440)-440)<1e-8)});
 test('roadmap removed and tools isolated to experiment html',()=>{assert.ok(!html.includes('<section class="experiment-roadmap"'));assert.ok(html.includes('id="tuner-panel"'));});
 test('no beat gating; short averaging retained',()=>{assert.ok(!code.includes('BeatGate'));assert.ok(code.includes('smooth.push(frequency)'));});
+
+test('tuner bands include exact signed boundaries',()=>{const {pitchBand}=sandbox.module.exports;for(const sign of [-1,1]){assert.equal(pitchBand(sign*10),'green');assert.equal(pitchBand(sign*10.01),'yellow');assert.equal(pitchBand(sign*20),'yellow');assert.equal(pitchBand(sign*20.01),'red');}assert.equal(pitchBand(0),'green');});

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261113-016-experimental">
+  <meta name="site-version" content="20261113-017-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -397,7 +397,7 @@
     .audio-panel label{white-space:nowrap;font-size:12px}.audio-panel input[type=number]{width:72px}.audio-panel input[type=range]{width:100px;padding:0}
     .audio-note{font-size:26px;font-weight:800;min-width:46px;text-align:center;font-variant-numeric:tabular-nums}
     .audio-cents{font-size:12px;min-height:16px;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}
-    .audio-meter-wrap{width:185px;flex-shrink:0}.audio-meter{height:16px;position:relative;background:linear-gradient(90deg,#e9ebdd,#d6e6ce 45%,#d6e6ce 55%,#e9ebdd);border-radius:6px;margin:3px 0}
+    .audio-meter-wrap{width:185px;flex-shrink:0}.audio-meter{height:16px;position:relative;background:linear-gradient(90deg,#edb9ae 0% 30%,#edda9d 30% 40%,#b8d4ac 40% 60%,#edda9d 60% 70%,#edb9ae 70% 100%);border-radius:6px;margin:3px 0}
     .audio-meter:before{content:'';position:absolute;left:50%;height:100%;border-left:2px solid #527049}.audio-needle{position:absolute;left:50%;height:16px;width:3px;background:#234c36;transform:translateX(-50%)}
     .audio-status{font-size:12px;margin:0;max-width:200px}.audio-status:empty{display:none}.audio-error{color:#9b3939!important}
     #metro-beat{min-width:36px;font-variant-numeric:tabular-nums}
@@ -414,6 +414,7 @@
     #metronome-open,#tuner-open{width:72px;min-width:72px}
     #metro-settings,#tuner-settings{width:24px;min-width:24px;margin-left:0;padding:4px!important;font-size:13px;background:transparent;border-color:transparent}
     #metro-settings span,#tuner-settings span{display:block;line-height:1;font-size:13px}
+    .audio-needle[data-band=green]{background:#295b33}.audio-needle[data-band=yellow]{background:#82641b}.audio-needle[data-band=red]{background:#a43a2a}
     /* Quiet hierarchy: sections, not nested decorative cards. */
     .panel,.key-card{box-shadow:none}.key-card:hover{transform:none}
     .panel{border-radius:16px}.classroom-bar{background:#f1f4ef;border-radius:14px}
@@ -448,7 +449,7 @@
         </section>
       <div class="audio-controls" tabindex="0" aria-label="工具控制列，可左右捲動">
         <section id="tuner-panel" class="audio-panel" aria-label="調音器控制" hidden>
-          <div class="audio-meter-wrap"><div class="audio-meter" aria-hidden="true"><span id="tuner-needle" class="audio-needle"></span></div><div id="tuner-cents" class="audio-cents">等待開始收音</div></div>
+          <div class="audio-meter-wrap"><div class="audio-meter" aria-label="音準刻度：中央零音分；正負10音分內綠色，10至20黃色，超過20紅色" aria-hidden="true"><span id="tuner-needle" class="audio-needle"></span></div><div id="tuner-cents" class="audio-cents">等待開始收音</div></div>
           <span id="tuner-note" class="audio-note">—</span><p id="tuner-status" class="audio-status" role="status"></p>
         </section>
 
@@ -567,7 +568,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261113-016-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261113-017-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -593,7 +594,7 @@
 
 
   <script src="fingering-presets.js?v=20261106-012"></script>
-  <script src="fingerboard.js?v=20261113-016"></script>
+  <script src="fingerboard.js?v=20261113-017"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
@@ -1381,6 +1382,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     const frequency = rate / (tau + Math.max(-1, Math.min(1, shift)));
     return Number.isFinite(frequency) ? frequency : null;
   }
+  function pitchBand(cents){const distance=Math.abs(cents);return distance<=10?'green':distance<=20?'yellow':'red';}
   function pitchReading(frequency, reference = 440) {
     const position = 69 + 12 * Math.log2(frequency / reference), midi = Math.round(position);
     return { midi, cents: (position - midi) * 100, frequency,
@@ -1396,7 +1398,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       return 2 ** (this.values.reduce((a, b) => a + b, 0) / this.values.length);
     }
   }
-  if (typeof module !== 'undefined' && module.exports) { module.exports = { detectPitch, pitchReading, PitchWindow }; return; }
+  if (typeof module !== 'undefined' && module.exports) { module.exports = { detectPitch, pitchReading, PitchWindow, pitchBand }; return; }
   const $ = id => document.getElementById(id);
   function sizeTools(){
     const tools=document.querySelector('.audio-tools'),controls=document.querySelector('.audio-controls');
@@ -1507,6 +1509,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         lastSignal = performance.now(); const reference = Math.max(430, Math.min(450, Number($('tuner-a').value) || 442));
         const reading = pitchReading(smooth.push(frequency), reference), cents = Math.round(reading.cents);
         $('tuner-note').textContent = reading.name;
+        $('tuner-needle').dataset.band=pitchBand(reading.cents);
         $('tuner-cents').textContent = (Math.abs(cents) <= 3 ? '準' : cents < 0 ? '偏低' : '偏高') + ' · ' + (cents > 0 ? '+' : '') + cents + ' cents · ' + reading.frequency.toFixed(1) + ' Hz';
         $('tuner-needle').style.left = (50 + Math.max(-50, Math.min(50, cents))) + '%';
       }, 80);

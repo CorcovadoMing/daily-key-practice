@@ -279,17 +279,7 @@
           'font-weight':note.order===1||note.order===notes.length?800:650,
           fill:'#273c2e'
         },note.name));
-        if(explicit){
-          if(modified)point.append(svgNode('rect',{
-            x:x+18,y:y+4,width:28,height:17,rx:5,fill:'#fff0f5',
-            stroke:'#d15c80','stroke-width':1
-          }));
-          point.append(svgNode('text',{
-            x:x+21,y:y+16,'font-size':modified?12:10,
-            'font-weight':modified?900:750,
-            fill:modified?'#a82055':'#675879'
-          },'('+style.finger+')'));
-        }
+
       }
       if(interaction){
         // An invisible touch target makes the same displayed marker usable on phones.
