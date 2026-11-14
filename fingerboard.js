@@ -410,8 +410,10 @@
         for(let level=0;level<2;level++)svg.append(svgNode('line',{class:'scale-beam','data-level':level+1,x1:stemX(group[0]),x2:stemX(group[group.length-1]),y1:beamAt(group[0])+(down?-6:6)*level,y2:beamAt(group.at(-1))+(down?-6:6)*level,stroke:'#222','stroke-width':3.5}));
       } // The final tonic keeps its stem but has no flags: a quarter note.
     }
-    svg.append(svgNode('text',{x:startX,y:164,'font-size':12,fill:'#647461'},'上行 →'));
-    svg.append(svgNode('text',{x:startX+15*29,y:164,'font-size':12,fill:'#647461'},'下行 →'));
+    for(const [x,label] of [[startX,'上行'],[startX+15*29,'下行']]){
+      svg.append(svgNode('text',{x,y:164,'font-size':12,fill:'#647461'},label));
+      svg.append(svgNode('path',{d:`M${x+32} 160h14m-6-6 6 6-6 6`,fill:'none',stroke:'#647461','stroke-width':1.6,'stroke-linecap':'round','stroke-linejoin':'round','aria-hidden':'true'}));
+    }
     wrap.append(svg);return wrap;
   }
 
@@ -696,7 +698,7 @@
     function renderDirection(dir){
       const pane=panels[dir],editing=edit.dir===dir;
       const saved=decodeMap(annotations[dir+'Map']);
-      pane.heading.textContent=dir==='up'?'↑ 上行':'↓ 下行';
+      pane.heading.innerHTML=(dir==='up'?'<svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 19V5m-6 6 6-6 6 6"/></svg> 上行':'<svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14m-6-6 6 6 6-6"/></svg> 下行');
       if(remoteDrafts.some(remote=>remote.direction===dir)){
         pane.heading.append(element('span',{class:'cello-fb-remote-label'},'（其他人編輯中）'));
       }

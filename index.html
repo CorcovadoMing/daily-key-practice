@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261114-024-experimental">
+  <meta name="site-version" content="20261114-025-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -187,6 +187,10 @@
     .check-circle{height:20px;width:20px;border:1.7px solid #c8d1ca;border-radius:50%;display:grid;place-items:center;flex:none;margin-top:2px;color:white;font-size:13px;font-weight:800}
     .key-card.done .check-circle{background:#5c966a;border-color:#5c966a}
     .key-card-content{min-width:0;flex:1}
+    .key-complete{display:grid;place-items:center;flex:none;min-width:44px;min-height:44px;padding:0;border:0;background:transparent;border-radius:50%;color:inherit}
+    .key-complete .check-circle{margin:0}
+    .key-title{min-height:44px;padding:0;border:0;background:transparent;text-align:left;color:inherit;cursor:pointer}
+    .key-title:focus-visible,.key-complete:focus-visible,.key-expand:focus-visible{outline:2px solid #527049;outline-offset:2px}
     .key-primary{display:block;font-size:26px;line-height:1.05;letter-spacing:-.055em;font-weight:800;white-space:nowrap}
     .key-card.done .key-primary{color:#67876b}
     .fingering-section{padding:11px 13px 13px;border-top:1px solid #e9ece7;background:#fbfcfa;text-align:left}
@@ -385,7 +389,7 @@
     .audio-buttons button{display:grid;place-items:center;width:44px;height:44px;min-width:44px;flex:none;padding:8px!important}.audio-buttons button svg{width:22px;height:22px;grid-area:1 / 1}.audio-buttons{min-height:52px;align-items:center}
     #metro-settings{font-size:18px;border-left:0;margin-left:-6px;border-radius:0 8px 8px 0}#metronome-open{border-radius:8px 0 0 8px}
     .metro-stop-icon{display:none}#metronome-open[aria-pressed=true] .metro-stop-icon{display:block}#metronome-open[aria-pressed=true] .metro-play-icon{display:none}
-    #metro-settings[aria-expanded=true] span{transform:rotate(180deg)}
+    #metro-settings[aria-expanded=true] .ui-icon,#tuner-settings[aria-expanded=true] .ui-icon,.key-expand[aria-expanded=true] .ui-icon{transform:rotate(180deg)}
     .a4-control{display:flex;align-items:center;gap:4px}.a4-control span{font-size:10px;color:#647461}#tuner-a{width:64px;padding:6px;font-size:13px}
     #metronome-panel{display:grid;grid-template-columns:auto 1fr;padding:12px;gap:8px 12px;width:230px;box-sizing:border-box;max-width:calc(100vw - 24px);max-height:60dvh;overflow:auto}#tuner-panel{width:100%;min-width:0;box-sizing:border-box}.audio-meter-wrap{flex:1;min-width:30px;width:auto!important}.audio-note{flex-shrink:0}#tuner-status{flex-shrink:0;max-width:110px}
     .audio-buttons{display:flex;gap:6px;flex-shrink:0}
@@ -413,8 +417,12 @@
     .audio-tools,.tuner-preferences{background:var(--paper)}
     .intro .eyebrow{color:#697b5e}h1 em{color:#718067}
     #metronome-open,#tuner-open{width:60px;min-width:60px}
-    #metro-settings,#tuner-settings{width:24px;min-width:24px;margin-left:0;padding:4px!important;font-size:13px;background:transparent;border-color:transparent}
-    #metro-settings span,#tuner-settings span{display:block;line-height:1;font-size:13px}
+    #metro-settings,#tuner-settings{width:24px;min-width:24px;margin-left:0;padding:4px!important;font-size:13px;background:transparent;border:1px solid #acb9a7;border-radius:8px}
+    .ui-icon{display:inline-block;vertical-align:middle;flex:none;width:18px;height:18px}
+    .audio-buttons button .ui-icon{width:16px;height:16px}
+    .key-expand{display:grid;place-items:center}
+    .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;clip-path:inset(50%)!important;white-space:nowrap!important;border:0!important;min-height:0!important}
+    #metro-settings:hover,#tuner-settings:hover{background:#edf1e9;border-color:#81927a}
     .audio-needle[data-band=green]{background:#295b33}.audio-needle[data-band=yellow]{background:#82641b}.audio-needle[data-band=red]{background:#a43a2a}
     .audio-tools{padding-left:12px;padding-right:12px}
     .audio-note{width:44px;min-width:44px;flex:0 0 44px;font-size:18px;white-space:nowrap;overflow:hidden}
@@ -442,18 +450,18 @@
     </section>
 
     <aside class="audio-tools" aria-label="練習工具">
-      <div class="audio-buttons"><button id="metronome-open" aria-pressed="false" aria-label="啟用節拍器並開始打拍"><svg class="metro-play-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 3v14" fill="none" stroke="currentColor" stroke-width="2.2"/><ellipse cx="11" cy="18" rx="5" ry="3.5" transform="rotate(-20 11 18)" fill="currentColor"/></svg><svg class="metro-stop-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="1.5" fill="currentColor"/></svg></button><button id="metro-settings" aria-expanded="false" aria-controls="metronome-panel" aria-label="展開節拍器設定"><span aria-hidden="true">⌄</span></button><button id="tuner-open" aria-pressed="false" aria-expanded="false" aria-controls="tuner-panel" aria-label="啟用調音器並開始收音"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M7 3v7a5 5 0 0 0 10 0V3M12 15v7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button><button id="tuner-settings" aria-expanded="false" aria-controls="tuner-preferences" aria-label="開啟調音器設定"><span aria-hidden="true">⌄</span></button></div>
-<div id="tuner-preferences" class="tuner-preferences" role="dialog" aria-label="調音器設定" hidden><label class="a4-control" for="tuner-a"><span>A4</span><input id="tuner-a" type="number" min="430" max="450" value="442" step="1" inputmode="numeric" aria-label="A4基準頻率，Hz"></label><button id="tuner-settings-close" aria-label="關閉調音器設定">×</button></div>
+      <div class="audio-buttons"><button id="metronome-open" aria-pressed="false" aria-label="啟用節拍器並開始打拍"><svg class="metro-play-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 3v14" fill="none" stroke="currentColor" stroke-width="2.2"/><ellipse cx="11" cy="18" rx="5" ry="3.5" transform="rotate(-20 11 18)" fill="currentColor"/></svg><svg class="metro-stop-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="1.5" fill="currentColor"/></svg></button><button id="metro-settings" aria-expanded="false" aria-controls="metronome-panel" aria-label="展開節拍器設定"><svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button><button id="tuner-open" aria-pressed="false" aria-expanded="false" aria-controls="tuner-panel" aria-label="啟用調音器並開始收音"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M7 3v7a5 5 0 0 0 10 0V3M12 15v7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button><button id="tuner-settings" aria-expanded="false" aria-controls="tuner-preferences" aria-label="開啟調音器設定"><svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button></div>
+<div id="tuner-preferences" class="tuner-preferences" role="dialog" aria-label="調音器設定" hidden><label class="a4-control" for="tuner-a"><span>A4</span><input id="tuner-a" type="number" min="430" max="450" value="442" step="1" inputmode="numeric" aria-label="A4基準頻率，Hz"></label></div>
         <section id="metronome-panel" class="audio-panel tuner-preferences" role="dialog" aria-label="節拍器控制" hidden>
           <label for="metro-bpm">BPM</label><input id="metro-bpm" type="number" min="30" max="240" value="80" inputmode="numeric">
-          <input id="metro-slider" aria-label="節拍器速度 BPM" type="range" min="30" max="240" step="1" value="80" style="grid-column:1 / -1;width:100%"><label for="metro-beats">每小節</label><select id="metro-beats"><option value="1">1 拍</option><option value="2">2 拍</option><option value="3">3 拍</option><option value="4" selected>4 拍</option><option value="6">6 拍</option></select>
+          <input id="metro-slider" aria-label="節拍器速度 BPM" type="range" min="30" max="240" step="1" value="80" style="grid-column:1 / -1;width:100%"><label for="metro-volume" style="grid-column:1 / -1">音量</label><input id="metro-volume" type="range" min="0" max="100" step="1" value="60" style="grid-column:1 / -1;width:100%"><label for="metro-beats">每小節</label><select id="metro-beats"><option value="1">1 拍</option><option value="2">2 拍</option><option value="3">3 拍</option><option value="4" selected>4 拍</option><option value="6">6 拍</option></select>
           <label for="metro-accent">重拍</label><select id="metro-accent"><option value="0">無</option><option value="1" selected>第 1 拍</option><option value="2">第 2 拍</option><option value="3">第 3 拍</option><option value="4">第 4 拍</option></select><span id="metro-beat" aria-hidden="true">●</span>
-          <label for="metro-volume">音量</label><input id="metro-volume" type="range" min="0" max="100" step="1" value="60" style="width:100%">
+
         </section>
       <div class="audio-controls" tabindex="0" aria-label="工具控制列，可左右捲動">
         <section id="tuner-panel" class="audio-panel" aria-label="調音器控制" hidden>
-          <div class="audio-meter-wrap"><div class="audio-meter" aria-label="音準刻度：中央零音分；正負10音分內綠色，10至20黃色，超過20紅色" aria-hidden="true"><span id="tuner-needle" class="audio-needle"></span></div><div id="tuner-cents" class="audio-cents">等待開始收音</div></div>
-          <span id="tuner-note" class="audio-note">—</span><p id="tuner-status" class="audio-status" role="status"></p>
+          <div class="audio-meter-wrap"><div class="audio-meter" aria-label="音準刻度：中央零音分；正負10音分內綠色，10至20黃色，超過20紅色" aria-hidden="true"><span id="tuner-needle" class="audio-needle"></span></div><div id="tuner-cents" class="audio-cents sr-only">等待開始收音</div></div>
+          <span id="tuner-note" class="audio-note">—</span><p id="tuner-status" class="audio-status sr-only" role="status"></p>
         </section>
 
         <p id="metro-status" class="audio-status" role="status"></p>
@@ -519,12 +527,12 @@
           <button type="button" class="preset" data-major="3" data-minor="3">3 大調 + 3 小調</button>
           <button type="button" class="preset" data-major="6" data-minor="6">6 大調 + 6 小調</button>
         </div></div>
-        <button type="button" id="draw-button" class="draw-button"><span class="button-icon" aria-hidden="true">✦</span><span id="draw-text">抽取今日練習調性</span><span aria-hidden="true">↗</span></button>
+        <button type="button" id="draw-button" class="draw-button"><span class="button-icon" aria-hidden="true">✦</span><span id="draw-text">抽取今日練習調性</span><svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
         <p class="control-note">每種調性最多 12 個；同一組不會抽到重複調性。</p>
         <div class="ordered-practice" aria-label="循序練習">
           <div class="ordered-practice-copy">
             <strong>循序練習 <span>依調號</span></strong>
-            <small>勾選的調性全部練習 · 0 → ♯1–6 → ♭1–6</small>
+            <small>勾選的調性全部練習 · 0 <svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14m-6-6 6 6-6 6"/></svg><span class="sr-only">再到</span> ♯1–6 <svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14m-6-6 6 6-6 6"/></svg><span class="sr-only">再到</span> ♭1–6</small>
           </div>
           <button type="button" id="ordered-button" class="ordered-practice-button">開始循序練習</button>
         </div>
@@ -534,7 +542,7 @@
       <section class="panel result-panel" aria-labelledby="results-title">
         <div class="panel-head">
           <h2 class="panel-title" id="results-title">今日練習清單</h2>
-          <div class="result-controls" id="result-controls" hidden><button type="button" class="icon-button" id="copy-button" aria-label="複製今日清單">複製清單 ↗</button></div>
+          <div class="result-controls" id="result-controls" hidden><button type="button" class="icon-button" id="copy-button" aria-label="複製今日清單">複製清單 <svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 9h11v11H9z M5 15H4V4h11v1"/></svg></button></div>
           <span class="section-number" id="result-placeholder-code">02 / PRACTICE</span>
         </div>
         <div class="empty-state" id="empty-state">
@@ -571,7 +579,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261114-024-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261114-025-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -597,7 +605,7 @@
 
 
   <script src="fingering-presets.js?v=20261106-012"></script>
-  <script src="fingerboard.js?v=20261113-021"></script>
+  <script src="fingerboard.js?v=20261114-025"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
@@ -1001,11 +1009,19 @@ function createCard(mode,index,doneIds){
  const key=(mode==='major'?MAJOR_KEYS:MINOR_KEYS)[index],id=selectedId(mode,index),done=doneIds.includes(id);
  const card=document.createElement('div');card.className=`key-card${done?' done':''}`;card.dataset.keyId=id;
  const heading=document.createElement('div');heading.className='key-card-heading';
- const main=document.createElement('button');main.type='button';main.className='key-card-main';main.setAttribute('aria-pressed',String(done));
- main.setAttribute('aria-label',`${key[0]} ${mode==='major'?'大調':'小調'}，點擊切換完成`);
- main.innerHTML=`<span class="check-circle" aria-hidden="true">${done?'✓':''}</span><span class="key-card-content"><span class="key-primary">${key[0]} ${mode==='major'?'大調':'小調'}</span><span class="key-relative">${relativeKeyLabel(mode,key)}</span><span class="key-secondary">${scaleNameSummary(mode,key)}</span></span>`;
- main.addEventListener('click',()=>requestCardAction(()=>toggleComplete(id)));
- const expand=document.createElement('button');expand.type='button';expand.className='key-expand';expand.textContent='⌄';
+ const main=document.createElement('div');main.className='key-card-main';
+ const complete=document.createElement('button');complete.type='button';complete.className='key-complete';complete.setAttribute('aria-pressed',String(done));
+ complete.setAttribute('aria-label',`${key[0]} ${mode==='major'?'大調':'小調'}，切換完成狀態`);
+ complete.innerHTML=`<span class="check-circle" aria-hidden="true">${done?'✓':''}</span>`;
+ complete.addEventListener('click',()=>requestCardAction(()=>toggleComplete(id)));
+ const content=document.createElement('div');content.className='key-card-content';
+ const title=document.createElement('button');title.type='button';title.className='key-primary key-title';title.textContent=`${key[0]} ${mode==='major'?'大調':'小調'}`;
+ title.setAttribute('aria-controls','fingering-'+id);
+ title.addEventListener('click',()=>requestCardAction(()=>toggleCardExpansion(id)));
+ content.append(title);
+ const details=document.createElement('div');details.innerHTML=`<span class="key-relative">${relativeKeyLabel(mode,key)}</span><span class="key-secondary">${scaleNameSummary(mode,key)}</span>`;
+ content.append(details);main.append(complete,content);
+ const expand=document.createElement('button');expand.type='button';expand.className='key-expand';expand.innerHTML='<svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>';
  expand.setAttribute('aria-label','展開或收合 '+key[0]+(mode==='major'?'大調':'小調')+' 的音階與指板');
  expand.setAttribute('aria-controls','fingering-'+id);
  expand.addEventListener('click',()=>requestCardAction(()=>toggleCardExpansion(id)));
@@ -1015,7 +1031,7 @@ function createCard(mode,index,doneIds){
  const guide=window.CelloFingerboard.create(mode,key,note,
   (direction,map,original,resetAll)=>saveInlineFingering(id,direction,map,original,resetAll),
   draft=>sharedRoom?window.classroomSync?.setDraft(id,draft):null);
- boardInstances.set(id,guide);cardInstances.set(id,{card,button:main,panel,expand,guide});
+ boardInstances.set(id,guide);cardInstances.set(id,{card,button:complete,title,panel,expand,guide});
  guide.setRemoteDrafts(roomEditingPreviews[id]||[]);panel.append(guide);card.append(heading,panel);
  return card;
 }
@@ -1064,7 +1080,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   const item=cardInstances.get(id),current=currentSession();
   if(!item||!current)return;
   expandedOverride=id;syncPracticeCards(current);
-  item.button.focus({preventScroll:true});
+  item.title.focus({preventScroll:true});
   item.card.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});
  });
 }
@@ -1105,7 +1121,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   item.button.querySelector('.check-circle').textContent=finished?'✓':'';
   item.panel.hidden=!opened;
   item.expand.setAttribute('aria-expanded',String(opened));
-  item.expand.textContent=opened?'⌃':'⌄';
+  item.title.setAttribute('aria-expanded',String(opened));
  }
  renderPracticeNavigation(order,done,active);
 }
@@ -1568,7 +1584,6 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   }
   function tunerSettings(open){if(open)showPanel('metronome',false);$('tuner-preferences').hidden=!open;$('tuner-settings').setAttribute('aria-expanded',String(open));}
   $('tuner-settings').onclick=()=>tunerSettings($('tuner-preferences').hidden);
-  $('tuner-settings-close').onclick=()=>{tunerSettings(false);$('tuner-settings').focus();};
   $('tuner-preferences').addEventListener('keydown',e=>{if(e.key==='Escape'){tunerSettings(false);$('tuner-settings').focus();}});
   document.addEventListener('pointerdown',e=>{if(!$('tuner-preferences').hidden&&!$('tuner-preferences').contains(e.target)&&!$('tuner-settings').contains(e.target))tunerSettings(false);});
   $('metronome-open').onclick=startMetro;
