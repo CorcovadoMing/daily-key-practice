@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261114-030-experimental">
+  <meta name="site-version" content="20261114-031-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -620,7 +620,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261114-030-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261114-031-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -1480,7 +1480,15 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   // This is not an implementation or claim about Tonal Energy's proprietary algorithm.
   // Accept quiet microphone input; YIN periodicity still rejects non-tonal noise.
   const MIN_PITCH_RMS = 0.0003;
-  function detectPitch(input, sampleRate) {
+  // A modest input-floor adjustment only for Android/iPhone/iPad, including desktop-mode iPadOS.
+  // Keep periodicity, frequency range and smoothing identical on every platform.
+  function pitchInputFloor(device = {}) {
+    const ua = device.userAgent || '';
+    const ios = !/Android/i.test(ua) && (/iPad|iPhone|iPod/i.test(ua)
+      || (/Macintosh/i.test(ua) && device.platform === 'MacIntel' && device.maxTouchPoints > 1));
+    return ios || /Android/i.test(ua) ? 0.0002 : MIN_PITCH_RMS;
+  }
+  function detectPitch(input, sampleRate, minRms = MIN_PITCH_RMS) {
     const stride = Math.max(1, Math.floor(sampleRate / 12000));
     const n = Math.floor(input.length / stride), data = new Float32Array(n);
     let mean = 0, energy = 0;
@@ -1488,7 +1496,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     mean /= n;
     // A DC offset is not an audible signal and must not bypass the quiet gate.
     for (let i = 0; i < n; i++) { data[i] -= mean; energy += data[i] * data[i]; }
-    if (Math.sqrt(energy / n) < MIN_PITCH_RMS) return null;
+    if (Math.sqrt(energy / n) < minRms) return null;
     const rate = sampleRate / stride, max = Math.min(Math.floor(rate / 45), Math.floor(n / 2));
     const min = Math.max(2, Math.floor(rate / 1100)), size = n - max;
     const diff = new Float64Array(max + 1); let total = 0;
@@ -1530,7 +1538,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       return 2 ** (this.values.reduce((a, b) => a + b, 0) / this.values.length);
     }
   }
-  if (typeof module !== 'undefined' && module.exports) { module.exports = { detectPitch, pitchReading, PitchWindow, pitchBand, tunerVisual }; return; }
+  if (typeof module !== 'undefined' && module.exports) { module.exports = { detectPitch, pitchReading, PitchWindow, pitchBand, tunerVisual, pitchInputFloor }; return; }
   const $ = id => document.getElementById(id);
   function renderTuner(reading = null) {
     const view = tunerVisual(reading?.cents);
@@ -1661,6 +1669,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
 
   let tunerContext, stream, analyser, source, tunerTimer, tunerRunning = false, pending = false, tunerGeneration = 0;
   const smooth = new PitchWindow(); let lastSignal = 0;
+  const tunerInputFloor = pitchInputFloor(navigator);
   function tunerUI() {
     $('tuner-open').setAttribute('aria-pressed',String(pending||tunerRunning));
     $('tuner-open').setAttribute('aria-label',pending?'取消麥克風授權等待並收起':tunerRunning?'停止收音並收起':'啟用調音器並開始收音');
@@ -1709,11 +1718,11 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         const rms = Math.sqrt(samples.reduce((sum,v)=>sum+v*v,0)/samples.length);
         if(rms > .0001)lastInput=performance.now();
         const muted=stream.getAudioTracks().some(track=>track.muted);
-        const frequency = muted ? null : detectPitch(samples, context.sampleRate);
+        const frequency = muted ? null : detectPitch(samples, context.sampleRate, tunerInputFloor);
         const status = muted ? '麥克風被系統暫停。'
           : performance.now() - lastInput > 2500 ? '已允許麥克風，但未收到聲音。'
-          : rms > 0.0001 && rms < MIN_PITCH_RMS && !frequency ? '收到聲音，但音量太小。'
-          : !frequency && rms >= MIN_PITCH_RMS ? '收到聲音，但未辨識到穩定音高。' : '';
+          : rms > 0.0001 && rms < tunerInputFloor && !frequency ? '收到聲音，但音量太小。'
+          : !frequency && rms >= tunerInputFloor ? '收到聲音，但未辨識到穩定音高。' : '';
         const statusElement = $('tuner-status');
         if (statusElement.textContent !== status) statusElement.textContent = status;
         if (!frequency) {
