@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261114-039-experimental">
+  <meta name="site-version" content="20261114-040-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -193,7 +193,7 @@
     .key-title:focus-visible,.key-complete:focus-visible,.key-expand:focus-visible{outline:2px solid #527049;outline-offset:2px}
     .key-primary{display:block;font-size:26px;line-height:1.05;letter-spacing:-.055em;font-weight:800;white-space:nowrap}
     .key-card.done .key-primary{color:#67876b}
-    .fingering-section{padding:11px 13px 13px;border-top:1px solid #e9ece7;background:#fbfcfa;text-align:left}
+    .fingering-section{overflow-anchor:none;padding:11px 13px 13px;border-top:1px solid #e9ece7;background:#fbfcfa;text-align:left}
     .fingering-title{font-size:11px;font-weight:850;color:#4f6c57;margin:0 0 7px}
     .cello-fingerboard{padding:2px 0 5px;display:grid;gap:10px}
     .cello-fb-toolbar{display:flex;justify-content:space-between;gap:9px;flex-wrap:wrap}
@@ -544,7 +544,7 @@
         </div>
       </div>
       <section class="practice-stats" aria-labelledby="practice-stats-title">
-        <h3 id="practice-stats-title">累積練習 · 24 調</h3>
+        <h3 id="practice-stats-title">累積練習</h3>
         <p>依此瀏覽器保留的個人與課堂紀錄，每個調在每筆紀錄完成算 1 次；刪除紀錄也會扣除。點調性可寫私人筆記，與每日練習卡共用。</p>
         <div id="practice-stats-grid" class="practice-stats-grid"></div>
       </section>
@@ -629,7 +629,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261114-039-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261114-040-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -1242,7 +1242,12 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
  const animation=panel.animate([
   {height:currentHeight+'px',opacity:currentOpacity,overflow:'hidden',boxSizing:'border-box',paddingTop:oldPaddingTop,paddingBottom:oldPaddingBottom,borderTopWidth:oldBorder},
   {height:targetHeight+'px',opacity:opened?1:0,overflow:'hidden',boxSizing:'border-box',paddingTop:opened?natural.paddingTop:'0px',paddingBottom:opened?natural.paddingBottom:'0px',borderTopWidth:opened?natural.borderTopWidth:'0px'}
- ],{duration:200,easing:'cubic-bezier(.2,.7,.3,1)'});
+ ],{
+  // Tall scale + arpeggio panels need time to settle. Reversing mid-flight
+  // travels only the remaining distance rather than replaying a full duration.
+  duration:Math.max(180,Math.min(460,280+Math.abs(targetHeight-currentHeight)*.07)),
+  easing:'cubic-bezier(.25,.1,.25,1)'
+ });
  item.panelAnimation=animation;
  animation.onfinish=()=>{if(item.panelAnimation!==animation)return;panel.hidden=!item.opened;item.panelAnimation=null;};
  }
