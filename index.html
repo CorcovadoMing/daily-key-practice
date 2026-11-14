@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261114-036-experimental">
+  <meta name="site-version" content="20261114-037-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -108,7 +108,7 @@
     .signature-card{display:flex;align-items:center;gap:5px;background:#fff;border:1px solid #e2eae0;border-radius:10px;padding:6px;min-width:0}
     .signature-label{font-size:11px;font-weight:850;color:#778b7b;min-width:23px;text-align:center;flex:none}
     .signature-chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;min-width:0;flex:1}
-    .filter-status{font-size:11px;color:#5b7762;display:flex;gap:12px;flex-wrap:wrap;margin-top:11px}
+    .filter-status{font-size:11px;color:#5b7762;display:grid;gap:6px;margin-top:26px}.filter-status-heading{font-size:12px;font-weight:850;margin:0 0 2px}
     @media(max-width:430px){.key-filter{padding:12px}.signature-grid{gap:5px}.signature-card{padding:5px;gap:3px}.signature-label{min-width:19px}.filter-key{font-size:10px;padding:6px 5px}}
     .filter-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
     .filter-heading h3{margin:0;font-size:14px;font-weight:800}
@@ -383,7 +383,7 @@
     body{padding-bottom:85px}
     .cello-scale-score{width:100%;min-width:0;margin:8px 0 16px;border:1px solid #dce5d9;border-radius:10px;background:#fffffc}.cello-scale-score svg{display:block;width:100%;height:auto;max-width:100%}
     .audio-tools{position:fixed;z-index:50;left:12px;right:auto;width:var(--tools-width,196px);max-width:calc(100vw - 24px);transition:width .28s cubic-bezier(.22,.8,.3,1);bottom:max(8px,env(safe-area-inset-bottom));display:flex;align-items:center;gap:8px;min-width:0;margin:0;padding:8px;border:1px solid #ccd8c9;border-radius:22px;background:#fffffc;color:#263e2e;font-size:14px;box-sizing:border-box}
-    body{padding-bottom:calc(100px + env(safe-area-inset-bottom))}html{scroll-padding-bottom:110px}.toast{bottom:110px}.practice-float{bottom:100px}
+    body{padding-bottom:calc(100px + env(safe-area-inset-bottom))}html{scroll-padding-bottom:110px}.toast{bottom:110px}.practice-float{bottom:auto;max-height:min(78vh,720px,calc(100vh - 220px))}
     .tuner-preferences{position:absolute;bottom:calc(100% + 8px);left:0;display:flex;align-items:center;gap:12px;padding:12px;background:#fffffc;border:1px solid #ccd8c9;border-radius:12px;box-shadow:0 4px 24px #243a2520;max-width:calc(100vw - 48px)}
     #tuner-settings{border-left:0;margin-left:-6px;border-radius:0 8px 8px 0}#tuner-open{border-radius:8px 0 0 8px}
     .audio-buttons button{display:grid;place-items:center;width:44px;height:44px;min-width:44px;flex:none;padding:8px!important}.audio-buttons button svg{width:22px;height:22px;grid-area:1 / 1}.audio-buttons{min-height:52px;align-items:center}
@@ -559,7 +559,7 @@
           </div>
           <p class="filter-explain sr-only">預設 24 調全選。按亮的調性會進入抽籤池；灰色代表排除。依五度圈排列，每格上方為大調、下方為小調，可分別選取。F♯ 大調／E♭ 小調保留原本的等音調拼寫。</p>
           <div id="signature-filters" class="fifths-circle" aria-label="五度圈排列的 24 個候選調性，上方大調、下方小調"></div>
-          <div class="filter-status"><span>大調 <b id="major-eligible">12 / 12</b></span><span>古典旋律小調 <b id="minor-eligible">12 / 12</b></span></div>
+          <div class="filter-status" role="group" aria-labelledby="filter-status-heading"><h4 class="filter-status-heading" id="filter-status-heading">已選取</h4><span>大調 <b id="major-eligible">12 / 12</b></span><span>古典旋律小調 <b id="minor-eligible">12 / 12</b></span></div>
           <p id="filter-warning" class="filter-warning" role="status" hidden></p>
         </section>
         <div class="counter-list">
@@ -629,7 +629,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261114-036-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261114-037-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
