@@ -668,7 +668,7 @@
 
     for(const dir of ['up','down']){
       const section=element('section',{class:'cello-fb-direction',
-        'aria-label':dir==='up'?'上行音階':'下行音階'});
+        'aria-label':mode==='major'&&dir==='up'?'音階指板，上下行相同':dir==='up'?'上行音階':'下行音階'});
       const heading=element('h4',{class:'cello-fb-direction-heading'});
       const viewport=element('div',{class:'cello-fb-viewport'});
       const editor=element('div',{class:'cello-inline-editor',
@@ -732,7 +732,8 @@
         arpeggioViews[dir].replaceChildren(arp);
       }
       const saved=decodeMap(annotations[dir+'Map']);
-      pane.heading.innerHTML=(dir==='up'?'<svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 19V5m-6 6 6-6 6 6"/></svg> 上行':'<svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14m-6-6 6 6 6-6"/></svg> 下行');
+      if(mode==='major'&&dir==='up')pane.heading.textContent='上下行相同';
+      else pane.heading.innerHTML=(dir==='up'?'<svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 19V5m-6 6 6-6 6 6"/></svg> 上行':'<svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14m-6-6 6 6 6-6"/></svg> 下行');
       if(remoteDrafts.some(remote=>remote.direction===dir)){
         pane.heading.append(element('span',{class:'cello-fb-remote-label'},'（其他人編輯中）'));
       }

@@ -14,6 +14,7 @@ const card=q('.key-card'),title=card.querySelector('.key-title'),complete=card.q
 let opened=title.getAttribute('aria-expanded'),done=complete.getAttribute('aria-pressed');header.click();a.notEqual(title.getAttribute('aria-expanded'),opened);a.equal(complete.getAttribute('aria-pressed'),done);opened=title.getAttribute('aria-expanded');card.querySelector('.key-secondary').click();a.notEqual(title.getAttribute('aria-expanded'),opened);a.equal(complete.getAttribute('aria-pressed'),done);
 // Native buttons support Enter/Space in real browsers; no nested interactive controls.
 for(const el of [title,complete,card.querySelector('.key-expand')]){a.equal(el.tagName,'BUTTON');a.equal(el.type,'button');a.equal(el.tabIndex,0)}a.equal(card.querySelectorAll('button button').length,0);complete.click();a.notEqual(complete.getAttribute('aria-pressed'),done);
+a.match(card.querySelector('.fingerboard-section .cello-fb-direction:not([hidden]) h4').textContent,/上下行相同/);
 const note=card.querySelector('.student-note-button');opened=title.getAttribute('aria-expanded');done=complete.getAttribute('aria-pressed');
 note.click();a.equal(title.getAttribute('aria-expanded'),opened);a.equal(complete.getAttribute('aria-pressed'),done);
 q('#student-note-text').value='<img src=x onerror=alert(1)> slow practice';q('.student-note-actions .primary').click();a.equal(q('.student-note-dialog'),null);a.ok(note.classList.contains('has-note'));
