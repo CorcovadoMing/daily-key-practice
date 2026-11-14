@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261113-022-experimental">
+  <meta name="site-version" content="20261114-023-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -448,7 +448,7 @@
           <label for="metro-bpm">BPM</label><input id="metro-bpm" type="number" min="30" max="240" value="80" inputmode="numeric">
           <input id="metro-slider" aria-label="節拍器速度 BPM" type="range" min="30" max="240" step="1" value="80" style="grid-column:1 / -1;width:100%"><label for="metro-beats">每小節</label><select id="metro-beats"><option value="1">1 拍</option><option value="2">2 拍</option><option value="3">3 拍</option><option value="4" selected>4 拍</option><option value="6">6 拍</option></select>
           <label for="metro-accent">重拍</label><select id="metro-accent"><option value="0">無</option><option value="1" selected>第 1 拍</option><option value="2">第 2 拍</option><option value="3">第 3 拍</option><option value="4">第 4 拍</option></select><span id="metro-beat" aria-hidden="true">●</span>
-          <input id="metro-volume" type="hidden" value="40">
+          <label for="metro-volume">音量</label><input id="metro-volume" type="range" min="0" max="100" step="1" value="60" style="width:100%">
         </section>
       <div class="audio-controls" tabindex="0" aria-label="工具控制列，可左右捲動">
         <section id="tuner-panel" class="audio-panel" aria-label="調音器控制" hidden>
@@ -571,7 +571,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261113-022-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261114-023-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -1367,12 +1367,13 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   'use strict';
   // YIN-style period estimation, followed by a short log-frequency window average.
   // This is not an implementation or claim about Tonal Energy's proprietary algorithm.
+  const MIN_PITCH_RMS = 0.008;
   function detectPitch(input, sampleRate) {
     const stride = Math.max(1, Math.floor(sampleRate / 12000));
     const n = Math.floor(input.length / stride), data = new Float32Array(n);
     let energy = 0;
     for (let i = 0; i < n; i++) { data[i] = input[i * stride]; energy += data[i] * data[i]; }
-    if (Math.sqrt(energy / n) < 0.008) return null;
+    if (Math.sqrt(energy / n) < MIN_PITCH_RMS) return null;
     const rate = sampleRate / stride, max = Math.min(Math.floor(rate / 45), Math.floor(n / 2));
     const min = Math.max(2, Math.floor(rate / 1100)), size = n - max;
     const diff = new Float64Array(max + 1); let total = 0;
@@ -1447,14 +1448,17 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     if (nextBeat < metroContext.currentTime - 0.03) { nextBeat = metroContext.currentTime + 0.03; beat = 0; }
     while (nextBeat < metroContext.currentTime + 0.12) {
       const count = Number($('metro-beats').value), accent = beat + 1 === Number($('metro-accent').value);
-      const o = metroContext.createOscillator(), gain = metroContext.createGain();
-      o.frequency.value = accent ? 1200 : 850;
-      gain.gain.setValueAtTime(0, nextBeat);
-      gain.gain.linearRampToValueAtTime(Number($('metro-volume').value) / 100 * 0.45, nextBeat + 0.002);
-      gain.gain.exponentialRampToValueAtTime(0.001, nextBeat + 0.045);
-      o.connect(gain); gain.connect(metroContext.destination); oscillators.add(o);
-      o.onended = () => { oscillators.delete(o); o.disconnect(); gain.disconnect(); };
-      o.start(nextBeat); o.stop(nextBeat + 0.05);
+      const volume = Math.max(0, Math.min(100, Number($('metro-volume').value) || 0));
+      if (volume > 0) {
+        const o = metroContext.createOscillator(), gain = metroContext.createGain();
+        o.frequency.value = accent ? 1200 : 850;
+        gain.gain.setValueAtTime(0, nextBeat);
+        gain.gain.linearRampToValueAtTime(volume / 100 * 0.65, nextBeat + 0.002);
+        gain.gain.exponentialRampToValueAtTime(0.001, nextBeat + 0.045);
+        o.connect(gain); gain.connect(metroContext.destination); oscillators.add(o);
+        o.onended = () => { oscillators.delete(o); o.disconnect(); gain.disconnect(); };
+        o.start(nextBeat); o.stop(nextBeat + 0.05);
+      }
       const label = (beat + 1) + ' / ' + count;
       const timer = setTimeout(() => { visuals.delete(timer); if (metroRunning) $('metro-beat').textContent = label; }, Math.max(0, (nextBeat - metroContext.currentTime) * 1000));
       visuals.add(timer); beat = (beat + 1) % count; nextBeat += 60 / bpm();
@@ -1530,8 +1534,13 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         const rms = Math.sqrt(samples.reduce((sum,v)=>sum+v*v,0)/samples.length);
         if(rms > .0001)lastInput=performance.now();
         const muted=stream.getAudioTracks().some(track=>track.muted);
-        $('tuner-status').textContent=muted?'麥克風被系統暫停，請檢查其他收音 App。':performance.now()-lastInput>2500?'已取得麥克風，但沒有輸入訊號。請檢查 iPad 收音裝置，或重新開啟調音器。':'';
         const frequency = muted ? null : detectPitch(samples, context.sampleRate);
+        const status = muted ? '麥克風被系統暫停。'
+          : performance.now() - lastInput > 2500 ? '已允許麥克風，但未收到聲音。'
+          : rms > 0.0001 && rms < MIN_PITCH_RMS && !frequency ? '收到聲音，但音量太小。'
+          : !frequency && rms >= MIN_PITCH_RMS ? '收到聲音，但未辨識到穩定音高。' : '';
+        const statusElement = $('tuner-status');
+        if (statusElement.textContent !== status) statusElement.textContent = status;
         if (!frequency) {
           if (performance.now() - lastSignal > 500) { smooth.reset(); $('tuner-needle').style.visibility='visible'; $('tuner-note').textContent = '—'; $('tuner-cents').textContent = '請拉一個穩定的單音'; $('tuner-needle').style.left = '50%'; } return;
         }
