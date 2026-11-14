@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261114-032-experimental">
+  <meta name="site-version" content="20261114-036-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -56,6 +56,7 @@
     .date-label{text-align:right;color:var(--muted);font-size:13px;white-space:nowrap;padding-bottom:5px}
     .date-label strong{font-size:16px;display:block;color:var(--ink);margin-top:6px;letter-spacing:-.02em}
     .classroom-bar{display:flex;justify-content:space-between;align-items:center;gap:18px;background:#eaf0e8;border:1px solid #d7e4d6;border-radius:20px;padding:20px 25px;margin:0 0 22px}
+    .practice-stats{grid-column:1/-1;border-top:1px solid #d7e4d6;padding-top:14px;min-width:0;width:100%}.practice-stats h3{font-size:14px;margin:0 0 6px}.practice-stats-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-top:10px}.practice-stat{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:3px;min-width:0;min-height:40px;padding:4px;border:1px solid #d7e4d6;border-radius:8px;background:#fffffc;color:#304c39;font-size:11px;text-align:left}.practice-stat span{white-space:nowrap}.practice-stat b{white-space:nowrap;font-size:11px;font-variant-numeric:tabular-nums}.practice-stat.has-note{border-color:#6f9770;background:#e8f0e3}.practice-stat:focus-visible{outline:2px solid #315f45;outline-offset:2px}
     .classroom-bar h2{font-size:16px;margin:0 0 7px;letter-spacing:-.035em}
     .classroom-bar p{font-size:12px;color:#6a796d;line-height:1.7;margin:0}
     .room-status{font-size:12px;color:#42634b;display:block;margin-top:8px;font-weight:700}
@@ -401,19 +402,21 @@
     .audio-panel label{white-space:nowrap;font-size:12px}.audio-panel input[type=number]{width:72px}.audio-panel input[type=range]{width:100px;padding:0}
     .audio-note{font-size:26px;font-weight:800;min-width:46px;text-align:center;font-variant-numeric:tabular-nums}
     .audio-cents{font-size:12px;min-height:16px;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}
-    .audio-meter-wrap{width:185px;flex-shrink:0}.audio-meter{height:10px;position:relative;background:#e8ebe5;border-radius:4px;margin:2px 0;overflow:hidden}
+    .audio-meter-wrap{width:185px;flex-shrink:0;padding-inline:4px;box-sizing:border-box}.audio-meter{height:20px;position:relative;background:#e8ebe5;border-radius:4px;margin:2px 0;overflow:hidden}
     .audio-meter:before{content:'';position:absolute;left:50%;height:100%;border-left:1px solid #9ca995;z-index:1}
-    .audio-band{position:absolute;inset:0 auto 0 0;background:transparent}
+    .audio-band{position:absolute;inset:0 auto 0 0;background:transparent;transition:background-color 80ms ease-out}
     .audio-band[data-segment=low-red]{left:0;width:30%}.audio-band[data-segment=low-yellow]{left:30%;width:10%}.audio-band[data-segment=center]{left:40%;width:20%}.audio-band[data-segment=high-yellow]{left:60%;width:10%}.audio-band[data-segment=high-red]{left:70%;width:30%}
     .audio-band.is-active[data-segment$=red]{background:#e4a798}.audio-band.is-active[data-segment$=yellow]{background:#e7cf85}.audio-band.is-active[data-segment=center]{background:#a9cba0}
-    .audio-needle{position:absolute;left:50%;height:10px;width:2px;background:#234c36;transform:translateX(-50%);z-index:2;visibility:hidden}
-    .audio-scale{position:relative;height:19px;font-size:8px;line-height:9px;font-variant-numeric:tabular-nums;color:#697566;white-space:nowrap}
-    .audio-scale span{position:absolute;transform:translateX(-50%);top:0}.audio-scale span:nth-child(2),.audio-scale span:nth-child(3){top:9px}
+    .audio-needle{position:absolute;left:50%;height:20px;width:3px;background:#173e2b;transform:translateX(-50%);z-index:2;visibility:hidden;transition:left 80ms ease-out}
+    .audio-scale{position:relative;height:11px;font-size:7px;line-height:9px;letter-spacing:-.45px;font-variant-numeric:tabular-nums;color:#697566;white-space:nowrap}
+    .audio-scale span{position:absolute;transform:translateX(-50%);top:0;width:24px;text-align:center;line-height:9px}
     .tuner-readout{display:flex;align-items:baseline;justify-content:center;gap:7px;margin-bottom:5px;min-height:22px}
     .tuner-readout #tuner-note,.tuner-readout #tuner-cents{font-size:18px;font-weight:800;line-height:22px;min-height:22px;width:auto;min-width:0;flex:0 0 auto;white-space:nowrap;text-align:center;font-variant-numeric:tabular-nums}
+    .tuner-readout #tuner-cents{font-weight:400;color:#84917e}
     .audio-status{font-size:12px;margin:0;max-width:200px}.audio-status:empty{display:none}.audio-error{color:#9b3939!important}
     #metro-beat{min-width:36px;font-variant-numeric:tabular-nums}
-    @media(prefers-reduced-motion:reduce){.audio-tools{transition:none}}
+     .audio-meter[data-active="false"] .audio-band{transition:none}
+    @media(prefers-reduced-motion:reduce){.audio-tools,.audio-needle,.audio-band{transition:none!important}}
     @media(max-width:600px){.audio-meter-wrap{width:106px}.audio-note{min-width:30px;font-size:22px}.audio-cents{font-size:10px;white-space:normal;line-height:13px}.audio-panel{gap:6px}.audio-tools{gap:6px;padding:6px}.audio-buttons{gap:4px}.audio-tools button{font-size:13px;padding:8px 6px}}
     .key-card,.counter-item,.signature-card,.room-action,.icon-button{background:var(--paper)}
     .classroom-bar,.key-filter{background:#eef0e6;border-color:#d9dfcf}
@@ -540,6 +543,11 @@
           <button type="button" class="room-action" id="room-leave" hidden>離開房間</button>
         </div>
       </div>
+      <section class="practice-stats" aria-labelledby="practice-stats-title">
+        <h3 id="practice-stats-title">累積練習 · 24 調</h3>
+        <p>依此瀏覽器保留的個人與課堂紀錄，每個調在每筆紀錄完成算 1 次；刪除紀錄也會扣除。點調性可寫私人累積筆記。</p>
+        <div id="practice-stats-grid" class="practice-stats-grid"></div>
+      </section>
     </section>
 
       <section class="panel" aria-labelledby="settings-title">
@@ -621,7 +629,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261114-032-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261114-036-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -647,7 +655,7 @@
 
 
   <script src="fingering-presets.js?v=20261106-012"></script>
-  <script src="fingerboard.js?v=20261114-027"></script>
+  <script src="fingerboard.js?v=20261114-035"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
@@ -1056,25 +1064,24 @@
     }
 // Student notes stay on this browser, separate from shared classroom state.
 const studentNoteKey=id=>'daily-key-practice:experimental:student-note:'+encodeURIComponent(sharedRoom?.id||'personal')+':'+id;
-function readStudentNote(id){try{return localStorage.getItem(studentNoteKey(id))||'';}catch{return '';}}
-function refreshNoteButton(button,id){
- const filled=Boolean(readStudentNote(id).trim());button.classList.toggle('has-note',filled);
- button.setAttribute('aria-label',(filled?'編輯':'新增')+'個人練習筆記（僅此瀏覽器）');
+function readStudentNote(id,storageKey=studentNoteKey(id)){try{return localStorage.getItem(storageKey)||'';}catch{return '';}}
+function refreshNoteButton(button,id,storageKey=studentNoteKey(id)){
+ const filled=Boolean(readStudentNote(id,storageKey).trim());button.classList.toggle('has-note',filled);
+ button.setAttribute('aria-label',(button.dataset.noteLabel||'')+(filled?'編輯':'新增')+'個人練習筆記（僅此瀏覽器）');
 }
-function openStudentNote(id,button){
+function openStudentNote(id,button,storageKey=studentNoteKey(id)){
  const dialog=document.createElement('dialog');dialog.className='student-note-dialog';
- const heading=document.createElement('h2');heading.textContent='我的練習筆記';heading.id='student-note-heading';
+ const heading=document.createElement('h2');heading.textContent=button.dataset.noteTitle?button.dataset.noteTitle+'累積筆記':'我的練習筆記';heading.id='student-note-heading';
  dialog.setAttribute('aria-labelledby',heading.id);
  const label=document.createElement('label');label.htmlFor='student-note-text';label.textContent='這個調想記住的事';
- const input=document.createElement('textarea');input.id='student-note-text';input.rows=6;input.value=readStudentNote(id);input.placeholder='例如：換把前放鬆左手、下次從慢速開始…';
+ const input=document.createElement('textarea');input.id='student-note-text';input.rows=6;input.value=readStudentNote(id,storageKey);input.placeholder='例如：換把前放鬆左手、下次從慢速開始…';
  const help=document.createElement('p');help.className='caption';help.textContent='只保存在這個瀏覽器，不會同步給老師或其他學生。共用裝置上的其他人仍可看見。';
  const actions=document.createElement('div');actions.className='student-note-actions';
  const cancel=document.createElement('button');cancel.type='button';cancel.textContent='取消';cancel.className='room-action';
  const save=document.createElement('button');save.type='button';save.textContent='儲存筆記';save.className='room-action primary';
  const clear=document.createElement('button');clear.type='button';clear.textContent='清空內容';clear.className='room-action';
  clear.addEventListener('click',()=>{input.value='';input.focus();});cancel.addEventListener('click',()=>dialog.close());
- const storageKey=studentNoteKey(id);
- save.addEventListener('click',()=>{try{if(input.value.trim())localStorage.setItem(storageKey,input.value);else localStorage.removeItem(storageKey);refreshNoteButton(button,id);dialog.close();}catch{help.textContent='無法儲存，請先複製筆記保留。';}});
+ save.addEventListener('click',()=>{try{if(input.value.trim())localStorage.setItem(storageKey,input.value);else localStorage.removeItem(storageKey);refreshNoteButton(button,id,storageKey);dialog.close();}catch{help.textContent='無法儲存，請先複製筆記保留。';}});
  dialog.addEventListener('close',()=>{dialog.remove();button.focus({preventScroll:true});});
  actions.append(clear,cancel,save);dialog.append(heading,label,input,help,actions);document.body.append(dialog);dialog.showModal();input.focus();
 }
@@ -1314,6 +1321,34 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       syncPracticeCards(session);
       if(count===total)showToast('今天的調性全部練完了，太棒了！ 🎉');
     }
+    // Cumulative counts derive only from stored completed history, never the live/replay session.
+    function cumulativePracticeCounts(personal=[],classroom=[]){
+      const counts=Object.fromEntries(['major','minor'].flatMap(mode=>Array.from({length:12},(_,i)=>[mode+'-'+i,0])));
+      const rows=new Map();
+      for(const [source,records] of [['personal',personal],['classroom',classroom]]){
+        if(!Array.isArray(records))continue;
+        records.forEach((record,index)=>{if(record&&Array.isArray(record.majorIds)&&Array.isArray(record.minorIds))rows.set(typeof record.id==='string'&&record.id?record.id:source+':row:'+index,record);});
+      }
+      for(const record of rows.values()){
+        const valid=new Set(['major','minor'].flatMap(mode=>record[mode+'Ids'].filter(i=>Number.isInteger(i)&&i>=0&&i<12).map(i=>mode+'-'+i)));
+        for(const id of new Set(Array.isArray(record.doneIds)?record.doneIds:[]))if(valid.has(id))counts[id]++;
+      }
+      return counts;
+    }
+    const cumulativeNoteKey=id=>'daily-key-practice:experimental:cumulative-note:'+id;
+    function renderPracticeStats(){
+      const grid=q('#practice-stats-grid');if(!grid)return;
+      const counts=cumulativePracticeCounts(state.personalHistory,state.classroomHistory);
+      grid.replaceChildren();
+      for(const mode of ['major','minor'])for(let i=0;i<12;i++){
+        const id=selectedId(mode,i),label=keyName(mode,i)+(mode==='major'?'大調':'小調');
+        const button=document.createElement('button');button.type='button';button.className='practice-stat';button.dataset.statKey=id;button.dataset.noteTitle=label+' ';button.dataset.noteLabel=label+'，'+counts[id]+' 次，';
+        const name=document.createElement('span');name.textContent=label;
+        const count=document.createElement('b');count.textContent=counts[id]+' 次';
+        button.append(name,count);refreshNoteButton(button,id,cumulativeNoteKey(id));
+        button.addEventListener('click',()=>openStudentNote(id,button,cumulativeNoteKey(id)));grid.append(button);
+      }
+    }
     function historyProgress(record){
       const ids=[...record.majorIds.map(i=>selectedId('major',i)),
         ...record.minorIds.map(i=>selectedId('minor',i))];
@@ -1358,6 +1393,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       return ' · '+String(date.getHours()).padStart(2,'0')+':'+String(date.getMinutes()).padStart(2,'0');
     }
     function renderHistory(){
+      renderPracticeStats();
       function createRow(record,kind){
         const row=document.createElement('div');row.className='history-row';
         const meta=document.createElement('div');meta.className='history-date';
@@ -1545,6 +1581,10 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     const view = tunerVisual(reading?.cents);
     $('tuner-cents').textContent = view.text;
     $('tuner-note').textContent = view.valid ? reading.name : '—';
+    const needle = $('tuner-needle');
+    // Snap the first valid reading after silence; never sweep in from idle center.
+    needle.style.transition = view.valid && needle.style.visibility === 'visible' ? '' : 'none';
+    $('tuner-meter').dataset.active = String(view.valid);
     $('tuner-needle').style.visibility = view.valid ? 'visible' : 'hidden';
     $('tuner-needle').style.left = view.position + '%';
     $('tuner-needle').dataset.band = view.band;

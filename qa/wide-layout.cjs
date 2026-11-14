@@ -9,7 +9,7 @@ a.equal(new Set([...d.querySelectorAll('.fifths-pair button')].map(b=>b.dataset.
 a.ok([...d.querySelectorAll('.fifths-pair button')].some(b=>b.getAttribute('aria-label').startsWith('E♭古典旋律小調 ♭ × 6')));
 let b=q('.fifths-pair button'),id=b.dataset.keyId;b.click();a.equal(q('[data-key-id="'+id+'"]').getAttribute('aria-pressed'),'false');a.equal(d.activeElement.dataset.keyId,id);click('#filter-none');a.equal(q('#draw-button').disabled,true);click('#filter-all');a.equal(q('#draw-button').disabled,false);
 click('#draw-button');await new Promise(r=>setTimeout(r,50));
-for(const card of d.querySelectorAll('.key-card')){const major=card.dataset.keyId.startsWith('major');a.equal(card.querySelectorAll('.cello-fb-direction:not([hidden])').length,major?1:2);a.equal(card.querySelector('.cello-scale-score').tabIndex,0);}
+for(const card of d.querySelectorAll('.key-card')){const major=card.dataset.keyId.startsWith('major');a.equal(card.querySelectorAll('.fingerboard-section:not(.arpeggio-section) .cello-fb-direction:not([hidden])').length,major?1:2);a.equal(card.querySelector('.cello-scale-score').tabIndex,0);}
 const card=q('.key-card'),title=card.querySelector('.key-title'),complete=card.querySelector('.key-complete'),header=card.querySelector('.key-card-heading');
 let opened=title.getAttribute('aria-expanded'),done=complete.getAttribute('aria-pressed');header.click();a.notEqual(title.getAttribute('aria-expanded'),opened);a.equal(complete.getAttribute('aria-pressed'),done);opened=title.getAttribute('aria-expanded');card.querySelector('.key-secondary').click();a.notEqual(title.getAttribute('aria-expanded'),opened);a.equal(complete.getAttribute('aria-pressed'),done);
 // Native buttons support Enter/Space in real browsers; no nested interactive controls.
