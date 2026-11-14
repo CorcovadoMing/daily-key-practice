@@ -147,8 +147,10 @@
   function chartSVG(mode,key,direction,octaves,annotations={},interaction=null,remoteDrafts=[],reverseStrings=false,arpeggio=false){
     const scale=scaleNotes(mode,key,direction,octaves);
     const notes=arpeggio?arpeggioNotes(mode,key,direction):scale;
-    const map=decodeMap(direction==='up'?annotations.upMap:annotations.downMap);
-    const presets=window.CelloFingeringPresets?.get(mode,key,direction,scale)||{};
+    const sourceDirection=arpeggio?'up':direction;
+    const map=decodeMap(sourceDirection==='up'?annotations.upMap:annotations.downMap);
+    const sourceScale=sourceDirection===direction?scale:scaleNotes(mode,key,sourceDirection,octaves);
+    const presets=window.CelloFingeringPresets?.get(mode,key,sourceDirection,sourceScale)||{};
     const plotted=notes.map(note=>{
       const position=notePlacement(note.midi,map,presets);
       return {...note,position,style:pointStyling(position)};
@@ -376,7 +378,7 @@
     const signature=key[1],startX=70+Math.abs(signature)*8,width=928+Math.abs(signature)*8;
     const accidentals=scoreAccidentals(sequence,signature);
     const wrap=element('div',{class:'cello-scale-score',tabindex:'0','aria-label':(arpeggio?'琶音':'音階')+'兩個八度上下行五線譜，可左右捲動'});
-    const svg=svgNode('svg',{viewBox:`0 0 ${width} 185`,width,height:185,role:'img','aria-label':key[0]+(mode==='major'?'大調':'旋律小調')+(arpeggio?'琶音':'音階')+'，低音譜號，兩個八度上下行十六分音符，末音四分音符'});
+    const svg=svgNode('svg',{viewBox:`0 0 ${width} 185`,width,height:185,role:'img','aria-label':key[0]+(mode==='major'?'大調':'旋律小調')+(arpeggio?'琶音':'音階')+(arpeggio?'，低音譜號，兩個八度上下行，全部四分音符':'，低音譜號，兩個八度上下行十六分音符，末音四分音符')});
     svg.append(svgNode('title',{},'兩個八度上行與下行，調號與必要臨時記號；窄螢幕可左右捲動'));
     for(let i=0;i<5;i++)svg.append(svgNode('line',{x1:14,x2:width-15,y1:110-i*10,y2:110-i*10,stroke:'#777','stroke-width':0.8}));
     // Bass-clef curve and dots anchor the F3 line, avoiding music-font dependency.
@@ -402,15 +404,16 @@
       const x=startX+i*spacing,y=110-(staffStep(note)-18)*5;
       for(let ly=120;ly<=y;ly+=10)svg.append(svgNode('line',{x1:x-11,x2:x+11,y1:ly,y2:ly,stroke:'#444','stroke-width':1}));
       for(let ly=60;ly>=y;ly-=10)svg.append(svgNode('line',{x1:x-11,x2:x+11,y1:ly,y2:ly,stroke:'#444','stroke-width':1}));
-      const g=svgNode('g',{'data-midi':note.midi,'data-note':note.name,'data-duration':i===sequence.length-1?'4':'16'});
+      const g=svgNode('g',{'data-midi':note.midi,'data-note':note.name,'data-duration':arpeggio||i===sequence.length-1?'4':'16'});
       g.append(svgNode('title',{},note.name+' · MIDI '+note.midi));
       if(accidentals[i])g.append(svgNode('text',{class:'scale-accidental',x:x-18,y:y+5,'text-anchor':'middle','font-family':'Georgia, serif','font-size':18,fill:'#222'},accidentals[i]));
       g.append(svgNode('ellipse',{cx:x,cy:y,rx:5.8,ry:3.7,transform:'rotate(-20 '+x+' '+y+')',fill:'#222'}));
       svg.append(g);
     });
     // Four-note visual groups; no meter or barlines are imposed on the exercise.
-    for(let start=0;start<sequence.length;start+=4){
-      const group=sequence.slice(start,start+4).map((note,j)=>({x:startX+(start+j)*spacing,y:110-(staffStep(note)-18)*5}));
+    const groupSize=arpeggio?1:4;
+    for(let start=0;start<sequence.length;start+=groupSize){
+      const group=sequence.slice(start,start+groupSize).map((note,j)=>({x:startX+(start+j)*spacing,y:110-(staffStep(note)-18)*5}));
       const down=group.reduce((sum,n)=>sum+n.y,0)/group.length<90;
       const beamY=down?Math.max(...group.map(n=>n.y))+32:Math.min(...group.map(n=>n.y))-32;
       const stemX=n=>n.x+(down?-5:5);
@@ -712,18 +715,22 @@
     const arpeggioViews={};
     arpeggioSection.append(element('h3',{class:'music-section-title'},'琶音 · 兩個八度'),
       makeScore(mode,key,true),arpeggioBoards);
-    for(const dir of ['up','down']){
+    for(const dir of ['up']){
       const section=element('section',{class:'cello-fb-direction'});
       const viewport=element('div',{class:'cello-fb-viewport'});
-      section.append(element('h4',{class:'cello-fb-direction-heading'},dir==='up'?'琶音上行':'琶音下行'),viewport);
+      section.append(element('h4',{class:'cello-fb-direction-heading'},'上下行相同'),viewport);
       arpeggioViews[dir]=viewport;arpeggioBoards.append(section);
     }
-    arpeggioSection.append(element('p',{class:'caption'},'指法沿用上方音階各方向的已儲存設定；請在音階指板編輯。'));
+    arpeggioSection.append(element('p',{class:'caption'},'上下行皆沿用音階上行的已儲存指法；下行反向演奏。請在上方音階指板編輯。'));
     root.append(scoreSection,boardSection,arpeggioSection,dialog);
 
     function renderDirection(dir){
       const pane=panels[dir],editing=edit.dir===dir;
-      arpeggioViews[dir].replaceChildren(chartSVG(mode,key,dir,2,annotations,null,[],stringOrder==='ADGC',true));
+      if(arpeggioViews[dir]){
+        const arp=chartSVG(mode,key,dir,2,annotations,null,[],stringOrder==='ADGC',true);
+        arp.setAttribute('aria-label',key[0]+(mode==='major'?'大調':'小調')+'琶音，兩個八度上下行相同指法，下行反向演奏');
+        arpeggioViews[dir].replaceChildren(arp);
+      }
       const saved=decodeMap(annotations[dir+'Map']);
       pane.heading.innerHTML=(dir==='up'?'<svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 19V5m-6 6 6-6 6 6"/></svg> 上行':'<svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14m-6-6 6 6 6-6"/></svg> 下行');
       if(remoteDrafts.some(remote=>remote.direction===dir)){
