@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261114-041-experimental">
+  <meta name="site-version" content="20261114-042-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -56,7 +56,7 @@
     .date-label{text-align:right;color:var(--muted);font-size:13px;white-space:nowrap;padding-bottom:5px}
     .date-label strong{font-size:16px;display:block;color:var(--ink);margin-top:6px;letter-spacing:-.02em}
     .classroom-bar{display:flex;justify-content:space-between;align-items:center;gap:18px;background:#eaf0e8;border:1px solid #d7e4d6;border-radius:20px;padding:20px 25px;margin:0 0 22px}
-    .practice-stats{grid-column:1/-1;border-top:1px solid #d7e4d6;padding-top:14px;min-width:0;width:100%}.practice-stats h3{font-size:14px;margin:0 0 6px}.practice-stats-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-top:10px}.practice-stat{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:3px;min-width:0;min-height:40px;padding:4px;border:1px solid #d7e4d6;border-radius:8px;background:#fffffc;color:#304c39;font-size:11px;text-align:left}.practice-stat span{white-space:nowrap}.practice-stat b{white-space:nowrap;font-size:11px;font-variant-numeric:tabular-nums}.practice-stat.has-note .student-note-button{color:#6a5018;background:#fff1c7;border-color:#d9b663}.practice-stat .student-note-button{width:24px;height:24px;border-radius:7px}.practice-stat .ui-icon{width:15px;height:15px}.practice-stats-empty{grid-column:1/-1;margin:0}.practice-stat:focus-visible{outline:2px solid #315f45;outline-offset:2px}
+    .practice-stats{min-width:0;width:100%;background:var(--paper);border:1px solid var(--line);border-radius:17px;box-shadow:var(--shadow);padding:16px 18px}.practice-stats>p{font-size:11px;line-height:1.5;color:var(--muted);margin:0}.practice-stats h3{font-size:14px;margin:0 0 6px}.practice-stats-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-top:10px}.practice-stat{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:3px;min-width:0;min-height:40px;padding:4px;border:1px solid #d7e4d6;border-radius:8px;background:#fffffc;color:#304c39;font-size:11px;text-align:left}.practice-stat span{white-space:nowrap}.practice-stat b{white-space:nowrap;font-size:11px;font-variant-numeric:tabular-nums}.practice-stat.has-note .student-note-button{color:#6a5018;background:#fff1c7;border-color:#d9b663}.practice-stat .student-note-button{width:24px;height:24px;border-radius:7px}.practice-stat .ui-icon{width:15px;height:15px}.practice-stats-empty{grid-column:1/-1;margin:0}.practice-stat:focus-visible{outline:2px solid #315f45;outline-offset:2px}
     .classroom-bar h2{font-size:16px;margin:0 0 7px;letter-spacing:-.035em}
     .classroom-bar p{font-size:12px;color:#6a796d;line-height:1.7;margin:0}
     .room-status{font-size:12px;color:#42634b;display:block;margin-top:8px;font-weight:700}
@@ -77,8 +77,9 @@
     .room-action:hover:not(:disabled){filter:brightness(.96)}
     @media(max-width:620px){.classroom-bar{flex-direction:column;align-items:stretch;padding:18px}}
     .workspace{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:20px}
+    .setup-sidebar{display:flex;flex-direction:column;gap:16px;min-width:0;align-self:start}
     .setup-stack{display:flex;flex-direction:column;gap:16px;min-width:0}
-    .setup-stack>.classroom-bar{margin:0;flex-direction:column;align-items:stretch;gap:12px;padding:16px 18px;border-radius:17px}
+    .setup-sidebar>.classroom-bar{margin:0;flex-direction:column;align-items:stretch;gap:12px;padding:16px 18px;border-radius:17px}
     .setup-stack .classroom-bar p{font-size:11px;line-height:1.5}
     .setup-stack .room-actions{align-items:stretch;min-width:0;gap:8px}
     .setup-stack .room-buttons{justify-content:flex-start}
@@ -469,9 +470,9 @@
     .cello-scale-score svg{min-width:960px;max-width:none}
     .workspace .cello-fb-two-up{grid-template-columns:repeat(2,minmax(0,1fr))}
     .cello-fb-direction[hidden]{display:none!important}
-    @media(max-width:1100px){.setup-stack{grid-template-columns:1fr}.setup-stack>.classroom-bar{display:grid;grid-template-columns:1fr 1fr}.setup-stack>.panel{grid-template-columns:minmax(280px,1fr) minmax(220px,1fr)}}
+    @media(max-width:1100px){.setup-stack{grid-template-columns:1fr}.setup-sidebar>.classroom-bar{display:grid;grid-template-columns:1fr 1fr}.setup-stack>.panel{grid-template-columns:minmax(280px,1fr) minmax(220px,1fr)}}
     @media(max-width:700px){
-      .setup-stack>.panel{display:block}.setup-stack .key-filter{margin-bottom:18px}.setup-stack>.classroom-bar{display:flex}
+      .setup-stack>.panel{display:block}.setup-stack .key-filter{margin-bottom:18px}.setup-sidebar>.classroom-bar{display:flex}
       .workspace .cello-fb-two-up{grid-template-columns:minmax(0,1fr)}
       .fifths-circle{max-width:350px}.result-panel{padding:16px}.fingering-section{padding:12px 8px}
     }
@@ -516,6 +517,7 @@
 
     <div class="workspace">
       <div class="setup-stack">
+      <div class="setup-sidebar">
     <section class="classroom-bar" aria-labelledby="classroom-heading">
       <div>
         <h2 id="classroom-heading">課堂同步模式 · CLASSROOM</h2>
@@ -543,12 +545,13 @@
           <button type="button" class="room-action" id="room-leave" hidden>離開房間</button>
         </div>
       </div>
+    </section>
       <section class="practice-stats" aria-labelledby="practice-stats-title">
         <h3 id="practice-stats-title">累積練習</h3>
         <p>依此瀏覽器保留的個人與課堂紀錄，每個調在每筆紀錄完成算 1 次；刪除紀錄也會扣除。點調性可寫私人筆記，與每日練習卡共用。</p>
         <div id="practice-stats-grid" class="practice-stats-grid"></div>
       </section>
-    </section>
+      </div>
 
       <section class="panel" aria-labelledby="settings-title">
         <div class="panel-head"><h2 class="panel-title" id="settings-title">設定抽籤數量</h2><span class="section-number">01 / SETUP</span></div>
@@ -629,7 +632,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261114-041-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261114-042-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
