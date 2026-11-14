@@ -52,8 +52,10 @@
       parent.append(b);
       return b;
     }
-    const upButton=button(directionGroup,'↑ 上行',()=>{direction='up';selected=0;render();});
-    const downButton=button(directionGroup,'↓ 下行',()=>{direction='down';selected=0;render();});
+    const upButton=button(directionGroup,'上行',()=>{direction='up';selected=0;render();});
+    const downButton=button(directionGroup,'下行',()=>{direction='down';selected=0;render();});
+    upButton.insertAdjacentHTML('afterbegin','<svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 19V5m-6 6 6-6 6 6"/></svg> ');
+    downButton.insertAdjacentHTML('afterbegin','<svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14m-6-6 6 6 6-6"/></svg> ');
     const oneButton=button(octaveGroup,'1 八度',()=>{octaves=1;selected=0;render();});
     const twoButton=button(octaveGroup,'2 八度',()=>{octaves=2;selected=0;render();});
     const rangeButton=button(rangeGroup,'顯示更高把位',()=>{

@@ -39,6 +39,11 @@ jobs:
         with:
           ref: experimental
           path: experiment
+      - name: Validate stable release
+        working-directory: stable
+        run: |
+          node --check metronome-worklet.js
+          node --test tests/*.test.cjs
       - name: Combine both independent branch snapshots
         shell: bash
         run: |
@@ -48,6 +53,7 @@ jobs:
             cp "stable/$file" "_site/$file"
             cp "experiment/$file" "_site/experimental/$file"
           done
+          cp stable/metronome-worklet.js _site/
           if [[ -f experiment/metronome-worklet.js ]]; then
             cp experiment/metronome-worklet.js _site/experimental/
           fi

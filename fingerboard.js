@@ -1,5 +1,5 @@
 /* Clean cello fingerboard note-position diagrams for scale practice.
- * Standard open strings: C2 G2 D3 A3. Circles show scale order, NOT left-hand fingers.
+ * Standard open strings: C2 G2 D3 A3. Circles show left-hand fingers (0 = open string, ? = not specified).
  * A schematic semitone spacing is used for legibility; physical distances are not to scale.
  * Per-note string choices favor the highest possible open string / lowest stopped position.
  */
@@ -20,6 +20,7 @@
     natural:[0,2,3,5,7,8,10]
   };
   const choices=new Map();
+  let stringOrder='CGDA';
 
   function pitchClass(name){
     let value=PITCH[name[0]];
@@ -47,6 +48,13 @@
     sequence.push({name:noteNames[0],midi:root+octaves*12});
     if(direction==='down')sequence.reverse();
     return sequence.map((note,i)=>({...note,order:i+1}));
+  }
+
+  // Read-only triad projection of the existing two-octave scale spelling.
+  function arpeggioNotes(mode,key,direction){
+    const indices=direction==='up'?[0,2,4,7,9,11,14]:[0,3,5,7,10,12,14];
+    const scale=scaleNotes(mode,key,direction,2);
+    return indices.map((index,i)=>({...scale[index],order:i+1}));
   }
 
   function positionFor(midi){
@@ -136,10 +144,13 @@
     return aside;
   }
 
-  function chartSVG(mode,key,direction,octaves,annotations={},interaction=null,remoteDrafts=[]){
-    const notes=scaleNotes(mode,key,direction,octaves);
-    const map=decodeMap(direction==='up'?annotations.upMap:annotations.downMap);
-    const presets=window.CelloFingeringPresets?.get(mode,key,direction,notes)||{};
+  function chartSVG(mode,key,direction,octaves,annotations={},interaction=null,remoteDrafts=[],reverseStrings=false,arpeggio=false){
+    const scale=scaleNotes(mode,key,direction,octaves);
+    const notes=arpeggio?arpeggioNotes(mode,key,direction):scale;
+    const sourceDirection=arpeggio?'up':direction;
+    const map=decodeMap(sourceDirection==='up'?annotations.upMap:annotations.downMap);
+    const sourceScale=sourceDirection===direction?scale:scaleNotes(mode,key,sourceDirection,octaves);
+    const presets=window.CelloFingeringPresets?.get(mode,key,sourceDirection,sourceScale)||{};
     const plotted=notes.map(note=>{
       const position=notePlacement(note.midi,map,presets);
       return {...note,position,style:pointStyling(position)};
@@ -186,12 +197,12 @@
     const maxPosition=Math.max(7,...plotted.map(item=>item.position.semitones),...nearby,
       ...ghostPositions,interaction?.showMore?24:0);
     const top=68,step=35,height=top+maxPosition*step+47;
-    const xPositions=[42,126,210,294], end=top+maxPosition*step+22;
+    const xPositions=reverseStrings?[294,210,126,42]:[42,126,210,294], end=top+maxPosition*step+22;
     const svg=svgNode('svg',{
       viewBox:'0 0 370 '+height,
       role:'img',
       'aria-label':key[0]+(mode==='major'?'大調':'古典旋律小調')+
-        (direction==='up'?'上行':'下行')+octaves+'個八度大提琴指板音位圖',
+        (arpeggio?'琶音':'音階')+(direction==='up'?'上行':'下行')+octaves+'個八度大提琴指板音位圖',
       class:'cello-fb-svg'
     });
     svg.append(svgNode('title',{},key[0]+' '+(direction==='up'?'上行':'下行')+'指板音位'));
@@ -202,7 +213,7 @@
       svg.append(svgNode('text',{x,y:36,'text-anchor':'middle','font-size':15,'font-weight':800,fill:'#34513d'},OPEN[i].name));
       svg.append(svgNode('text',{x,y:49,'text-anchor':'middle','font-size':9,fill:'#889a8e'},'弦'));
     }
-    svg.append(svgNode('line',{x1:xPositions[0]-12,y1:68,x2:xPositions[3]+12,y2:68,stroke:'#34483a','stroke-width':5,'stroke-linecap':'round'}));
+    svg.append(svgNode('line',{x1:30,y1:68,x2:306,y2:68,stroke:'#34483a','stroke-width':5,'stroke-linecap':'round'}));
     // Subtle position guides. Not literal physical frets (a cello has no frets).
     for(const fret of [4,7,12,17,24]){
       if(fret>=maxPosition)continue;
@@ -272,24 +283,14 @@
       point.append(svgNode('text',{
         x,y:y+4.5,'text-anchor':'middle','font-size':12.5,
         'font-weight':800,fill:isOpen?'#34483a':'#ffffff'
-      },String(note.order)));
+      },isOpen?'0':explicit?String(style.finger):'?'));
       if(!isOpen){
         point.append(svgNode('text',{
           x:x+21,y:y+1,'font-size':13,
           'font-weight':note.order===1||note.order===notes.length?800:650,
           fill:'#273c2e'
         },note.name));
-        if(explicit){
-          if(modified)point.append(svgNode('rect',{
-            x:x+18,y:y+4,width:28,height:17,rx:5,fill:'#fff0f5',
-            stroke:'#d15c80','stroke-width':1
-          }));
-          point.append(svgNode('text',{
-            x:x+21,y:y+16,'font-size':modified?12:10,
-            'font-weight':modified?900:750,
-            fill:modified?'#a82055':'#675879'
-          },'('+style.finger+')'));
-        }
+
       }
       if(interaction){
         // An invisible touch target makes the same displayed marker usable on phones.
@@ -327,7 +328,7 @@
           svg.append(svgNode('text',{
             x,y:y+4.5,'text-anchor':'middle','font-size':12,
             'font-weight':850,fill:'#bd3c6b','pointer-events':'none'
-          },String(note.order)));
+          },Number.isInteger(pos.finger)?String(pos.finger):'?'));
         }
         if(Number.isInteger(pos.finger)){
           svg.append(svgNode('text',{
@@ -347,6 +348,87 @@
       }
     }
     return svg;
+  }
+
+  // Fixed two-octave scale, independent of the fingerboard octave toggle.
+  // Key signatures apply globally; explicit accidentals carry per written octave
+  // across this unbarred exercise, including melodic-minor descent cancellations. Sixteenth-note groups use four-note beams, without asserting a time signature.
+  function staffStep(note){
+    const letters='CDEFGAB',letter=note.name[0];
+    let accidental=0;
+    for(const c of note.name.slice(1))accidental+=c==='♯'||c==='#'?1:c==='♭'||c==='b'?-1:c==='𝄪'?2:0;
+    const octave=Math.round((note.midi-PITCH[letter]-accidental)/12)-1;
+    return octave*7+letters.indexOf(letter);
+  }
+  function scoreAccidentals(sequence,signature){
+    const letters=signature>=0?'FCGDAEB':'BEADGCF',base={};
+    for(const letter of letters.slice(0,Math.abs(signature)))base[letter]=signature>0?'♯':'♭';
+    const active=new Map();
+    return sequence.map(note=>{
+      const key=staffStep(note),written=note.name.slice(1)||'♮';
+      const previous=active.has(key)?active.get(key):(base[note.name[0]]||'♮');
+      active.set(key,written);return written===previous?null:written;
+    });
+  }
+  function makeScore(mode,key,arpeggio=false){
+    const up=arpeggio?arpeggioNotes(mode,key,'up'):scaleNotes(mode,key,'up',2);
+    const down=arpeggio?arpeggioNotes(mode,key,'down'):scaleNotes(mode,key,'down',2);
+    const sequence=[...up,...down.slice(1)];
+    const spacing=arpeggio?64:29;
+    const signature=key[1],startX=70+Math.abs(signature)*8,width=928+Math.abs(signature)*8;
+    const accidentals=scoreAccidentals(sequence,signature);
+    const wrap=element('div',{class:'cello-scale-score',tabindex:'0','aria-label':(arpeggio?'琶音':'音階')+'兩個八度上下行五線譜，可左右捲動'});
+    const svg=svgNode('svg',{viewBox:`0 0 ${width} 185`,width,height:185,role:'img','aria-label':key[0]+(mode==='major'?'大調':'旋律小調')+(arpeggio?'琶音':'音階')+(arpeggio?'，低音譜號，兩個八度上下行，全部四分音符':'，低音譜號，兩個八度上下行十六分音符，末音四分音符')});
+    svg.append(svgNode('title',{},'兩個八度上行與下行，調號與必要臨時記號；窄螢幕可左右捲動'));
+    for(let i=0;i<5;i++)svg.append(svgNode('line',{x1:14,x2:width-15,y1:110-i*10,y2:110-i*10,stroke:'#777','stroke-width':0.8}));
+    // Bass-clef curve and dots anchor the F3 line, avoiding music-font dependency.
+    const clef=svgNode('g',{transform:'translate(4 16) scale(.8)'});
+    clef.append(svgNode('path',{d:'M 22 82 C 22 63 55 64 51 84 C 49 99 34 108 23 111 C 38 101 45 89 43 78 C 42 70 31 69 28 77',fill:'#222'}));
+    clef.append(svgNode('circle',{cx:26,cy:79,r:4,fill:'#222'}));
+    for(const y of [75,85])clef.append(svgNode('circle',{cx:57,cy:y,r:2,fill:'#222'}));
+    svg.append(clef);
+    // Compact glyph-specific spacing (0.8 staff spaces), not text-font advance widths.
+    // Reference: LilyPond key-signature-interface; preserve bass-clef pitch positions.
+    const signatureY=signature>=0?[80,95,75,90,105,85,100]:[100,85,105,90,110,95,115];
+    for(let i=0;i<Math.abs(signature);i++){
+      const mark=svgNode('g',{class:'scale-key-signature',transform:`translate(${58+i*8} ${signatureY[i]})`,'data-symbol':signature>0?'♯':'♭'});
+      if(signature>0){
+        mark.append(svgNode('path',{d:'M -2 -10 V 11 M 2 -11 V 10',stroke:'#222','stroke-width':1,fill:'none'}));
+        mark.append(svgNode('path',{d:'M -4 -4 L 4 -6 L 4 -3 L -4 -1 Z M -4 3 L 4 1 L 4 4 L -4 6 Z',fill:'#222'}));
+      }else{
+        mark.append(svgNode('path',{d:'M -2 -16 L -2 4 Q 6 0 3 -4 Q 1 -7 -2 -2',stroke:'#222','stroke-width':1.4,fill:'none'}));
+      }
+      svg.append(mark);
+    }
+    sequence.forEach((note,i)=>{
+      const x=startX+i*spacing,y=110-(staffStep(note)-18)*5;
+      for(let ly=120;ly<=y;ly+=10)svg.append(svgNode('line',{x1:x-11,x2:x+11,y1:ly,y2:ly,stroke:'#444','stroke-width':1}));
+      for(let ly=60;ly>=y;ly-=10)svg.append(svgNode('line',{x1:x-11,x2:x+11,y1:ly,y2:ly,stroke:'#444','stroke-width':1}));
+      const g=svgNode('g',{'data-midi':note.midi,'data-note':note.name,'data-duration':arpeggio||i===sequence.length-1?'4':'16'});
+      g.append(svgNode('title',{},note.name+' · MIDI '+note.midi));
+      if(accidentals[i])g.append(svgNode('text',{class:'scale-accidental',x:x-18,y:y+5,'text-anchor':'middle','font-family':'Georgia, serif','font-size':18,fill:'#222'},accidentals[i]));
+      g.append(svgNode('ellipse',{cx:x,cy:y,rx:5.8,ry:3.7,transform:'rotate(-20 '+x+' '+y+')',fill:'#222'}));
+      svg.append(g);
+    });
+    // Four-note visual groups; no meter or barlines are imposed on the exercise.
+    const groupSize=arpeggio?1:4;
+    for(let start=0;start<sequence.length;start+=groupSize){
+      const group=sequence.slice(start,start+groupSize).map((note,j)=>({x:startX+(start+j)*spacing,y:110-(staffStep(note)-18)*5}));
+      const down=group.reduce((sum,n)=>sum+n.y,0)/group.length<90;
+      const beamY=down?Math.max(...group.map(n=>n.y))+32:Math.min(...group.map(n=>n.y))-32;
+      const stemX=n=>n.x+(down?-5:5);
+      const slope=Math.max(-0.08,Math.min(0.08,(group.at(-1).y-group[0].y)/Math.max(1,group.at(-1).x-group[0].x)));
+      const beamAt=n=>beamY+slope*(n.x-group[0].x)+(down?Math.max(0,-slope*(group.at(-1).x-group[0].x)):Math.min(0,-slope*(group.at(-1).x-group[0].x)));
+      for(const n of group)svg.append(svgNode('line',{class:'scale-stem',x1:stemX(n),x2:stemX(n),y1:n.y,y2:beamAt(n),stroke:'#222','stroke-width':1.25}));
+      if(group.length>1){
+        for(let level=0;level<2;level++)svg.append(svgNode('line',{class:'scale-beam','data-level':level+1,x1:stemX(group[0]),x2:stemX(group[group.length-1]),y1:beamAt(group[0])+(down?-6:6)*level,y2:beamAt(group.at(-1))+(down?-6:6)*level,stroke:'#222','stroke-width':3.5}));
+      } // The final tonic keeps its stem but has no flags: a quarter note.
+    }
+    for(const [x,label] of [[startX,'上行'],[startX+up.length*spacing,'下行']]){
+      svg.append(svgNode('text',{x,y:164,'font-size':12,fill:'#647461'},label));
+      svg.append(svgNode('path',{d:`M${x+32} 160h14m-6-6 6 6-6 6`,fill:'none',stroke:'#647461','stroke-width':1.6,'stroke-linecap':'round','stroke-linejoin':'round','aria-hidden':'true'}));
+    }
+    wrap.append(svg);return wrap;
   }
 
   function create(mode,key,initialAnnotations={},onSave=null,onPreview=null){
@@ -586,7 +668,7 @@
 
     for(const dir of ['up','down']){
       const section=element('section',{class:'cello-fb-direction',
-        'aria-label':dir==='up'?'上行音階':'下行音階'});
+        'aria-label':mode==='major'&&dir==='up'?'音階指板，上下行相同':dir==='up'?'上行音階':'下行音階'});
       const heading=element('h4',{class:'cello-fb-direction-heading'});
       const viewport=element('div',{class:'cello-fb-viewport'});
       const editor=element('div',{class:'cello-inline-editor',
@@ -617,16 +699,41 @@
       const memo=element('div',{class:'fingering-note'});
       memo.hidden=true;
       section.append(heading,viewport,editor,legend,memo);
+      // Keep saved down-map data and collaboration state intact, but show only
+      // the requested ascending board for major scales.
+      section.hidden=mode==='major'&&dir==='down';
       boards.append(section);
       panels[dir]={heading,viewport,editor,status,hint,stringChoices,
         fingerChoices,range,back,restoreSelected,reset,save,memo};
     }
-    root.append(toolbar,boards,dialog);
+    const scoreSection=element('section',{class:'score-section'});
+    scoreSection.append(element('h3',{class:'music-section-title'},'音階 · 兩個八度'),makeScore(mode,key));
+    const boardSection=element('section',{class:'fingerboard-section'});
+    boardSection.append(element('h3',{class:'music-section-title'},'指板 · 指法'),toolbar,boards);
+    const arpeggioSection=element('section',{class:'arpeggio-section fingerboard-section'});
+    const arpeggioBoards=element('div',{class:'cello-fb-two-up'});
+    const arpeggioViews={};
+    arpeggioSection.append(element('h3',{class:'music-section-title'},'琶音 · 兩個八度'),
+      makeScore(mode,key,true),arpeggioBoards);
+    for(const dir of ['up']){
+      const section=element('section',{class:'cello-fb-direction'});
+      const viewport=element('div',{class:'cello-fb-viewport'});
+      section.append(element('h4',{class:'cello-fb-direction-heading'},'上下行相同'),viewport);
+      arpeggioViews[dir]=viewport;arpeggioBoards.append(section);
+    }
+    arpeggioSection.append(element('p',{class:'caption'},'上下行皆沿用音階上行的已儲存指法；下行反向演奏。請在上方音階指板編輯。'));
+    root.append(scoreSection,boardSection,arpeggioSection,dialog);
 
     function renderDirection(dir){
       const pane=panels[dir],editing=edit.dir===dir;
+      if(arpeggioViews[dir]){
+        const arp=chartSVG(mode,key,dir,2,annotations,null,[],stringOrder==='ADGC',true);
+        arp.setAttribute('aria-label',key[0]+(mode==='major'?'大調':'小調')+'琶音，兩個八度上下行相同指法，下行反向演奏');
+        arpeggioViews[dir].replaceChildren(arp);
+      }
       const saved=decodeMap(annotations[dir+'Map']);
-      pane.heading.textContent=dir==='up'?'↑ 上行':'↓ 下行';
+      if(mode==='major'&&dir==='up')pane.heading.textContent='上下行相同';
+      else pane.heading.innerHTML=(dir==='up'?'<svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 19V5m-6 6 6-6 6 6"/></svg> 上行':'<svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14m-6-6 6 6 6-6"/></svg> 下行');
       if(remoteDrafts.some(remote=>remote.direction===dir)){
         pane.heading.append(element('span',{class:'cello-fb-remote-label'},'（其他人編輯中）'));
       }
@@ -645,7 +752,7 @@
           confirmedMap:annotations[dir+'Map']||'',
           select:midi=>begin(dir,midi),
           chooseString:s=>chooseString(s),showMore:editing&&edit.showMore
-        }:null,remoteDrafts));
+        }:null,remoteDrafts,stringOrder==='ADGC'));
       pane.editor.hidden=!editing;
       if(!editing)return;
       const count=Object.keys(edit.pending).length;
@@ -701,6 +808,8 @@
       const count=choices.get(id)||2;
       one.setAttribute('aria-pressed',String(count===1));
       two.setAttribute('aria-pressed',String(count===2));
+      standardOrder.setAttribute('aria-pressed',String(stringOrder!=='ADGC'));
+      reverseOrder.setAttribute('aria-pressed',String(stringOrder==='ADGC'));
       renderDirection('up');renderDirection('down');
     }
     function addButton(label,count){
@@ -716,8 +825,19 @@
       octaveGroup.append(btn);return btn;
     }
     const one=addButton('1 八度',1),two=addButton('2 八度',2);
-    toolbar.append(octaveGroup);
+    const orderGroup=element('div',{class:'cello-fb-group','aria-label':'指板弦排列，由左至右'});
+    function addOrder(order){
+      const button=element('button',{type:'button',class:'cello-fb-button','aria-label':'弦排列由左至右 '+order},order);
+      button.addEventListener('click',()=>{
+        stringOrder=order;render();
+        document.querySelectorAll('.cello-fingerboard').forEach(board=>{if(board!==root)board.refreshStringOrder?.();});
+      });
+      orderGroup.append(button);return button;
+    }
+    const standardOrder=addOrder('CGDA'),reverseOrder=addOrder('ADGC');
+    toolbar.append(octaveGroup,orderGroup);
     if(!choices.has(id))choices.set(id,2);
+    root.refreshStringOrder=()=>render();
     root.isEditing=()=>edit.dir!==null;
     root.requestLeave=next=>exitEditor(next);
     root.setRemoteDrafts=(incoming)=>{
@@ -739,6 +859,6 @@
   window.CelloFingerboard={
     create,
     // Pure helpers exported for automated pitch and placement checks.
-    scaleNotes,positionFor,pitchClass,decodeMap,pointStyling,POSITION_COLORS,makeLegend,notePlacement
+    arpeggioNotes,chartSVG,scoreAccidentals,staffStep,makeScore,scaleNotes,positionFor,pitchClass,decodeMap,pointStyling,POSITION_COLORS,makeLegend,notePlacement
   };
 })();

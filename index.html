@@ -4,22 +4,22 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261106-025">
+  <meta name="site-version" content="20261114-042">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
     :root {
       color-scheme: light;
-      --page:#f7f6f2;
-      --paper:#ffffff;
-      --ink:#202525;
-      --muted:#747c7b;
-      --line:#e7e9e4;
-      --accent:#b6d6b3;
+      --page:#f4f2eb;
+      --paper:#fffef9;
+      --ink:#30372f;
+      --muted:#686e64;
+      --line:#dedfd4;
+      --accent:#bdcdb1;
       --accent-ink:#234b37;
-      --minor:#e2d7f3;
+      --minor:#ded8e5;
       --minor-ink:#594371;
-      --soft:#f2f3ee;
+      --soft:#eeeee5;
       --shadow:0 20px 60px rgba(32,37,37,.035);
     }
     *,*::before,*::after{box-sizing:border-box}
@@ -30,6 +30,23 @@
     button:focus-visible,input:focus-visible{outline:3px solid #5e886f;outline-offset:3px}
     button:disabled{cursor:not-allowed;opacity:.46}
     .container{width:min(1120px,calc(100% - 44px));margin:0 auto}
+    .experiment-roadmap{margin:0 0 22px;padding:13px 15px 11px;border-radius:15px;border:1px solid #dbe4ee;background:#f4f7fb;color:#33485d}
+    .experiment-roadmap-heading{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-bottom:9px}
+    .experiment-roadmap-heading strong{font-size:11px;letter-spacing:.03em;font-weight:850}
+    .experiment-roadmap-heading span,.experiment-roadmap-scope{font-size:10px;color:#718396}
+    .experiment-roadmap-items{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));list-style:none;margin:0;padding:0;gap:8px}
+    .experiment-roadmap-items li{display:flex;align-items:flex-start;gap:7px;padding:9px 10px;background:white;border:1px solid #e3e9ef;border-radius:9px}
+    .experiment-roadmap-items li div{display:flex;flex-direction:column;gap:3px;min-width:0}
+    .experiment-roadmap-items strong{font-size:11px;line-height:1.4}
+    .experiment-roadmap-items small{font-size:10px;color:#77899a;line-height:1.5}
+    .experiment-roadmap-check{flex:none;width:13px;height:13px;border:1.5px solid #9aabbc;border-radius:4px;margin-top:1px}
+    .experiment-roadmap-scope{display:block;line-height:1.6;margin-top:8px}
+    @media(max-width:660px){
+      .experiment-roadmap{margin-bottom:20px}
+      .experiment-roadmap-items{grid-template-columns:1fr}
+      .experiment-roadmap-items li{padding:7px 9px}
+      .experiment-roadmap-heading{align-items:flex-start;flex-wrap:wrap}
+    }
     .intro{padding:39px 0 37px;display:grid;grid-template-columns:1fr auto;align-items:end;gap:20px}
     .eyebrow{font-size:11px;font-weight:800;letter-spacing:.20em;color:#6e876f;text-transform:uppercase;display:flex;align-items:center;gap:9px}
     .eyebrow::before{content:"";width:7px;height:7px;background:#93bd98;border-radius:50%}
@@ -39,6 +56,7 @@
     .date-label{text-align:right;color:var(--muted);font-size:13px;white-space:nowrap;padding-bottom:5px}
     .date-label strong{font-size:16px;display:block;color:var(--ink);margin-top:6px;letter-spacing:-.02em}
     .classroom-bar{display:flex;justify-content:space-between;align-items:center;gap:18px;background:#eaf0e8;border:1px solid #d7e4d6;border-radius:20px;padding:20px 25px;margin:0 0 22px}
+    .practice-stats{min-width:0;width:100%;background:var(--paper);border:1px solid var(--line);border-radius:17px;box-shadow:var(--shadow);padding:16px 18px}.practice-stats>p{font-size:11px;line-height:1.5;color:var(--muted);margin:0}.practice-stats h3{font-size:14px;margin:0 0 6px}.practice-stats-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-top:10px}.practice-stat{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:3px;min-width:0;min-height:40px;padding:4px;border:1px solid #d7e4d6;border-radius:8px;background:#fffffc;color:#304c39;font-size:11px;text-align:left}.practice-stat span{white-space:nowrap}.practice-stat b{white-space:nowrap;font-size:11px;font-variant-numeric:tabular-nums}.practice-stat.has-note .student-note-button{color:#6a5018;background:#fff1c7;border-color:#d9b663}.practice-stat .student-note-button{width:24px;height:24px;border-radius:7px}.practice-stat .ui-icon{width:15px;height:15px}.practice-stats-empty{grid-column:1/-1;margin:0}.practice-stat:focus-visible{outline:2px solid #315f45;outline-offset:2px}
     .classroom-bar h2{font-size:16px;margin:0 0 7px;letter-spacing:-.035em}
     .classroom-bar p{font-size:12px;color:#6a796d;line-height:1.7;margin:0}
     .room-status{font-size:12px;color:#42634b;display:block;margin-top:8px;font-weight:700}
@@ -59,8 +77,9 @@
     .room-action:hover:not(:disabled){filter:brightness(.96)}
     @media(max-width:620px){.classroom-bar{flex-direction:column;align-items:stretch;padding:18px}}
     .workspace{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:20px}
+    .setup-sidebar{display:flex;flex-direction:column;gap:16px;min-width:0;align-self:start}
     .setup-stack{display:flex;flex-direction:column;gap:16px;min-width:0}
-    .setup-stack>.classroom-bar{margin:0;flex-direction:column;align-items:stretch;gap:12px;padding:16px 18px;border-radius:17px}
+    .setup-sidebar>.classroom-bar{margin:0;flex-direction:column;align-items:stretch;gap:12px;padding:16px 18px;border-radius:17px}
     .setup-stack .classroom-bar p{font-size:11px;line-height:1.5}
     .setup-stack .room-actions{align-items:stretch;min-width:0;gap:8px}
     .setup-stack .room-buttons{justify-content:flex-start}
@@ -90,7 +109,7 @@
     .signature-card{display:flex;align-items:center;gap:5px;background:#fff;border:1px solid #e2eae0;border-radius:10px;padding:6px;min-width:0}
     .signature-label{font-size:11px;font-weight:850;color:#778b7b;min-width:23px;text-align:center;flex:none}
     .signature-chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;min-width:0;flex:1}
-    .filter-status{font-size:11px;color:#5b7762;display:flex;gap:12px;flex-wrap:wrap;margin-top:11px}
+    .filter-status{font-size:11px;color:#5b7762;display:grid;gap:6px;margin-top:26px}.filter-status-heading{font-size:12px;font-weight:850;margin:0 0 2px}
     @media(max-width:430px){.key-filter{padding:12px}.signature-grid{gap:5px}.signature-card{padding:5px;gap:3px}.signature-label{min-width:19px}.filter-key{font-size:10px;padding:6px 5px}}
     .filter-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
     .filter-heading h3{margin:0;font-size:14px;font-weight:800}
@@ -135,7 +154,6 @@
     .ordered-practice-button:hover:not(:disabled){background:#ecf4eb}
     @media(max-width:430px){.ordered-practice{gap:8px;padding:10px}.ordered-practice-button{font-size:10px;padding:8px 9px}}
     .result-panel{min-height:478px}
-    .result-controls{display:flex;gap:8px;align-items:center}
     .icon-button{border:1px solid var(--line);background:white;color:#58665d;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:700;white-space:nowrap}
     .icon-button:hover{background:#f5f7f3}
     .empty-state{display:flex;align-items:center;flex-direction:column;text-align:center;justify-content:center;min-height:348px;padding:25px 12px}
@@ -170,9 +188,13 @@
     .check-circle{height:20px;width:20px;border:1.7px solid #c8d1ca;border-radius:50%;display:grid;place-items:center;flex:none;margin-top:2px;color:white;font-size:13px;font-weight:800}
     .key-card.done .check-circle{background:#5c966a;border-color:#5c966a}
     .key-card-content{min-width:0;flex:1}
+    .key-complete{display:grid;place-items:center;flex:none;min-width:44px;min-height:44px;padding:0;border:0;background:transparent;border-radius:50%;color:inherit}
+    .key-complete .check-circle{margin:0}
+    .key-title{min-height:44px;padding:0;border:0;background:transparent;text-align:left;color:inherit;cursor:pointer}
+    .key-title:focus-visible,.key-complete:focus-visible,.key-expand:focus-visible{outline:2px solid #527049;outline-offset:2px}
     .key-primary{display:block;font-size:26px;line-height:1.05;letter-spacing:-.055em;font-weight:800;white-space:nowrap}
     .key-card.done .key-primary{color:#67876b}
-    .fingering-section{padding:11px 13px 13px;border-top:1px solid #e9ece7;background:#fbfcfa;text-align:left}
+    .fingering-section{overflow-anchor:none;padding:11px 13px 13px;border-top:1px solid #e9ece7;background:#fbfcfa;text-align:left}
     .fingering-title{font-size:11px;font-weight:850;color:#4f6c57;margin:0 0 7px}
     .cello-fingerboard{padding:2px 0 5px;display:grid;gap:10px}
     .cello-fb-toolbar{display:flex;justify-content:space-between;gap:9px;flex-wrap:wrap}
@@ -288,7 +310,8 @@
     .finger-form-actions button.primary{background:#304c37;color:white;border-color:#304c37}
     .online-count{display:block;margin-top:9px;font-size:13px;font-weight:850;color:#205a35;background:#fff;border:1px solid #c2dbc4;border-radius:10px;padding:9px 12px;width:max-content}
     .online-count small{font-size:10px;color:#66806e;font-weight:500;display:block;margin-top:3px}
-    .key-secondary{display:block;font-size:11px;font-weight:650;color:#8b928e;margin-top:7px;white-space:nowrap}
+    .key-relative{display:block;font-size:11px;color:#596650;margin-top:6px;line-height:1.5}
+    .key-secondary{display:block;font-size:11px;font-weight:650;color:#737c76;margin-top:7px;white-space:normal;line-height:1.7}
     .scale-notes{display:none;color:#596b60;font-size:11px;line-height:1.8;word-break:normal;overflow-wrap:anywhere;margin-top:8px;border-top:1px dashed #dfe6dc;padding-top:7px}
     .show-scales .scale-notes{display:block}
     .scale-line{display:block;margin:5px 0;line-height:1.8}
@@ -354,8 +377,112 @@
     .toast{position:fixed;left:50%;bottom:25px;transform:translate(-50%,20px);opacity:0;pointer-events:none;border-radius:12px;padding:12px 18px;background:#283a2d;color:white;font-weight:700;font-size:13px;box-shadow:0 15px 40px rgba(0,0,0,.15);transition:opacity .2s,transform .2s;z-index:50}
     .toast.active{opacity:1;transform:translate(-50%,0)}
     @media(max-width:810px){.intro{padding-top:35px;grid-template-columns:1fr;gap:18px}.date-label{text-align:left}.date-label strong{display:inline;margin-left:10px}.workspace{grid-template-columns:1fr}.result-panel{min-height:0}.history-section{padding-top:31px}}
-    @media(max-width:450px){.container{width:calc(100% - 26px)}.intro{padding-top:28px;padding-bottom:28px}.intro p{font-size:13px}.date-label{font-size:12px}.date-label strong{font-size:13px;margin-left:5px}.panel{padding:20px;border-radius:18px}.counter-item{padding:16px 12px}.counter-name{font-size:13px}.stepper{gap:3px}.stepper button{width:31px;height:31px}.count-output{min-width:26px;font-size:22px}.key-grid{gap:8px}.key-card-main{padding:13px 10px;gap:8px}.fingering-section{padding:10px 8px}.key-primary{font-size:24px}.key-secondary{font-size:10px}.history-row{align-items:start;gap:11px}.history-keys{justify-content:flex-start}.result-controls .icon-button{padding:7px;font-size:11px}footer{flex-direction:column;gap:7px}}
+    @media(max-width:450px){.container{width:calc(100% - 26px)}.intro{padding-top:28px;padding-bottom:28px}.intro p{font-size:13px}.date-label{font-size:12px}.date-label strong{font-size:13px;margin-left:5px}.panel{padding:20px;border-radius:18px}.counter-item{padding:16px 12px}.counter-name{font-size:13px}.stepper{gap:3px}.stepper button{width:31px;height:31px}.count-output{min-width:26px;font-size:22px}.key-grid{gap:8px}.key-card-main{padding:13px 10px;gap:8px}.fingering-section{padding:10px 8px}.key-primary{font-size:24px}.key-secondary{font-size:10px}.history-row{align-items:start;gap:11px}.history-keys{justify-content:flex-start}footer{flex-direction:column;gap:7px}}
     @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+    /* Experiments-only practice tools: modeless and local to this device. */
+    body{padding-bottom:85px}
+    .cello-scale-score{width:100%;min-width:0;margin:8px 0 16px;border:1px solid #dce5d9;border-radius:10px;background:#fffffc}.cello-scale-score svg{display:block;width:100%;height:auto;max-width:100%}
+    .audio-tools{position:fixed;z-index:50;left:12px;right:auto;width:var(--tools-width,196px);max-width:calc(100vw - 24px);transition:width .28s cubic-bezier(.22,.8,.3,1);bottom:max(8px,env(safe-area-inset-bottom));display:flex;align-items:center;gap:8px;min-width:0;margin:0;padding:8px;border:1px solid #ccd8c9;border-radius:22px;background:#fffffc;color:#263e2e;font-size:14px;box-sizing:border-box}
+    body{padding-bottom:calc(100px + env(safe-area-inset-bottom))}html{scroll-padding-bottom:110px}.toast{bottom:110px}.practice-float{bottom:auto;max-height:min(78vh,720px,calc(100vh - 220px))}
+    .tuner-preferences{position:absolute;bottom:calc(100% + 8px);left:0;display:flex;align-items:center;gap:12px;padding:12px;background:#fffffc;border:1px solid #ccd8c9;border-radius:12px;box-shadow:0 4px 24px #243a2520;max-width:calc(100vw - 48px)}
+    #tuner-settings{border-left:0;margin-left:-6px;border-radius:0 8px 8px 0}#tuner-open{border-radius:8px 0 0 8px}
+    .audio-buttons button{display:grid;place-items:center;width:44px;height:44px;min-width:44px;flex:none;padding:8px!important}.audio-buttons button svg{width:22px;height:22px;grid-area:1 / 1}.audio-buttons{min-height:52px;align-items:center}
+    #metro-settings{font-size:18px;border-left:0;margin-left:-6px;border-radius:0 8px 8px 0}#metronome-open{border-radius:8px 0 0 8px}
+    .metro-stop-icon{display:none}#metronome-open[aria-pressed=true] .metro-stop-icon{display:block}#metronome-open[aria-pressed=true] .metro-play-icon{display:none}
+    #metro-settings[aria-expanded=true] .ui-icon,#tuner-settings[aria-expanded=true] .ui-icon,.key-expand[aria-expanded=true] .ui-icon{transform:rotate(180deg)}
+    .a4-control{display:flex;align-items:center;gap:4px}.a4-control span{font-size:10px;color:#647461}#tuner-a{width:64px;padding:6px;font-size:13px}
+    #metronome-panel{display:grid;grid-template-columns:auto 1fr;padding:12px;gap:8px 12px;width:230px;box-sizing:border-box;max-width:calc(100vw - 24px);max-height:60dvh;overflow:auto}#tuner-panel{width:100%;min-width:0;box-sizing:border-box}.audio-meter-wrap{flex:1;min-width:30px;width:auto!important}.audio-note{flex-shrink:0}#tuner-status{flex-shrink:0;max-width:110px}
+    .audio-buttons{display:flex;gap:6px;flex-shrink:0}
+    .audio-tools button,.audio-tools input,.audio-tools select{font:inherit;min-height:44px;box-sizing:border-box;border:1px solid #c4d3c2;border-radius:8px;background:#fff;color:inherit;padding:8px}
+    .audio-tools button{cursor:pointer;font-weight:700;white-space:nowrap}.audio-tools button[aria-pressed=true]{background:#315b3b;color:#fff}
+    .audio-tools :focus-visible,.cello-scale-score:focus-visible{outline:3px solid #4c81b3;outline-offset:-3px}
+    .audio-controls{display:flex;gap:14px;min-width:0;flex:1;overflow-x:auto;overscroll-behavior-x:contain}
+    .audio-panel{flex-shrink:0;display:flex;align-items:center;gap:10px;width:max-content;min-height:52px;padding:2px}
+    .audio-tools [hidden]{display:none!important}
+    .audio-panel label{white-space:nowrap;font-size:12px}.audio-panel input[type=number]{width:72px}.audio-panel input[type=range]{width:100px;padding:0}
+    .audio-note{font-size:26px;font-weight:800;min-width:46px;text-align:center;font-variant-numeric:tabular-nums}
+    .audio-cents{font-size:12px;min-height:16px;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .audio-meter-wrap{width:185px;flex-shrink:0;padding-inline:4px;box-sizing:border-box}.audio-meter{height:20px;position:relative;background:#e8ebe5;border-radius:4px;margin:2px 0;overflow:hidden}
+    .audio-meter:before{content:'';position:absolute;left:50%;height:100%;border-left:1px solid #9ca995;z-index:1}
+    .audio-band{position:absolute;inset:0 auto 0 0;background:transparent;transition:background-color 80ms ease-out}
+    .audio-band[data-segment=low-red]{left:0;width:30%}.audio-band[data-segment=low-yellow]{left:30%;width:10%}.audio-band[data-segment=center]{left:40%;width:20%}.audio-band[data-segment=high-yellow]{left:60%;width:10%}.audio-band[data-segment=high-red]{left:70%;width:30%}
+    .audio-band.is-active[data-segment$=red]{background:#e4a798}.audio-band.is-active[data-segment$=yellow]{background:#e7cf85}.audio-band.is-active[data-segment=center]{background:#a9cba0}
+    .audio-needle{position:absolute;left:50%;height:20px;width:3px;background:#173e2b;transform:translateX(-50%);z-index:2;visibility:hidden;transition:left 80ms ease-out}
+    .audio-scale{position:relative;height:11px;font-size:7px;line-height:9px;letter-spacing:-.45px;font-variant-numeric:tabular-nums;color:#697566;white-space:nowrap}
+    .audio-scale span{position:absolute;transform:translateX(-50%);top:0;width:24px;text-align:center;line-height:9px}
+    .tuner-readout{display:flex;align-items:baseline;justify-content:center;gap:7px;margin-bottom:5px;min-height:22px}
+    .tuner-readout #tuner-note,.tuner-readout #tuner-cents{font-size:18px;font-weight:800;line-height:22px;min-height:22px;width:auto;min-width:0;flex:0 0 auto;white-space:nowrap;text-align:center;font-variant-numeric:tabular-nums}
+    .tuner-readout #tuner-cents{font-weight:400;color:#84917e}
+    .audio-status{font-size:12px;margin:0;max-width:200px}.audio-status:empty{display:none}.audio-error{color:#9b3939!important}
+    #metro-beat{min-width:36px;font-variant-numeric:tabular-nums}
+     .audio-meter[data-active="false"] .audio-band{transition:none}
+    @media(prefers-reduced-motion:reduce){.audio-tools,.audio-needle,.audio-band{transition:none!important}}
+    @media(max-width:600px){.audio-meter-wrap{width:106px}.audio-note{min-width:30px;font-size:22px}.audio-cents{font-size:10px;white-space:normal;line-height:13px}.audio-panel{gap:6px}.audio-tools{gap:6px;padding:6px}.audio-buttons{gap:4px}.audio-tools button{font-size:13px;padding:8px 6px}}
+    .key-card,.counter-item,.signature-card,.room-action,.icon-button{background:var(--paper)}
+    .classroom-bar,.key-filter{background:#eef0e6;border-color:#d9dfcf}
+    .fingering-section{background:var(--paper)!important}
+    .filter-key{background:#e8eddf;border-color:#d2dcc6;color:#354f38}
+    .filter-key.minor{background:#eeebf0;border-color:#dcd6e1;color:#594e61}
+    .draw-button{background:#42533e}.draw-button:hover:not(:disabled){background:#52664c}
+    .audio-tools,.tuner-preferences{background:var(--paper)}
+    .intro .eyebrow{color:#697b5e}h1 em{color:#718067}
+    #metronome-open,#tuner-open{width:60px;min-width:60px}
+    #metro-settings,#tuner-settings{width:24px;min-width:24px;margin-left:0;padding:4px!important;font-size:13px;background:transparent;border:1px solid #acb9a7;border-radius:8px}
+    .ui-icon{display:inline-block;vertical-align:middle;flex:none;width:18px;height:18px}
+    .audio-buttons button .ui-icon{width:16px;height:16px}
+    .key-expand{display:grid;place-items:center}
+    .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;clip-path:inset(50%)!important;white-space:nowrap!important;border:0!important;min-height:0!important}
+    #metro-settings:hover,#tuner-settings:hover{background:#edf1e9;border-color:#81927a}
+    .audio-needle[data-band=green]{background:#295b33}.audio-needle[data-band=yellow]{background:#82641b}.audio-needle[data-band=red]{background:#a43a2a}
+    .audio-tools{padding-left:12px;padding-right:12px}
+    .audio-note{width:44px;min-width:44px;flex:0 0 44px;font-size:18px;white-space:nowrap;overflow:hidden}
+    @media(max-width:360px){.audio-tools{padding-left:8px;padding-right:8px}#metronome-open,#tuner-open{width:44px;min-width:44px}.audio-note{width:36px;min-width:36px;flex-basis:36px;font-size:16px}}
+    /* Quiet hierarchy: sections, not nested decorative cards. */
+    .panel,.key-card{box-shadow:none}.key-card:hover{transform:none}
+    .panel{border-radius:16px}.classroom-bar{background:#f1f4ef;border-radius:14px}
+    .fingering-section{background:#fff;padding:16px 12px}
+    .music-section-title{font-size:12px;font-weight:750;color:#4f6254;margin:0 0 10px}
+    .score-section{min-width:0}.fingerboard-section{min-width:0;border-top:1px solid var(--line);padding-top:18px;display:grid;gap:10px}
+    .fingerboard-section>.music-section-title{margin-bottom:0}
+    .cello-scale-score{border:0;border-radius:0;background:transparent;margin:0 0 8px}
+    .cello-fb-direction{box-shadow:none;background:transparent;border-color:#edf0ea;border-radius:8px}
+    .result-summary{background:transparent;border-bottom:1px solid var(--line);border-radius:0;padding:0 0 18px}
+
+    /* Wide practice desk: setup above, notation keeps its readable native size. */
+    .workspace{grid-template-columns:minmax(0,1fr)}
+    .setup-stack{display:grid;grid-template-columns:minmax(230px,.75fr) minmax(0,2fr);align-items:start}
+    .setup-stack>.panel{display:grid;grid-template-columns:minmax(280px,1fr) minmax(220px,.85fr);gap:0 22px}
+    .setup-stack>.panel>.panel-head{grid-column:1/-1;margin-bottom:16px}
+    .setup-stack .key-filter{grid-column:1;grid-row:2/8;margin:0;padding:12px;min-width:0}
+    .setup-stack>.panel>:not(.key-filter):not(.panel-head){grid-column:2}
+    .fifths-circle{position:relative;aspect-ratio:1;width:100%;max-width:420px;margin:12px auto;background:radial-gradient(circle,transparent 49%,#dce4d5 49.5%,#dce4d5 50%,transparent 50.5%)}
+    .fifths-pair{position:absolute;left:var(--x);top:var(--y);transform:translate(-50%,-50%);display:grid;gap:3px;width:15%;max-width:62px}
+    .fifths-pair .filter-key{width:100%;min-height:28px;padding:3px 2px;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:1px;border-radius:8px}
+    .fifths-pair .filter-key strong{font-size:12px}.fifths-pair .filter-key small{font-size:9px}
+    .fifths-signature{position:absolute;left:var(--x);top:var(--y);transform:translate(-50%,-50%);color:#71816c;font-size:11px;font-weight:650;line-height:1.4;text-align:center;white-space:nowrap;pointer-events:none}
+    .fifths-signature.enharmonic{font-size:9px}
+    .fifths-pair .filter-key[aria-pressed="true"]{background:#3d634b;color:#fff;border-color:#3d634b;border-style:solid;opacity:1}
+    .fifths-pair .filter-key.minor[aria-pressed="true"]{background:#705582;color:#fff;border-color:#705582}
+    .fifths-pair .filter-key[aria-pressed="false"]{background:#fff;color:#697269;border-color:#9da99a;border-style:dashed;opacity:1}
+    .fifths-pair .filter-key:focus-visible{outline:3px solid #3c78a4;outline-offset:2px}
+    .cello-scale-score{overflow-x:auto;overscroll-behavior-x:contain;scrollbar-gutter:stable}
+    .cello-scale-score svg{min-width:960px;max-width:none}
+    .workspace .cello-fb-two-up{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .cello-fb-direction[hidden]{display:none!important}
+    @media(max-width:1100px){.setup-stack{grid-template-columns:1fr}.setup-sidebar>.classroom-bar{display:grid;grid-template-columns:1fr 1fr}.setup-stack>.panel{grid-template-columns:minmax(280px,1fr) minmax(220px,1fr)}}
+    @media(max-width:700px){
+      .setup-stack>.panel{display:block}.setup-stack .key-filter{margin-bottom:18px}.setup-sidebar>.classroom-bar{display:flex}
+      .workspace .cello-fb-two-up{grid-template-columns:minmax(0,1fr)}
+      .fifths-circle{max-width:350px}.result-panel{padding:16px}.fingering-section{padding:12px 8px}
+    }
+    .key-card-content{flex:1;min-width:0}.key-card-heading{cursor:pointer}
+    .student-note-button{align-self:center;flex:none;display:grid;place-items:center;width:36px;height:36px;background:transparent;color:#839083;border:1px solid #dce4d8;border-radius:10px}
+    .student-note-button.has-note{color:#6a5018;background:#fff1c7;border-color:#d9b663}
+    .student-note-dialog{width:min(460px,calc(100% - 32px));box-sizing:border-box;border:1px solid #ccd8c9;border-radius:18px;padding:24px;background:var(--paper);color:var(--ink)}
+    .student-note-dialog::backdrop{background:#18251b66}.student-note-dialog h2{font-size:20px;margin-top:0}.student-note-dialog label{display:block;font-size:13px;margin-bottom:8px}
+    .student-note-dialog textarea{width:100%;box-sizing:border-box;resize:vertical;border:1px solid #bdcbb6;border-radius:10px;padding:12px;font:inherit;line-height:1.7;background:white;color:inherit}
+    .student-note-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px}
   </style>
 </head>
 <body>
@@ -369,8 +496,28 @@
       <div class="date-label">TODAY <strong id="today-label">—</strong></div>
     </section>
 
+    <aside class="audio-tools" aria-label="練習工具">
+      <div class="audio-buttons"><button id="metronome-open" aria-pressed="false" aria-label="啟用節拍器並開始打拍"><svg class="metro-play-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 3v14" fill="none" stroke="currentColor" stroke-width="2.2"/><ellipse cx="11" cy="18" rx="5" ry="3.5" transform="rotate(-20 11 18)" fill="currentColor"/></svg><svg class="metro-stop-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="1.5" fill="currentColor"/></svg></button><button id="metro-settings" aria-expanded="false" aria-controls="metronome-panel" aria-label="展開節拍器設定"><svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button><button id="tuner-open" aria-pressed="false" aria-expanded="false" aria-controls="tuner-panel" aria-label="啟用調音器並開始收音"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M7 3v7a5 5 0 0 0 10 0V3M12 15v7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button><button id="tuner-settings" aria-expanded="false" aria-controls="tuner-preferences" aria-label="開啟調音器設定"><svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button></div>
+<div id="tuner-preferences" class="tuner-preferences" role="dialog" aria-label="調音器設定" hidden><label class="a4-control" for="tuner-a"><span>A4</span><input id="tuner-a" type="number" min="430" max="450" value="442" step="1" inputmode="numeric" aria-label="A4基準頻率，Hz"></label></div>
+        <section id="metronome-panel" class="audio-panel tuner-preferences" role="dialog" aria-label="節拍器控制" hidden>
+          <label for="metro-bpm">BPM</label><input id="metro-bpm" type="number" min="30" max="240" value="80" inputmode="numeric">
+          <input id="metro-slider" aria-label="節拍器速度 BPM" type="range" min="30" max="240" step="1" value="80" style="grid-column:1 / -1;width:100%"><label for="metro-volume" style="grid-column:1 / -1">音量</label><input id="metro-volume" type="range" min="0" max="100" step="1" value="100" style="grid-column:1 / -1;width:100%"><label for="metro-beats">每小節</label><select id="metro-beats"><option value="1">1 拍</option><option value="2">2 拍</option><option value="3">3 拍</option><option value="4" selected>4 拍</option><option value="6">6 拍</option></select>
+          <label for="metro-accent">重拍</label><select id="metro-accent"><option value="0">無</option><option value="1" selected>第 1 拍</option><option value="2">第 2 拍</option><option value="3">第 3 拍</option><option value="4">第 4 拍</option></select><span id="metro-beat" aria-hidden="true">●</span>
+
+        </section>
+      <div class="audio-controls" tabindex="0" aria-label="工具控制列，可左右捲動">
+        <section id="tuner-panel" class="audio-panel" aria-label="調音器控制" hidden>
+          <div class="audio-meter-wrap"><div class="tuner-readout"><span id="tuner-note" class="audio-note">—</span><span id="tuner-cents" class="audio-cents" aria-label="目前音分">—</span></div><div id="tuner-meter" class="audio-meter" aria-label="音準範圍負50至正50音分；正負10以內綠色，超過10至20黃色，超過20紅色" aria-hidden="true"><span class="audio-band" data-segment="low-red"></span><span class="audio-band" data-segment="low-yellow"></span><span class="audio-band" data-segment="center"></span><span class="audio-band" data-segment="high-yellow"></span><span class="audio-band" data-segment="high-red"></span><span id="tuner-needle" class="audio-needle"></span></div><div class="audio-scale" aria-hidden="true"><span style="left:30%">−20</span><span style="left:40%">−10</span><span style="left:60%">+10</span><span style="left:70%">+20</span></div></div>
+          <p id="tuner-status" class="audio-status sr-only" role="status"></p>
+        </section>
+
+        <p id="metro-status" class="audio-status" role="status"></p>
+      </div>
+    </aside>
+
     <div class="workspace">
       <div class="setup-stack">
+      <div class="setup-sidebar">
     <section class="classroom-bar" aria-labelledby="classroom-heading">
       <div>
         <h2 id="classroom-heading">課堂同步模式 · CLASSROOM</h2>
@@ -399,6 +546,12 @@
         </div>
       </div>
     </section>
+      <section class="practice-stats" aria-labelledby="practice-stats-title">
+        <h3 id="practice-stats-title">累積練習</h3>
+        <p>依此瀏覽器保留的個人與課堂紀錄，每個調在每筆紀錄完成算 1 次；刪除紀錄也會扣除。點調性可寫私人筆記，與每日練習卡共用。</p>
+        <div id="practice-stats-grid" class="practice-stats-grid"></div>
+      </section>
+      </div>
 
       <section class="panel" aria-labelledby="settings-title">
         <div class="panel-head"><h2 class="panel-title" id="settings-title">設定抽籤數量</h2><span class="section-number">01 / SETUP</span></div>
@@ -407,9 +560,9 @@
             <h3 id="key-filter-title">今天要練哪些調？</h3>
             <div class="key-pool-actions"><button type="button" id="filter-all" class="filter-all">全部選取</button><button type="button" id="filter-none" class="filter-all">全部取消</button></div>
           </div>
-          <p class="filter-explain">預設 24 調全選。按亮的調性會進入抽籤池；灰色代表排除。依調號分組，可分別選擇大調及小調。</p>
-          <div id="signature-filters" aria-label="依升降記號分類的 24 個候選調性"></div>
-          <div class="filter-status"><span>大調 <b id="major-eligible">12 / 12</b></span><span>古典旋律小調 <b id="minor-eligible">12 / 12</b></span></div>
+          <p class="filter-explain sr-only">預設 24 調全選。按亮的調性會進入抽籤池；灰色代表排除。依五度圈排列，每格上方為大調、下方為小調，可分別選取。F♯ 大調／E♭ 小調保留原本的等音調拼寫。</p>
+          <div id="signature-filters" class="fifths-circle" aria-label="五度圈排列的 24 個候選調性，上方大調、下方小調"></div>
+          <div class="filter-status" role="group" aria-labelledby="filter-status-heading"><h4 class="filter-status-heading" id="filter-status-heading">已選取</h4><span>大調 <b id="major-eligible">12 / 12</b></span><span>古典旋律小調 <b id="minor-eligible">12 / 12</b></span></div>
           <p id="filter-warning" class="filter-warning" role="status" hidden></p>
         </section>
         <div class="counter-list">
@@ -428,12 +581,12 @@
           <button type="button" class="preset" data-major="3" data-minor="3">3 大調 + 3 小調</button>
           <button type="button" class="preset" data-major="6" data-minor="6">6 大調 + 6 小調</button>
         </div></div>
-        <button type="button" id="draw-button" class="draw-button"><span class="button-icon" aria-hidden="true">✦</span><span id="draw-text">抽取今日練習調性</span><span aria-hidden="true">↗</span></button>
+        <button type="button" id="draw-button" class="draw-button"><span class="button-icon" aria-hidden="true">✦</span><span id="draw-text">抽取今日練習調性</span><svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
         <p class="control-note">每種調性最多 12 個；同一組不會抽到重複調性。</p>
         <div class="ordered-practice" aria-label="循序練習">
           <div class="ordered-practice-copy">
             <strong>循序練習 <span>依調號</span></strong>
-            <small>勾選的調性全部練習 · 0 → ♯1–6 → ♭1–6</small>
+            <small>勾選的調性全部練習 · 0 <svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14m-6-6 6 6-6 6"/></svg><span class="sr-only">再到</span> ♯1–6 <svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14m-6-6 6 6-6 6"/></svg><span class="sr-only">再到</span> ♭1–6</small>
           </div>
           <button type="button" id="ordered-button" class="ordered-practice-button">開始循序練習</button>
         </div>
@@ -443,7 +596,6 @@
       <section class="panel result-panel" aria-labelledby="results-title">
         <div class="panel-head">
           <h2 class="panel-title" id="results-title">今日練習清單</h2>
-          <div class="result-controls" id="result-controls" hidden><button type="button" class="icon-button" id="copy-button" aria-label="複製今日清單">複製清單 ↗</button></div>
           <span class="section-number" id="result-placeholder-code">02 / PRACTICE</span>
         </div>
         <div class="empty-state" id="empty-state">
@@ -458,7 +610,7 @@
           </div>
           <div id="key-groups"></div>
           <div class="result-bottom">
-            <span class="caption">點標題切換完成狀態；使用右側箭頭摺疊指板，或點下方調性快速跳轉。</span>
+            <span class="caption">點圓圈標記完成；點標題或右側箭頭展開／摺疊音階與指板，或點下方調性快速跳轉。</span>
             <nav class="practice-quick-list" id="bottom-practice-nav" aria-label="快速跳轉練習調性"></nav>
           </div>
 
@@ -480,7 +632,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261106-025 · <a href="./experimental/" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Experimental</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261114-042 · <a href="./experimental/" aria-label="開啟實驗版 Experimental" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Experimental</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -503,8 +655,10 @@
     </div>
   </dialog>
 
+
+
   <script src="fingering-presets.js?v=20261106-012"></script>
-  <script src="fingerboard.js?v=20261106-023"></script>
+  <script src="fingerboard.js?v=20261114-042"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
@@ -712,42 +866,49 @@
       const container=q('#signature-filters');
       container.replaceChildren();
       const excluded=new Set(excludedKeys());
-      const groups=[
-        {label:'無升降記號',values:[0]},
-        {label:'升記號 ♯',values:[1,2,3,4,5,6]},
-        {label:'降記號 ♭',values:[-1,-2,-3,-4,-5,-6]}
-      ];
-      for(const group of groups){
-        const section=document.createElement('section');section.className='signature-section';
-        const heading=document.createElement('div');heading.className='signature-section-title';heading.textContent=group.label;
-        const grid=document.createElement('div');grid.className='signature-grid';
-        for(const sig of group.values){
-          const card=document.createElement('div');card.className='signature-card';
-          const label=document.createElement('span');label.className='signature-label';label.textContent=sig===0?'0':(sig>0?'♯':'♭')+Math.abs(sig);
-          const chips=document.createElement('div');chips.className='signature-chips';
-          for(const mode of ['major','minor']){
-            const arr=mode==='major'?MAJOR_KEYS:MINOR_KEYS;
-            const index=arr.findIndex(key=>key[1]===sig);
-            if(index<0)continue;
-            const key=arr[index],id=selectedId(mode,index),on=!excluded.has(id);
-            const button=document.createElement('button');button.type='button';
-            button.className='filter-key'+(mode==='minor'?' minor':'');
-            button.setAttribute('aria-pressed',String(on));
-            button.setAttribute('aria-label',key[0]+(mode==='major'?'大調':'古典旋律小調')+' '+signature(sig)+(on?' 已加入抽籤':' 已排除'));
-            const name=document.createElement('strong');name.textContent=key[0];
-            const suffix=document.createElement('small');suffix.textContent=mode==='major'?'大調':'小調';
-            button.append(name,suffix);
-            button.addEventListener('click',()=>{
-              const next=new Set(excludedKeys());
-              if(next.has(id))next.delete(id);else next.add(id);
-              updateExclusions([...next]);
-            });
-            chips.append(button);
-          }
-          card.append(label,chips);grid.append(card);
+      // Preserve each of the existing 24 IDs. The tritone slot keeps F♯ major
+      // and E♭ minor rather than inventing or merging enharmonic pool entries.
+      const signatures=[0,1,2,3,4,5,6,-5,-4,-3,-2,-1];
+      signatures.forEach((sig,slot)=>{
+        const pair=document.createElement('div');pair.className='fifths-pair';
+        const angle=slot*Math.PI/6-Math.PI/2;
+        pair.style.setProperty('--x',(50+43.5*Math.cos(angle))+'%');
+        pair.style.setProperty('--y',(50+43.5*Math.sin(angle))+'%');
+        for(const mode of ['major','minor']){
+          const arr=mode==='major'?MAJOR_KEYS:MINOR_KEYS;
+          const actualSignature=mode==='minor'&&sig===6?-6:sig;
+          const index=arr.findIndex(key=>key[1]===actualSignature);
+          if(index<0)continue;
+          const key=arr[index],id=selectedId(mode,index),on=!excluded.has(id);
+          const button=document.createElement('button');button.type='button';
+          button.className='filter-key'+(mode==='minor'?' minor':'');button.dataset.keyId=id;
+          button.setAttribute('aria-pressed',String(on));
+          button.setAttribute('aria-label',key[0]+(mode==='major'?'大調':'古典旋律小調')+' '+signature(actualSignature)+(on?' 已加入抽籤':' 已排除'));
+          button.title=signature(actualSignature);
+          const name=document.createElement('strong');name.textContent=key[0];
+          const suffix=document.createElement('small');suffix.textContent=mode==='major'?'大調':'小調';
+          button.append(name,suffix);
+          button.addEventListener('click',()=>{
+            const next=new Set(excludedKeys());
+            if(next.has(id))next.delete(id);else next.add(id);
+            updateExclusions([...next]);
+            // Re-rendering the pool must not strand keyboard users at the page top.
+            container.querySelector('[data-key-id="'+id+'"]')?.focus({preventScroll:true});
+          });
+          pair.append(button);
         }
-        section.append(heading,grid);container.append(section);
-      }
+        // Read the actual pool spellings, including F♯ major / E♭ minor.
+        const majorSignature=MAJOR_KEYS.find(k=>k[1]===sig)?.[1];
+        const minorSignature=MINOR_KEYS.find(k=>k[1]===(sig===6?-6:sig))?.[1];
+        const shortSignature=n=>n===0?'0':(n>0?'♯':'♭')+Math.abs(n);
+        const marker=document.createElement('span');marker.className='fifths-signature';
+        marker.style.setProperty('--x',(50+25*Math.cos(angle))+'%');
+        marker.style.setProperty('--y',(50+25*Math.sin(angle))+'%');
+        if(majorSignature===minorSignature){marker.textContent=shortSignature(majorSignature);}
+        else{marker.classList.add('enharmonic');marker.textContent=shortSignature(majorSignature)+' / '+shortSignature(minorSignature);marker.style.whiteSpace='pre';}
+        marker.setAttribute('aria-hidden','true'); // Full spelled-out counts already label each button.
+        container.append(pair,marker);
+      });
       const major=eligible('major').length,minor=eligible('minor').length;
       q('#major-eligible').textContent=major+' / 12';
       q('#minor-eligible').textContent=minor+' / 12';
@@ -786,6 +947,16 @@
         return;
       }
       render();
+    }
+    function relativeKeyLabel(mode,key){
+      // Use diatonic spelling, not pitch-class matching: F♯ major → D♯ minor,
+      // and E♭ minor → G♭ major even when the draw pool uses enharmonic keys.
+      const name=(mode==='major'?key[2]:key[3]).split(' ')[mode==='major'?5:2];
+      return '關係'+(mode==='major'?'小調：':'大調：')+name;
+    }
+    function scaleNameSummary(mode,key){
+      const names=dir=>window.CelloFingerboard.scaleNotes(mode,key,dir,1).map(n=>n.name).join(' · ');
+      return mode==='major'?names('up'):'上行 '+names('up')+'<br>下行 '+names('down');
     }
     function signature(count){ return count===0?'無升降記號':(count>0?`♯ × ${count}`:`♭ × ${-count}`); }
     function showToast(msg){
@@ -894,27 +1065,91 @@
       storePersonalSession(session,action);
       render();showToast('已依調號排好全部選取的調性！');
     }
+// Student notes stay on this browser, separate from shared classroom state.
+const studentNoteKey=id=>'daily-key-practice:key-note:'+id;
+const NOTE_ICON='<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4H5v16h14v-9M10 14l1-4 7-7 3 3-7 7-4 1z"/></svg>';
+function migrateKeyNote(id){
+ const target=studentNoteKey(id),marker=target+':migrated-v1';
+ if(localStorage.getItem(marker))return;
+ const prefix='daily-key-practice:',sources=[
+  [target,'目前筆記'],
+  [prefix+'student-note:personal:'+id,'個人練習'],
+  [prefix+'cumulative-note:'+id,'累積練習']
+ ];
+ const rooms=[];
+ for(let i=0;i<localStorage.length;i++){
+  const key=localStorage.key(i);
+  if(key?.startsWith(prefix+'student-note:')&&key.endsWith(':'+id)&&key!==prefix+'student-note:personal:'+id)rooms.push(key);
+ }
+ rooms.sort().forEach(key=>sources.push([key,'原教室 '+key.slice((prefix+'student-note:').length,-id.length-1)]));
+ const values=[],seen=new Set();
+ for(const [key,label] of sources){const value=localStorage.getItem(key);if(value&&value.trim()&&!seen.has(value)){seen.add(value);values.push({label,value});}}
+ const legacy=values.filter(x=>x.label!=='目前筆記');
+ const legacyMerged=legacy.length===1?legacy[0].value:legacy.map(x=>'【'+x.label+'】\n'+x.value).join('\n\n');
+ if(values[0]?.label==='目前筆記'&&values[0].value===legacyMerged){localStorage.setItem(marker,'1');return;}
+ if(values.length){const merged=values.length===1?values[0].value:values.map(x=>'【'+x.label+'】\n'+x.value).join('\n\n');localStorage.setItem(target,merged);}
+ // Retain old keys as untouched backups. Marker also prevents cleared notes resurrecting.
+ localStorage.setItem(marker,'1');
+}
+function readStudentNote(id,storageKey=studentNoteKey(id)){try{migrateKeyNote(id);return localStorage.getItem(storageKey)||'';}catch{return '';}}
+function refreshNoteButton(button,id,storageKey=studentNoteKey(id)){
+ button.dataset.noteKey=id;const filled=Boolean(readStudentNote(id,storageKey).trim());button.classList.toggle('has-note',filled);
+ button.setAttribute('aria-label',(button.dataset.noteLabel||'')+(filled?'編輯':'新增')+'個人練習筆記（僅此瀏覽器）');
+}
+function openStudentNote(id,button,storageKey=studentNoteKey(id)){
+ const dialog=document.createElement('dialog');dialog.className='student-note-dialog';
+ const heading=document.createElement('h2');heading.textContent=button.dataset.noteTitle?button.dataset.noteTitle+'練習筆記':'我的練習筆記';heading.id='student-note-heading';
+ dialog.setAttribute('aria-labelledby',heading.id);
+ const label=document.createElement('label');label.htmlFor='student-note-text';label.textContent='這個調想記住的事';
+ const input=document.createElement('textarea');input.id='student-note-text';input.rows=6;input.value=readStudentNote(id,storageKey);input.placeholder='例如：換把前放鬆左手、下次從慢速開始…';
+ const help=document.createElement('p');help.className='caption';help.textContent='只保存在這個瀏覽器，不會同步給老師或其他學生。共用裝置上的其他人仍可看見。';
+ const actions=document.createElement('div');actions.className='student-note-actions';
+ const cancel=document.createElement('button');cancel.type='button';cancel.textContent='取消';cancel.className='room-action';
+ const save=document.createElement('button');save.type='button';save.textContent='儲存筆記';save.className='room-action primary';
+ const clear=document.createElement('button');clear.type='button';clear.textContent='清空內容';clear.className='room-action';
+ clear.addEventListener('click',()=>{input.value='';input.focus();});cancel.addEventListener('click',()=>dialog.close());
+ save.addEventListener('click',()=>{try{if(input.value.trim())localStorage.setItem(storageKey,input.value);else localStorage.removeItem(storageKey);document.querySelectorAll('[data-note-key]').forEach(el=>{if(el.dataset.noteKey===id)refreshNoteButton(el,id);});dialog.close();}catch{help.textContent='無法儲存，請先複製筆記保留。';}});
+ dialog.addEventListener('close',()=>{dialog.remove();button.focus({preventScroll:true});});
+ actions.append(clear,cancel,save);dialog.append(heading,label,input,help,actions);document.body.append(dialog);dialog.showModal();input.focus();
+}
 function createCard(mode,index,doneIds){
  const key=(mode==='major'?MAJOR_KEYS:MINOR_KEYS)[index],id=selectedId(mode,index),done=doneIds.includes(id);
  const card=document.createElement('div');card.className=`key-card${done?' done':''}`;card.dataset.keyId=id;
  const heading=document.createElement('div');heading.className='key-card-heading';
- const main=document.createElement('button');main.type='button';main.className='key-card-main';main.setAttribute('aria-pressed',String(done));
- main.setAttribute('aria-label',`${key[0]} ${mode==='major'?'大調':'小調'}，點擊切換完成`);
- main.innerHTML=`<span class="check-circle" aria-hidden="true">${done?'✓':''}</span><span class="key-card-content"><span class="key-primary">${key[0]} ${mode==='major'?'大調':'小調'}</span><span class="key-secondary">${signature(key[1])}</span></span>`;
- main.addEventListener('click',()=>requestCardAction(()=>toggleComplete(id)));
- const expand=document.createElement('button');expand.type='button';expand.className='key-expand';expand.textContent='⌄';
- expand.setAttribute('aria-label','展開或收合 '+key[0]+(mode==='major'?'大調':'小調')+' 的指板圖');
+ const main=document.createElement('div');main.className='key-card-main';
+ const complete=document.createElement('button');complete.type='button';complete.className='key-complete';complete.setAttribute('aria-pressed',String(done));
+ complete.setAttribute('aria-label',`${key[0]} ${mode==='major'?'大調':'小調'}，切換完成狀態`);
+ complete.innerHTML=`<span class="check-circle" aria-hidden="true">${done?'✓':''}</span>`;
+ complete.addEventListener('click',()=>requestCardAction(()=>toggleComplete(id)));
+ const content=document.createElement('div');content.className='key-card-content';
+ const title=document.createElement('button');title.type='button';title.className='key-primary key-title';title.textContent=`${key[0]} ${mode==='major'?'大調':'小調'}`;
+ title.setAttribute('aria-controls','fingering-'+id);
+ title.addEventListener('click',()=>requestCardAction(()=>toggleCardExpansion(id)));
+ content.append(title);
+ const details=document.createElement('div');details.innerHTML=`<span class="key-relative">${relativeKeyLabel(mode,key)}</span><span class="key-secondary">${scaleNameSummary(mode,key)}</span>`;
+ content.append(details);
+ const noteButton=document.createElement('button');noteButton.type='button';noteButton.className='student-note-button';
+ noteButton.innerHTML=NOTE_ICON;
+ refreshNoteButton(noteButton,id);noteButton.addEventListener('click',()=>openStudentNote(id,noteButton));
+ main.append(complete,content);
+ const expand=document.createElement('button');expand.type='button';expand.className='key-expand';expand.innerHTML='<svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>';
+ expand.setAttribute('aria-label','展開或收合 '+key[0]+(mode==='major'?'大調':'小調')+' 的音階與指板');
  expand.setAttribute('aria-controls','fingering-'+id);
  expand.addEventListener('click',()=>requestCardAction(()=>toggleCardExpansion(id)));
- heading.append(main,expand);
+ heading.append(main,noteButton,expand);
+ // Header whitespace shares the title action; native buttons retain their own
+ // keyboard semantics and the completion control never toggles expansion.
+ heading.addEventListener('click',event=>{
+  if(event.target.closest('button'))return;
+  requestCardAction(()=>toggleCardExpansion(id));
+ });
  const panel=document.createElement('div');panel.className='fingering-section';panel.id='fingering-'+id;
- const header=document.createElement('div');header.className='fingering-title';header.textContent='大提琴指板音位圖';
  const note=visibleFingerings()[id]||{};
  const guide=window.CelloFingerboard.create(mode,key,note,
   (direction,map,original,resetAll)=>saveInlineFingering(id,direction,map,original,resetAll),
   draft=>sharedRoom?window.classroomSync?.setDraft(id,draft):null);
- boardInstances.set(id,guide);cardInstances.set(id,{card,button:main,panel,expand,guide});
- guide.setRemoteDrafts(roomEditingPreviews[id]||[]);panel.append(header,guide);card.append(heading,panel);
+ boardInstances.set(id,guide);cardInstances.set(id,{card,button:complete,title,panel,expand,guide});
+ guide.setRemoteDrafts(roomEditingPreviews[id]||[]);panel.append(guide);card.append(heading,panel);
  return card;
 }
 function mergeFingeringMap(latest,previous,proposed,resetAll=false){
@@ -962,14 +1197,14 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   const item=cardInstances.get(id),current=currentSession();
   if(!item||!current)return;
   expandedOverride=id;syncPracticeCards(current);
-  item.button.focus({preventScroll:true});
+  item.title.focus({preventScroll:true});
   item.card.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});
  });
 }
     function toggleCardExpansion(id){
  const session=currentSession(),item=cardInstances.get(id);
  if(!session||!item)return;
- expandedOverride=item.panel.hidden?id:null;
+ expandedOverride=item.opened?null:id;
  syncPracticeCards(session);
 }
     function renderPracticeNavigation(order,done,active){
@@ -991,6 +1226,34 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   }
  }
 }
+    function setCardPanelOpen(item,opened){
+ const panel=item.panel,previous=item.opened;
+ if(previous===opened)return;
+ item.opened=opened;
+ if(!opened&&panel.contains(document.activeElement))item.title.focus({preventScroll:true});
+ panel.inert=!opened;
+ panel.setAttribute('aria-hidden',String(!opened));
+ const currentHeight=panel.hidden?0:panel.getBoundingClientRect().height;
+ const before=getComputedStyle(panel),currentOpacity=panel.hidden?'0':before.opacity;
+ const oldPaddingTop=panel.hidden?'0px':before.paddingTop,oldPaddingBottom=panel.hidden?'0px':before.paddingBottom,oldBorder=panel.hidden?'0px':before.borderTopWidth;
+ item.panelAnimation?.cancel();item.panelAnimation=null;
+ const instant=previous===undefined||window.matchMedia('(prefers-reduced-motion:reduce)').matches||typeof panel.animate!=='function';
+ if(instant){panel.hidden=!opened;return;}
+ panel.hidden=false;
+ const targetHeight=opened?panel.getBoundingClientRect().height:0;
+ const natural=getComputedStyle(panel);
+ const animation=panel.animate([
+  {height:currentHeight+'px',opacity:currentOpacity,overflow:'hidden',boxSizing:'border-box',paddingTop:oldPaddingTop,paddingBottom:oldPaddingBottom,borderTopWidth:oldBorder},
+  {height:targetHeight+'px',opacity:opened?1:0,overflow:'hidden',boxSizing:'border-box',paddingTop:opened?natural.paddingTop:'0px',paddingBottom:opened?natural.paddingBottom:'0px',borderTopWidth:opened?natural.borderTopWidth:'0px'}
+ ],{
+  // Tall scale + arpeggio panels need time to settle. Reversing mid-flight
+  // travels only the remaining distance rather than replaying a full duration.
+  duration:Math.max(180,Math.min(460,280+Math.abs(targetHeight-currentHeight)*.07)),
+  easing:'cubic-bezier(.25,.1,.25,1)'
+ });
+ item.panelAnimation=animation;
+ animation.onfinish=()=>{if(item.panelAnimation!==animation)return;panel.hidden=!item.opened;item.panelAnimation=null;};
+ }
     function syncPracticeCards(session){
  const order=jumpOrder(),done=new Set(session?.doneIds||[]);
  const active=expandedOverride===undefined?order.find(id=>!done.has(id)):
@@ -1001,9 +1264,9 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   item.card.classList.toggle('is-expanded',opened);
   item.button.setAttribute('aria-pressed',String(finished));
   item.button.querySelector('.check-circle').textContent=finished?'✓':'';
-  item.panel.hidden=!opened;
+  setCardPanelOpen(item,opened);
   item.expand.setAttribute('aria-expanded',String(opened));
-  item.expand.textContent=opened?'⌃':'⌄';
+  item.title.setAttribute('aria-expanded',String(opened));
  }
  renderPracticeNavigation(order,done,active);
 }
@@ -1041,7 +1304,6 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       q('#empty-state').hidden=hasSession;
       q('#empty-state').style.display=hasSession?'none':'flex';
       q('#result-content').classList.toggle('visible',hasSession);
-      q('#result-controls').hidden=!hasSession;
       q('#result-placeholder-code').hidden=hasSession;
       if(!hasSession){
         expandedOverride=undefined;renderedSessionKey=null;
@@ -1091,6 +1353,37 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       syncPracticeCards(session);
       if(count===total)showToast('今天的調性全部練完了，太棒了！ 🎉');
     }
+    // Cumulative counts derive only from stored completed history, never the live/replay session.
+    function cumulativePracticeCounts(personal=[],classroom=[]){
+      const counts=Object.fromEntries(['major','minor'].flatMap(mode=>Array.from({length:12},(_,i)=>[mode+'-'+i,0])));
+      const rows=new Map();
+      for(const [source,records] of [['personal',personal],['classroom',classroom]]){
+        if(!Array.isArray(records))continue;
+        records.forEach((record,index)=>{if(record&&Array.isArray(record.majorIds)&&Array.isArray(record.minorIds))rows.set(typeof record.id==='string'&&record.id?record.id:source+':row:'+index,record);});
+      }
+      for(const record of rows.values()){
+        const valid=new Set(['major','minor'].flatMap(mode=>record[mode+'Ids'].filter(i=>Number.isInteger(i)&&i>=0&&i<12).map(i=>mode+'-'+i)));
+        for(const id of new Set(Array.isArray(record.doneIds)?record.doneIds:[]))if(valid.has(id))counts[id]++;
+      }
+      return counts;
+    }
+    const cumulativeNoteKey=studentNoteKey;
+    function renderPracticeStats(){
+      const grid=q('#practice-stats-grid');if(!grid)return;
+      const counts=cumulativePracticeCounts(state.personalHistory,state.classroomHistory);
+      grid.replaceChildren();
+      for(const mode of ['major','minor'])for(let i=0;i<12;i++){
+        const id=selectedId(mode,i),label=keyName(mode,i)+(mode==='major'?'大調':'小調');
+        if(!counts[id])continue;
+        const button=document.createElement('button');button.type='button';button.className='practice-stat';button.dataset.statKey=id;button.dataset.noteTitle=label+' ';button.dataset.noteLabel=label+'，'+counts[id]+' 次，';
+        const name=document.createElement('span');name.textContent=label;
+        const count=document.createElement('b');count.textContent=counts[id]+' 次';
+        const icon=document.createElement('span');icon.className='student-note-button';icon.innerHTML=NOTE_ICON;
+        button.append(name,count,icon);refreshNoteButton(button,id,cumulativeNoteKey(id));
+        button.addEventListener('click',()=>openStudentNote(id,button,cumulativeNoteKey(id)));grid.append(button);
+      }
+      if(!grid.children.length){const empty=document.createElement('p');empty.className='caption practice-stats-empty';empty.textContent='還沒有完成的調性。完成練習後會顯示累積次數。';grid.append(empty);}
+    }
     function historyProgress(record){
       const ids=[...record.majorIds.map(i=>selectedId('major',i)),
         ...record.minorIds.map(i=>selectedId('minor',i))];
@@ -1129,19 +1422,23 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         q('.result-panel').scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});
       });
     }
+    function formatHistoryTime(value){
+      const timestamp=Number(value), date=new Date(timestamp);
+      if(!Number.isFinite(timestamp)||timestamp<=0||!Number.isFinite(date.getTime()))return ' · 時間未記錄';
+      return ' · '+String(date.getHours()).padStart(2,'0')+':'+String(date.getMinutes()).padStart(2,'0');
+    }
     function renderHistory(){
+      renderPracticeStats();
       function createRow(record,kind){
         const row=document.createElement('div');row.className='history-row';
         const meta=document.createElement('div');meta.className='history-date';
         const dateText=formatDate(record.date,record.date.slice(0,4)!==currentDate.slice(0,4));
-        const timestamp=Number(record.drawnAt||record.createdAt);
-        const hour=Number.isFinite(timestamp)&&timestamp>0?
-          ' · '+new Date(timestamp).getHours()+' 點':' · 時間未記錄';
-        meta.textContent=dateText+hour;
+        const timeLabel=formatHistoryTime(record.drawnAt||record.createdAt);
+        meta.textContent=dateText+timeLabel;
         const sum=document.createElement('small');
         const progress=historyProgress(record);
         sum.textContent='已完成 '+progress.count+' / '+progress.total;
-        // Keep room codes private: only show date, hour and completed notes.
+        // Keep room codes private: only show date, time and completed notes.
         meta.append(sum);row.append(meta);
         const chips=document.createElement('div');chips.className='history-keys';
         for(const [mode,indices] of [['major',record.majorIds],['minor',record.minorIds]]){
@@ -1157,11 +1454,11 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         const canContinue=progress.count<progress.total;
         replay.className='history-replay';
         replay.textContent=canContinue?'繼續這次練習':'重現這次練習';
-        replay.setAttribute('aria-label',replay.textContent+'：'+dateText+hour);
+        replay.setAttribute('aria-label',replay.textContent+'：'+dateText+timeLabel);
         replay.addEventListener('click',()=>replayHistoricalScale(record,kind));
         const remove=document.createElement('button');remove.type='button';
         remove.className='history-delete';remove.textContent='刪除';
-        remove.setAttribute('aria-label','刪除 '+dateText+hour+' 的'+
+        remove.setAttribute('aria-label','刪除 '+dateText+timeLabel+' 的'+
           (kind==='personal'?'個人':'課堂')+'練習紀錄');
         remove.addEventListener('click',()=>{
           if(!window.confirm('確定刪除這筆練習紀錄嗎？此操作無法復原。'))return;
@@ -1217,17 +1514,6 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       const next=getLocalDate();
       if(next!==currentDate){currentDate=next;replaySession=null;render();}
     }
-    async function copyList(){
-      const session=currentSession();if(!session)return;
-      const lines=[`${formatDate(currentDate)}｜每日調性練習`, `大調：${session.majorIds.map(i=>keyName('major',i)).join('、')||'無'}`, `小調：${session.minorIds.map(i=>keyName('minor',i)).join('、')||'無'}`];
-      try{
-        await navigator.clipboard.writeText(lines.join('\n'));
-        showToast('已複製今日練習清單');
-      }catch(_){
-        const ta=document.createElement('textarea');ta.value=lines.join('\n');ta.style.position='fixed';ta.style.opacity='0';document.body.append(ta);ta.select();
-        const ok=document.execCommand('copy');ta.remove();showToast(ok?'已複製今日練習清單':'複製失敗，請檢查瀏覽器權限');
-      }
-    }
     q('#major-minus').addEventListener('click',()=>setCounts(visiblePreferences().majorCount-1,visiblePreferences().minorCount));
     q('#major-plus').addEventListener('click',()=>setCounts(visiblePreferences().majorCount+1,visiblePreferences().minorCount));
     q('#minor-minus').addEventListener('click',()=>setCounts(visiblePreferences().majorCount,visiblePreferences().minorCount-1));
@@ -1235,7 +1521,6 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     document.querySelectorAll('.preset').forEach(btn=>btn.addEventListener('click',()=>setCounts(Number(btn.dataset.major),Number(btn.dataset.minor))));
     q('#draw-button').addEventListener('click',drawToday);
     q('#ordered-button').addEventListener('click',practiceInSignatureOrder);
-    q('#copy-button').addEventListener('click',copyList);
     q('#history-unavailable-dismiss').addEventListener('click',()=>q('#history-unavailable-dialog').close());
     q('#filter-all').addEventListener('click',()=>updateExclusions([]));
     q('#filter-none').addEventListener('click',()=>updateExclusions([...MAJOR_KEYS.map((_,i)=>selectedId('major',i)),...MINOR_KEYS.map((_,i)=>selectedId('minor',i))]));
@@ -1259,5 +1544,299 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   </script>
   <script src="firebase-config.js?v=20261106-001"></script>
   <script type="module" src="classroom.js?v=20261106-022"></script>
+<script>
+// AUDIO_TOOLS_START
+(function () {
+  'use strict';
+  // YIN-style period estimation, followed by a short log-frequency window average.
+  // This is not an implementation or claim about Tonal Energy's proprietary algorithm.
+  // Accept quiet microphone input; YIN periodicity still rejects non-tonal noise.
+  const MIN_PITCH_RMS = 0.0003;
+  // A modest input-floor adjustment only for Android/iPhone/iPad, including desktop-mode iPadOS.
+  // Keep periodicity, frequency range and smoothing identical on every platform.
+  function pitchInputFloor(device = {}) {
+    const ua = device.userAgent || '';
+    const ios = !/Android/i.test(ua) && (/iPad|iPhone|iPod/i.test(ua)
+      || (/Macintosh/i.test(ua) && device.platform === 'MacIntel' && device.maxTouchPoints > 1));
+    return ios || /Android/i.test(ua) ? 0.0002 : MIN_PITCH_RMS;
+  }
+  function detectPitch(input, sampleRate, minRms = MIN_PITCH_RMS) {
+    const stride = Math.max(1, Math.floor(sampleRate / 12000));
+    const n = Math.floor(input.length / stride), data = new Float32Array(n);
+    let mean = 0, energy = 0;
+    for (let i = 0; i < n; i++) { data[i] = input[i * stride]; mean += data[i]; }
+    mean /= n;
+    // A DC offset is not an audible signal and must not bypass the quiet gate.
+    for (let i = 0; i < n; i++) { data[i] -= mean; energy += data[i] * data[i]; }
+    if (Math.sqrt(energy / n) < minRms) return null;
+    const rate = sampleRate / stride, max = Math.min(Math.floor(rate / 45), Math.floor(n / 2));
+    const min = Math.max(2, Math.floor(rate / 1100)), size = n - max;
+    const diff = new Float64Array(max + 1); let total = 0;
+    for (let tau = 1; tau <= max; tau++) {
+      let sum = 0;
+      for (let i = 0; i < size; i++) { const d = data[i] - data[i + tau]; sum += d * d; }
+      total += sum; diff[tau] = total ? sum * tau / total : 1;
+    }
+    let tau = min;
+    for (; tau < max; tau++) {
+      if (diff[tau] < 0.15) { while (tau + 1 < max && diff[tau + 1] < diff[tau]) tau++; break; }
+    }
+    if (tau >= max) return null;
+    const a = diff[tau - 1], b = diff[tau], c = diff[tau + 1];
+    const denom = 2 * (2 * b - a - c), shift = denom ? (c - a) / denom : 0;
+    const frequency = rate / (tau + Math.max(-1, Math.min(1, shift)));
+    return Number.isFinite(frequency) ? frequency : null;
+  }
+  function pitchBand(cents){const distance=Math.abs(cents);return distance<=10?'green':distance<=20?'yellow':'red';}
+  function tunerVisual(cents) {
+    if (!Number.isFinite(cents)) return { text: '—', position: 50, segment: '', band: '', valid: false };
+    const rounded = Math.round(cents), band = pitchBand(cents);
+    return { text: (rounded > 0 ? '+' : '') + (Object.is(rounded, -0) ? 0 : rounded),
+      position: 50 + Math.max(-50, Math.min(50, cents)),
+      segment: band === 'green' ? 'center' : (cents < 0 ? 'low-' : 'high-') + band, band, valid: true };
+  }
+  function pitchReading(frequency, reference = 440) {
+    const position = 69 + 12 * Math.log2(frequency / reference), midi = Math.round(position);
+    return { midi, cents: (position - midi) * 100, frequency,
+      name: ['C', 'C♯', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B♭', 'B'][((midi % 12) + 12) % 12] + (Math.floor(midi / 12) - 1) };
+  }
+  class PitchWindow {
+    constructor() { this.values = []; this.last = null; }
+    reset() { this.values = []; this.last = null; }
+    push(frequency) {
+      const log = Math.log2(frequency);
+      if (this.last !== null && Math.abs(log - this.last) * 1200 > 75) this.values = [];
+      this.last = log; this.values.push(log); if (this.values.length > 5) this.values.shift();
+      return 2 ** (this.values.reduce((a, b) => a + b, 0) / this.values.length);
+    }
+  }
+  if (typeof module !== 'undefined' && module.exports) { module.exports = { detectPitch, pitchReading, PitchWindow, pitchBand, tunerVisual, pitchInputFloor }; return; }
+  const $ = id => document.getElementById(id);
+  function renderTuner(reading = null) {
+    const view = tunerVisual(reading?.cents);
+    $('tuner-cents').textContent = view.text;
+    $('tuner-note').textContent = view.valid ? reading.name : '—';
+    const needle = $('tuner-needle');
+    // Snap the first valid reading after silence; never sweep in from idle center.
+    needle.style.transition = view.valid && needle.style.visibility === 'visible' ? '' : 'none';
+    $('tuner-meter').dataset.active = String(view.valid);
+    $('tuner-needle').style.visibility = view.valid ? 'visible' : 'hidden';
+    $('tuner-needle').style.left = view.position + '%';
+    $('tuner-needle').dataset.band = view.band;
+    $('tuner-meter').querySelectorAll('.audio-band').forEach(band => band.classList.toggle('is-active', view.valid && band.dataset.segment === view.segment));
+  }
+  function sizeTools(){
+    const tools=document.querySelector('.audio-tools'),controls=document.querySelector('.audio-controls');
+    const visible=[...controls.children].filter(e=>!e.hidden&&e.getBoundingClientRect().width>0&&!(e.matches('.audio-status')&&!e.textContent));
+    const controlWidth=visible.reduce((n,e)=>n+e.getBoundingClientRect().width,0)+Math.max(0,visible.length-1)*14;
+    const style=getComputedStyle(tools),padding=parseFloat(style.paddingLeft)+parseFloat(style.paddingRight)+2;
+    const target=document.querySelector('.audio-buttons').getBoundingClientRect().width+padding+(controlWidth?parseFloat(style.gap)+controlWidth:0);
+    tools.style.setProperty('--tools-width',Math.ceil((!$('tuner-panel').hidden?innerWidth-24:Math.min(innerWidth-24,target)))+'px');
+  }
+  const toolResize=new ResizeObserver(()=>requestAnimationFrame(sizeTools));
+  document.querySelectorAll('.audio-panel,.audio-status,.audio-buttons').forEach(e=>toolResize.observe(e));
+  window.addEventListener('resize',sizeTools);requestAnimationFrame(sizeTools);
+  function showPanel(name, visible) {
+    $(name+'-panel').hidden=!visible;
+    $(name==='metronome'?'metro-settings':name+'-open').setAttribute('aria-expanded',String(visible));
+    if(name==='metronome'){$('metro-settings').setAttribute('aria-label',visible?'收起節拍器設定':'展開節拍器設定');if(visible)tunerSettings(false);}
+    requestAnimationFrame(sizeTools);
+  }
+  const Context = window.AudioContext || window.webkitAudioContext;
+  let metroContext, metroTimer, metroRunning = false, metroPending = false, nextBeat = 0, beat = 0, metroGeneration = 0;
+  let metroWorklet = null, workletModule = null;
+  // AudioWorklet is primary; the original engine is only a session-local recovery path.
+  let metroFallback = false;
+  const metroFallbackMessage = 'AudioWorklet 無法使用，目前使用相容節拍模式。';
+  const oscillators = new Set(), visuals = new Set();
+  const metroSettings = () => ({ bpm: bpm(), count: Number($('metro-beats').value), accent: Number($('metro-accent').value), volume: Math.max(0, Math.min(100, Number($('metro-volume').value) || 0)) });
+  function configureWorklet(resetBeat = false) { metroWorklet?.port.postMessage({ type: 'configure', settings: metroSettings(), resetBeat }); }
+  function legacyMetro() { schedule(); metroTimer = setInterval(schedule, 25); }
+  async function prepareWorklet() {
+    if (!metroContext.audioWorklet || !window.AudioWorkletNode) throw new Error('不支援 AudioWorklet');
+    if (!workletModule) workletModule = metroContext.audioWorklet.addModule('./metronome-worklet.js?v=20261114-042').catch(error => { workletModule = null; throw error; });
+    await workletModule;
+    return new AudioWorkletNode(metroContext, 'practice-metronome', { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [1] });
+  }
+  const bpm = () => Math.max(30, Math.min(240, Number($('metro-bpm').value) || 80));
+  function metroUI() {
+    $('metronome-open').setAttribute('aria-pressed',String(metroRunning||metroPending));
+    $('metronome-open').setAttribute('aria-label',metroRunning||metroPending?'停止節拍器':'啟用節拍器並開始打拍');
+  }
+  function stopMetro(message = '') {
+    metroGeneration++; metroPending = false; metroRunning = false; clearInterval(metroTimer);
+    if (metroWorklet) { metroWorklet.port.postMessage({ type: 'stop' }); metroWorklet.disconnect(); metroWorklet.port.close(); metroWorklet = null; }
+    oscillators.forEach(o => { try { o.stop(); } catch (_) {} }); oscillators.clear();
+    visuals.forEach(clearTimeout); visuals.clear(); $('metro-beat').textContent = '●';
+    $('metro-status').textContent = message; metroUI();
+  }
+  function schedule() {
+    if (!metroRunning) return;
+    if (metroContext.state !== 'running') { stopMetro('音訊已暫停，請再次按開始。'); return; }
+    // Never emit a burst of missed beats after a blocked/backgrounded tab.
+    if (nextBeat < metroContext.currentTime - 0.03) { nextBeat = metroContext.currentTime + 0.03; beat = 0; }
+    while (nextBeat < metroContext.currentTime + 0.12) {
+      const count = Number($('metro-beats').value), accent = beat + 1 === Number($('metro-accent').value);
+      const volume = Math.max(0, Math.min(100, Number($('metro-volume').value) || 0));
+      if (volume > 0) {
+        const o = metroContext.createOscillator(), gain = metroContext.createGain();
+        o.frequency.value = accent ? 1200 : 850;
+        gain.gain.setValueAtTime(0, nextBeat);
+        gain.gain.linearRampToValueAtTime(volume / 100 * 0.65, nextBeat + 0.002);
+        gain.gain.exponentialRampToValueAtTime(0.001, nextBeat + 0.045);
+        o.connect(gain); gain.connect(metroContext.destination); oscillators.add(o);
+        o.onended = () => { oscillators.delete(o); o.disconnect(); gain.disconnect(); };
+        o.start(nextBeat); o.stop(nextBeat + 0.05);
+      }
+      const label = (beat + 1) + ' / ' + count;
+      const timer = setTimeout(() => { visuals.delete(timer); if (metroRunning) $('metro-beat').textContent = label; }, Math.max(0, (nextBeat - metroContext.currentTime) * 1000));
+      visuals.add(timer); beat = (beat + 1) % count; nextBeat += 60 / bpm();
+    }
+  }
+  async function startMetro() {
+    if (metroRunning||metroPending) { stopMetro(); return; }
+    const generation = ++metroGeneration; metroPending=true; metroUI();
+    try {
+      if (!Context) throw new Error('此瀏覽器不支援 Web Audio');
+      if (!metroContext) {
+        metroContext = new Context();
+        metroContext.addEventListener('statechange', () => { if (metroRunning && metroContext.state !== 'running') stopMetro('音訊已暫停，請再次按開始。'); });
+      }
+      await metroContext.resume();
+      if (generation !== metroGeneration) return;
+      if (metroContext.state !== 'running') throw new Error('請點擊開始以啟用聲音');
+      metroPending=false; metroRunning = true; beat = 0; nextBeat = metroContext.currentTime + 0.05;
+      $('metro-status').textContent = metroFallback ? metroFallbackMessage : ''; metroUI();
+      if (!metroFallback) {
+        metroPending = true; metroRunning = false; metroUI();
+        try {
+          const node = await prepareWorklet();
+          if (generation !== metroGeneration) { node.port.close(); return; }
+          if (metroContext.state !== 'running') { node.port.close(); throw new Error('音訊已暫停'); }
+          metroWorklet = node; metroPending = false; metroRunning = true;
+          node.port.onmessage = ({ data }) => { if (metroWorklet === node && metroRunning) $('metro-beat').textContent = data.beat + ' / ' + data.count; };
+          node.onprocessorerror = () => {
+            if (metroWorklet !== node) return;
+            metroFallback = true;
+            stopMetro('音訊引擎中斷，請再次按開始以使用相容節拍模式。');
+          };
+          node.connect(metroContext.destination);
+          node.port.postMessage({ type: 'start', settings: metroSettings() }); metroUI();
+          return;
+        } catch (error) {
+          if (generation !== metroGeneration) return;
+          if (metroWorklet) { metroWorklet.disconnect(); metroWorklet.port.close(); metroWorklet = null; }
+          metroFallback = true; $('metro-status').textContent = metroFallbackMessage;
+          metroPending = false; metroRunning = true; nextBeat = metroContext.currentTime + 0.05; metroUI();
+        }
+      }
+      legacyMetro();
+    } catch (error) { if (generation === metroGeneration) stopMetro('無法播放：' + error.message); }
+  }
+  $('metro-bpm').onchange = () => { $('metro-bpm').value = bpm(); $('metro-slider').value=bpm(); configureWorklet(); metroUI(); };
+  $('metro-slider').oninput=()=>{$('metro-bpm').value=$('metro-slider').value;configureWorklet();metroUI();};
+  $('metro-beats').onchange = () => {
+    beat=0; const selected=Number($('metro-accent').value),count=Number($('metro-beats').value);
+    $('metro-accent').replaceChildren(...Array.from({length:count+1},(_,i)=>{const o=document.createElement('option');o.value=i;o.textContent=i?'第 '+i+' 拍':'無';return o;}));
+    $('metro-accent').value=selected<=count?selected:1; configureWorklet(true);
+  };
+  $('metro-accent').onchange=()=>{beat=0;configureWorklet(true);};
+  $('metro-volume').addEventListener('input', () => configureWorklet());
+
+  let tunerContext, stream, analyser, source, tunerTimer, tunerRunning = false, pending = false, tunerGeneration = 0;
+  const smooth = new PitchWindow(); let lastSignal = 0;
+  const tunerInputFloor = pitchInputFloor(navigator);
+  function tunerUI() {
+    $('tuner-open').setAttribute('aria-pressed',String(pending||tunerRunning));
+    $('tuner-open').setAttribute('aria-label',pending?'取消麥克風授權等待並收起':tunerRunning?'停止收音並收起':'啟用調音器並開始收音');
+    if(pending)$('tuner-status').textContent='等待麥克風授權';
+  }
+  function stopTuner(message = '麥克風已關閉') {
+    tunerGeneration++; pending = tunerRunning = false; clearInterval(tunerTimer);
+    if (stream) stream.getTracks().forEach(t => t.stop()); stream = null;
+    if (source) source.disconnect(); source = null;
+    if (tunerContext) { tunerContext.close().catch(() => {}); tunerContext = null; }
+    smooth.reset(); renderTuner();
+    $('tuner-status').textContent = message; tunerUI();
+  }
+  async function startTuner() {
+    if (pending || tunerRunning) { stopTuner(); return; }
+    const generation = ++tunerGeneration; pending = true; tunerUI();
+    let requestedStream = null, context = null;
+    try {
+      if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia || !Context) throw new Error('需要 HTTPS 及支援麥克風的瀏覽器');
+      context = new Context(); tunerContext = context;
+      // Unlock during the tap, but do not let a stalled Safari resume prevent
+      // the microphone request. Capture can itself change the audio session.
+      context.resume().catch(() => {});
+      if (generation !== tunerGeneration) return;
+      requestedStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, video: false });
+      if (generation !== tunerGeneration) { requestedStream.getTracks().forEach(t => t.stop()); return; }
+      stream = requestedStream; source = context.createMediaStreamSource(stream); analyser = context.createAnalyser(); analyser.fftSize = 4096; source.connect(analyser);
+      $('tuner-status').textContent = '正在啟動音訊';
+      if (context.state !== 'running') {
+        let timeout;
+        try { await Promise.race([context.resume(), new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error('音訊啟動逾時，請關閉再開啟調音器；若仍無反應請重新載入 Safari。')), 4000); })]); }
+        finally { clearTimeout(timeout); }
+      }
+      if (generation !== tunerGeneration) return;
+      if (context.state !== 'running') throw new Error('音訊未啟動，請關閉再開啟調音器。');
+      const samples = new Float32Array(analyser.fftSize), bytes = new Uint8Array(analyser.fftSize);
+      const readSamples = typeof analyser.getFloatTimeDomainData === 'function'
+        ? () => analyser.getFloatTimeDomainData(samples)
+        : () => { analyser.getByteTimeDomainData(bytes); for(let i=0;i<bytes.length;i++)samples[i]=(bytes[i]-128)/128; };
+      smooth.reset(); lastSignal = performance.now(); let lastInput = lastSignal;
+      pending = false; tunerRunning = true; tunerUI(); $('tuner-status').textContent = '';
+      stream.getAudioTracks().forEach(track => track.onended = () => { if (generation === tunerGeneration) stopTuner('麥克風已中斷，請重新開始。'); });
+      tunerTimer = setInterval(() => {
+        if (context.state !== 'running') { stopTuner('收音已暫停，請重新開始。'); return; }
+        try { readSamples(); } catch (error) { stopTuner('無法讀取收音資料：' + error.message); return; }
+        const rms = Math.sqrt(samples.reduce((sum,v)=>sum+v*v,0)/samples.length);
+        if(rms > .0001)lastInput=performance.now();
+        const muted=stream.getAudioTracks().some(track=>track.muted);
+        const frequency = muted ? null : detectPitch(samples, context.sampleRate, tunerInputFloor);
+        const status = muted ? '麥克風被系統暫停。'
+          : performance.now() - lastInput > 2500 ? '已允許麥克風，但未收到聲音。'
+          : rms > 0.0001 && rms < tunerInputFloor && !frequency ? '收到聲音，但音量太小。'
+          : !frequency && rms >= tunerInputFloor ? '收到聲音，但未辨識到穩定音高。' : '';
+        const statusElement = $('tuner-status');
+        if (statusElement.textContent !== status) statusElement.textContent = status;
+        if (!frequency) {
+          if (performance.now() - lastSignal > 500) smooth.reset(); renderTuner(); return;
+        }
+        lastSignal = performance.now(); const reference = Math.max(430, Math.min(450, Number($('tuner-a').value) || 442));
+        const reading = pitchReading(smooth.push(frequency), reference);
+        renderTuner(reading);
+      }, 40);
+    } catch (error) {
+      if (generation !== tunerGeneration) { if (requestedStream) requestedStream.getTracks().forEach(t => t.stop()); return; }
+      const message = error.name === 'NotAllowedError' ? '未取得麥克風權限。請在瀏覽器允許後再開始。' : error.name === 'NotFoundError' ? '找不到麥克風，請檢查裝置。' : '無法收音：' + error.message;
+      stopTuner(message);
+    }
+  }
+  $('tuner-a').onchange = () => { $('tuner-a').value = Math.max(430, Math.min(450, Number($('tuner-a').value) || 442)); smooth.reset(); };
+  function closeTool(name){
+    if(name==='tuner')stopTuner();else stopMetro();
+    showPanel(name,false);
+  }
+  function tunerSettings(open){if(open)showPanel('metronome',false);$('tuner-preferences').hidden=!open;$('tuner-settings').setAttribute('aria-expanded',String(open));}
+  $('tuner-settings').onclick=()=>tunerSettings($('tuner-preferences').hidden);
+  $('tuner-preferences').addEventListener('keydown',e=>{if(e.key==='Escape'){tunerSettings(false);$('tuner-settings').focus();}});
+  document.addEventListener('pointerdown',e=>{if(!$('tuner-preferences').hidden&&!$('tuner-preferences').contains(e.target)&&!$('tuner-settings').contains(e.target))tunerSettings(false);});
+  $('metronome-open').onclick=startMetro;
+  $('metro-settings').onclick=()=>{showPanel('metronome',$('metronome-panel').hidden);};
+  document.addEventListener('pointerdown',e=>{if(!$('metronome-panel').hidden&&!$('metronome-panel').contains(e.target)&&!$('metro-settings').contains(e.target))showPanel('metronome',false);});
+  $('tuner-open').onclick=()=>{
+    if(!$('tuner-panel').hidden){closeTool('tuner');return;}
+    showPanel('tuner',true);$('tuner-panel').scrollIntoView({block:'nearest',inline:'nearest'});startTuner();
+  };
+  $('metronome-panel').addEventListener('keydown',e=>{if(e.key==='Escape'){showPanel('metronome',false);$('metro-settings').focus();}});
+  $('tuner-panel').addEventListener('keydown',e=>{if(e.key==='Escape'){closeTool('tuner');$('tuner-open').focus();}});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){closeTool('tuner');closeTool('metronome');}});
+  window.addEventListener('pagehide', () => { stopTuner(); stopMetro(); });
+})();
+// AUDIO_TOOLS_END
+
+</script>
 </body>
 </html>
