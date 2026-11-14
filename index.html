@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261114-026-experimental">
+  <meta name="site-version" content="20261114-027-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -436,6 +436,40 @@
     .cello-scale-score{border:0;border-radius:0;background:transparent;margin:0 0 8px}
     .cello-fb-direction{box-shadow:none;background:transparent;border-color:#edf0ea;border-radius:8px}
     .result-summary{background:transparent;border-bottom:1px solid var(--line);border-radius:0;padding:0 0 18px}
+
+    /* Wide practice desk: setup above, notation keeps its readable native size. */
+    .workspace{grid-template-columns:minmax(0,1fr)}
+    .setup-stack{display:grid;grid-template-columns:minmax(230px,.75fr) minmax(0,2fr);align-items:start}
+    .setup-stack>.panel{display:grid;grid-template-columns:minmax(280px,1fr) minmax(220px,.85fr);gap:0 22px}
+    .setup-stack>.panel>.panel-head{grid-column:1/-1;margin-bottom:16px}
+    .setup-stack .key-filter{grid-column:1;grid-row:2/8;margin:0;padding:12px;min-width:0}
+    .setup-stack>.panel>:not(.key-filter):not(.panel-head){grid-column:2}
+    .audio-tools{position:relative;left:auto;bottom:auto;max-width:100%;margin:0 0 20px;z-index:50}
+    .audio-tools .tuner-preferences{bottom:auto;top:calc(100% + 8px)}
+    .fifths-circle{position:relative;aspect-ratio:1;width:100%;max-width:420px;margin:12px auto;background:radial-gradient(circle,transparent 49%,#dce4d5 49.5%,#dce4d5 50%,transparent 50.5%)}
+    .fifths-pair{position:absolute;left:var(--x);top:var(--y);transform:translate(-50%,-50%);display:grid;gap:3px;width:13%;max-width:54px}
+    .fifths-pair .filter-key{width:100%;min-height:28px;padding:3px 2px;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:3px;border-radius:8px}
+    .fifths-pair .filter-key strong{font-size:13px}.fifths-pair .filter-key small{font-size:9px}
+    .fifths-center{position:absolute;inset:34%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none;font-size:11px;line-height:1.8;color:var(--muted)}
+    .fifths-center strong{font-size:17px;color:#456044;white-space:nowrap}
+    .fifths-pair .filter-key:focus-visible{outline:3px solid #3c78a4;outline-offset:2px}
+    .cello-scale-score{overflow-x:auto;overscroll-behavior-x:contain;scrollbar-gutter:stable}
+    .cello-scale-score svg{min-width:960px;max-width:none}
+    .workspace .cello-fb-two-up{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .cello-fb-direction[hidden]{display:none!important}
+    @media(max-width:1100px){.setup-stack{grid-template-columns:1fr}.setup-stack>.classroom-bar{display:grid;grid-template-columns:1fr 1fr}.setup-stack>.panel{grid-template-columns:minmax(280px,1fr) minmax(220px,1fr)}}
+    @media(max-width:700px){
+      .setup-stack>.panel{display:block}.setup-stack .key-filter{margin-bottom:18px}.setup-stack>.classroom-bar{display:flex}
+      .workspace .cello-fb-two-up{grid-template-columns:minmax(0,1fr)}
+      .fifths-circle{max-width:350px}.result-panel{padding:16px}.fingering-section{padding:12px 8px}
+    }
+    .key-card-content{flex:1;min-width:0}.key-card-heading{cursor:pointer}
+    .student-note-button{flex:none;display:grid;place-items:center;width:36px;height:36px;background:transparent;color:#839083;border:1px solid #dce4d8;border-radius:10px}
+    .student-note-button.has-note{color:#6a5018;background:#fff1c7;border-color:#d9b663}
+    .student-note-dialog{width:min(460px,calc(100% - 32px));box-sizing:border-box;border:1px solid #ccd8c9;border-radius:18px;padding:24px;background:var(--paper);color:var(--ink)}
+    .student-note-dialog::backdrop{background:#18251b66}.student-note-dialog h2{font-size:20px;margin-top:0}.student-note-dialog label{display:block;font-size:13px;margin-bottom:8px}
+    .student-note-dialog textarea{width:100%;box-sizing:border-box;resize:vertical;border:1px solid #bdcbb6;border-radius:10px;padding:12px;font:inherit;line-height:1.7;background:white;color:inherit}
+    .student-note-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px}
   </style>
 </head>
 <body>
@@ -454,7 +488,7 @@
 <div id="tuner-preferences" class="tuner-preferences" role="dialog" aria-label="調音器設定" hidden><label class="a4-control" for="tuner-a"><span>A4</span><input id="tuner-a" type="number" min="430" max="450" value="442" step="1" inputmode="numeric" aria-label="A4基準頻率，Hz"></label></div>
         <section id="metronome-panel" class="audio-panel tuner-preferences" role="dialog" aria-label="節拍器控制" hidden>
           <label for="metro-bpm">BPM</label><input id="metro-bpm" type="number" min="30" max="240" value="80" inputmode="numeric">
-          <input id="metro-slider" aria-label="節拍器速度 BPM" type="range" min="30" max="240" step="1" value="80" style="grid-column:1 / -1;width:100%"><label for="metro-volume" style="grid-column:1 / -1">音量</label><input id="metro-volume" type="range" min="0" max="100" step="1" value="100" style="grid-column:1 / -1;width:100%"><label for="metro-beats">每小節</label><select id="metro-beats"><option value="1">1 拍</option><option value="2">2 拍</option><option value="3">3 拍</option><option value="4" selected>4 拍</option><option value="6">6 拍</option></select>
+          <input id="metro-slider" aria-label="節拍器速度 BPM" type="range" min="30" max="240" step="1" value="80" style="grid-column:1 / -1;width:100%"><label for="metro-volume" style="grid-column:1 / -1">音量</label><input id="metro-volume" type="range" min="0" max="100" step="1" value="100" style="grid-column:1 / -1;width:100%"><label for="metro-engine">節拍引擎</label><select id="metro-engine"><option value="a">A · 原版</option><option value="b">B · AudioWorklet 測試</option></select><label for="metro-beats">每小節</label><select id="metro-beats"><option value="1">1 拍</option><option value="2">2 拍</option><option value="3">3 拍</option><option value="4" selected>4 拍</option><option value="6">6 拍</option></select>
           <label for="metro-accent">重拍</label><select id="metro-accent"><option value="0">無</option><option value="1" selected>第 1 拍</option><option value="2">第 2 拍</option><option value="3">第 3 拍</option><option value="4">第 4 拍</option></select><span id="metro-beat" aria-hidden="true">●</span>
 
         </section>
@@ -506,8 +540,8 @@
             <h3 id="key-filter-title">今天要練哪些調？</h3>
             <div class="key-pool-actions"><button type="button" id="filter-all" class="filter-all">全部選取</button><button type="button" id="filter-none" class="filter-all">全部取消</button></div>
           </div>
-          <p class="filter-explain">預設 24 調全選。按亮的調性會進入抽籤池；灰色代表排除。依調號分組，可分別選擇大調及小調。</p>
-          <div id="signature-filters" aria-label="依升降記號分類的 24 個候選調性"></div>
+          <p class="filter-explain">預設 24 調全選。按亮的調性會進入抽籤池；灰色代表排除。依五度圈排列，每格上方為大調、下方為小調，可分別選取。F♯ 大調／E♭ 小調保留原本的等音調拼寫。</p>
+          <div id="signature-filters" class="fifths-circle" aria-label="五度圈排列的 24 個候選調性，上方大調、下方小調"></div>
           <div class="filter-status"><span>大調 <b id="major-eligible">12 / 12</b></span><span>古典旋律小調 <b id="minor-eligible">12 / 12</b></span></div>
           <p id="filter-warning" class="filter-warning" role="status" hidden></p>
         </section>
@@ -557,7 +591,7 @@
           </div>
           <div id="key-groups"></div>
           <div class="result-bottom">
-            <span class="caption">點標題切換完成狀態；使用右側箭頭摺疊指板，或點下方調性快速跳轉。</span>
+            <span class="caption">點圓圈標記完成；點標題或右側箭頭展開／摺疊音階與指板，或點下方調性快速跳轉。</span>
             <nav class="practice-quick-list" id="bottom-practice-nav" aria-label="快速跳轉練習調性"></nav>
           </div>
 
@@ -579,7 +613,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261114-026-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261114-027-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -605,7 +639,7 @@
 
 
   <script src="fingering-presets.js?v=20261106-012"></script>
-  <script src="fingerboard.js?v=20261114-025"></script>
+  <script src="fingerboard.js?v=20261114-027"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
@@ -813,42 +847,42 @@
       const container=q('#signature-filters');
       container.replaceChildren();
       const excluded=new Set(excludedKeys());
-      const groups=[
-        {label:'無升降記號',values:[0]},
-        {label:'升記號 ♯',values:[1,2,3,4,5,6]},
-        {label:'降記號 ♭',values:[-1,-2,-3,-4,-5,-6]}
-      ];
-      for(const group of groups){
-        const section=document.createElement('section');section.className='signature-section';
-        const heading=document.createElement('div');heading.className='signature-section-title';heading.textContent=group.label;
-        const grid=document.createElement('div');grid.className='signature-grid';
-        for(const sig of group.values){
-          const card=document.createElement('div');card.className='signature-card';
-          const label=document.createElement('span');label.className='signature-label';label.textContent=sig===0?'0':(sig>0?'♯':'♭')+Math.abs(sig);
-          const chips=document.createElement('div');chips.className='signature-chips';
-          for(const mode of ['major','minor']){
-            const arr=mode==='major'?MAJOR_KEYS:MINOR_KEYS;
-            const index=arr.findIndex(key=>key[1]===sig);
-            if(index<0)continue;
-            const key=arr[index],id=selectedId(mode,index),on=!excluded.has(id);
-            const button=document.createElement('button');button.type='button';
-            button.className='filter-key'+(mode==='minor'?' minor':'');
-            button.setAttribute('aria-pressed',String(on));
-            button.setAttribute('aria-label',key[0]+(mode==='major'?'大調':'古典旋律小調')+' '+signature(sig)+(on?' 已加入抽籤':' 已排除'));
-            const name=document.createElement('strong');name.textContent=key[0];
-            const suffix=document.createElement('small');suffix.textContent=mode==='major'?'大調':'小調';
-            button.append(name,suffix);
-            button.addEventListener('click',()=>{
-              const next=new Set(excludedKeys());
-              if(next.has(id))next.delete(id);else next.add(id);
-              updateExclusions([...next]);
-            });
-            chips.append(button);
-          }
-          card.append(label,chips);grid.append(card);
+      // Preserve each of the existing 24 IDs. The tritone slot keeps F♯ major
+      // and E♭ minor rather than inventing or merging enharmonic pool entries.
+      const signatures=[0,1,2,3,4,5,6,-5,-4,-3,-2,-1];
+      const center=document.createElement('div');center.className='fifths-center';
+      center.innerHTML='<strong>五度圈</strong><span>上 · 大調<br>下 · 小調</span>';
+      container.append(center);
+      signatures.forEach((sig,slot)=>{
+        const pair=document.createElement('div');pair.className='fifths-pair';
+        const angle=slot*Math.PI/6-Math.PI/2;
+        pair.style.setProperty('--x',(50+43.5*Math.cos(angle))+'%');
+        pair.style.setProperty('--y',(50+43.5*Math.sin(angle))+'%');
+        for(const mode of ['major','minor']){
+          const arr=mode==='major'?MAJOR_KEYS:MINOR_KEYS;
+          const actualSignature=mode==='minor'&&sig===6?-6:sig;
+          const index=arr.findIndex(key=>key[1]===actualSignature);
+          if(index<0)continue;
+          const key=arr[index],id=selectedId(mode,index),on=!excluded.has(id);
+          const button=document.createElement('button');button.type='button';
+          button.className='filter-key'+(mode==='minor'?' minor':'');button.dataset.keyId=id;
+          button.setAttribute('aria-pressed',String(on));
+          button.setAttribute('aria-label',key[0]+(mode==='major'?'大調':'古典旋律小調')+' '+signature(actualSignature)+(on?' 已加入抽籤':' 已排除'));
+          button.title=signature(actualSignature);
+          const name=document.createElement('strong');name.textContent=key[0];
+          const suffix=document.createElement('small');suffix.textContent=mode==='major'?'大':'小';
+          button.append(name,suffix);
+          button.addEventListener('click',()=>{
+            const next=new Set(excludedKeys());
+            if(next.has(id))next.delete(id);else next.add(id);
+            updateExclusions([...next]);
+            // Re-rendering the pool must not strand keyboard users at the page top.
+            container.querySelector('[data-key-id="'+id+'"]')?.focus({preventScroll:true});
+          });
+          pair.append(button);
         }
-        section.append(heading,grid);container.append(section);
-      }
+        container.append(pair);
+      });
       const major=eligible('major').length,minor=eligible('minor').length;
       q('#major-eligible').textContent=major+' / 12';
       q('#minor-eligible').textContent=minor+' / 12';
@@ -1005,6 +1039,30 @@
       storePersonalSession(session,action);
       render();showToast('已依調號排好全部選取的調性！');
     }
+// Student notes stay on this browser, separate from shared classroom state.
+const studentNoteKey=id=>'daily-key-practice:experimental:student-note:'+encodeURIComponent(sharedRoom?.id||'personal')+':'+id;
+function readStudentNote(id){try{return localStorage.getItem(studentNoteKey(id))||'';}catch{return '';}}
+function refreshNoteButton(button,id){
+ const filled=Boolean(readStudentNote(id).trim());button.classList.toggle('has-note',filled);
+ button.setAttribute('aria-label',(filled?'編輯':'新增')+'個人練習筆記（僅此瀏覽器）');
+}
+function openStudentNote(id,button){
+ const dialog=document.createElement('dialog');dialog.className='student-note-dialog';
+ const heading=document.createElement('h2');heading.textContent='我的練習筆記';heading.id='student-note-heading';
+ dialog.setAttribute('aria-labelledby',heading.id);
+ const label=document.createElement('label');label.htmlFor='student-note-text';label.textContent='這個調想記住的事';
+ const input=document.createElement('textarea');input.id='student-note-text';input.rows=6;input.value=readStudentNote(id);input.placeholder='例如：換把前放鬆左手、下次從慢速開始…';
+ const help=document.createElement('p');help.className='caption';help.textContent='只保存在這個瀏覽器，不會同步給老師或其他學生。共用裝置上的其他人仍可看見。';
+ const actions=document.createElement('div');actions.className='student-note-actions';
+ const cancel=document.createElement('button');cancel.type='button';cancel.textContent='取消';cancel.className='room-action';
+ const save=document.createElement('button');save.type='button';save.textContent='儲存筆記';save.className='room-action primary';
+ const clear=document.createElement('button');clear.type='button';clear.textContent='清空內容';clear.className='room-action';
+ clear.addEventListener('click',()=>{input.value='';input.focus();});cancel.addEventListener('click',()=>dialog.close());
+ const storageKey=studentNoteKey(id);
+ save.addEventListener('click',()=>{try{if(input.value.trim())localStorage.setItem(storageKey,input.value);else localStorage.removeItem(storageKey);refreshNoteButton(button,id);dialog.close();}catch{help.textContent='無法儲存，請先複製筆記保留。';}});
+ dialog.addEventListener('close',()=>{dialog.remove();button.focus({preventScroll:true});});
+ actions.append(clear,cancel,save);dialog.append(heading,label,input,help,actions);document.body.append(dialog);dialog.showModal();input.focus();
+}
 function createCard(mode,index,doneIds){
  const key=(mode==='major'?MAJOR_KEYS:MINOR_KEYS)[index],id=selectedId(mode,index),done=doneIds.includes(id);
  const card=document.createElement('div');card.className=`key-card${done?' done':''}`;card.dataset.keyId=id;
@@ -1020,12 +1078,22 @@ function createCard(mode,index,doneIds){
  title.addEventListener('click',()=>requestCardAction(()=>toggleCardExpansion(id)));
  content.append(title);
  const details=document.createElement('div');details.innerHTML=`<span class="key-relative">${relativeKeyLabel(mode,key)}</span><span class="key-secondary">${scaleNameSummary(mode,key)}</span>`;
- content.append(details);main.append(complete,content);
+ content.append(details);
+ const noteButton=document.createElement('button');noteButton.type='button';noteButton.className='student-note-button';
+ noteButton.innerHTML='<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4H5v16h14v-9M10 14l1-4 7-7 3 3-7 7-4 1z"/></svg>';
+ refreshNoteButton(noteButton,id);noteButton.addEventListener('click',()=>openStudentNote(id,noteButton));
+ main.append(complete,content,noteButton);
  const expand=document.createElement('button');expand.type='button';expand.className='key-expand';expand.innerHTML='<svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>';
  expand.setAttribute('aria-label','展開或收合 '+key[0]+(mode==='major'?'大調':'小調')+' 的音階與指板');
  expand.setAttribute('aria-controls','fingering-'+id);
  expand.addEventListener('click',()=>requestCardAction(()=>toggleCardExpansion(id)));
  heading.append(main,expand);
+ // Header whitespace shares the title action; native buttons retain their own
+ // keyboard semantics and the completion control never toggles expansion.
+ heading.addEventListener('click',event=>{
+  if(event.target.closest('button'))return;
+  requestCardAction(()=>toggleCardExpansion(id));
+ });
  const panel=document.createElement('div');panel.className='fingering-section';panel.id='fingering-'+id;
  const note=visibleFingerings()[id]||{};
  const guide=window.CelloFingerboard.create(mode,key,note,
@@ -1449,7 +1517,17 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   }
   const Context = window.AudioContext || window.webkitAudioContext;
   let metroContext, metroTimer, metroRunning = false, metroPending = false, nextBeat = 0, beat = 0, metroGeneration = 0;
+  let metroWorklet = null, workletModule = null;
   const oscillators = new Set(), visuals = new Set();
+  const metroSettings = () => ({ bpm: bpm(), count: Number($('metro-beats').value), accent: Number($('metro-accent').value), volume: Math.max(0, Math.min(100, Number($('metro-volume').value) || 0)) });
+  function configureWorklet(resetBeat = false) { metroWorklet?.port.postMessage({ type: 'configure', settings: metroSettings(), resetBeat }); }
+  function legacyMetro() { schedule(); metroTimer = setInterval(schedule, 25); }
+  async function prepareWorklet() {
+    if (!metroContext.audioWorklet || !window.AudioWorkletNode) throw new Error('不支援 AudioWorklet');
+    if (!workletModule) workletModule = metroContext.audioWorklet.addModule('./metronome-worklet.js?v=ab1').catch(error => { workletModule = null; throw error; });
+    await workletModule;
+    return new AudioWorkletNode(metroContext, 'practice-metronome', { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [1] });
+  }
   const bpm = () => Math.max(30, Math.min(240, Number($('metro-bpm').value) || 80));
   function metroUI() {
     $('metronome-open').setAttribute('aria-pressed',String(metroRunning||metroPending));
@@ -1457,6 +1535,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   }
   function stopMetro(message = '') {
     metroGeneration++; metroPending = false; metroRunning = false; clearInterval(metroTimer);
+    if (metroWorklet) { metroWorklet.port.postMessage({ type: 'stop' }); metroWorklet.disconnect(); metroWorklet.port.close(); metroWorklet = null; }
     oscillators.forEach(o => { try { o.stop(); } catch (_) {} }); oscillators.clear();
     visuals.forEach(clearTimeout); visuals.clear(); $('metro-beat').textContent = '●';
     $('metro-status').textContent = message; metroUI();
@@ -1489,21 +1568,51 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     const generation = ++metroGeneration; metroPending=true; metroUI();
     try {
       if (!Context) throw new Error('此瀏覽器不支援 Web Audio');
-      metroContext ||= new Context(); await metroContext.resume();
+      if (!metroContext) {
+        metroContext = new Context();
+        metroContext.addEventListener('statechange', () => { if (metroRunning && metroContext.state !== 'running') stopMetro('音訊已暫停，請再次按開始。'); });
+      }
+      await metroContext.resume();
       if (generation !== metroGeneration) return;
       if (metroContext.state !== 'running') throw new Error('請點擊開始以啟用聲音');
       metroPending=false; metroRunning = true; beat = 0; nextBeat = metroContext.currentTime + 0.05;
-      $('metro-status').textContent = ''; metroUI(); schedule(); metroTimer = setInterval(schedule, 25);
-    } catch (error) { stopMetro('無法播放：' + error.message); }
+      $('metro-status').textContent = ''; metroUI();
+      if ($('metro-engine').value === 'b') {
+        metroPending = true; metroRunning = false; metroUI();
+        try {
+          const node = await prepareWorklet();
+          if (generation !== metroGeneration) { node.port.close(); return; }
+          if (metroContext.state !== 'running') { node.port.close(); throw new Error('音訊已暫停'); }
+          metroWorklet = node; metroPending = false; metroRunning = true;
+          node.port.onmessage = ({ data }) => { if (metroWorklet === node && metroRunning) $('metro-beat').textContent = data.beat + ' / ' + data.count; };
+          node.onprocessorerror = () => {
+            if (metroWorklet !== node) return;
+            stopMetro('B 引擎中斷，已切回 A；請重新開始。'); $('metro-engine').value = 'a';
+          };
+          node.connect(metroContext.destination);
+          node.port.postMessage({ type: 'start', settings: metroSettings() }); metroUI();
+          return;
+        } catch (error) {
+          if (generation !== metroGeneration) return;
+          if (metroWorklet) { metroWorklet.disconnect(); metroWorklet.port.close(); metroWorklet = null; }
+          $('metro-engine').value = 'a'; $('metro-status').textContent = 'B 無法啟用，已使用 A 原版。';
+          metroPending = false; metroRunning = true; nextBeat = metroContext.currentTime + 0.05; metroUI();
+        }
+      }
+      legacyMetro();
+    } catch (error) { if (generation === metroGeneration) stopMetro('無法播放：' + error.message); }
   }
-  $('metro-bpm').onchange = () => { $('metro-bpm').value = bpm(); $('metro-slider').value=bpm(); metroUI(); };
-  $('metro-slider').oninput=()=>{$('metro-bpm').value=$('metro-slider').value;metroUI();};
+  $('metro-bpm').onchange = () => { $('metro-bpm').value = bpm(); $('metro-slider').value=bpm(); configureWorklet(); metroUI(); };
+  $('metro-slider').oninput=()=>{$('metro-bpm').value=$('metro-slider').value;configureWorklet();metroUI();};
   $('metro-beats').onchange = () => {
     beat=0; const selected=Number($('metro-accent').value),count=Number($('metro-beats').value);
     $('metro-accent').replaceChildren(...Array.from({length:count+1},(_,i)=>{const o=document.createElement('option');o.value=i;o.textContent=i?'第 '+i+' 拍':'無';return o;}));
-    $('metro-accent').value=selected<=count?selected:1;
+    $('metro-accent').value=selected<=count?selected:1; configureWorklet(true);
   };
-  $('metro-accent').onchange=()=>{beat=0;};
+  $('metro-accent').onchange=()=>{beat=0;configureWorklet(true);};
+  $('metro-volume').addEventListener('input', () => configureWorklet());
+  $('metro-engine').onchange=()=>{ const restart=metroRunning||metroPending; stopMetro(); if(restart)startMetro(); };
+
   let tunerContext, stream, analyser, source, tunerTimer, tunerRunning = false, pending = false, tunerGeneration = 0;
   const smooth = new PitchWindow(); let lastSignal = 0;
   function tunerUI() {

@@ -1,0 +1,21 @@
+// Isolated DOM QA. Actual CSS rendering / native keyboard activation require browser QA.
+(async()=>{const {JSDOM}=require(process.env.JSDOM_MODULE||'jsdom'),fs=require('fs'),a=require('node:assert/strict');
+const dom=new JSDOM(fs.readFileSync('index.html','utf8'),{url:'http://localhost',runScripts:'outside-only',pretendToBeVisual:true}),w=dom.window,d=w.document;
+w.matchMedia=()=>({matches:false,addEventListener(){}});w.ResizeObserver=class{observe(){}disconnect(){}};w.HTMLElement.prototype.scrollIntoView=()=>{};w.HTMLDialogElement.prototype.showModal=function(){this.open=true};w.HTMLDialogElement.prototype.close=function(){this.open=false;this.dispatchEvent(new w.Event('close'))};
+for(const s of d.querySelectorAll('script')){if(s.type==='module')continue;if(s.src){if(s.src.includes('firebase'))continue;w.eval(fs.readFileSync(new URL(s.src).pathname.slice(1),'utf8'))}else w.eval(s.textContent)}
+const q=s=>d.querySelector(s),click=s=>q(s).click();
+a.equal(d.querySelectorAll('.fifths-pair').length,12);a.equal(d.querySelectorAll('.fifths-pair button').length,24);
+a.equal(new Set([...d.querySelectorAll('.fifths-pair button')].map(b=>b.dataset.keyId)).size,24);
+a.ok([...d.querySelectorAll('.fifths-pair button')].some(b=>b.getAttribute('aria-label').startsWith('E♭古典旋律小調 ♭ × 6')));
+let b=q('.fifths-pair button'),id=b.dataset.keyId;b.click();a.equal(q('[data-key-id="'+id+'"]').getAttribute('aria-pressed'),'false');a.equal(d.activeElement.dataset.keyId,id);click('#filter-none');a.equal(q('#draw-button').disabled,true);click('#filter-all');a.equal(q('#draw-button').disabled,false);
+click('#draw-button');await new Promise(r=>setTimeout(r,50));
+for(const card of d.querySelectorAll('.key-card')){const major=card.dataset.keyId.startsWith('major');a.equal(card.querySelectorAll('.cello-fb-direction:not([hidden])').length,major?1:2);a.equal(card.querySelector('.cello-scale-score').tabIndex,0);}
+const card=q('.key-card'),title=card.querySelector('.key-title'),complete=card.querySelector('.key-complete'),header=card.querySelector('.key-card-heading');
+let opened=title.getAttribute('aria-expanded'),done=complete.getAttribute('aria-pressed');header.click();a.notEqual(title.getAttribute('aria-expanded'),opened);a.equal(complete.getAttribute('aria-pressed'),done);opened=title.getAttribute('aria-expanded');card.querySelector('.key-secondary').click();a.notEqual(title.getAttribute('aria-expanded'),opened);a.equal(complete.getAttribute('aria-pressed'),done);
+// Native buttons support Enter/Space in real browsers; no nested interactive controls.
+for(const el of [title,complete,card.querySelector('.key-expand')]){a.equal(el.tagName,'BUTTON');a.equal(el.type,'button');a.equal(el.tabIndex,0)}a.equal(card.querySelectorAll('button button').length,0);complete.click();a.notEqual(complete.getAttribute('aria-pressed'),done);
+const note=card.querySelector('.student-note-button');opened=title.getAttribute('aria-expanded');done=complete.getAttribute('aria-pressed');
+note.click();a.equal(title.getAttribute('aria-expanded'),opened);a.equal(complete.getAttribute('aria-pressed'),done);
+q('#student-note-text').value='<img src=x onerror=alert(1)> slow practice';q('.student-note-actions .primary').click();a.equal(q('.student-note-dialog'),null);a.ok(note.classList.contains('has-note'));
+note.click();a.equal(q('#student-note-text').value,'<img src=x onerror=alert(1)> slow practice');a.equal(q('.student-note-dialog img'),null);q('.student-note-actions button').click();q('.student-note-actions .primary').click();a.ok(!note.classList.contains('has-note'));a.equal(title.getAttribute('aria-expanded'),opened);a.equal(complete.getAttribute('aria-pressed'),done);
+console.log('PASS: 24 unique circle entries, enharmonic spellings, candidate selection/focus, pool guards, major/minor boards, scroll focus, entire header expansion, native independent buttons');dom.window.close();})().catch(e=>{console.error(e);process.exit(1)});

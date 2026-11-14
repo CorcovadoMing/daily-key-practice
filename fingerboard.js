@@ -364,9 +364,9 @@
     const sequence=[...scaleNotes(mode,key,'up',2),...scaleNotes(mode,key,'down',2).slice(1)];
     const signature=key[1],startX=70+Math.abs(signature)*8,width=928+Math.abs(signature)*8;
     const accidentals=scoreAccidentals(sequence,signature);
-    const wrap=element('div',{class:'cello-scale-score','aria-label':'兩個八度上下行五線譜，整行自適應寬度'});
+    const wrap=element('div',{class:'cello-scale-score',tabindex:'0','aria-label':'兩個八度上下行五線譜，可左右捲動'});
     const svg=svgNode('svg',{viewBox:`0 0 ${width} 185`,width,height:185,role:'img','aria-label':key[0]+(mode==='major'?'大調':'旋律小調')+'，低音譜號，兩個八度上下行十六分音符，末音四分音符'});
-    svg.append(svgNode('title',{},'兩個八度上行與下行，調號與必要臨時記號；整行自適應畫面寬度'));
+    svg.append(svgNode('title',{},'兩個八度上行與下行，調號與必要臨時記號；窄螢幕可左右捲動'));
     for(let i=0;i<5;i++)svg.append(svgNode('line',{x1:14,x2:width-15,y1:110-i*10,y2:110-i*10,stroke:'#777','stroke-width':0.8}));
     // Bass-clef curve and dots anchor the F3 line, avoiding music-font dependency.
     const clef=svgNode('g',{transform:'translate(4 16) scale(.8)'});
@@ -685,6 +685,9 @@
       const memo=element('div',{class:'fingering-note'});
       memo.hidden=true;
       section.append(heading,viewport,editor,legend,memo);
+      // Keep saved down-map data and collaboration state intact, but show only
+      // the requested ascending board for major scales.
+      section.hidden=mode==='major'&&dir==='down';
       boards.append(section);
       panels[dir]={heading,viewport,editor,status,hint,stringChoices,
         fingerChoices,range,back,restoreSelected,reset,save,memo};
