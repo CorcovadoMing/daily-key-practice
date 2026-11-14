@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261114-023-experimental">
+  <meta name="site-version" content="20261114-024-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -571,7 +571,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261114-023-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261114-024-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -1367,12 +1367,16 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   'use strict';
   // YIN-style period estimation, followed by a short log-frequency window average.
   // This is not an implementation or claim about Tonal Energy's proprietary algorithm.
-  const MIN_PITCH_RMS = 0.008;
+  // Accept quiet microphone input; YIN periodicity still rejects non-tonal noise.
+  const MIN_PITCH_RMS = 0.0003;
   function detectPitch(input, sampleRate) {
     const stride = Math.max(1, Math.floor(sampleRate / 12000));
     const n = Math.floor(input.length / stride), data = new Float32Array(n);
-    let energy = 0;
-    for (let i = 0; i < n; i++) { data[i] = input[i * stride]; energy += data[i] * data[i]; }
+    let mean = 0, energy = 0;
+    for (let i = 0; i < n; i++) { data[i] = input[i * stride]; mean += data[i]; }
+    mean /= n;
+    // A DC offset is not an audible signal and must not bypass the quiet gate.
+    for (let i = 0; i < n; i++) { data[i] -= mean; energy += data[i] * data[i]; }
     if (Math.sqrt(energy / n) < MIN_PITCH_RMS) return null;
     const rate = sampleRate / stride, max = Math.min(Math.floor(rate / 45), Math.floor(n / 2));
     const min = Math.max(2, Math.floor(rate / 1100)), size = n - max;
