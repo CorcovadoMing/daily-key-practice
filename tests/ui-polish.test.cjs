@@ -1,7 +1,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs');
 const html=fs.readFileSync('index.html','utf8');
 test('tuner keeps accessible status and details without visible text chrome',()=>{
- assert.match(html,/id="tuner-cents" class="audio-cents sr-only"/);
+ assert.match(html,/id="tuner-cents" class="audio-cents"/);
  assert.match(html,/id="tuner-status" class="audio-status sr-only" role="status"/);
  assert.ok(!html.includes('tuner-settings-close'));
  assert.ok(html.includes("$('tuner-preferences').addEventListener('keydown'"));

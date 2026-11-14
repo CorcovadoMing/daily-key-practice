@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261114-029-experimental">
+  <meta name="site-version" content="20261114-030-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -401,8 +401,15 @@
     .audio-panel label{white-space:nowrap;font-size:12px}.audio-panel input[type=number]{width:72px}.audio-panel input[type=range]{width:100px;padding:0}
     .audio-note{font-size:26px;font-weight:800;min-width:46px;text-align:center;font-variant-numeric:tabular-nums}
     .audio-cents{font-size:12px;min-height:16px;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}
-    .audio-meter-wrap{width:185px;flex-shrink:0}.audio-meter{height:16px;position:relative;background:linear-gradient(90deg,#edb9ae 0% 30%,#edda9d 30% 40%,#b8d4ac 40% 60%,#edda9d 60% 70%,#edb9ae 70% 100%);border-radius:6px;margin:3px 0}
-    .audio-meter:before{content:'';position:absolute;left:50%;height:100%;border-left:2px solid #527049}.audio-needle{position:absolute;left:50%;height:16px;width:3px;background:#234c36;transform:translateX(-50%)}
+    .audio-meter-wrap{width:185px;flex-shrink:0}.audio-meter{height:10px;position:relative;background:#e8ebe5;border-radius:4px;margin:2px 0;overflow:hidden}
+    .audio-meter:before{content:'';position:absolute;left:50%;height:100%;border-left:1px solid #9ca995;z-index:1}
+    .audio-band{position:absolute;inset:0 auto 0 0;background:transparent}
+    .audio-band[data-segment=low-red]{left:0;width:30%}.audio-band[data-segment=low-yellow]{left:30%;width:10%}.audio-band[data-segment=center]{left:40%;width:20%}.audio-band[data-segment=high-yellow]{left:60%;width:10%}.audio-band[data-segment=high-red]{left:70%;width:30%}
+    .audio-band.is-active[data-segment$=red]{background:#e4a798}.audio-band.is-active[data-segment$=yellow]{background:#e7cf85}.audio-band.is-active[data-segment=center]{background:#a9cba0}
+    .audio-needle{position:absolute;left:50%;height:10px;width:2px;background:#234c36;transform:translateX(-50%);z-index:2;visibility:hidden}
+    .audio-scale{position:relative;height:19px;font-size:8px;line-height:9px;font-variant-numeric:tabular-nums;color:#697566;white-space:nowrap}
+    .audio-scale span{position:absolute;transform:translateX(-50%);top:0}.audio-scale span:nth-child(2),.audio-scale span:nth-child(3){top:9px}
+    #tuner-cents{font-size:10px;line-height:11px;min-height:11px;white-space:nowrap;text-align:center}
     .audio-status{font-size:12px;margin:0;max-width:200px}.audio-status:empty{display:none}.audio-error{color:#9b3939!important}
     #metro-beat{min-width:36px;font-variant-numeric:tabular-nums}
     @media(prefers-reduced-motion:reduce){.audio-tools{transition:none}}
@@ -425,6 +432,7 @@
     .audio-needle[data-band=green]{background:#295b33}.audio-needle[data-band=yellow]{background:#82641b}.audio-needle[data-band=red]{background:#a43a2a}
     .audio-tools{padding-left:12px;padding-right:12px}
     .audio-note{width:44px;min-width:44px;flex:0 0 44px;font-size:18px;white-space:nowrap;overflow:hidden}
+    @media(max-width:360px){.audio-tools{padding-left:8px;padding-right:8px}#metronome-open,#tuner-open{width:44px;min-width:44px}.audio-note{width:36px;min-width:36px;flex-basis:36px;font-size:16px}}
     /* Quiet hierarchy: sections, not nested decorative cards. */
     .panel,.key-card{box-shadow:none}.key-card:hover{transform:none}
     .panel{border-radius:16px}.classroom-bar{background:#f1f4ef;border-radius:14px}
@@ -494,7 +502,7 @@
         </section>
       <div class="audio-controls" tabindex="0" aria-label="工具控制列，可左右捲動">
         <section id="tuner-panel" class="audio-panel" aria-label="調音器控制" hidden>
-          <div class="audio-meter-wrap"><div class="audio-meter" aria-label="音準刻度：中央零音分；正負10音分內綠色，10至20黃色，超過20紅色" aria-hidden="true"><span id="tuner-needle" class="audio-needle"></span></div><div id="tuner-cents" class="audio-cents sr-only">等待開始收音</div></div>
+          <div class="audio-meter-wrap"><div id="tuner-cents" class="audio-cents" aria-label="目前音分">—</div><div id="tuner-meter" class="audio-meter" aria-label="音準範圍負50至正50音分；正負10以內綠色，超過10至20黃色，超過20紅色" aria-hidden="true"><span class="audio-band" data-segment="low-red"></span><span class="audio-band" data-segment="low-yellow"></span><span class="audio-band" data-segment="center"></span><span class="audio-band" data-segment="high-yellow"></span><span class="audio-band" data-segment="high-red"></span><span id="tuner-needle" class="audio-needle"></span></div><div class="audio-scale" aria-hidden="true"><span style="left:30%">−20</span><span style="left:40%">−10</span><span style="left:60%">+10</span><span style="left:70%">+20</span></div></div>
           <span id="tuner-note" class="audio-note">—</span><p id="tuner-status" class="audio-status sr-only" role="status"></p>
         </section>
 
@@ -612,7 +620,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261114-029-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261114-030-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -885,7 +893,7 @@
         marker.style.setProperty('--x',(50+25*Math.cos(angle))+'%');
         marker.style.setProperty('--y',(50+25*Math.sin(angle))+'%');
         if(majorSignature===minorSignature){marker.textContent=shortSignature(majorSignature);}
-        else{marker.classList.add('enharmonic');marker.textContent='大 '+shortSignature(majorSignature)+'\n小 '+shortSignature(minorSignature);marker.style.whiteSpace='pre';}
+        else{marker.classList.add('enharmonic');marker.textContent=shortSignature(majorSignature)+' / '+shortSignature(minorSignature);marker.style.whiteSpace='pre';}
         marker.setAttribute('aria-hidden','true'); // Full spelled-out counts already label each button.
         container.append(pair,marker);
       });
@@ -1343,19 +1351,22 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         q('.result-panel').scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});
       });
     }
+    function formatHistoryTime(value){
+      const timestamp=Number(value), date=new Date(timestamp);
+      if(!Number.isFinite(timestamp)||timestamp<=0||!Number.isFinite(date.getTime()))return ' · 時間未記錄';
+      return ' · '+String(date.getHours()).padStart(2,'0')+':'+String(date.getMinutes()).padStart(2,'0');
+    }
     function renderHistory(){
       function createRow(record,kind){
         const row=document.createElement('div');row.className='history-row';
         const meta=document.createElement('div');meta.className='history-date';
         const dateText=formatDate(record.date,record.date.slice(0,4)!==currentDate.slice(0,4));
-        const timestamp=Number(record.drawnAt||record.createdAt);
-        const hour=Number.isFinite(timestamp)&&timestamp>0?
-          ' · '+new Date(timestamp).getHours()+' 點':' · 時間未記錄';
-        meta.textContent=dateText+hour;
+        const timeLabel=formatHistoryTime(record.drawnAt||record.createdAt);
+        meta.textContent=dateText+timeLabel;
         const sum=document.createElement('small');
         const progress=historyProgress(record);
         sum.textContent='已完成 '+progress.count+' / '+progress.total;
-        // Keep room codes private: only show date, hour and completed notes.
+        // Keep room codes private: only show date, time and completed notes.
         meta.append(sum);row.append(meta);
         const chips=document.createElement('div');chips.className='history-keys';
         for(const [mode,indices] of [['major',record.majorIds],['minor',record.minorIds]]){
@@ -1371,11 +1382,11 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         const canContinue=progress.count<progress.total;
         replay.className='history-replay';
         replay.textContent=canContinue?'繼續這次練習':'重現這次練習';
-        replay.setAttribute('aria-label',replay.textContent+'：'+dateText+hour);
+        replay.setAttribute('aria-label',replay.textContent+'：'+dateText+timeLabel);
         replay.addEventListener('click',()=>replayHistoricalScale(record,kind));
         const remove=document.createElement('button');remove.type='button';
         remove.className='history-delete';remove.textContent='刪除';
-        remove.setAttribute('aria-label','刪除 '+dateText+hour+' 的'+
+        remove.setAttribute('aria-label','刪除 '+dateText+timeLabel+' 的'+
           (kind==='personal'?'個人':'課堂')+'練習紀錄');
         remove.addEventListener('click',()=>{
           if(!window.confirm('確定刪除這筆練習紀錄嗎？此操作無法復原。'))return;
@@ -1497,6 +1508,13 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     return Number.isFinite(frequency) ? frequency : null;
   }
   function pitchBand(cents){const distance=Math.abs(cents);return distance<=10?'green':distance<=20?'yellow':'red';}
+  function tunerVisual(cents) {
+    if (!Number.isFinite(cents)) return { text: '—', position: 50, segment: '', band: '', valid: false };
+    const rounded = Math.round(cents), band = pitchBand(cents);
+    return { text: (rounded > 0 ? '+' : '') + (Object.is(rounded, -0) ? 0 : rounded),
+      position: 50 + Math.max(-50, Math.min(50, cents)),
+      segment: band === 'green' ? 'center' : (cents < 0 ? 'low-' : 'high-') + band, band, valid: true };
+  }
   function pitchReading(frequency, reference = 440) {
     const position = 69 + 12 * Math.log2(frequency / reference), midi = Math.round(position);
     return { midi, cents: (position - midi) * 100, frequency,
@@ -1512,8 +1530,17 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       return 2 ** (this.values.reduce((a, b) => a + b, 0) / this.values.length);
     }
   }
-  if (typeof module !== 'undefined' && module.exports) { module.exports = { detectPitch, pitchReading, PitchWindow, pitchBand }; return; }
+  if (typeof module !== 'undefined' && module.exports) { module.exports = { detectPitch, pitchReading, PitchWindow, pitchBand, tunerVisual }; return; }
   const $ = id => document.getElementById(id);
+  function renderTuner(reading = null) {
+    const view = tunerVisual(reading?.cents);
+    $('tuner-cents').textContent = view.text;
+    $('tuner-note').textContent = view.valid ? reading.name : '—';
+    $('tuner-needle').style.visibility = view.valid ? 'visible' : 'hidden';
+    $('tuner-needle').style.left = view.position + '%';
+    $('tuner-needle').dataset.band = view.band;
+    $('tuner-meter').querySelectorAll('.audio-band').forEach(band => band.classList.toggle('is-active', view.valid && band.dataset.segment === view.segment));
+  }
   function sizeTools(){
     const tools=document.querySelector('.audio-tools'),controls=document.querySelector('.audio-controls');
     const visible=[...controls.children].filter(e=>!e.hidden&&e.getBoundingClientRect().width>0&&!(e.matches('.audio-status')&&!e.textContent));
@@ -1644,7 +1671,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     if (stream) stream.getTracks().forEach(t => t.stop()); stream = null;
     if (source) source.disconnect(); source = null;
     if (tunerContext) { tunerContext.close().catch(() => {}); tunerContext = null; }
-    smooth.reset(); $('tuner-needle').style.visibility='visible'; $('tuner-note').textContent = '—'; $('tuner-cents').textContent = '未收音'; $('tuner-needle').style.left = '50%';
+    smooth.reset(); renderTuner();
     $('tuner-status').textContent = message; tunerUI();
   }
   async function startTuner() {
@@ -1690,14 +1717,11 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         const statusElement = $('tuner-status');
         if (statusElement.textContent !== status) statusElement.textContent = status;
         if (!frequency) {
-          if (performance.now() - lastSignal > 500) { smooth.reset(); $('tuner-needle').style.visibility='visible'; $('tuner-note').textContent = '—'; $('tuner-cents').textContent = '請拉一個穩定的單音'; $('tuner-needle').style.left = '50%'; } return;
+          if (performance.now() - lastSignal > 500) smooth.reset(); renderTuner(); return;
         }
         lastSignal = performance.now(); const reference = Math.max(430, Math.min(450, Number($('tuner-a').value) || 442));
-        const reading = pitchReading(smooth.push(frequency), reference), cents = Math.round(reading.cents);
-        $('tuner-note').textContent = reading.name;
-        $('tuner-needle').dataset.band=pitchBand(reading.cents);
-        $('tuner-cents').textContent = (Math.abs(cents) <= 3 ? '準' : cents < 0 ? '偏低' : '偏高') + ' · ' + (cents > 0 ? '+' : '') + cents + ' cents · ' + reading.frequency.toFixed(1) + ' Hz';
-        $('tuner-needle').style.left = (50 + Math.max(-50, Math.min(50, cents))) + '%';
+        const reading = pitchReading(smooth.push(frequency), reference);
+        renderTuner(reading);
       }, 80);
     } catch (error) {
       if (generation !== tunerGeneration) { if (requestedStream) requestedStream.getTracks().forEach(t => t.stop()); return; }
