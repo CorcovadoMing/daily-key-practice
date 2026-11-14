@@ -48,6 +48,9 @@ jobs:
             cp "stable/$file" "_site/$file"
             cp "experiment/$file" "_site/experimental/$file"
           done
+          if [[ -f experiment/metronome-worklet.js ]]; then
+            cp experiment/metronome-worklet.js _site/experimental/
+          fi
           touch _site/.nojekyll
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
