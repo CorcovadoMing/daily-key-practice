@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261114-027-experimental">
+  <meta name="site-version" content="20261114-028-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -444,8 +444,6 @@
     .setup-stack>.panel>.panel-head{grid-column:1/-1;margin-bottom:16px}
     .setup-stack .key-filter{grid-column:1;grid-row:2/8;margin:0;padding:12px;min-width:0}
     .setup-stack>.panel>:not(.key-filter):not(.panel-head){grid-column:2}
-    .audio-tools{position:relative;left:auto;bottom:auto;max-width:100%;margin:0 0 20px;z-index:50}
-    .audio-tools .tuner-preferences{bottom:auto;top:calc(100% + 8px)}
     .fifths-circle{position:relative;aspect-ratio:1;width:100%;max-width:420px;margin:12px auto;background:radial-gradient(circle,transparent 49%,#dce4d5 49.5%,#dce4d5 50%,transparent 50.5%)}
     .fifths-pair{position:absolute;left:var(--x);top:var(--y);transform:translate(-50%,-50%);display:grid;gap:3px;width:13%;max-width:54px}
     .fifths-pair .filter-key{width:100%;min-height:28px;padding:3px 2px;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:3px;border-radius:8px}
@@ -464,7 +462,7 @@
       .fifths-circle{max-width:350px}.result-panel{padding:16px}.fingering-section{padding:12px 8px}
     }
     .key-card-content{flex:1;min-width:0}.key-card-heading{cursor:pointer}
-    .student-note-button{flex:none;display:grid;place-items:center;width:36px;height:36px;background:transparent;color:#839083;border:1px solid #dce4d8;border-radius:10px}
+    .student-note-button{align-self:center;flex:none;display:grid;place-items:center;width:36px;height:36px;background:transparent;color:#839083;border:1px solid #dce4d8;border-radius:10px}
     .student-note-button.has-note{color:#6a5018;background:#fff1c7;border-color:#d9b663}
     .student-note-dialog{width:min(460px,calc(100% - 32px));box-sizing:border-box;border:1px solid #ccd8c9;border-radius:18px;padding:24px;background:var(--paper);color:var(--ink)}
     .student-note-dialog::backdrop{background:#18251b66}.student-note-dialog h2{font-size:20px;margin-top:0}.student-note-dialog label{display:block;font-size:13px;margin-bottom:8px}
@@ -488,7 +486,7 @@
 <div id="tuner-preferences" class="tuner-preferences" role="dialog" aria-label="調音器設定" hidden><label class="a4-control" for="tuner-a"><span>A4</span><input id="tuner-a" type="number" min="430" max="450" value="442" step="1" inputmode="numeric" aria-label="A4基準頻率，Hz"></label></div>
         <section id="metronome-panel" class="audio-panel tuner-preferences" role="dialog" aria-label="節拍器控制" hidden>
           <label for="metro-bpm">BPM</label><input id="metro-bpm" type="number" min="30" max="240" value="80" inputmode="numeric">
-          <input id="metro-slider" aria-label="節拍器速度 BPM" type="range" min="30" max="240" step="1" value="80" style="grid-column:1 / -1;width:100%"><label for="metro-volume" style="grid-column:1 / -1">音量</label><input id="metro-volume" type="range" min="0" max="100" step="1" value="100" style="grid-column:1 / -1;width:100%"><label for="metro-engine">節拍引擎</label><select id="metro-engine"><option value="a">A · 原版</option><option value="b">B · AudioWorklet 測試</option></select><label for="metro-beats">每小節</label><select id="metro-beats"><option value="1">1 拍</option><option value="2">2 拍</option><option value="3">3 拍</option><option value="4" selected>4 拍</option><option value="6">6 拍</option></select>
+          <input id="metro-slider" aria-label="節拍器速度 BPM" type="range" min="30" max="240" step="1" value="80" style="grid-column:1 / -1;width:100%"><label for="metro-volume" style="grid-column:1 / -1">音量</label><input id="metro-volume" type="range" min="0" max="100" step="1" value="100" style="grid-column:1 / -1;width:100%"><label for="metro-beats">每小節</label><select id="metro-beats"><option value="1">1 拍</option><option value="2">2 拍</option><option value="3">3 拍</option><option value="4" selected>4 拍</option><option value="6">6 拍</option></select>
           <label for="metro-accent">重拍</label><select id="metro-accent"><option value="0">無</option><option value="1" selected>第 1 拍</option><option value="2">第 2 拍</option><option value="3">第 3 拍</option><option value="4">第 4 拍</option></select><span id="metro-beat" aria-hidden="true">●</span>
 
         </section>
@@ -613,7 +611,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261114-027-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261114-028-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -1082,12 +1080,12 @@ function createCard(mode,index,doneIds){
  const noteButton=document.createElement('button');noteButton.type='button';noteButton.className='student-note-button';
  noteButton.innerHTML='<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4H5v16h14v-9M10 14l1-4 7-7 3 3-7 7-4 1z"/></svg>';
  refreshNoteButton(noteButton,id);noteButton.addEventListener('click',()=>openStudentNote(id,noteButton));
- main.append(complete,content,noteButton);
+ main.append(complete,content);
  const expand=document.createElement('button');expand.type='button';expand.className='key-expand';expand.innerHTML='<svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>';
  expand.setAttribute('aria-label','展開或收合 '+key[0]+(mode==='major'?'大調':'小調')+' 的音階與指板');
  expand.setAttribute('aria-controls','fingering-'+id);
  expand.addEventListener('click',()=>requestCardAction(()=>toggleCardExpansion(id)));
- heading.append(main,expand);
+ heading.append(main,noteButton,expand);
  // Header whitespace shares the title action; native buttons retain their own
  // keyboard semantics and the completion control never toggles expansion.
  heading.addEventListener('click',event=>{
@@ -1518,6 +1516,9 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   const Context = window.AudioContext || window.webkitAudioContext;
   let metroContext, metroTimer, metroRunning = false, metroPending = false, nextBeat = 0, beat = 0, metroGeneration = 0;
   let metroWorklet = null, workletModule = null;
+  // AudioWorklet is primary; the original engine is only a session-local recovery path.
+  let metroFallback = false;
+  const metroFallbackMessage = 'AudioWorklet 無法使用，目前使用相容節拍模式。';
   const oscillators = new Set(), visuals = new Set();
   const metroSettings = () => ({ bpm: bpm(), count: Number($('metro-beats').value), accent: Number($('metro-accent').value), volume: Math.max(0, Math.min(100, Number($('metro-volume').value) || 0)) });
   function configureWorklet(resetBeat = false) { metroWorklet?.port.postMessage({ type: 'configure', settings: metroSettings(), resetBeat }); }
@@ -1576,8 +1577,8 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       if (generation !== metroGeneration) return;
       if (metroContext.state !== 'running') throw new Error('請點擊開始以啟用聲音');
       metroPending=false; metroRunning = true; beat = 0; nextBeat = metroContext.currentTime + 0.05;
-      $('metro-status').textContent = ''; metroUI();
-      if ($('metro-engine').value === 'b') {
+      $('metro-status').textContent = metroFallback ? metroFallbackMessage : ''; metroUI();
+      if (!metroFallback) {
         metroPending = true; metroRunning = false; metroUI();
         try {
           const node = await prepareWorklet();
@@ -1587,7 +1588,8 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
           node.port.onmessage = ({ data }) => { if (metroWorklet === node && metroRunning) $('metro-beat').textContent = data.beat + ' / ' + data.count; };
           node.onprocessorerror = () => {
             if (metroWorklet !== node) return;
-            stopMetro('B 引擎中斷，已切回 A；請重新開始。'); $('metro-engine').value = 'a';
+            metroFallback = true;
+            stopMetro('音訊引擎中斷，請再次按開始以使用相容節拍模式。');
           };
           node.connect(metroContext.destination);
           node.port.postMessage({ type: 'start', settings: metroSettings() }); metroUI();
@@ -1595,7 +1597,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         } catch (error) {
           if (generation !== metroGeneration) return;
           if (metroWorklet) { metroWorklet.disconnect(); metroWorklet.port.close(); metroWorklet = null; }
-          $('metro-engine').value = 'a'; $('metro-status').textContent = 'B 無法啟用，已使用 A 原版。';
+          metroFallback = true; $('metro-status').textContent = metroFallbackMessage;
           metroPending = false; metroRunning = true; nextBeat = metroContext.currentTime + 0.05; metroUI();
         }
       }
@@ -1611,7 +1613,6 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   };
   $('metro-accent').onchange=()=>{beat=0;configureWorklet(true);};
   $('metro-volume').addEventListener('input', () => configureWorklet());
-  $('metro-engine').onchange=()=>{ const restart=metroRunning||metroPending; stopMetro(); if(restart)startMetro(); };
 
   let tunerContext, stream, analyser, source, tunerTimer, tunerRunning = false, pending = false, tunerGeneration = 0;
   const smooth = new PitchWindow(); let lastSignal = 0;
