@@ -86,7 +86,7 @@
       const refs=(window.CelloFingeringOptimizer||window.CelloFingeringPresets)?.get(mode,key,direction,notes())||{};
       const proposal=refs[String(note.midi)];
       if(proposal)return {s:proposal.s,semi:note.midi-OPEN[proposal.s].midi,f:proposal.f,
-        group:proposal.group,positionLabel:proposal.positionLabel,displayExtended:proposal.displayExtended,modified:false};
+        group:proposal.group,positionLabel:proposal.positionLabel,displayExtended:proposal.displayExtended,technique:proposal.technique,modified:false};
       const pos=fb.positionFor(note.midi);
       return {s:pos.string,semi:pos.semitones,f:pos.semitones===0?0:null,group:'unverified',modified:false};
     }
@@ -159,17 +159,19 @@
         if(isSelected)g.append(sv('circle',{cx:x,cy:y,r:23,fill:'none',stroke:'#78a888','stroke-width':3}));
         const color=isOpen&&style.group!=='extended'?'#34483a':fb.POSITION_COLORS[style.group];
         g.append(sv('circle',{cx:x,cy:y,r:15.5,fill:isOpen?'#f7f9f6':color,stroke:isOpen?color:'#ffffff','stroke-width':isOpen?3:2}));
-        g.append(sv('text',{x,y:y+4.5,'text-anchor':'middle','font-size':12,'font-weight':850,fill:isOpen?color:'#ffffff'},isOpen?'0':n.order));
+        g.append(sv('text',{x:shiftCue?.placement==='inside'?x-3:x,y:y+4.5,'text-anchor':'middle','font-size':12,'font-weight':850,fill:isOpen?color:'#ffffff'},isOpen?'0':shiftCue?.placement==='inside'?style.finger:n.order));
+        if(shiftCue?.placement==='inside')g.append(sv('text',{x:x+2,y:y+4.5,'font-size':9,'font-weight':700,fill:'#ffffff',class:'cello-shift-cue',role:'img','aria-label':shiftCue.description},shiftCue.symbol));
         // Match the read-only chart: open-string points show only their number.
         if(!isOpen){
           g.append(sv('text',{x:x+20,y:y+1,'font-size':13,'font-weight':750,fill:'#263e2e'},n.name));
+          if(pos.technique==='naturalHarmonic')g.append(sv('circle',{cx:x+24,cy:y-19,r:3.2,fill:'none',stroke:'#263e2e','stroke-width':1.3,class:'cello-harmonic-mark',role:'img','aria-label':'自然泛音：第3指輕觸A弦二分之一，發聲A4'}));
           if([1,2,3,4].includes(style.finger)){
             if(pos.modified)g.append(sv('rect',{x:x+17,y:y+4,width:28,height:17,
               rx:5,fill:'#fff0f5',stroke:'#d15c80','stroke-width':1}));
             g.append(sv('text',{x:x+20,y:y+16,'font-size':pos.modified?12:10,
               'font-weight':pos.modified?900:700,
               fill:pos.modified?'#a82055':'#675879'},'('+style.finger+')'));
-            if(shiftCue)g.append(sv('text',{x:shiftCue.placement==='below'?x:x+42,
+            if(shiftCue&&shiftCue.placement!=='inside')g.append(sv('text',{x:shiftCue.placement==='below'?x:x+42,
               y:shiftCue.placement==='below'?y+29:y+16,'text-anchor':shiftCue.placement==='below'?'middle':'start','font-size':9,
               class:'cello-shift-cue',role:'img','aria-label':shiftCue.description},shiftCue.symbol));
           }

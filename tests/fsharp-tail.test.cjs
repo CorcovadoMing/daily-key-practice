@@ -25,7 +25,7 @@ test('reviewed048 scope keeps130 other directions and exact047 reference',()=>{
   const old=O.route(m,k,d,o,arp,'reviewed-047');rows.push([[m,k[0],o,arp,d].join('|'),plain(old)]);
   if(m==='minor'&&k[0]==='F♯'&&o===2&&!arp)continue;
   if(m==='major'&&((o===1&&!arp&&['E','B','F♯'].includes(k[0]))||(arp&&['D♭','F♯','A♭'].includes(k[0]))))continue;
-  a.deepEqual(plain(O.route(m,k,d,o,arp)),plain(old));unchanged++;
+  a.deepEqual(plain(O.route(m,k,d,o,arp,'reviewed-048')),plain(old));unchanged++;
  }
  a.equal(unchanged,130);a.equal(crypto.createHash('sha256').update(JSON.stringify(rows)).digest('hex'),'ace98586cfffb3d2e970d4f871471b22e68ae909742532e4fc653206b33bc4c6');
 });
@@ -33,6 +33,6 @@ test('reviewed048 scope keeps130 other directions and exact047 reference',()=>{
 test('all144 approved048 physical routes match independently reviewed checksum',()=>{
  const rows=[];
  for(const[m,keys]of lists)for(const k of keys)for(const[o,arp]of[[1,false],[2,false],[2,true]])for(const d of['up','down'])
-  rows.push([[m,k[0],o,arp,d].join('|'),plain(O.route(m,k,d,o,arp))]);
+  rows.push([[m,k[0],o,arp,d].join('|'),plain(O.route(m,k,d,o,arp,'reviewed-048'))]);
  a.equal(crypto.createHash('sha256').update(JSON.stringify(rows)).digest('hex'),'0a1bee116da86d8f46a538c145f49801a4b8bb0a5ac6c254b3353ba589688575');
 });

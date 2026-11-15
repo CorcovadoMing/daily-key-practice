@@ -57,7 +57,7 @@ test('Werner confirmed source remains separately available and unchanged',()=>{
 test('computed defaults are bundled in a deployed existing asset',()=>{
  a.ok(html.indexOf('fingering-presets.js')<html.indexOf('fingerboard.js'));
  a.ok(fs.readFileSync('fingering-presets.js','utf8').includes('window.CelloFingeringOptimizer='));
- a.match(html,/20261115-049-experimental/);
+ a.match(html,/20261115-050-experimental/);
 });
 
 test('F major preserves GD 0124 and applies reviewed expanded124 then fourth-position12',()=>{
@@ -99,7 +99,7 @@ test('C minor keeps first-position reference with honest directional extensions'
  a.equal(up[9].shape,'backwardExtended');a.match(up[9].positionLabel,/第一把位.*向後擴增把位/);
  for(const i of [1,3,4,5,9])a.equal(down[i].shape,'backwardExtended');
  a.equal(down[2].shape,'normal');a.equal(down[2].shiftCue.toMidi,55);
- a.equal(down[2].shiftCue.symbol,'（↑）');
+ a.equal(down[2].shiftCue.symbol,'↑');
  a.equal(down.filter(p=>p.shiftCue).length,1);
  const oneUp=O.route('minor',key,'up',1),oneDown=O.route('minor',key,'down',1);
  a.equal(Array.from(oneUp,p=>p.f).join(''),'01240134');
@@ -163,9 +163,9 @@ test('open strings never expose a hand position even within an extended segment'
 test('reviewed same-finger cue is suppressed when either endpoint string or finger changes',()=>{
  const key=['C',-3,'C D E♭ F G A B C','C D E♭ F G A♭ B♭ C'],notes=F.scaleNotes('minor',key,'down',2);
  const ref=O.get('minor',key,'down',notes);
- a.equal(F.resolvedShiftCue(56,{},ref).symbol,'（↑）');
+ a.equal(F.resolvedShiftCue(56,{},ref).symbol,'↑');
  for(const map of [{56:{s:2,f:3}},{55:{s:2,f:3}},{56:{s:3,f:1}},{55:{s:1,f:4}}])a.equal(F.resolvedShiftCue(56,map,ref),null);
- a.equal(F.resolvedShiftCue(56,{56:{s:2,f:4},55:{s:2,f:4}},ref).symbol,'（↑）');
+ a.equal(F.resolvedShiftCue(56,{56:{s:2,f:4},55:{s:2,f:4}},ref).symbol,'↑');
  a.equal(F.resolvedShiftCue(55,{},ref),null);
 });
 

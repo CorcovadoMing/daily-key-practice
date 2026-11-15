@@ -1,0 +1,10 @@
+const{chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright'),a=require('node:assert/strict');
+(async()=>{const b=await chromium.launch({headless:true});try{for(const width of[320,390,1440]){const p=await b.newPage({viewport:{width,height:900}});await p.route('**/classroom.js*',r=>r.abort());await p.goto(process.env.URL||'http://127.0.0.1:8800');const result=await p.evaluate(()=>{
+ const F=CelloFingerboard,cm=['C',-3,'C D E♭ F G A B C','C D E♭ F G A♭ B♭ C'],am=['A',0,'A B C D E F♯ G♯ A','A B C D E F G A'];
+ const host=document.createElement('div');host.style.cssText='width:min(100%,740px);display:flex;gap:8px;';document.body.replaceChildren(host);
+ const left=document.createElement('div'),right=document.createElement('div');left.style.cssText=right.style.cssText='width:50%;min-width:0';left.append(F.chartSVG('minor',cm,'down',2));right.append(F.chartSVG('minor',am,'up',2));host.append(left,right);
+ const cue=left.querySelector('.cello-shift-cue'),g=cue.parentElement,c=g.querySelector('circle'),cx=+c.getAttribute('cx'),cy=+c.getAttribute('cy'),r=+c.getAttribute('r');
+ for(const t of[g.querySelector('text'),cue]){const q=t.getBBox();for(const[x,y]of[[q.x,q.y],[q.x+q.width,q.y],[q.x,q.y+q.height],[q.x+q.width,q.y+q.height]])if(Math.hypot(x-cx,y-cy)>r)throw Error('inside cue escapes circle');}
+ const harmonic=right.querySelector('.cello-harmonic-mark'),name=[...harmonic.parentElement.querySelectorAll('text')].find(t=>t.textContent==='A'),rect=name.getBBox();if(+harmonic.getAttribute('cy')+ +harmonic.getAttribute('r')>=rect.y)throw Error('harmonic overlaps note name');
+ return{width:innerWidth,cueText:g.querySelector('text').textContent+cue.textContent,cueInside:true,harmonicAboveName:true,overflow:document.documentElement.scrollWidth>innerWidth};
+ });a.equal(result.overflow,false);console.log(result);await p.screenshot({path:'/private/tmp/050-cues-'+width+'.png',fullPage:true});await p.close();}}finally{await b.close()}})().catch(e=>{console.error(e);process.exit(1)});

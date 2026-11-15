@@ -95,7 +95,7 @@
     const p=presets[String(midi)],fallback=positionFor(midi);
     const base=p?{string:p.s,stringName:OPEN[p.s].name,semitones:midi-OPEN[p.s].midi,
       finger:p.f,group:p.f===0?'open':p.group,positionLabel:p.f===0?'空弦':p.positionLabel,
-      ...(p.f===0?{}:{anchor:p.anchor,shape:p.shape,displayExtended:p.displayExtended}),custom:false}:{...fallback,finger:null,group:'unverified',custom:false};
+      ...(p.f===0?{}:p.technique==='naturalHarmonic'?{technique:p.technique,harmonic:p.harmonic}:{anchor:p.anchor,shape:p.shape,displayExtended:p.displayExtended}),custom:false}:{...fallback,finger:null,group:'unverified',custom:false};
     const custom=map[String(midi)];
     if(!custom||!Number.isInteger(custom.s)||custom.s<0||custom.s>3)return base;
     const semi=midi-OPEN[custom.s].midi;
@@ -128,6 +128,7 @@
     extended:'#c99236',
     shifting:'#795bb2',
     high:'#426f9e',
+    harmonic:'#426f9e',
     unverified:'#8f9a97',
     custom:'#be476c'
   };
@@ -135,7 +136,7 @@
     const group=position.semitones===0?'open':position.displayExtended?'extended':(position.group||'unverified');
     const label={open:'空弦',half:'半把位',first:'第一把位',
       extended:'擴增把位',shifting:'其他把位',high:'高把位',
-      custom:'已修改',unverified:'照片尚未核對'}[group]||'照片尚未核對';
+      harmonic:'自然泛音',custom:'已修改',unverified:'照片尚未核對'}[group]||'照片尚未核對';
     return {finger:position.finger,group,label:position.semitones===0?'空弦':position.positionLabel||label};
   }
   function makeLegend(){
@@ -145,7 +146,7 @@
     const entries=[
       ['open','空弦'],['half','半把位'],['first','第一把位'],
       ['extended','擴增把位區段（不含空弦）'],['shifting','其他把位'],['high','高把位'],
-      ['custom','老師／學生修改']
+      ['harmonic','○ 自然泛音（輕觸）'],['custom','老師／學生修改']
     ];
     for(const [group,label] of entries){
       const item=element('div',{class:'cello-legend-item'});
@@ -296,23 +297,27 @@
         stroke:isOpen?color:'#ffffff','stroke-width':isOpen?3:2.1
       }));
       point.append(svgNode('text',{
-        x,y:y+4.5,'text-anchor':'middle','font-size':12.5,
+        x:note.shiftCue?.placement==='inside'?x-3:x,y:y+4.5,'text-anchor':'middle','font-size':12.5,
         'font-weight':800,fill:isOpen?color:'#ffffff'
       },isOpen?'0':explicit?String(style.finger):'?'));
       if(note.shiftCue){
-        const below=note.shiftCue.placement==='below';
-        point.append(svgNode('text',{x:below?x:x+7,y:below?y+29:y+4.5,
+        const below=note.shiftCue.placement==='below',inside=note.shiftCue.placement==='inside';
+        point.append(svgNode('text',{x:below?x:inside?x+2:x+7,y:below?y+29:y+4.5,
           'text-anchor':below?'middle':'start','font-size':9,'font-weight':700,
-          fill:'#273c2e',class:'cello-shift-cue',role:'img','aria-label':note.shiftCue.description,
+          fill:inside?'#ffffff':'#273c2e',class:'cello-shift-cue',role:'img','aria-label':note.shiftCue.description,
           'data-shift-to':note.shiftCue.toMidi},note.shiftCue.symbol));
       }
       if(!isOpen){
         point.append(svgNode('text',{
-          x:x+(note.shiftCue&&note.shiftCue.placement!=='below'?39:21),y:y+1,'font-size':13,
+          x:x+(note.shiftCue&& !['below','inside'].includes(note.shiftCue.placement)?39:21),y:y+1,'font-size':13,
           'font-weight':note.order===1||note.order===notes.length?800:650,
           fill:'#273c2e'
         },note.name));
-
+        if(note.position.technique==='naturalHarmonic'){
+          point.append(svgNode('circle',{cx:x+25,cy:y-19,r:3.2,fill:'none',stroke:'#273c2e',
+            'stroke-width':1.3,class:'cello-harmonic-mark',role:'img',
+            'aria-label':'自然泛音：第3指輕觸A弦二分之一，發聲A4'}));
+        }
       }
       if(interaction){
         // An invisible touch target makes the same displayed marker usable on phones.

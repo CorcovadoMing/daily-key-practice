@@ -52,7 +52,7 @@ a.equal(teacher[10].querySelector('circle').getAttribute('fill'),orange);
 const descent=F.chartSVG('minor',cm,'down',2),descending=markers(descent);
 a.equal(descent.querySelectorAll('.cello-shift-cue').length,1);
 a.equal(descending[2].querySelector('text').textContent,'4');
-a.equal(descending[2].querySelector('.cello-shift-cue').textContent,'（↑）');
+a.equal(descending[2].querySelector('.cello-shift-cue').textContent,'↑');
 a.match(descending[2].querySelector('.cello-shift-cue').getAttribute('aria-label'),/弦枕.*半音.*音高.*降/);
 a.equal(descending[3].querySelector('text').textContent,'4');
 a.notEqual(descending[2].querySelector('circle').getAttribute('fill'),orange);

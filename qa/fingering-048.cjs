@@ -5,7 +5,7 @@ const plain=r=>Array.from(r,p=>[p.midi,p.s,p.f,p.anchor,p.shape]);
 function physical(r){let secondMoves=0,secondTravel=0,uniform=0;for(let i=1;i<r.length;i++){const a=r[i-1],b=r[i],x=O.SHAPES[a.shape].map(v=>v+a.anchor),y=O.SHAPES[b.shape].map(v=>v+b.anchor),delta=y.map((v,j)=>v-x[j]);secondMoves+=Number(delta[1]!==0);secondTravel+=Math.abs(delta[1]);uniform+=Number(delta[0]!==0&&delta.every(v=>v===delta[0]));}return{secondMoves,secondTravel,uniform};}
 const rows=[],changes=[],hashRows=[],totals={old:{events:0,components:0,secondMoves:0,secondTravel:0},now:{events:0,components:0,secondMoves:0,secondTravel:0}};
 for(const[m,keys]of lists)for(const k of keys)for(const[o,arp]of[[1,false],[2,false],[2,true]])for(const d of['up','down']){
- const old=O.route(m,k,d,o,arp,'reviewed-047'),now=O.route(m,k,d,o,arp),id=[m,k[0],o,arp,d].join('|');const om={...O.movementMetrics(old),...physical(old)},nm={...O.movementMetrics(now),...physical(now)};const changed=JSON.stringify(plain(old))!==JSON.stringify(plain(now));
+ const old=O.route(m,k,d,o,arp,'reviewed-047'),now=O.route(m,k,d,o,arp,'reviewed-048'),id=[m,k[0],o,arp,d].join('|');const om={...O.movementMetrics(old),...physical(old)},nm={...O.movementMetrics(now),...physical(now)};const changed=JSON.stringify(plain(old))!==JSON.stringify(plain(now));
  hashRows.push([id,plain(now)]);rows.push({m,k:k[0],o,arp,d,old,now,om,nm,changed});if(changed)changes.push(id);for(const[name,metrics]of[['old',om],['now',nm]])for(const field of Object.keys(totals[name]))totals[name][field]+=metrics[field];
 }
 console.log(`# 048 · 全24調逐方向稽核與已審閱局部調整

@@ -364,9 +364,9 @@ function acceptFamiliarNearTie(before,after){
   return gain>=2&&((lessShift&&lessTravel)||gain>=4);
 }
 function describe(p){
-  const group=p.f===0?'open':p.shape!=='normal'?'extended':
+  const group=p.technique==='naturalHarmonic'?'harmonic':p.f===0?'open':p.shape!=='normal'?'extended':
     p.anchor===1?'half':p.anchor===2?'first':p.anchor>=8?'high':'shifting';
-  return {...p,group,positionLabel:p.f===0?'空弦':LABELS[p.anchor]+
+  return {...p,group,positionLabel:p.technique==='naturalHarmonic'?'自然泛音・第3指輕觸弦長1/2':p.f===0?'空弦':LABELS[p.anchor]+
     (p.shape==='backwardExtended'?'・向後擴增把位':p.shape==='extended'?'・擴增把位':''),
     source:p.source||'computed-low-shift-v1',stringSource:'bounded-hand-state-search'};
 }
@@ -476,8 +476,9 @@ function reviewedMajor048(key,octaves,arpeggio,up){
   return result;
 }
 function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
-  if(!['preferred','reviewed-047','reviewed-046','reviewed-045','minimum-shifts','minimum-movements','first-family'].includes(policy))
+  if(!['preferred','reviewed-048','reviewed-047','reviewed-046','reviewed-045','minimum-shifts','minimum-movements','first-family'].includes(policy))
     throw Error('Unknown route policy');
+  const reviewed048=policy==='preferred'||policy==='reviewed-048';
   const id=[mode,key[0],octaves,arpeggio,policy].join('|');
   if(!cache.has(id)){
     const F=window.CelloFingerboard;
@@ -485,7 +486,7 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
     const motion=!['minimum-shifts','reviewed-045'].includes(policy);
     const solve=(notes,dir='up',turn=null)=>motion?
       searchMotion(notes,dir,null,null,turn,policy==='first-family'):search(notes,dir,null,null,turn);
-    const reviewed=policy==='preferred'||policy==='reviewed-047'||policy==='reviewed-045'||policy==='reviewed-046';
+    const reviewed=reviewed048||policy==='reviewed-047'||policy==='reviewed-045'||policy==='reviewed-046';
     let up,down;
     if(mode==='major'||arpeggio){
       up=solve(upNotes);
@@ -502,10 +503,10 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
         down=reviewedMinorFirstPosition(downNotes,'down');
       }
     }
-    const fsharpLayout=(policy==='preferred'||policy==='reviewed-047')&&mode==='minor'&&key[0]==='F♯'&&octaves===2&&!arpeggio;
+    const fsharpLayout=(reviewed048||policy==='reviewed-047')&&mode==='minor'&&key[0]==='F♯'&&octaves===2&&!arpeggio;
     const pinned=fsharpLayout||(mode==='major'&&key[0]==='F'&&octaves===2&&!arpeggio)||
       (mode==='minor'&&key[0]==='C');
-    if((policy==='preferred'||policy==='reviewed-047'||policy==='reviewed-046')&&!pinned&&up&&down){
+    if((reviewed048||policy==='reviewed-047'||policy==='reviewed-046')&&!pinned&&up&&down){
       const caps={up:movementMetrics(up).events+1,down:movementMetrics(down).events+1};
       let alternativeUp,alternativeDown;
       if(mode==='major'||arpeggio){
@@ -521,7 +522,7 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
         down=alternativeDown.map(p=>({...p,source:'computed-first-family-near-tie-v1'}));
       }
     }
-    if((policy==='preferred'||policy==='reviewed-047')&&mode==='minor'&&key[0]==='F♯'&&arpeggio&&up){
+    if((reviewed048||policy==='reviewed-047')&&mode==='minor'&&key[0]==='F♯'&&arpeggio&&up){
       // Keep the lower three exactly as selected in046. D-string normal1/4
       // spans three semitones; A-string1/4 spans FIVE and needs a real shift.
       up=up.map((p,i)=>{
@@ -538,7 +539,7 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
       down[0].shiftCue={toMidi:61,s:3,f:1,symbol:'換把半音',placement:'below',
         description:'F♯4第4指到C♯4第1指相差五半音，須另外向弦枕換把半音；不是同一固定擴增手型。'};
     }
-    if(policy==='preferred'&&mode==='major'&&up){
+    if(reviewed048&&mode==='major'&&up){
       const selected=reviewedMajor048(key,octaves,arpeggio,up);
       if(selected){up=selected;down=[...up].reverse().map(p=>({...p}));}
     }
@@ -554,7 +555,7 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
     // forward extension at reference6, then F-sharp4 contracts to normal6.
     // Preserve the SAME apex on descent; E-natural2 then stays in that frame.
     // This separates the earlier combined shift/closure into two events.
-    if(fsharpLayout&&policy==='preferred'){
+    if(fsharpLayout&&reviewed048){
       const replace=(p,f,anchor,shape)=>{
         const found=candidates(p.midi,{s:3,f},[shape]).find(q=>q.anchor===anchor);
         if(!found)throw Error('Invalid reviewed F-sharp ascending12124');
@@ -569,6 +570,33 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
         if(r.some((p,i)=>i&&!movementStep(r[i-1],p,dir)))throw Error('Invalid F-sharp12124 transition');
       if(['midi','s','f','anchor','shape'].some(k=>up.at(-1)[k]!==down[0][k]))
         throw Error('F-sharp12124 apex mismatch');
+    }
+    if(policy==='preferred'){
+      // Only A-key two-octave scale/arpeggio A4 endpoints use this harmonic.
+      // The sounding pitch equals open A's second partial. The third finger
+      // LIGHTLY touches its midpoint; it is not a stopped normal-position note.
+      if(key[0]==='A'&&octaves===2){
+        if(mode==='minor'&&!arpeggio){
+          up=up.map(p=>{
+            if(![64,66,68].includes(p.midi))return p;
+            const f={64:1,66:2,68:4}[p.midi];
+            const found=candidates(p.midi,{s:3,f},['extended']).find(q=>q.anchor===7);
+            if(!found)throw Error('Invalid A-minor harmonic lead-in');
+            return {...found,source:'reviewed-a-harmonic-v1'};
+          });
+        }
+        const harmonic=p=>{
+          if(p.midi!==69||p.s!==3||p.f!==3)throw Error('Invalid reviewed A harmonic apex');
+          return {...p,technique:'naturalHarmonic',harmonic:{partial:2,touchSemitones:12,soundingMidi:69},
+            displaySegmentStart:true,source:'reviewed-a-harmonic-v1'};
+        };
+        // Reference10/normal is retained only as latent movement bookkeeping;
+        // display does not assert an ordinary stopped hand position here.
+        up[up.length-1]=harmonic(up.at(-1));down[0]=harmonic(down[0]);
+      }
+      if(mode==='minor'&&key[0]==='C'&&octaves===2&&!arpeggio){
+        down=down.map(p=>p.shiftCue?{...p,shiftCue:{...p.shiftCue,symbol:'↑',placement:'inside'}}:p);
+      }
     }
     if(motion){
       const source=policy==='first-family'?'computed-first-family-comparison-v1':'computed-movement-events-v1';
