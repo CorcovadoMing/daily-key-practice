@@ -94,7 +94,8 @@
   function notePlacement(midi,map,presets={}){
     const p=presets[String(midi)],fallback=positionFor(midi);
     const base=p?{string:p.s,stringName:OPEN[p.s].name,semitones:midi-OPEN[p.s].midi,
-      finger:p.f,group:p.group,positionLabel:p.positionLabel,anchor:p.anchor,shape:p.shape,displayExtended:p.displayExtended,custom:false}:{...fallback,finger:null,group:'unverified',custom:false};
+      finger:p.f,group:p.f===0?'open':p.group,positionLabel:p.f===0?'空弦':p.positionLabel,
+      ...(p.f===0?{}:{anchor:p.anchor,shape:p.shape,displayExtended:p.displayExtended}),custom:false}:{...fallback,finger:null,group:'unverified',custom:false};
     const custom=map[String(midi)];
     if(!custom||!Number.isInteger(custom.s)||custom.s<0||custom.s>3)return base;
     const semi=midi-OPEN[custom.s].midi;
@@ -104,6 +105,18 @@
       same?p.f:null);
     return {string:custom.s,stringName:OPEN[custom.s].name,semitones:semi,
       finger,group:'custom',positionLabel:'老師／學生修改（把位未核對）',custom:true};
+  }
+
+  // A reviewed one-off movement cue survives only while BOTH physical notes
+  // still match its reviewed string/finger, including saved/custom edits.
+  function resolvedShiftCue(midi,map,presets){
+    const p=presets[String(midi)],cue=p?.shiftCue;
+    if(!cue)return null;
+    const changed=(custom,s,f)=>custom&&(custom.s!==s||(custom.f!=null&&custom.f!==f));
+    if(changed(map[String(midi)],p.s,p.f)||changed(map[String(cue.toMidi)],cue.s,cue.f))return null;
+    const current=notePlacement(midi,map,presets),next=notePlacement(cue.toMidi,map,presets);
+    return current.string===p.s&&current.finger===p.f&&
+      next.string===cue.s&&next.finger===cue.f?cue:null;
   }
 
   // Colors summarize the computed hand state; exact chart position is in the tooltip.
@@ -119,11 +132,11 @@
     custom:'#be476c'
   };
   function pointStyling(position){
-    const group=position.displayExtended?'extended':position.semitones===0?'open':(position.group||'unverified');
+    const group=position.semitones===0?'open':position.displayExtended?'extended':(position.group||'unverified');
     const label={open:'空弦',half:'半把位',first:'第一把位',
       extended:'擴增把位',shifting:'其他把位',high:'高把位',
       custom:'已修改',unverified:'照片尚未核對'}[group]||'照片尚未核對';
-    return {finger:position.finger,group,label:position.positionLabel||label};
+    return {finger:position.finger,group,label:position.semitones===0?'空弦':position.positionLabel||label};
   }
   function makeLegend(){
     const aside=element('aside',{class:'cello-fb-legend','aria-label':'把位顏色圖例'});
@@ -131,7 +144,7 @@
     aside.append(title);
     const entries=[
       ['open','空弦'],['half','半把位'],['first','第一把位'],
-      ['extended','擴增把位區段（含空弦）'],['shifting','其他把位'],['high','高把位'],
+      ['extended','擴增把位區段（不含空弦）'],['shifting','其他把位'],['high','高把位'],
       ['custom','老師／學生修改']
     ];
     for(const [group,label] of entries){
@@ -154,7 +167,7 @@
         sourceDirection===direction?scale:scaleNotes(mode,key,sourceDirection,octaves))||{};
     const plotted=notes.map(note=>{
       const position=notePlacement(note.midi,map,presets);
-      return {...note,position,style:pointStyling(position)};
+      return {...note,position,style:pointStyling(position),shiftCue:resolvedShiftCue(note.midi,map,presets)};
     });
     // While editing, reveal nearby equivalent pitches on other strings.
     // Very high alternatives remain available in the buttons below.
@@ -276,7 +289,8 @@
       }:{});
       point.append(svgNode('title',{},
         '第'+note.order+'音 '+note.name+'，'+note.position.stringName+'弦'+
-        (isOpen?'，'+style.label:'，'+style.label+(explicit?'，第'+style.finger+'指':''))));
+        (isOpen?'，空弦':'，'+style.label+(explicit?'，第'+style.finger+'指':''))+
+        (note.shiftCue?'；'+note.shiftCue.description:'')));
       point.append(svgNode('circle',{
         cx:x,cy:y,r:15.5,fill:isOpen?'#f7f9f6':color,
         stroke:isOpen?color:'#ffffff','stroke-width':isOpen?3:2.1
@@ -285,9 +299,14 @@
         x,y:y+4.5,'text-anchor':'middle','font-size':12.5,
         'font-weight':800,fill:isOpen?color:'#ffffff'
       },isOpen?'0':explicit?String(style.finger):'?'));
+      if(note.shiftCue){
+        point.append(svgNode('text',{x:x+7,y:y+4.5,'font-size':9,'font-weight':700,
+          fill:'#273c2e',class:'cello-shift-cue',role:'img','aria-label':note.shiftCue.description,
+          'data-shift-to':note.shiftCue.toMidi},note.shiftCue.symbol));
+      }
       if(!isOpen){
         point.append(svgNode('text',{
-          x:x+21,y:y+1,'font-size':13,
+          x:x+(note.shiftCue?39:21),y:y+1,'font-size':13,
           'font-weight':note.order===1||note.order===notes.length?800:650,
           fill:'#273c2e'
         },note.name));
@@ -711,7 +730,7 @@
     scoreSection.append(element('h3',{class:'music-section-title'},'音階 · 兩個八度'),makeScore(mode,key));
     const boardSection=element('section',{class:'fingerboard-section'});
     boardSection.append(element('h3',{class:'music-section-title'},'指板 · 指法'),
-      element('p',{class:'caption'},'低換把／一般手型優先預設（非 Werner 原譜）：相鄰弦能維持同一一般把位的 0124 時，優先保留一般手型，不為少一次換把而硬用擴增。一般相鄰指距半音，同弦同把位只要用到擴增，整段音點（含空弦）一併標色。把位依一般手型的第一指基準命名；向後擴增由第一指伸向低半音，其他指保留原位。指向音點可查看確切把位。已儲存修改優先保留。'),toolbar,boards);
+      element('p',{class:'caption'},'低換把／一般手型優先預設（非 Werner 原譜）：無特別音域、接音或擴增等理由時優先第一把位。相鄰弦能維持同一一般把位的 0124 時，優先保留一般手型，不為少一次換把而硬用擴增。一般相鄰指距半音，同弦同把位只要用到擴增，整段按弦音一併標色；空弦不屬任何把位，永遠保持白色 0。把位依一般手型的第一指基準命名；向後擴增由第一指伸向低半音，其他指保留原位。指向音點可查看確切把位。已儲存修改優先保留。'),toolbar,boards);
     const arpeggioSection=element('section',{class:'arpeggio-section fingerboard-section'});
     const arpeggioBoards=element('div',{class:'cello-fb-two-up'});
     const arpeggioViews={};
@@ -861,6 +880,6 @@
   window.CelloFingerboard={
     create,
     // Pure helpers exported for automated pitch and placement checks.
-    arpeggioNotes,chartSVG,scoreAccidentals,staffStep,makeScore,scaleNotes,positionFor,pitchClass,decodeMap,pointStyling,POSITION_COLORS,makeLegend,notePlacement
+    arpeggioNotes,chartSVG,scoreAccidentals,staffStep,makeScore,scaleNotes,positionFor,pitchClass,decodeMap,pointStyling,POSITION_COLORS,makeLegend,notePlacement,resolvedShiftCue
   };
 })();

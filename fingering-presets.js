@@ -255,7 +255,7 @@ function describe(p){
     source:p.source||'computed-low-shift-v1',stringSource:'bounded-hand-state-search'};
 }
 // Presentation only: a contiguous same-string/same-anchor segment that uses
-// an extension is colored as a whole, including ordinary fingers and open 0.
+// an extension is colored across stopped notes only. Open 0 has no position.
 // Actual shape and shift/extension metrics remain untouched.
 function describeSegments(route){
   const result=route.map(describe);
@@ -265,9 +265,9 @@ function describeSegments(route){
       result[end].anchor===result[start].anchor)end++;
     if(result.slice(start,end).some(p=>p.f&&p.shape!=='normal')){
       for(let i=start;i<end;i++){
-        const p=result[i];p.displayExtended=true;p.group='extended';
-        if(p.f===0)p.positionLabel='空弦・'+LABELS[p.anchor]+'擴增把位區段';
-        else if(p.shape==='normal')p.positionLabel=LABELS[p.anchor]+'・擴增把位區段';
+        const p=result[i];if(p.f===0)continue;
+        p.displayExtended=true;p.group='extended';
+        if(p.shape==='normal')p.positionLabel=LABELS[p.anchor]+'・擴增把位區段';
       }
     }
     start=end;
@@ -280,6 +280,20 @@ function describeSegments(route){
 // fingering override for unrelated keys, octaves or arpeggios. The untouched
 // minimum-shifts policy remains available for comparison and future review.
 function practicePreference(mode,key,octaves,arpeggio,minimum){
+  // With no register/connection reason to leave it, use first position.
+  // Only this explicitly reviewed C-minor arpeggio is added in 045.
+  if(mode==='minor'&&key[0]==='C'&&arpeggio){
+    const strings=[0,0,1,1,2,2,3],fingers=[0,2,0,4,1,4,2];
+    const preferred=minimum.map((p,i)=>{
+      const shape=i===4||i===5?'backwardExtended':'normal';
+      const found=candidates(p.midi,{s:strings[i],f:fingers[i]},[shape]).find(q=>q.anchor===2);
+      if(!found)throw Error('Invalid reviewed first-position C-minor arpeggio');
+      return {...found,source:'reviewed-first-position-minor-arpeggio-v1'};
+    });
+    if(preferred.some((p,i)=>i&&!transition(preferred[i-1],p,'up')))
+      throw Error('Invalid reviewed C-minor arpeggio transition');
+    return preferred;
+  }
   if(mode!=='major'||key[0]!=='F'||octaves!==2||arpeggio)return minimum;
   const strings=[0,1,1,1,1,2,2,2,2,3,3,3,3,3,3];
   const fingers=[4,0,1,2,4,0,1,2,4,0,1,3,1,3,4];
@@ -304,13 +318,17 @@ function reviewedMinorFirstPosition(notes,direction){
   const strings=one?(up?[0,0,0,0,1,1,1,1]:[1,1,1,1,0,0,0,0]):up?[0,0,0,0,1,1,1,1,2,2,2,2,3,3,3]:
     [3,3,2,2,2,2,2,1,1,1,1,0,0,0,0];
   const fingers=one?(up?[0,1,2,4,0,1,3,4]:[4,2,1,0,4,2,1,0]):up?
-    [0,1,2,4,0,1,3,4,0,1,2,4,0,1,2]:[2,1,4,3,2,1,0,4,2,1,0,4,2,1,0];
-  const backward=one?(up?[]:[2]):up?[9]:[1,5,9],forward=one||up?[]:[2,3];
+    [0,1,2,4,0,1,3,4,0,1,2,4,0,1,2]:[2,1,4,4,2,1,0,4,2,1,0,4,2,1,0];
+  const backward=one?(up?[]:[2]):up?[9]:[1,3,4,5,9];
   const result=notes.map((note,i)=>{
-    const shape=backward.includes(i)?'backwardExtended':forward.includes(i)?'extended':'normal';
-    const found=candidates(note.midi,{s:strings[i],f:fingers[i]},[shape]).find(p=>p.anchor===2);
+    const shape=backward.includes(i)?'backwardExtended':'normal';
+    const anchor=!one&&!up&&i===2?3:2;
+    const found=candidates(note.midi,{s:strings[i],f:fingers[i]},[shape]).find(p=>p.anchor===anchor);
     if(!found)throw Error('Invalid reviewed C-minor first-position route');
-    return {...found,source:'reviewed-first-position-minor-v1'};
+    return {...found,source:'reviewed-first-position-minor-v1',...(!one&&!up&&i===2?{
+      shiftCue:{toMidi:55,s:2,f:4,symbol:'（↑）',
+        description:'同一第4指向弦枕方向移動半音；音高由 A♭3 降至 G3。'}
+    }:{})};
   });
   if(result.some((p,i)=>i&&!transition(result[i-1],p,direction)))
     throw Error('Invalid reviewed C-minor transition');

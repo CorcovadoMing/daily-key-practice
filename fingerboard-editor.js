@@ -153,11 +153,13 @@
         if(pos.semi>maxFret)continue;
         const isOpen=pos.semi===0,isSelected=i===selected;
         const g=sv('g',{role:'button',tabindex:'0','aria-label':`第${n.order}音 ${n.name}；${OPEN[pos.s].name}弦；${isOpen?'空弦':pos.semi+'半音位置'}`,class:'teacher-note-marker'});
-        g.append(sv('title',{},`第${n.order}音 ${n.name}`));
+        const refs=(window.CelloFingeringOptimizer||window.CelloFingeringPresets)?.get(mode,key,direction,ns)||{};
+        const shiftCue=fb.resolvedShiftCue(n.midi,maps[direction],refs);
+        g.append(sv('title',{},`第${n.order}音 ${n.name}`+(isOpen?'；空弦':shiftCue?'；'+shiftCue.description:'')));
         if(isSelected)g.append(sv('circle',{cx:x,cy:y,r:23,fill:'none',stroke:'#78a888','stroke-width':3}));
         const color=isOpen&&style.group!=='extended'?'#34483a':fb.POSITION_COLORS[style.group];
         g.append(sv('circle',{cx:x,cy:y,r:15.5,fill:isOpen?'#f7f9f6':color,stroke:isOpen?color:'#ffffff','stroke-width':isOpen?3:2}));
-        g.append(sv('text',{x,y:y+4.5,'text-anchor':'middle','font-size':12,'font-weight':850,fill:isOpen?color:'#ffffff'},n.order));
+        g.append(sv('text',{x,y:y+4.5,'text-anchor':'middle','font-size':12,'font-weight':850,fill:isOpen?color:'#ffffff'},isOpen?'0':n.order));
         // Match the read-only chart: open-string points show only their number.
         if(!isOpen){
           g.append(sv('text',{x:x+20,y:y+1,'font-size':13,'font-weight':750,fill:'#263e2e'},n.name));
@@ -167,6 +169,8 @@
             g.append(sv('text',{x:x+20,y:y+16,'font-size':pos.modified?12:10,
               'font-weight':pos.modified?900:700,
               fill:pos.modified?'#a82055':'#675879'},'('+style.finger+')'));
+            if(shiftCue)g.append(sv('text',{x:x+42,y:y+16,'font-size':9,
+              class:'cello-shift-cue',role:'img','aria-label':shiftCue.description},shiftCue.symbol));
           }
         }
         doc.append(g);

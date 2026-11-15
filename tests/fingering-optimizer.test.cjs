@@ -57,7 +57,7 @@ test('Werner confirmed source remains separately available and unchanged',()=>{
 test('computed defaults are bundled in a deployed existing asset',()=>{
  a.ok(html.indexOf('fingering-presets.js')<html.indexOf('fingerboard.js'));
  a.ok(fs.readFileSync('fingering-presets.js','utf8').includes('window.CelloFingeringOptimizer='));
- a.match(html,/20261115-044-experimental/);
+ a.match(html,/20261115-045-experimental/);
 });
 
 test('F major two-octave keeps reviewed ordinary 0124 patterns over one fewer shift',()=>{
@@ -75,7 +75,7 @@ test('044 preference does not alter any unrelated route or legacy Werner digits'
  for(const [mode,name] of [['major','MAJOR_KEYS'],['minor','MINOR_KEYS']]){
   const keys=vm.runInNewContext(html.match(new RegExp('const '+name+' = (\\[[\\s\\S]*?\\n    \\]);'))[1]);
   for(const key of keys)for(const octaves of [1,2])for(const arp of [false,true])for(const dir of ['up','down']){
-   if(!arp&&((mode==='major'&&key[0]==='F'&&octaves===2)||(mode==='minor'&&key[0]==='C')))continue;
+   if((!arp&&mode==='major'&&key[0]==='F'&&octaves===2)||(mode==='minor'&&key[0]==='C'))continue;
    a.deepEqual(Array.from(O.route(mode,key,dir,octaves,arp),identity),
      Array.from(O.route(mode,key,dir,octaves,arp,'minimum-shifts'),identity));
   }
@@ -89,14 +89,17 @@ test('C minor keeps first-position reference with honest directional extensions'
  a.equal(Array.from(up,p=>p.s).join(''),'000011112222333');
  a.equal(Array.from(up,p=>p.f).join(''),'012401340124012');
  a.equal(Array.from(down,p=>p.s).join(''),'332222211110000');
- a.equal(Array.from(down,p=>p.f).join(''),'214321042104210');
- a.ok([...up,...down].every(p=>p.anchor===2));
+ a.equal(Array.from(down,p=>p.f).join(''),'214421042104210');
+ a.ok(up.every(p=>p.anchor===2));
+ a.ok(down.every((p,i)=>p.anchor===(i===2?3:2)));
  a.equal(identity(up.at(-1)),identity(down[0]));
- a.equal(O.metrics(up).shifts,0);a.equal(O.metrics(down).shifts,0);
+ a.equal(O.metrics(up).shifts,0);a.equal(O.metrics(down).shifts,2);
  a.equal(O.metrics(up).extensions,1);a.equal(O.metrics(down).extensions,5);
  a.equal(up[9].shape,'backwardExtended');a.match(up[9].positionLabel,/第一把位.*向後擴增把位/);
- for(const i of [1,5,9])a.equal(down[i].shape,'backwardExtended');
- a.equal(down[2].shape,'extended');a.equal(down[3].shape,'extended');
+ for(const i of [1,3,4,5,9])a.equal(down[i].shape,'backwardExtended');
+ a.equal(down[2].shape,'normal');a.equal(down[2].shiftCue.toMidi,55);
+ a.equal(down[2].shiftCue.symbol,'（↑）');
+ a.equal(down.filter(p=>p.shiftCue).length,1);
  const oneUp=O.route('minor',key,'up',1),oneDown=O.route('minor',key,'down',1);
  a.equal(Array.from(oneUp,p=>p.f).join(''),'01240134');
  a.equal(Array.from(oneDown,p=>p.f).join(''),'42104210');
@@ -111,8 +114,8 @@ test('C minor keeps first-position reference with honest directional extensions'
 
 test('extension display colors the entire same-string anchor segment, not neighboring strings',()=>{
  const key=['C',-3,'C D E♭ F G A B C','C D E♭ F G A♭ B♭ C'],up=O.route('minor',key,'up');
- a.deepEqual(Array.from(up,p=>!!p.displayExtended),[false,false,false,false,false,false,false,false,true,true,true,true,false,false,false]);
- for(const i of [8,9,10,11]){
+ a.deepEqual(Array.from(up,p=>!!p.displayExtended),[false,false,false,false,false,false,false,false,false,true,true,true,false,false,false]);
+ for(const i of [9,10,11]){
   const p=F.notePlacement(up[i].midi,{},Object.fromEntries(up.map(p=>[p.midi,p])));
   a.equal(F.pointStyling(p).group,'extended');a.match(F.pointStyling(p).label,/擴增把位/);
  }
@@ -139,4 +142,40 @@ test('all 144 raw physical routes reproduce the released 043 baseline checksum',
  a.equal(rows.length,144);
  a.equal(require('node:crypto').createHash('sha256').update(JSON.stringify(rows)).digest('hex'),
    '6ef3e6ae9d269e5998d258d024fdeeac3f5d58903085854aec91aaa595b05c6a');
+});
+
+test('open strings never expose a hand position even within an extended segment',()=>{
+ for(const [mode,name] of [['major','MAJOR_KEYS'],['minor','MINOR_KEYS']]){
+  const keys=vm.runInNewContext(html.match(new RegExp('const '+name+' = (\\[[\\s\\S]*?\\n    \\]);'))[1]);
+  for(const key of keys)for(const [oct,arp] of [[1,false],[2,false],[2,true]])for(const dir of ['up','down']){
+   const route=O.route(mode,key,dir,oct,arp),map=Object.fromEntries(route.map(p=>[p.midi,p]));
+   for(const p of route.filter(p=>p.f===0)){
+    const shown=F.notePlacement(p.midi,{},map),style=F.pointStyling(shown);
+    a.equal(p.group,'open');a.equal(p.displayExtended,undefined);a.equal(p.positionLabel,'空弦');
+    a.equal(style.group,'open');a.equal(style.label,'空弦');
+    a.equal(shown.anchor,undefined);a.equal(shown.shape,undefined);a.equal(shown.displayExtended,undefined);
+   }
+  }
+ }
+ a.equal(F.pointStyling({semitones:0,finger:0,displayExtended:true,group:'extended',positionLabel:'第一把位'}).label,'空弦');
+});
+test('reviewed same-finger cue is suppressed when either endpoint string or finger changes',()=>{
+ const key=['C',-3,'C D E♭ F G A B C','C D E♭ F G A♭ B♭ C'],notes=F.scaleNotes('minor',key,'down',2);
+ const ref=O.get('minor',key,'down',notes);
+ a.equal(F.resolvedShiftCue(56,{},ref).symbol,'（↑）');
+ for(const map of [{56:{s:2,f:3}},{55:{s:2,f:3}},{56:{s:3,f:1}},{55:{s:1,f:4}}])a.equal(F.resolvedShiftCue(56,map,ref),null);
+ a.equal(F.resolvedShiftCue(56,{56:{s:2,f:4},55:{s:2,f:4}},ref).symbol,'（↑）');
+ a.equal(F.resolvedShiftCue(55,{},ref),null);
+});
+
+test('C-minor arpeggio uses first-position second fingers and one D extension segment',()=>{
+ const key=['C',-3,'C D E♭ F G A B C','C D E♭ F G A♭ B♭ C'];
+ const up=O.route('minor',key,'up',2,true),down=O.route('minor',key,'down',2,true);
+ a.equal(Array.from(up,p=>p.s).join(''),'0011223');
+ a.equal(Array.from(up,p=>p.f).join(''),'0204142');
+ a.ok(up.every(p=>p.anchor===2));a.equal(up[1].shape,'normal');a.equal(up[6].shape,'normal');
+ a.deepEqual(Array.from(up,p=>!!p.displayExtended),[false,false,false,false,true,true,false]);
+ a.equal(O.metrics(up).shifts,0);a.equal(O.metrics(up).extensions,2);
+ a.deepEqual(Array.from(down,identity),Array.from(up,identity).reverse());
+ a.ok([...up,...down].every(p=>!p.shiftCue));
 });

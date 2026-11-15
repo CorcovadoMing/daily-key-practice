@@ -29,23 +29,41 @@ for(const [mode,name] of [['major','MAJOR_KEYS'],['minor','MINOR_KEYS']]){
   }
  }
 }
-// Whole-segment coloring includes normal fingers and open0, but not adjacent
+// Whole-segment coloring includes stopped fingers only, never open0 or adjacent
 // strings or unvalidated custom finger overrides.
 const cm=['C',-3,'C D E♭ F G A B C','C D E♭ F G A♭ B♭ C'];
 const markers=svg=>[...svg.querySelectorAll('g')].filter(g=>g.querySelector(':scope > title'));
 const diagram=F.chartSVG('minor',cm,'up',2),points=markers(diagram),orange=F.POSITION_COLORS.extended;
-a.equal(points[8].querySelector('circle').getAttribute('stroke'),orange);
+a.equal(points[8].querySelector('circle').getAttribute('stroke'),'#34483a');
+a.equal(points[8].querySelector('circle').getAttribute('fill'),'#f7f9f6');
+a.doesNotMatch(points[8].querySelector('title').textContent,/把位/);
 a.equal(points[8].querySelector('text').textContent,'0');
 for(const i of [9,10,11])a.equal(points[i].querySelector('circle').getAttribute('fill'),orange);
 for(const i of [1,5,7,13,14])a.notEqual(points[i].querySelector('circle').getAttribute('fill'),orange);
 a.notEqual(points[12].querySelector('circle').getAttribute('stroke'),orange);
-a.match(F.makeLegend().textContent,/擴增把位區段（含空弦）/);
+a.match(F.makeLegend().textContent,/擴增把位區段（不含空弦）/);
 const customPoints=markers(F.chartSVG('minor',cm,'up',2,{upMap:JSON.stringify({53:{s:2,f:3}})}));
 a.equal(customPoints[10].querySelector('circle').getAttribute('fill'),F.POSITION_COLORS.custom);
 a.doesNotMatch(customPoints[10].querySelector('title').textContent,/擴增把位/);
 const teacher=F.createEditor('minor',cm).element.querySelectorAll('.teacher-note-marker');
-a.equal(teacher[8].querySelector('circle').getAttribute('stroke'),orange);
+a.equal(teacher[8].querySelector('circle').getAttribute('stroke'),'#34483a');
+a.equal(teacher[8].querySelector('text').textContent,'0');
 a.equal(teacher[10].querySelector('circle').getAttribute('fill'),orange);
+const descent=F.chartSVG('minor',cm,'down',2),descending=markers(descent);
+a.equal(descent.querySelectorAll('.cello-shift-cue').length,1);
+a.equal(descending[2].querySelector('text').textContent,'4');
+a.equal(descending[2].querySelector('.cello-shift-cue').textContent,'（↑）');
+a.match(descending[2].querySelector('.cello-shift-cue').getAttribute('aria-label'),/弦枕.*半音.*音高.*降/);
+a.equal(descending[3].querySelector('text').textContent,'4');
+a.notEqual(descending[2].querySelector('circle').getAttribute('fill'),orange);
+for(const i of [3,4,5])a.equal(descending[i].querySelector('circle').getAttribute('fill'),orange);
+a.equal(descending[6].querySelector('circle').getAttribute('stroke'),'#34483a');
+for(const map of [{56:{s:2,f:3}},{55:{s:2,f:3}}]){
+ const changed=F.chartSVG('minor',cm,'down',2,{downMap:JSON.stringify(map)});
+ a.equal(changed.querySelectorAll('.cello-shift-cue').length,0);
+}
+for(const [dir,oct,arp] of [['up',2,false],['down',1,false],['down',2,true]])
+ a.equal(F.chartSVG('minor',cm,dir,oct,{},null,[],false,arp).querySelectorAll('.cello-shift-cue').length,0);
 // Legacy fallback retains symmetric arpeggios too, without optimizer loaded.
 const optimizer=w.CelloFingeringOptimizer;delete w.CelloFingeringOptimizer;
 const minor=['E',1,'E F♯ G A B C♯ D♯ E','E F♯ G A B C D E'];
