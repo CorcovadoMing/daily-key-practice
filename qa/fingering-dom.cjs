@@ -41,7 +41,7 @@ a.equal(points[8].querySelector('text').textContent,'0');
 for(const i of [9,10,11]){a.equal(points[i].querySelector('circle').getAttribute('fill'),firstColor);a.equal(points[i].querySelector('circle').getAttribute('stroke-width'),'1.5');}
 for(const i of [1,5,7,13,14]){a.equal(points[i].querySelector('circle').getAttribute('fill'),firstColor);a.equal(points[i].querySelector('circle').getAttribute('stroke-dasharray'),'none');}
 a.equal(points[12].querySelector('circle').getAttribute('stroke-dasharray'),'none');
-a.match(F.makeLegend(diagram).textContent,/擴增：沿用基準把位色/);
+a.match(F.makeLegend(diagram).textContent,/擴增(?:半|第|上)/);
 const customPoints=markers(F.chartSVG('minor',cm,'up',2,{upMap:JSON.stringify({53:{s:2,f:3}})}));
 a.equal(customPoints[10].querySelector('circle').getAttribute('fill'),F.POSITION_COLORS.custom);
 a.doesNotMatch(customPoints[10].querySelector('title').textContent,/擴增把位/);

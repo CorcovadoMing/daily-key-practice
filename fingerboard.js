@@ -158,34 +158,23 @@
       position.anchor===11&&position.shape==='extended'&&position.finger>0&&
       !position.custom&&!['custom','unverified','harmonic'].includes(position.group)?'#a45b38':null;
   }
-  function bMinorGroupNote(context,positions,y){
-    if(context?.mode!=='minor'||context.key?.[0]!=='B'||context.direction!=='down'||context.octaves!==2||context.arpeggio)return null;
-    const expected=[[71,3,11],[69,2,10],[67,1,10]];
-    if(!expected.every(([midi,finger,anchor])=>positions.some(p=>p.midi===midi&&p.string===3&&p.finger===finger&&p.anchor===anchor&&p.shape==='extended'&&!p.custom)))return null;
-    const label='擴增第六把位區域（含上第六）';
-    const detail='下行B4、A4、G4為演奏區域分組，不是單一標準固定手框。B4第3指仍為擴增上第六把位（基準11）；A4第2指與G4第1指為擴增第六把位（基準10）。B到A、A到G各為全音，逐音把位與移動模型不變。';
-    const g=svgNode('g',{class:'cello-context-group',role:'note','aria-label':label+'。'+detail});
-    g.append(svgNode('title',{},detail),svgNode('text',{x:185,y,'text-anchor':'middle','font-size':10,'font-weight':650,fill:'#5b4d40'},label));
-    return g;
-  }
   function makeLegend(diagram=null){
     const points=diagram?.querySelectorAll?.('[data-position-group]')||[];
-    const used=new Set([...points].map(p=>p.getAttribute('data-position-group')));
-    const hasExtension=[...points].some(p=>p.getAttribute('data-position-extended')==='true');
+    const used=new Set([...points].map(p=>p.getAttribute('data-position-group')+(p.getAttribute('data-position-extended')==='true'?':extended':'')));
     const aside=element('aside',{class:'cello-fb-legend','aria-label':'把位顏色圖例'});
     aside.append(element('div',{class:'cello-legend-title'},'指板顏色圖例'));
     const entries=[['open','空弦（不屬把位）'],
-      ...CHART_POSITIONS.flatMap((p,i)=>p?[[`position-${i}`,p[0]]]:[]),
-      ['extension-example','擴增：沿用基準把位色，細實線框'],['harmonic','自然泛音（不屬一般把位）'],['custom','老師／學生修改（把位未核對）'],
+      ...CHART_POSITIONS.flatMap((p,i)=>p?[[`position-${i}`,p[0]],[`position-${i}:extended`,'擴增'+p[0]]]:[]),['harmonic','自然泛音（不屬一般把位）'],['custom','老師／學生修改（把位未核對）'],
       ['unverified','把位尚未核對']];
-    for(const [group,label]of entries.filter(([g])=>g==='extension-example'?hasExtension:used.has(g))){
+    for(const [entry,label]of entries.filter(([g])=>used.has(g))){
+      const [group,variant]=entry.split(':'),extended=variant==='extended';
       const item=element('div',{class:'cello-legend-item'});
       item.style.whiteSpace='normal';item.style.overflowWrap='anywhere';item.style.fontSize='11px';
-      const marker=element('span',{class:'cello-legend-dot '+group});
+      const marker=element('span',{class:'cello-legend-dot '+group,'data-legend-position':entry});
       marker.style.background=POSITION_COLORS[group]||POSITION_COLORS['position-2'];
-      const accent=[...points].find(p=>p.getAttribute('data-position-group')===group&&p.hasAttribute('data-position-accent'))?.getAttribute('data-position-accent');
-      if(accent){marker.style.background=`radial-gradient(circle, ${accent} 0 67%, ${POSITION_COLORS[group]} 68% 100%)`;marker.setAttribute('data-position-accent',accent);marker.title='B小調高音辨識內色；外緣保留原圖上第六把位色';}
-      if(group==='extension-example'){marker.style.border='1.5px solid '+contrastInk(POSITION_COLORS['position-2']);}item.append(marker,element('span',{},label));aside.append(item);
+      const accent=[...points].find(p=>p.getAttribute('data-position-group')===group&&(p.getAttribute('data-position-extended')==='true')===extended&&p.hasAttribute('data-position-accent'))?.getAttribute('data-position-accent');
+      if(accent){marker.style.background=accent;marker.setAttribute('data-position-accent',accent);}
+      if(extended){marker.style.border='1.5px solid '+contrastInk(accent||POSITION_COLORS[group]);}item.append(marker,element('span',{},label));aside.append(item);
     }
     aside.hidden=used.size===0;return aside;
   }
@@ -330,7 +319,7 @@
         stroke:isOpen?color:style.extended?style.borderColor:'#ffffff','stroke-width':isOpen?3:style.extended?1.5:2.1,'stroke-dasharray':'none'
       }));
       const accent=bMinorAccent({mode,key,octaves,arpeggio},note.position);
-      if(accent){point.setAttribute('data-position-accent',accent);point.append(svgNode('circle',{cx:x,cy:y,r:12,fill:accent,class:'cello-position-inset','pointer-events':'none','aria-hidden':'true'}));}
+      if(accent){point.setAttribute('data-position-accent',accent);point.querySelector('circle').setAttribute('fill',accent);}
       point.append(svgNode('text',{
         x:note.shiftCue?.placement==='inside'?x-3:x,y:y+4.5,'text-anchor':'middle','font-size':12.5,
         'font-weight':800,fill:isOpen?color:style.textColor,stroke:style.textStroke,'stroke-width':.9,'paint-order':'stroke'
@@ -409,8 +398,6 @@
         }));
       }
     }
-    const groupNote=bMinorGroupNote({mode,key,direction,octaves,arpeggio},plotted.map(n=>({...n.position,midi:n.midi})),height-8);
-    if(groupNote)svg.append(groupNote);
     return svg;
   }
 
@@ -932,6 +919,6 @@
   window.CelloFingerboard={
     create,
     // Pure helpers exported for automated pitch and placement checks.
-    arpeggioNotes,chartSVG,scoreAccidentals,staffStep,makeScore,scaleNotes,positionFor,pitchClass,decodeMap,pointStyling,POSITION_COLORS,CHART_POSITIONS,contrastInk,makeLegend,notePlacement,resolvedShiftCue,bMinorAccent,bMinorGroupNote
+    arpeggioNotes,chartSVG,scoreAccidentals,staffStep,makeScore,scaleNotes,positionFor,pitchClass,decodeMap,pointStyling,POSITION_COLORS,CHART_POSITIONS,contrastInk,makeLegend,notePlacement,resolvedShiftCue,bMinorAccent
   };
 })();

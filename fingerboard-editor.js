@@ -162,7 +162,7 @@
         const color=isOpen&&style.group!=='extended'?'#34483a':fb.POSITION_COLORS[style.group];
         g.append(sv('circle',{cx:x,cy:y,r:15.5,fill:isOpen?'#f7f9f6':color,stroke:isOpen?color:style.extended?style.borderColor:'#ffffff','stroke-width':isOpen?3:style.extended?1.5:2,'stroke-dasharray':'none'}));
         const accent=fb.bMinorAccent({mode,key,octaves,arpeggio:false},{anchor:pos.anchor,shape:pos.shape,finger:pos.f,group:pos.group,custom:pos.modified});
-        if(accent){g.setAttribute('data-position-accent',accent);g.append(sv('circle',{cx:x,cy:y,r:12,fill:accent,class:'cello-position-inset','pointer-events':'none','aria-hidden':'true'}));}
+        if(accent){g.setAttribute('data-position-accent',accent);g.querySelector('circle[r="15.5"]').setAttribute('fill',accent);}
         g.append(sv('text',{x:shiftCue?.placement==='inside'?x-3:x,y:y+4.5,'text-anchor':'middle','font-size':12,'font-weight':850,fill:isOpen?color:style.textColor,stroke:style.textStroke,'stroke-width':.9,'paint-order':'stroke'},isOpen?'0':shiftCue?.placement==='inside'?style.finger:n.order));
         if(shiftCue?.placement==='inside')g.append(sv('text',{x:x+2,y:y+4.5,'font-size':9,'font-weight':700,fill:style.textColor,stroke:style.textStroke,'stroke-width':.8,'paint-order':'stroke',class:'cello-shift-cue',role:'img','aria-label':shiftCue.description},shiftCue.symbol));
         // Match the read-only chart: open-string points show only their number.
@@ -221,9 +221,6 @@
         });
         g.addEventListener('click',event=>event.stopPropagation());
       }
-      const refs=(window.CelloFingeringOptimizer||window.CelloFingeringPresets)?.get(mode,key,direction,ns)||{};
-      const groupNote=fb.bMinorGroupNote({mode,key,direction,octaves,arpeggio:false},ns.map(n=>({...fb.notePlacement(n.midi,maps[direction],refs),midi:n.midi})),height-5);
-      if(groupNote)doc.append(groupNote);
       return doc;
     }
     function render(){
