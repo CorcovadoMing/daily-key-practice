@@ -154,9 +154,11 @@
       textStroke:group!=='open'&&borderColor==='#000000'?'#18251b':'none'};
   }
   function bMinorAccent(context,position){
-    return context?.mode==='minor'&&context.key?.[0]==='B'&&context.octaves===2&&!context.arpeggio&&
-      position.anchor===11&&position.shape==='extended'&&position.finger>0&&
-      !position.custom&&!['custom','unverified','harmonic'].includes(position.group)?'#a45b38':null;
+    if(context?.mode!=='minor'||context.key?.[0]!=='B'||position.custom||
+      ['custom','unverified','harmonic'].includes(position.group))return null;
+    if(context.arpeggio)return position.string===3&&position.semitones===14&&
+      position.anchor===12&&position.shape==='normal'&&position.finger===3?'#247873':null;
+    return context.octaves===2&&position.anchor===11&&position.shape==='extended'&&position.finger>0?'#a45b38':null;
   }
   function makeLegend(diagram=null){
     const points=diagram?.querySelectorAll?.('[data-position-group]')||[];
