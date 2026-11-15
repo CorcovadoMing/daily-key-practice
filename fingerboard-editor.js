@@ -30,6 +30,9 @@
   }
   function createEditor(mode,key,annotations={},lockedDirection=null){
     const maps={up:validated(annotations.upMap),down:validated(annotations.downMap)};
+    // Major scales have one shared route. Keep archived downMap untouched,
+    // but never offer edits to a direction that the practice view hides.
+    if(mode==='major')lockedDirection='up';
     let direction=lockedDirection==='down'?'down':'up',octaves=2,maxFret=14,selected=0;
     const root=el('div','teacher-fingerboard');
     const toolbar=el('div','teacher-tools');
@@ -73,17 +76,17 @@
       if(m && Number.isInteger(m.s)&&m.s>=0&&m.s<4){
         const semi=note.midi-OPEN[m.s].midi;
         if(semi>=0&&semi<=24){
-          const ref=window.CelloFingeringPresets?.get(mode,key,direction,notes())?.[String(note.midi)];
+          const ref=(window.CelloFingeringOptimizer||window.CelloFingeringPresets)?.get(mode,key,direction,notes())?.[String(note.midi)];
           const same=Boolean(ref&&ref.s===m.s);
           const f=semi===0?0:([1,2,3,4].includes(m.f)?m.f:
             same?ref.f:null);
-          return {s:m.s,semi,f,group:same?ref.group:'custom',modified:true};
+          return {s:m.s,semi,f,group:'custom',positionLabel:'老師／學生修改（把位未核對）',modified:true};
         }
       }
-      const refs=window.CelloFingeringPresets?.get(mode,key,direction,notes())||{};
+      const refs=(window.CelloFingeringOptimizer||window.CelloFingeringPresets)?.get(mode,key,direction,notes())||{};
       const proposal=refs[String(note.midi)];
       if(proposal)return {s:proposal.s,semi:note.midi-OPEN[proposal.s].midi,f:proposal.f,
-        group:proposal.group,modified:false};
+        group:proposal.group,positionLabel:proposal.positionLabel,modified:false};
       const pos=fb.positionFor(note.midi);
       return {s:pos.string,semi:pos.semitones,f:pos.semitones===0?0:null,group:'unverified',modified:false};
     }
@@ -146,7 +149,7 @@
       }
       for(let i=0;i<ns.length;i++){
         const n=ns[i],pos=placement(n),x=XX[pos.s],y=NUT+pos.semi*STEP;
-        const style=fb.pointStyling({semitones:pos.semi,finger:pos.f,group:pos.group});
+        const style=fb.pointStyling({semitones:pos.semi,finger:pos.f,group:pos.group,positionLabel:pos.positionLabel});
         if(pos.semi>maxFret)continue;
         const isOpen=pos.semi===0,isSelected=i===selected;
         const g=sv('g',{role:'button',tabindex:'0','aria-label':`第${n.order}音 ${n.name}；${OPEN[pos.s].name}弦；${isOpen?'空弦':pos.semi+'半音位置'}`,class:'teacher-note-marker'});
@@ -232,7 +235,7 @@
       stage.replaceChildren(board());
       const n=selection();
       const p=placement(n);
-      const selectedStyle=fb.pointStyling({semitones:p.semi,finger:p.f,group:p.group});
+      const selectedStyle=fb.pointStyling({semitones:p.semi,finger:p.f,group:p.group,positionLabel:p.positionLabel});
       info.textContent=`目前選擇：第 ${n.order} 音 ${n.name} · ${OPEN[p.s].name} 弦${p.semi===0?'（空弦）':'，'+selectedStyle.label+([1,2,3,4].includes(selectedStyle.finger)?'、第 '+selectedStyle.finger+' 指':'（尚未核對指法）')}`;
       fingers.replaceChildren(el('span','teacher-finger-label','左手指號'));
       if(p.semi===0){
@@ -255,7 +258,8 @@
       getValue(){
         return {
           upMap:Object.keys(maps.up).length?JSON.stringify(maps.up):'',
-          downMap:Object.keys(maps.down).length?JSON.stringify(maps.down):''
+          downMap:mode==='major'?(annotations.downMap||''):
+            (Object.keys(maps.down).length?JSON.stringify(maps.down):'')
         };
       }
     };

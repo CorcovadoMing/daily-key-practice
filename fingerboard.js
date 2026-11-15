@@ -1,7 +1,7 @@
 /* Clean cello fingerboard note-position diagrams for scale practice.
  * Standard open strings: C2 G2 D3 A3. Circles show left-hand fingers (0 = open string, ? = not specified).
  * A schematic semitone spacing is used for legibility; physical distances are not to scale.
- * Per-note string choices favor the highest possible open string / lowest stopped position.
+ * Computed default routes minimize hand shifts within bounded playable hand states.
  */
 (function(){
   'use strict';
@@ -94,7 +94,7 @@
   function notePlacement(midi,map,presets={}){
     const p=presets[String(midi)],fallback=positionFor(midi);
     const base=p?{string:p.s,stringName:OPEN[p.s].name,semitones:midi-OPEN[p.s].midi,
-      finger:p.f,group:p.group,custom:false}:{...fallback,finger:null,group:'unverified',custom:false};
+      finger:p.f,group:p.group,positionLabel:p.positionLabel,anchor:p.anchor,shape:p.shape,custom:false}:{...fallback,finger:null,group:'unverified',custom:false};
     const custom=map[String(midi)];
     if(!custom||!Number.isInteger(custom.s)||custom.s<0||custom.s>3)return base;
     const semi=midi-OPEN[custom.s].midi;
@@ -103,11 +103,11 @@
     const finger=semi===0?0:([1,2,3,4].includes(custom.f)?custom.f:
       same?p.f:null);
     return {string:custom.s,stringName:OPEN[custom.s].name,semitones:semi,
-      finger,group:same?p.group:'custom',custom:true};
+      finger,group:'custom',positionLabel:'老師／學生修改（把位未核對）',custom:true};
   }
 
-  // Presentation colors do not assert a particular hand position for
-  // unverified notes. Only the user's photographed fingerings set groups.
+  // Colors summarize the computed hand state; exact chart position is in the tooltip.
+  // Custom fingers have no asserted hand state until individually checked.
   const POSITION_COLORS={
     open:'#ffffff',
     half:'#428b9a',
@@ -121,9 +121,9 @@
   function pointStyling(position){
     const group=position.semitones===0?'open':(position.group||'unverified');
     const label={open:'空弦',half:'半把位',first:'第一把位',
-      extended:'延伸手型',shifting:'其他把位',high:'高把位',
+      extended:'擴增把位',shifting:'其他把位',high:'高把位',
       custom:'已修改',unverified:'照片尚未核對'}[group]||'照片尚未核對';
-    return {finger:position.finger,group,label};
+    return {finger:position.finger,group,label:position.positionLabel||label};
   }
   function makeLegend(){
     const aside=element('aside',{class:'cello-fb-legend','aria-label':'把位顏色圖例'});
@@ -131,7 +131,7 @@
     aside.append(title);
     const entries=[
       ['open','空弦'],['half','半把位'],['first','第一把位'],
-      ['extended','延伸把位'],['shifting','其他把位'],['high','高把位'],
+      ['extended','擴增把位'],['shifting','其他把位'],['high','高把位'],
       ['custom','老師／學生修改']
     ];
     for(const [group,label] of entries){
@@ -147,10 +147,11 @@
   function chartSVG(mode,key,direction,octaves,annotations={},interaction=null,remoteDrafts=[],reverseStrings=false,arpeggio=false){
     const scale=scaleNotes(mode,key,direction,octaves);
     const notes=arpeggio?arpeggioNotes(mode,key,direction):scale;
-    const sourceDirection=arpeggio?'up':direction;
+    const sourceDirection=arpeggio||mode==='major'?'up':direction;
     const map=decodeMap(sourceDirection==='up'?annotations.upMap:annotations.downMap);
-    const sourceScale=sourceDirection===direction?scale:scaleNotes(mode,key,sourceDirection,octaves);
-    const presets=window.CelloFingeringPresets?.get(mode,key,sourceDirection,sourceScale)||{};
+    const presets=window.CelloFingeringOptimizer?.get(mode,key,direction,notes,arpeggio)||
+      window.CelloFingeringPresets?.get(mode,key,sourceDirection,
+        sourceDirection===direction?scale:scaleNotes(mode,key,sourceDirection,octaves))||{};
     const plotted=notes.map(note=>{
       const position=notePlacement(note.midi,map,presets);
       return {...note,position,style:pointStyling(position)};
@@ -452,11 +453,11 @@
     function isDirty(){return edit.dir!==null&&signature(edit.original)!==signature(edit.pending);}
     function notes(dir){return scaleNotes(mode,key,dir,choices.get(id)||2);}
     function defaultPosition(dir,midi){
-      const ref=window.CelloFingeringPresets?.get(mode,key,dir,notes(dir))||{};
+      const ref=(window.CelloFingeringOptimizer||window.CelloFingeringPresets)?.get(mode,key,dir,notes(dir))||{};
       return notePlacement(midi,{},ref);
     }
     function proposedPosition(dir,midi){
-      const ref=window.CelloFingeringPresets?.get(mode,key,dir,notes(dir))||{};
+      const ref=(window.CelloFingeringOptimizer||window.CelloFingeringPresets)?.get(mode,key,dir,notes(dir))||{};
       const map=edit.dir===dir?edit.pending:decodeMap(annotations[dir+'Map']);
       return notePlacement(midi,map,ref);
     }
@@ -684,7 +685,7 @@
       const actions=element('div',{class:'cello-inline-actions'});
       const back=element('button',{type:'button',class:'cello-inline-undo'},'上一步');
       const restoreSelected=element('button',{type:'button',class:'cello-inline-restore-selected',
-        title:'將目前選取的粉紅色修改音符還原 Werner 預設，並保留其他音'},'復原選取的修改');
+        title:'將目前選取的粉紅色修改音符還原低換把預設，並保留其他音'},'復原選取的修改');
       const reset=element('button',{type:'button',class:'cello-inline-reset',
         title:'暫時將整個方向還原預設；可按「上一步」撤銷，按「確認修改」才儲存'},'復原所有修改');
       const save=element('button',{type:'button',class:'cello-inline-save'},'確認修改');
@@ -709,7 +710,8 @@
     const scoreSection=element('section',{class:'score-section'});
     scoreSection.append(element('h3',{class:'music-section-title'},'音階 · 兩個八度'),makeScore(mode,key));
     const boardSection=element('section',{class:'fingerboard-section'});
-    boardSection.append(element('h3',{class:'music-section-title'},'指板 · 指法'),toolbar,boards);
+    boardSection.append(element('h3',{class:'music-section-title'},'指板 · 指法'),
+      element('p',{class:'caption'},'低換把計算預設（非 Werner 原譜）：一般手型相鄰指距半音，擴增手型另標。把位依第一指位置命名；指向音點可查看確切把位。已儲存修改優先保留。'),toolbar,boards);
     const arpeggioSection=element('section',{class:'arpeggio-section fingerboard-section'});
     const arpeggioBoards=element('div',{class:'cello-fb-two-up'});
     const arpeggioViews={};
@@ -721,7 +723,7 @@
       section.append(element('h4',{class:'cello-fb-direction-heading'},'上下行相同'),viewport);
       arpeggioViews[dir]=viewport;arpeggioBoards.append(section);
     }
-    arpeggioSection.append(element('p',{class:'caption'},'上下行皆沿用音階上行的已儲存指法；下行反向演奏。請在上方音階指板編輯。'));
+    arpeggioSection.append(element('p',{class:'caption'},'琶音採獨立低換把預設，下行原路反向。音階上行已儲存的個別修改仍優先套用於相同音高，並以粉紅色標示；自訂路線不保證最少換把。'));
     root.append(scoreSection,boardSection,arpeggioSection,dialog);
 
     function renderDirection(dir){

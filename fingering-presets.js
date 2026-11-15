@@ -178,3 +178,117 @@ window.CelloFingeringPresets={
   STRING_OPEN:OPEN,source:'user-Werner-photo'
 };
 })();
+
+/* Experimental computed routes, not a transcription of Werner.
+ * Hand anchor is the sounding first-finger semitone above each open string.
+ * Normal 1–4: [0,1,2,3]. Extended 1–4: [0,2,3,4].
+ * Above fourth position use fingers 1–3 only. No thumb-position assumptions.
+ */
+(function(){
+'use strict';
+const OPEN=[36,43,50,57];
+const LABELS=['','半把位','第一把位','上第一／下第二把位','上第二把位','第三把位',
+  '上第三／下第四把位','第四把位','上第四／下第五把位','第五把位','第六把位',
+  '上第六把位','第七把位','上第七把位'];
+const SHAPES={normal:[0,1,2,3],extended:[0,2,3,4]};
+const cache=new Map();
+function candidates(midi,fixed){
+  const result=[];
+  for(let s=0;s<4;s++){
+    const semi=midi-OPEN[s];
+    if(semi<0)continue;
+    for(let anchor=1;anchor<=13;anchor++)for(const shape of Object.keys(SHAPES)){
+      const fingers=anchor>=8?3:4;
+      if(semi===0){
+        if(!fixed||(fixed.s===s&&fixed.f===0))result.push({midi,s,f:0,anchor,shape});
+        continue;
+      }
+      for(let f=1;f<=fingers;f++)if(semi===anchor+SHAPES[shape][f-1]&&
+        (!fixed||(fixed.s===s&&fixed.f===f)))result.push({midi,s,f,anchor,shape});
+    }
+  }
+  return result;
+}
+function compare(a,b){for(let i=0;i<a.length;i++)if(a[i]!==b[i])return a[i]-b[i];return 0;}
+function transition(a,b,direction){
+  const sign=direction==='down'?-1:1,ds=b.s-a.s,da=b.anchor-a.anchor;
+  // No backwards string crossings or skipped strings. On one string the hand
+  // follows pitch direction; crossing an adjacent string may reset the anchor.
+  if(ds*sign<0||Math.abs(ds)>1||(ds===0&&da*sign<0)||Math.abs(da)>7)return null;
+  // Open notes carry an explicit hand state too. Repositioning during an
+  // open note costs a real shift just like repositioning on a stopped note.
+  return [Number(da!==0), Number(b.shape==='extended')+Number(a.shape!==b.shape),
+    Math.abs(ds),da*da,b.anchor];
+}
+function search(notes,direction='up',start=null,fixedMap=null,turnAt=null){
+  let layer=[];
+  for(let i=0;i<notes.length;i++){
+    const next=[];
+    for(const p of candidates(notes[i].midi,fixedMap?.[notes[i].midi])){
+      if(i===0){
+        if(start&&['s','f','anchor','shape'].some(k=>p[k]!==start[k]))continue;
+        // Initial hand placement is not a shift; lower/easier shapes break ties.
+        next.push({p,cost:[0,Number(p.shape==='extended'),0,0,p.anchor],previous:null});
+      }else{
+        let best=null;
+        for(const old of layer){
+          const add=transition(old.p,p,turnAt!==null&&i>=turnAt?'down':direction);if(!add)continue;
+          const cost=old.cost.map((v,j)=>v+add[j]);
+          if(!best||compare(cost,best.cost)<0)best={p,cost,previous:old};
+        }
+        if(best)next.push(best);
+      }
+    }
+    if(!next.length)return null;
+    layer=next;
+  }
+  layer.sort((a,b)=>compare(a.cost,b.cost));
+  const route=[];for(let n=layer[0];n;n=n.previous)route.push(n.p);
+  return route.reverse();
+}
+function describe(p){
+  const group=p.f===0?'open':p.shape==='extended'?'extended':
+    p.anchor===1?'half':p.anchor===2?'first':p.anchor>=8?'high':'shifting';
+  return {...p,group,positionLabel:p.f===0?'空弦':LABELS[p.anchor]+
+    (p.shape==='extended'?'・擴增把位':''),
+    source:'computed-low-shift-v1',stringSource:'bounded-hand-state-search'};
+}
+function route(mode,key,direction,octaves=2,arpeggio=false){
+  const id=[mode,key[0],octaves,arpeggio].join('|');
+  if(!cache.has(id)){
+    const F=window.CelloFingerboard;
+    const upNotes=arpeggio?F.arpeggioNotes(mode,key,'up'):F.scaleNotes(mode,key,'up',octaves);
+    let up,down;
+    if(mode==='major'||arpeggio){
+      up=search(upNotes);down=up&&[...up].reverse();
+    }else{
+      const downNotes=F.scaleNotes(mode,key,'down',octaves);
+      // Optimize the entire melodic/natural cycle jointly, including the
+      // common apex. A cheap ascent must not force a costly descent.
+      const cycle=search([...upNotes,...downNotes.slice(1)],'up',null,null,upNotes.length);
+      up=cycle?.slice(0,upNotes.length);down=cycle?.slice(upNotes.length-1);
+    }
+    if(!up||!down)throw Error('No playable route: '+id);
+    cache.set(id,{up:up.map(describe),down:down.map(describe)});
+  }
+  return cache.get(id)[direction].map(p=>({...p}));
+}
+function get(mode,key,direction,notes,arpeggio=false){
+  const octaves=arpeggio?2:(notes.length-1)/7;
+  const found=route(mode,key,direction,octaves,arpeggio);
+  if(found.length!==notes.length||found.some((p,i)=>p.midi!==notes[i].midi))
+    throw Error('Optimized route pitch mismatch');
+  return Object.fromEntries(found.map(p=>[String(p.midi),p]));
+}
+function metrics(route){
+  if(!route)return null;
+  let shifts=0,travel=0,crossings=0,extensions=0;
+  route.forEach((p,i)=>{
+    if(p.f&&p.shape==='extended')extensions++;
+    if(i){const q=route[i-1];if(p.anchor!==q.anchor)shifts++;
+      travel+=Math.abs(p.anchor-q.anchor);crossings+=Math.abs(p.s-q.s);}
+  });
+  return {shifts,travel,crossings,extensions};
+}
+window.CelloFingeringOptimizer={get,route,search,candidates,transition,metrics,LABELS,SHAPES};
+})();
