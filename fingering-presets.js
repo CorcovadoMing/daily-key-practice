@@ -476,9 +476,10 @@ function reviewedMajor048(key,octaves,arpeggio,up){
   return result;
 }
 function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
-  if(!['preferred','reviewed-053','reviewed-052','reviewed-051','reviewed-048','reviewed-047','reviewed-046','reviewed-045','minimum-shifts','minimum-movements','first-family'].includes(policy))
+  if(!['preferred','reviewed-054','reviewed-053','reviewed-052','reviewed-051','reviewed-048','reviewed-047','reviewed-046','reviewed-045','minimum-shifts','minimum-movements','first-family'].includes(policy))
     throw Error('Unknown route policy');
-  const reviewed053=policy==='preferred'||policy==='reviewed-053';
+  const reviewed054=policy==='preferred'||policy==='reviewed-054';
+  const reviewed053=reviewed054||policy==='reviewed-053';
   const reviewed052=reviewed053||policy==='reviewed-052';
   const reviewed048=reviewed052||policy==='reviewed-051'||policy==='reviewed-048';
   const id=[mode,key[0],octaves,arpeggio,policy].join('|');
@@ -702,7 +703,7 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
     }
     // 054: preserve the approved ascent for every major scale and mirror
     // its physical route exactly. Directional cues describe the return leg.
-    if(policy==='preferred'&&mode==='major'&&!arpeggio){
+    if(reviewed054&&mode==='major'&&!arpeggio){
       if(key[0]==='E'&&octaves===2){
         up=up.map(p=>p.midi===51?{...p,shiftCue:{toMidi:52,s:2,f:1,symbol:'↓',placement:'inside',
           description:'D♯3至E3同一第1指向琴橋移動，由向後擴增轉為前擴增；後續E3、F♯3、G♯3維持擴增124，並非正常第一把位。'}}:p);
@@ -717,6 +718,44 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
         down[up.length-2-i].shiftCue={toMidi:up[i].midi,s:up[i].s,f:up[i].f,
           symbol:'↑',placement:'inside',description};
       }
+    }
+    // 055: only the E-minor arpeggio apex changes to the owner's second
+    // finger, in a verified normal upper-third/lower-fourth contact frame.
+    if(policy==='preferred'&&mode==='minor'&&key[0]==='E'&&arpeggio){
+      const apex=up.at(-1);
+      if(apex.midi!==64||apex.s!==3)throw Error('Unexpected E-minor arpeggio apex');
+      const found=candidates(apex.midi,{s:3,f:2},['normal']).find(p=>p.anchor===6);
+      if(!found)throw Error('Invalid E-minor second-finger apex');
+      up[up.length-1]={...found,source:'reviewed-e-minor-arpeggio-apex2-055-v1'};
+      down=[...up].reverse().map(p=>({...p}));
+    }
+    // 055: B-minor upper digits follow the owner's scale13123 and
+    // arpeggio1143. Natural-minor return pitches require different frames.
+    if(policy==='preferred'&&mode==='minor'&&key[0]==='B'){
+      const place=(p,f,anchor,shape)=>{
+        const found=candidates(p.midi,{s:3,f},[shape]).find(q=>q.anchor===anchor);
+        if(!found)throw Error('Invalid reviewed B-minor upper frame');
+        return {...found,source:'reviewed-b-minor-upper-055-v1'};
+      };
+      if(arpeggio){
+        up=up.map(p=>p.midi===62?place(p,1,5,'extended'):p.midi===66?place(p,4,5,'extended'):p);
+        down=[...up].reverse().map(p=>({...p}));
+      }else if(octaves===2){
+        up=up.map(p=>[64,66].includes(p.midi)?place(p,p.midi===64?1:3,7,'normal'):
+          [68,70,71].includes(p.midi)?place(p,{68:1,70:2,71:3}[p.midi],11,'extended'):p);
+        down=down.map(p=>p.midi===71?place(p,3,11,'extended'):
+          [69,67].includes(p.midi)?place(p,p.midi===69?2:1,10,'extended'):p);
+      }
+    }
+    // 055: only high E-flat4 in G-minor's natural two-octave descent.
+    // Start the extension at this note; do not relabel preceding normal G/F.
+    if(policy==='preferred'&&mode==='minor'&&key[0]==='G'&&octaves===2&&!arpeggio){
+      down=down.map(p=>{
+        if(p.midi!==63)return p;
+        const found=candidates(p.midi,{s:3,f:1},['backwardExtended']).find(q=>q.anchor===7);
+        if(!found)throw Error('Invalid G-minor high E-flat first finger');
+        return {...found,displaySegmentStart:true,source:'reviewed-g-minor-high-eflat1-055-v1'};
+      });
     }
     if(motion){
       const source=policy==='first-family'?'computed-first-family-comparison-v1':'computed-movement-events-v1';
