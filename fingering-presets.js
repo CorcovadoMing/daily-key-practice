@@ -378,7 +378,7 @@ function describeSegments(route){
   for(let start=0;start<result.length;){
     let end=start+1;
     while(end<result.length&&result[end].s===result[start].s&&
-      result[end].anchor===result[start].anchor)end++;
+      result[end].anchor===result[start].anchor&&!result[end].displaySegmentStart)end++;
     if(result.slice(start,end).some(p=>p.f&&p.shape!=='normal')){
       for(let i=start;i<end;i++){
         const p=result[i];if(p.f===0)continue;
@@ -453,8 +453,30 @@ function reviewedMinorFirstPosition(notes,direction){
     throw Error('Invalid reviewed C-minor transition');
   return result;
 }
+// 048 individually audited major routes; no global search-weight change.
+// Each tuple is [string, finger, normal reference, shape]. Partial patches
+// retain every other047 placement. Mirroring happens after validation.
+const REVIEWED_048_MAJOR={
+  'E|1|false':[[0,1,4,'extended'],[0,2,4,'extended'],[0,4,4,'extended'],[1,1,2,'extended'],[1,2,2,'extended'],[1,4,2,'extended'],[2,1,1,'normal'],[2,2,1,'normal']],
+  'B|1|false':[[1,1,4,'extended'],[1,2,4,'extended'],[1,4,4,'extended'],[2,1,2,'extended'],[2,2,2,'extended'],[2,4,2,'extended'],[3,1,1,'normal'],[3,2,1,'normal']],
+  'F♯|1|false':[[0,2,4,'extended'],[0,4,4,'extended'],[1,1,3,'normal'],[1,2,3,'normal'],[1,4,3,'normal'],[2,1,2,'backwardExtended'],[2,2,2,'backwardExtended'],[2,3,2,'backwardExtended']],
+  'D♭|2|true':[[0,1,2,'backwardExtended'],[0,4,2,'backwardExtended'],[1,1,2,'backwardExtended'],[1,4,3,'normal'],[2,1,3,'normal'],[2,4,3,'normal'],[3,2,3,'normal']],
+  'F♯|2|true':[null,[1,1,3,'normal'],[1,4,3,'normal']],
+  'A♭|2|true':[null,null,null,null,[3,1,3,'normal'],[3,4,3,'normal']]
+};
+function reviewedMajor048(key,octaves,arpeggio,up){
+  const spec=REVIEWED_048_MAJOR[[key[0],octaves,arpeggio].join('|')];if(!spec)return null;
+  const result=up.map((p,i)=>{
+    if(!spec[i])return {...p,source:'reviewed-major-048-v1'};
+    const [s,f,anchor,shape]=spec[i],found=candidates(p.midi,{s,f},[shape]).find(q=>q.anchor===anchor);
+    if(!found)throw Error('Invalid reviewed048 major pitch: '+key[0]+'/'+i);
+    return {...found,source:'reviewed-major-048-v1'};
+  });
+  if(result.some((p,i)=>i&&!movementStep(result[i-1],p,'up')))throw Error('Invalid reviewed048 major transition');
+  return result;
+}
 function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
-  if(!['preferred','reviewed-046','reviewed-045','minimum-shifts','minimum-movements','first-family'].includes(policy))
+  if(!['preferred','reviewed-047','reviewed-046','reviewed-045','minimum-shifts','minimum-movements','first-family'].includes(policy))
     throw Error('Unknown route policy');
   const id=[mode,key[0],octaves,arpeggio,policy].join('|');
   if(!cache.has(id)){
@@ -463,7 +485,7 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
     const motion=!['minimum-shifts','reviewed-045'].includes(policy);
     const solve=(notes,dir='up',turn=null)=>motion?
       searchMotion(notes,dir,null,null,turn,policy==='first-family'):search(notes,dir,null,null,turn);
-    const reviewed=policy==='preferred'||policy==='reviewed-045'||policy==='reviewed-046';
+    const reviewed=policy==='preferred'||policy==='reviewed-047'||policy==='reviewed-045'||policy==='reviewed-046';
     let up,down;
     if(mode==='major'||arpeggio){
       up=solve(upNotes);
@@ -480,10 +502,10 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
         down=reviewedMinorFirstPosition(downNotes,'down');
       }
     }
-    const fsharpLayout=policy==='preferred'&&mode==='minor'&&key[0]==='F♯'&&octaves===2&&!arpeggio;
+    const fsharpLayout=(policy==='preferred'||policy==='reviewed-047')&&mode==='minor'&&key[0]==='F♯'&&octaves===2&&!arpeggio;
     const pinned=fsharpLayout||(mode==='major'&&key[0]==='F'&&octaves===2&&!arpeggio)||
       (mode==='minor'&&key[0]==='C');
-    if((policy==='preferred'||policy==='reviewed-046')&&!pinned&&up&&down){
+    if((policy==='preferred'||policy==='reviewed-047'||policy==='reviewed-046')&&!pinned&&up&&down){
       const caps={up:movementMetrics(up).events+1,down:movementMetrics(down).events+1};
       let alternativeUp,alternativeDown;
       if(mode==='major'||arpeggio){
@@ -499,7 +521,7 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
         down=alternativeDown.map(p=>({...p,source:'computed-first-family-near-tie-v1'}));
       }
     }
-    if(policy==='preferred'&&mode==='minor'&&key[0]==='F♯'&&arpeggio&&up){
+    if((policy==='preferred'||policy==='reviewed-047')&&mode==='minor'&&key[0]==='F♯'&&arpeggio&&up){
       // Keep the lower three exactly as selected in046. D-string normal1/4
       // spans three semitones; A-string1/4 spans FIVE and needs a real shift.
       up=up.map((p,i)=>{
@@ -516,6 +538,10 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
       down[0].shiftCue={toMidi:61,s:3,f:1,symbol:'換把半音',placement:'below',
         description:'F♯4第4指到C♯4第1指相差五半音，須另外向弦枕換把半音；不是同一固定擴增手型。'};
     }
+    if(policy==='preferred'&&mode==='major'&&up){
+      const selected=reviewedMajor048(key,octaves,arpeggio,up);
+      if(selected){up=selected;down=[...up].reverse().map(p=>({...p}));}
+    }
     if(!up||!down)throw Error('No playable route: '+id);
     // 047 owner review selects the already-existing exact minimum-movement
     // candidate for this one scale: 3/3/3/6 including apex, low G-sharp on C.
@@ -523,6 +549,26 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
     if(fsharpLayout){
       up=up.map(p=>({...p,source:'reviewed-fsharp-3336-v1'}));
       down=down.map(p=>({...p,source:'reviewed-fsharp-3336-v1'}));
+    }
+    // 048 owner-confirmed A-string ascending 12124. D-sharp/E-sharp use
+    // forward extension at reference6, then F-sharp4 contracts to normal6.
+    // Preserve the SAME apex on descent; E-natural2 then stays in that frame.
+    // This separates the earlier combined shift/closure into two events.
+    if(fsharpLayout&&policy==='preferred'){
+      const replace=(p,f,anchor,shape)=>{
+        const found=candidates(p.midi,{s:3,f},[shape]).find(q=>q.anchor===anchor);
+        if(!found)throw Error('Invalid reviewed F-sharp ascending12124');
+        return {...found,source:'reviewed-fsharp-12124-v1'};
+      };
+      up=up.map((p,i)=>i<12?p:replace(p,[1,2,4][i-12],6,i===14?'normal':'extended'));
+      down=down.map((p,i)=>i>1?p:replace(p,i===0?4:2,6,'normal'));
+      // Explicit reviewed closure ends the preceding orange segment, even
+      // though the normal first-finger reference stays at6.
+      up[14].displaySegmentStart=true;down[0].displaySegmentStart=true;
+      for(const [r,dir]of[[up,'up'],[down,'down']])
+        if(r.some((p,i)=>i&&!movementStep(r[i-1],p,dir)))throw Error('Invalid F-sharp12124 transition');
+      if(['midi','s','f','anchor','shape'].some(k=>up.at(-1)[k]!==down[0][k]))
+        throw Error('F-sharp12124 apex mismatch');
     }
     if(motion){
       const source=policy==='first-family'?'computed-first-family-comparison-v1':'computed-movement-events-v1';

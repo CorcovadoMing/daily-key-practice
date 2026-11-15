@@ -78,4 +78,14 @@ const optimizer=w.CelloFingeringOptimizer;delete w.CelloFingeringOptimizer;
 const minor=['E',1,'E F♯ G A B C♯ D♯ E','E F♯ G A B C D E'];
 a.deepEqual(labels(F.chartSVG('minor',minor,'down',2,{},null,[],false,true)),labels(F.chartSVG('minor',minor,'up',2,{},null,[],false,true)).reverse());
 w.CelloFingeringOptimizer=optimizer;
-console.log(`PASS ${cases} rendered scale/arp/octave/string-order cases, custom symmetry, extension segment/open coloring, safe teacher major editing and fallback.`);dom.window.close();
+console.log(`PASS ${cases} rendered scale/arp/octave/string-order cases, custom symmetry, extension segment/open coloring, safe teacher major editing and fallback.`);
+// Reviewed12124: only the preceding D-sharp/E-sharp segment remains orange.
+const fsUp=markers(F.chartSVG('minor',fsharp,'up',2)),fsDown=markers(F.chartSVG('minor',fsharp,'down',2));
+for(const i of[12,13])a.equal(fsUp[i].querySelector('circle').getAttribute('fill'),orange);
+for(const p of[fsUp[14],fsDown[0],fsDown[1]]){
+ a.notEqual(p.querySelector('circle').getAttribute('fill'),orange);a.doesNotMatch(p.querySelector('title').textContent,/擴增/);
+}
+const fsTeacher=F.createEditor('minor',fsharp).element.querySelectorAll('.teacher-note-marker');
+a.notEqual(fsTeacher[14].querySelector('circle').getAttribute('fill'),orange);
+
+dom.window.close();

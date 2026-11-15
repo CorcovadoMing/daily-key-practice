@@ -23,13 +23,13 @@ console.log(`# 047 · F♯小調音階與琶音指定路線
 
 | 方向 | 政策 | E事件 | C分項 | 換弦 | 手位基準變更 | 手型開合 | 基準位移 | 第一家族外音 |
 |---|---|---:|---:|---:|---:|---:|---:|---:|`);
-for(const dir of['up','down'])for(const policy of['reviewed-046','preferred']){
+for(const dir of['up','down'])for(const policy of['reviewed-046','reviewed-047']){
  const m=O.movementMetrics(O.route('minor',key,dir,2,false,policy));
  console.log(`| ${dir==='up'?'上行':'下行'} | ${policy==='reviewed-046'?'046':'047'} | ${m.events} | ${m.components} | ${m.stringChanges} | ${m.anchorShifts} | ${m.shapeChanges} | ${m.travel} | ${m.outsideFirstNotes} |`);
 }
 console.log('\n合計E為10→8，但C為16→18，手位基準變更3→6、位移13→17。這次依使用者指定的弦組與實際演奏偏好選擇，不能宣稱所有指標都改善。\n\n## 音階逐音路線\n');
 for(const dir of['up','down']){
- const notes=F.scaleNotes('minor',key,dir,2),r=O.route('minor',key,dir,2);
+ const notes=F.scaleNotes('minor',key,dir,2),r=O.route('minor',key,dir,2,false,'reviewed-047');
  console.log(`### ${dir==='up'?'上行':'下行'}\n\n| 音 | 弦 | 指 | 把位／手型 |\n|---|---|---:|---|`);
  r.forEach((p,i)=>console.log(`| ${notes[i].name}${Math.floor(p.midi/12-1)} | ${'CGDA'[p.s]} | ${p.f} | ${p.positionLabel} |`));
 }
@@ -38,7 +38,7 @@ console.log(`\n## F♯小調琶音追加確認\n
 
 畫面在這一接音明示「換把半音」，上行說明向琴橋，下行說明向弦枕；不是新增通用箭頭，任一端點自訂弦／指改動便隱藏。兩音都橙色不表示同一手位。\n
 | 方向 | 政策 | E事件 | C分項 | 手位基準變更 | 基準位移 |\n|---|---|---:|---:|---:|---:|`);
-for(const d of ['up','down'])for(const policy of ['reviewed-046','preferred']){
+for(const d of ['up','down'])for(const policy of ['reviewed-046','reviewed-047']){
  const r=O.route('minor',key,d,2,true,policy),m=O.movementMetrics(r);
  console.log(`| ${d==='up'?'上行':'下行'} | ${policy==='reviewed-046'?'046':'047'} | ${m.events} | ${m.components} | ${m.anchorShifts} | ${m.travel} |`);
 }
