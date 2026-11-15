@@ -57,17 +57,18 @@ test('Werner confirmed source remains separately available and unchanged',()=>{
 test('computed defaults are bundled in a deployed existing asset',()=>{
  a.ok(html.indexOf('fingering-presets.js')<html.indexOf('fingerboard.js'));
  a.ok(fs.readFileSync('fingering-presets.js','utf8').includes('window.CelloFingeringOptimizer='));
- a.match(html,/20261115-045-experimental/);
+ a.match(html,/20261115-046-experimental/);
 });
 
-test('F major two-octave keeps reviewed ordinary 0124 patterns over one fewer shift',()=>{
+test('F major preserves GD 0124 and applies reviewed expanded124 then fourth-position12',()=>{
  const key=['F',-1,'F G A B♭ C D E F'],up=O.route('major',key,'up'),down=O.route('major',key,'down');
- a.equal(Array.from(up,p=>p.f).join(''),'401240124013134');
+ a.equal(Array.from(up,p=>p.f).join(''),'401240124012412');
  a.equal(Array.from(up,p=>p.s).join(''),'011112222333333');
- a.deepEqual(Array.from(up,p=>p.anchor),[2,2,2,2,2,2,2,2,2,1,1,1,5,5,5]);
- a.ok(up.every(p=>p.shape==='normal'&&p.source==='reviewed-normal-0124-v1'));
+ a.deepEqual(Array.from(up,p=>p.anchor),[2,2,2,2,2,2,2,2,2,2,2,2,2,7,7]);
+ a.ok(up.every((p,i)=>p.shape===(i>=9&&i<=12?'backwardExtended':'normal')&&p.source==='reviewed-F-124-fourth-position-v1'));
+ a.equal(Array.from(O.route('major',key,'up',2,false,'reviewed-045'),p=>p.f).join(''),'401240124013134');
  a.deepEqual(Array.from(down,identity),Array.from(up,identity).reverse());
- a.equal(O.metrics(up).shifts,2);a.equal(O.metrics(up).extensions,0);
+ a.equal(O.metrics(up).shifts,1);a.equal(O.metrics(up).extensions,3);
  const minimum=O.route('major',key,'up',2,false,'minimum-shifts');
  a.equal(O.metrics(minimum).shifts,1);a.equal(O.metrics(minimum).extensions,3);
 });
@@ -76,7 +77,7 @@ test('044 preference does not alter any unrelated route or legacy Werner digits'
   const keys=vm.runInNewContext(html.match(new RegExp('const '+name+' = (\\[[\\s\\S]*?\\n    \\]);'))[1]);
   for(const key of keys)for(const octaves of [1,2])for(const arp of [false,true])for(const dir of ['up','down']){
    if((!arp&&mode==='major'&&key[0]==='F'&&octaves===2)||(mode==='minor'&&key[0]==='C'))continue;
-   a.deepEqual(Array.from(O.route(mode,key,dir,octaves,arp),identity),
+   a.deepEqual(Array.from(O.route(mode,key,dir,octaves,arp,'reviewed-045'),identity),
      Array.from(O.route(mode,key,dir,octaves,arp,'minimum-shifts'),identity));
   }
  }

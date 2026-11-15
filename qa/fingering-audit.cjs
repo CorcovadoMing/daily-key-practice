@@ -4,7 +4,7 @@ const fs=require('fs'),vm=require('vm'),c={window:{}};vm.createContext(c);
 for(const file of ['fingerboard.js','fingering-presets.js'])vm.runInContext(fs.readFileSync(file,'utf8'),c);
 const F=c.window.CelloFingerboard,O=c.window.CelloFingeringOptimizer,P=c.window.CelloFingeringPresets;
 const html=fs.readFileSync('index.html','utf8');
-const policy=process.argv.includes('--minimum-shifts')?'minimum-shifts':'preferred';
+const policy=process.argv.includes('--minimum-shifts')?'minimum-shifts':'reviewed-045';
 console.log(`# 045 · 24 調指法稽核（${policy}）\n
 預設是本專案的計算路線，不是 Werner 原譜。原始使用者確認的 Werner 指號及網站先前自行推排的弦位保留在 fingering-presets.js 的原始模組，原文未改動（計算器另加在檔案末尾）。音高、拼寫、起始音域與兩八度範圍不變。\n
 ## 計算邊界\n

@@ -704,7 +704,7 @@
       const actions=element('div',{class:'cello-inline-actions'});
       const back=element('button',{type:'button',class:'cello-inline-undo'},'上一步');
       const restoreSelected=element('button',{type:'button',class:'cello-inline-restore-selected',
-        title:'將目前選取的粉紅色修改音符還原低換把預設，並保留其他音'},'復原選取的修改');
+        title:'將目前選取的粉紅色修改音符還原移動優先預設，並保留其他音'},'復原選取的修改');
       const reset=element('button',{type:'button',class:'cello-inline-reset',
         title:'暫時將整個方向還原預設；可按「上一步」撤銷，按「確認修改」才儲存'},'復原所有修改');
       const save=element('button',{type:'button',class:'cello-inline-save'},'確認修改');
@@ -730,7 +730,7 @@
     scoreSection.append(element('h3',{class:'music-section-title'},'音階 · 兩個八度'),makeScore(mode,key));
     const boardSection=element('section',{class:'fingerboard-section'});
     boardSection.append(element('h3',{class:'music-section-title'},'指板 · 指法'),
-      element('p',{class:'caption'},'低換把／一般手型優先預設（非 Werner 原譜）：無特別音域、接音或擴增等理由時優先第一把位。相鄰弦能維持同一一般把位的 0124 時，優先保留一般手型，不為少一次換把而硬用擴增。一般相鄰指距半音，同弦同把位只要用到擴增，整段按弦音一併標色；空弦不屬任何把位，永遠保持白色 0。把位依一般手型的第一指基準命名；向後擴增由第一指伸向低半音，其他指保留原位。指向音點可查看確切把位。已儲存修改優先保留。'),toolbar,boards);
+      element('p',{class:'caption'},'移動優先指法（非 Werner 原譜）：換弦、換把、擴增開合都算移動，同一步同時發生算一次。無特別音域、接音或擴增等理由時優先第一把位。相鄰弦能維持同一一般把位的 0124 時，優先保留一般手型，不為少一次換把而硬用擴增。一般相鄰指距半音，同弦同把位只要用到擴增，整段按弦音一併標色；空弦不屬任何把位，永遠保持白色 0。把位依一般手型的第一指基準命名；向後擴增由第一指伸向低半音，其他指保留原位。指向音點可查看確切把位。已儲存修改優先保留。'),toolbar,boards);
     const arpeggioSection=element('section',{class:'arpeggio-section fingerboard-section'});
     const arpeggioBoards=element('div',{class:'cello-fb-two-up'});
     const arpeggioViews={};
@@ -742,7 +742,7 @@
       section.append(element('h4',{class:'cello-fb-direction-heading'},'上下行相同'),viewport);
       arpeggioViews[dir]=viewport;arpeggioBoards.append(section);
     }
-    arpeggioSection.append(element('p',{class:'caption'},'琶音採獨立低換把預設，下行原路反向。音階上行已儲存的個別修改仍優先套用於相同音高，並以粉紅色標示；自訂路線不保證最少換把。'));
+    arpeggioSection.append(element('p',{class:'caption'},'琶音採獨立移動優先預設，下行原路反向。音階上行已儲存的個別修改仍優先套用於相同音高，並以粉紅色標示；自訂路線不保證最少換把。'));
     root.append(scoreSection,boardSection,arpeggioSection,dialog);
 
     function renderDirection(dir){

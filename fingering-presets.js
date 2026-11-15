@@ -247,6 +247,122 @@ function search(notes,direction='up',start=null,fixedMap=null,turnAt=null){
   const route=[];for(let n=layer[0];n;n=n.previous)route.push(n.p);
   return route.reverse();
 }
+// 046: movement is an adjacent-note EVENT, not the number of named positions.
+// Simultaneous string/anchor/shape changes count once as an event; components
+// remain available separately. Merely selecting a finger within one frame is free.
+function physicalFrame(p){
+  // This alias has identical per-finger coordinates. Keep true forward-first
+  // at anchor2: opening it is a shape change, NOT a longitudinal shift.
+  return p.shape==='extended'&&p.anchor===1?{anchor:2,shape:'backwardExtended'}:
+    {anchor:p.anchor,shape:p.shape};
+}
+function motionCandidates(midi,fixed){
+  return [...candidates(midi,fixed).filter(p=>!(p.anchor===1&&p.shape==='extended')),
+    ...candidates(midi,fixed,['backwardExtended'])
+    .filter(p=>p.anchor===2)];
+}
+function movementStep(a,b,direction){
+  const af=physicalFrame(a),bf=physicalFrame(b);
+  if(!transition({...a,...af},{...b,...bf},direction))return null;
+  const string=Number(a.s!==b.s),anchor=Number(af.anchor!==bf.anchor),
+    shape=Number(af.shape!==bf.shape),distance=Math.abs(bf.anchor-af.anchor);
+  const sameFrame=!string&&!anchor&&!shape,halfStep=Math.abs(a.midi-b.midi)===1;
+  const fingers=[a.f,b.f].sort((x,y)=>x-y).join('');
+  return {events:Number(Boolean(string||anchor||shape)),string,anchor,shape,sameFrame,
+    semitone34:Number(sameFrame&&halfStep&&fingers==='34'),
+    semitone12:Number(sameFrame&&halfStep&&fingers==='12'),
+    components:string+anchor+shape,travel:distance,excursion:distance*distance};
+}
+function movementCost(p,step,firstFamilyFirst,stretched134=0,mixed134=0){
+  const frame=physicalFrame(p),outside=Number(p.f!==0&&frame.anchor!==2),events=step?.events||0;
+  return [...(firstFamilyFirst?[outside,events]:[events,outside]),
+    stretched134+mixed134,Number(p.f!==0&&frame.shape!=='normal'),step?.semitone34||0,step?.components||0,
+    step?.excursion||0,step?.travel||0,p.f?Math.abs(frame.anchor-2):0];
+}
+function searchMotion(notes,direction='up',start=null,fixedMap=null,turnAt=null,firstFamilyFirst=false,caps=null){
+  let layer=[];
+  for(let i=0;i<notes.length;i++){
+    const next=[];
+    for(const p of motionCandidates(notes[i].midi,fixedMap?.[notes[i].midi])){
+      if(i===0){
+        if(start&&['s','f','anchor','shape'].some(k=>p[k]!==start[k]))continue;
+        next.push({p,cost:movementCost(p,null,firstFamilyFirst),previous:null,continuity:false,eventsUp:0,eventsDown:0});
+      }else{
+        const best=new Map();
+        for(const old of layer){
+          const step=movementStep(old.p,p,turnAt!==null&&i>=turnAt?'down':direction);
+          if(!step)continue;
+          const down=turnAt!==null&&i>=turnAt||turnAt===null&&direction==='down';
+          const eventsUp=old.eventsUp+(down?0:step.events),eventsDown=old.eventsDown+(down?step.events:0);
+          if(caps&&(eventsUp>caps.up||eventsDown>caps.down))continue;
+          const pf=physicalFrame(p),of=physicalFrame(old.p),before=old.previous?.p,bf=before&&physicalFrame(before);
+          const sameBase=before&&before.s===p.s&&old.p.s===p.s&&bf.anchor===pf.anchor&&of.anchor===pf.anchor;
+          const pattern=sameBase?[before.f,old.p.f,p.f].join(''):'';
+          const is134=pattern==='134'||pattern==='431';
+          const allExtended=sameBase&&bf.shape===of.shape&&of.shape===pf.shape&&pf.shape!=='normal';
+          const stretch=Number(is134&&allExtended),mixed=Number(is134&&!allExtended&&
+            [bf?.shape,of.shape,pf.shape].some(shape=>shape&&shape!=='normal'));
+          const add=movementCost(p,step,firstFamilyFirst,stretch,mixed),cost=old.cost.map((v,j)=>v+add[j]);
+          // Keep the preceding finger/frame needed for the next three-note
+          // window, plus event budgets. Otherwise DP pruning would be invalid.
+          const tail=old.p.s===p.s&&of.anchor===pf.anchor?old.p.f+':'+of.shape:'-';
+          const key=tail+(caps?'|'+eventsUp+','+eventsDown:''),prior=best.get(key);
+          if(!prior||compare(cost,prior.cost)<0)best.set(key,{p,cost,previous:old,continuity:step.sameFrame,eventsUp,eventsDown});
+        }
+        next.push(...best.values());
+      }
+    }
+    if(!next.length)return null;
+    layer=next;
+  }
+  layer.sort((a,b)=>compare(a.cost,b.cost));
+  const result=[];for(let n=layer[0];n;n=n.previous)result.push(n.p);
+  return result.reverse();
+}
+function movementMetrics(route){
+  if(!route)return null;
+  const result={events:0,stringChanges:0,anchorShifts:0,shapeChanges:0,components:0,
+    travel:0,excursion:0,extensionNotes:0,firstFamilyNotes:0,outsideFirstNotes:0,semitone12:0,semitone34:0,stretched134:0,stretched124:0,mixed134:0,normal134:0};
+  route.forEach((p,i)=>{
+    const pf=physicalFrame(p);
+    if(p.f){if(pf.shape!=='normal')result.extensionNotes++;
+      if(pf.anchor===2)result.firstFamilyNotes++;else result.outsideFirstNotes++;}
+    if(!i)return;
+    const q=route[i-1],qf=physicalFrame(q),string=Number(q.s!==p.s),anchor=Number(qf.anchor!==pf.anchor),
+      shape=Number(qf.shape!==pf.shape),distance=Math.abs(pf.anchor-qf.anchor);
+    result.events+=Number(Boolean(string||anchor||shape));
+    result.stringChanges+=string;result.anchorShifts+=anchor;result.shapeChanges+=shape;
+    result.components+=string+anchor+shape;result.travel+=distance;result.excursion+=distance*distance;
+    if(!string&&!anchor&&!shape&&Math.abs(p.midi-q.midi)===1){
+      const fingers=[p.f,q.f].sort((a,b)=>a-b).join('');
+      if(fingers==='12')result.semitone12++;if(fingers==='34')result.semitone34++;
+    }
+    if(i>=2&&!string&&!anchor){
+      const before=route[i-2],bf=physicalFrame(before);
+      if(before.s===p.s&&bf.anchor===pf.anchor){
+        const pattern=[before.f,q.f,p.f].join(''),is134=pattern==='134'||pattern==='431';
+        const same=bf.shape===qf.shape&&qf.shape===pf.shape;
+        if(same&&pf.shape!=='normal'){
+          if(is134)result.stretched134++;
+          if(pattern==='124'||pattern==='421')result.stretched124++;
+        }else if(is134){
+          if([bf.shape,qf.shape,pf.shape].some(s=>s!=='normal'))result.mixed134++;
+          else result.normal134++;
+        }
+      }
+    }
+  });
+  return result;
+}
+function acceptFamiliarNearTie(before,after){
+  const bm=before.map(movementMetrics),am=after.map(movementMetrics);
+  if(am.some((a,i)=>a.events>bm[i].events+1||a.anchorShifts>bm[i].anchorShifts||
+    a.travel>bm[i].travel||a.outsideFirstNotes>bm[i].outsideFirstNotes))return false;
+  const gain=bm.reduce((n,b,i)=>n+b.outsideFirstNotes-am[i].outsideFirstNotes,0);
+  const lessShift=am.some((a,i)=>a.anchorShifts<bm[i].anchorShifts);
+  const lessTravel=am.some((a,i)=>a.travel<bm[i].travel);
+  return gain>=2&&((lessShift&&lessTravel)||gain>=4);
+}
 function describe(p){
   const group=p.f===0?'open':p.shape!=='normal'?'extended':
     p.anchor===1?'half':p.anchor===2?'first':p.anchor>=8?'high':'shifting';
@@ -279,7 +395,7 @@ function describeSegments(route){
 // Apply only the owner's reviewed F-major two-octave route, not a blanket
 // fingering override for unrelated keys, octaves or arpeggios. The untouched
 // minimum-shifts policy remains available for comparison and future review.
-function practicePreference(mode,key,octaves,arpeggio,minimum){
+function practicePreference(mode,key,octaves,arpeggio,minimum,legacyBounds=true){
   // With no register/connection reason to leave it, use first position.
   // Only this explicitly reviewed C-minor arpeggio is added in 045.
   if(mode==='minor'&&key[0]==='C'&&arpeggio){
@@ -296,16 +412,19 @@ function practicePreference(mode,key,octaves,arpeggio,minimum){
   }
   if(mode!=='major'||key[0]!=='F'||octaves!==2||arpeggio)return minimum;
   const strings=[0,1,1,1,1,2,2,2,2,3,3,3,3,3,3];
-  const fingers=[4,0,1,2,4,0,1,2,4,0,1,3,1,3,4];
-  const anchors=[2,2,2,2,2,2,2,2,2,1,1,1,5,5,5];
+  const fingers=legacyBounds?[4,0,1,2,4,0,1,2,4,0,1,3,1,3,4]:
+    [4,0,1,2,4,0,1,2,4,0,1,2,4,1,2];
+  const anchors=legacyBounds?[2,2,2,2,2,2,2,2,2,1,1,1,5,5,5]:
+    [2,2,2,2,2,2,2,2,2,2,2,2,2,7,7];
   const preferred=minimum.map((p,i)=>{
-    const candidate=candidates(p.midi,{s:strings[i],f:fingers[i]}).find(q=>
-      q.anchor===anchors[i]&&q.shape==='normal');
+    const shape=!legacyBounds&&i>=9&&i<=12?'backwardExtended':'normal';
+    const candidate=candidates(p.midi,{s:strings[i],f:fingers[i]},[shape]).find(q=>
+      q.anchor===anchors[i]&&q.shape===shape);
     if(!candidate)throw Error('Invalid reviewed ordinary-shape route');
-    return {...candidate,source:'reviewed-normal-0124-v1'};
+    return {...candidate,source:legacyBounds?'reviewed-normal-0124-v1':'reviewed-F-124-fourth-position-v1'};
   });
   const before=metrics(minimum),after=metrics(preferred);
-  if(after.extensions!==0||before.extensions===0||after.shifts>before.shifts+1||
+  if((legacyBounds&&(after.extensions!==0||before.extensions===0||after.shifts>before.shifts+1))||
     preferred.some((p,i)=>i&&!transition(preferred[i-1],p,'up')))
     throw Error('Reviewed ordinary-shape preference no longer meets its bounds');
   return preferred;
@@ -335,28 +454,55 @@ function reviewedMinorFirstPosition(notes,direction){
   return result;
 }
 function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
-  if(policy!=='preferred'&&policy!=='minimum-shifts')throw Error('Unknown route policy');
+  if(!['preferred','reviewed-045','minimum-shifts','minimum-movements','first-family'].includes(policy))
+    throw Error('Unknown route policy');
   const id=[mode,key[0],octaves,arpeggio,policy].join('|');
   if(!cache.has(id)){
     const F=window.CelloFingerboard;
     const upNotes=arpeggio?F.arpeggioNotes(mode,key,'up'):F.scaleNotes(mode,key,'up',octaves);
+    const motion=!['minimum-shifts','reviewed-045'].includes(policy);
+    const solve=(notes,dir='up',turn=null)=>motion?
+      searchMotion(notes,dir,null,null,turn,policy==='first-family'):search(notes,dir,null,null,turn);
+    const reviewed=policy==='preferred'||policy==='reviewed-045';
     let up,down;
     if(mode==='major'||arpeggio){
-      up=search(upNotes);
-      if(up&&policy==='preferred')up=practicePreference(mode,key,octaves,arpeggio,up);
+      up=solve(upNotes);
+      if(up&&reviewed)up=practicePreference(mode,key,octaves,arpeggio,up,!motion);
       down=up&&[...up].reverse();
     }else{
       const downNotes=F.scaleNotes(mode,key,'down',octaves);
       // Optimize the entire melodic/natural cycle jointly, including the
       // common apex. A cheap ascent must not force a costly descent.
-      const cycle=search([...upNotes,...downNotes.slice(1)],'up',null,null,upNotes.length);
+      const cycle=solve([...upNotes,...downNotes.slice(1)],'up',upNotes.length);
       up=cycle?.slice(0,upNotes.length);down=cycle?.slice(upNotes.length-1);
-      if(policy==='preferred'&&key[0]==='C'&&(octaves===1||octaves===2)){
+      if(reviewed&&key[0]==='C'&&(octaves===1||octaves===2)){
         up=reviewedMinorFirstPosition(upNotes,'up');
         down=reviewedMinorFirstPosition(downNotes,'down');
       }
     }
+    const pinned=(mode==='major'&&key[0]==='F'&&octaves===2&&!arpeggio)||
+      (mode==='minor'&&key[0]==='C');
+    if(policy==='preferred'&&!pinned&&up&&down){
+      const caps={up:movementMetrics(up).events+1,down:movementMetrics(down).events+1};
+      let alternativeUp,alternativeDown;
+      if(mode==='major'||arpeggio){
+        alternativeUp=searchMotion(upNotes,'up',null,null,null,true,caps);
+        alternativeDown=alternativeUp&&[...alternativeUp].reverse();
+      }else{
+        const downNotes=F.scaleNotes(mode,key,'down',octaves);
+        const cycle=searchMotion([...upNotes,...downNotes.slice(1)],'up',null,null,upNotes.length,true,caps);
+        alternativeUp=cycle?.slice(0,upNotes.length);alternativeDown=cycle?.slice(upNotes.length-1);
+      }
+      if(alternativeUp&&alternativeDown&&acceptFamiliarNearTie([up,down],[alternativeUp,alternativeDown])){
+        up=alternativeUp.map(p=>({...p,source:'computed-first-family-near-tie-v1'}));
+        down=alternativeDown.map(p=>({...p,source:'computed-first-family-near-tie-v1'}));
+      }
+    }
     if(!up||!down)throw Error('No playable route: '+id);
+    if(motion){
+      const source=policy==='first-family'?'computed-first-family-comparison-v1':'computed-movement-events-v1';
+      up=up.map(p=>({...p,source:p.source||source}));down=down.map(p=>({...p,source:p.source||source}));
+    }
     cache.set(id,{up:describeSegments(up),down:describeSegments(down)});
   }
   return cache.get(id)[direction].map(p=>({...p}));
@@ -378,5 +524,5 @@ function metrics(route){
   });
   return {shifts,travel,crossings,extensions};
 }
-window.CelloFingeringOptimizer={get,route,search,candidates,transition,metrics,LABELS,SHAPES};
+window.CelloFingeringOptimizer={get,route,search,candidates,transition,metrics,searchMotion,motionCandidates,physicalFrame,acceptFamiliarNearTie,movementStep,movementCost,movementMetrics,LABELS,SHAPES};
 })();
