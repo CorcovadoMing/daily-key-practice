@@ -770,7 +770,7 @@
 
     function renderDirection(dir){
       const pane=panels[dir],editing=edit.dir===dir;
-      const asymmetric=mode==='major'&&['A','E'].includes(key[0])&&(choices.get(id)||2)===2;
+      const asymmetric=false; // 054: all major scales use the approved ascent and exact reverse.
       pane.section.hidden=mode==='major'&&dir==='down'&&!asymmetric;
       pane.viewport.setAttribute('aria-label',mode==='major'&&!asymmetric?'音階指板，上下行相同':dir==='up'?'上行音階':'下行音階'+(asymmetric?'，唯讀，沿用已儲存的共用自訂指法':''));
       pane.section.setAttribute('aria-label',pane.viewport.getAttribute('aria-label'));

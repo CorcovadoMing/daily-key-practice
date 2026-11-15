@@ -8,16 +8,13 @@ for(const name of['E','B']){const k=lists[1][1].find(k=>k[0]===name);for(const o
 }
 for(const name of['A','E']){
  const k=lists[0][1].find(k=>k[0]===name),board=F.create('major',k,{up:'保留我的筆記'},()=>{}),sections=[...board.querySelectorAll('.cello-fb-direction')].slice(0,2);
- [...board.querySelectorAll('button')].find(b=>b.textContent==='2 八度').click();
- a.equal(sections[0].hidden,false);a.equal(sections[1].hidden,false);a.match(sections[0].querySelector('h4').textContent.trim(),/^上行/);a.equal(sections[1].querySelector('h4').textContent.trim(),'下行');
- a.ok(sections[0].querySelectorAll('.cello-fb-note').length>0);a.equal(sections[1].querySelectorAll('.cello-fb-note').length,0);
- a.equal(board.querySelectorAll('.caption,.cello-inline-hint').length,0);a.equal(board.querySelector('.fingering-note').textContent,'保留我的筆記');
- [...board.querySelectorAll('button')].find(b=>b.textContent==='1 八度').click();a.equal(sections[1].hidden,true);a.match(sections[0].querySelector('h4').textContent.trim(),/^上下行相同/);
- [...board.querySelectorAll('button')].find(b=>b.textContent==='2 八度').click();a.equal(sections[1].hidden,false);
+ for(const label of['1 八度','2 八度']){[...board.querySelectorAll('button')].find(b=>b.textContent===label).click();a.equal(sections[0].hidden,false);a.equal(sections[1].hidden,true);a.match(sections[0].querySelector('h4').textContent.trim(),/^上下行相同/);}
+ a.equal(board.querySelector('.fingering-note').textContent,'保留我的筆記');
  const shared={upMap:JSON.stringify({64:{s:3,f:3}}),downMap:JSON.stringify({64:{s:3,f:4}})};
  for(const d of['up','down']){const svg=F.chartSVG('major',k,d,2,shared),notes=F.scaleNotes('major',k,d,2),points=[...svg.querySelectorAll('[data-position-group]')],point=points[notes.findIndex(n=>n.midi===64)];a.equal(point.querySelector('text').textContent,'3');a.equal(point.getAttribute('data-position-group'),'custom');}
- const teacher=F.createEditor('major',k,shared,'down');a.equal(teacher.getValue().downMap,shared.downMap);a.equal(teacher.element.querySelectorAll('.teacher-editor-help').length,0);
+ const teacher=F.createEditor('major',k,shared,'down');a.equal(teacher.getValue().downMap,shared.downMap);
 }
+
 {
  const k=lists[0][1].find(k=>k[0]==='A'),saved=[],board=F.create('major',k,{},(...args)=>saved.push(args));
  [...board.querySelectorAll('button')].find(b=>b.textContent==='2 八度').click();

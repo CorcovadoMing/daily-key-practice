@@ -476,9 +476,10 @@ function reviewedMajor048(key,octaves,arpeggio,up){
   return result;
 }
 function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
-  if(!['preferred','reviewed-052','reviewed-051','reviewed-048','reviewed-047','reviewed-046','reviewed-045','minimum-shifts','minimum-movements','first-family'].includes(policy))
+  if(!['preferred','reviewed-053','reviewed-052','reviewed-051','reviewed-048','reviewed-047','reviewed-046','reviewed-045','minimum-shifts','minimum-movements','first-family'].includes(policy))
     throw Error('Unknown route policy');
-  const reviewed052=policy==='preferred'||policy==='reviewed-052';
+  const reviewed053=policy==='preferred'||policy==='reviewed-053';
+  const reviewed052=reviewed053||policy==='reviewed-052';
   const reviewed048=reviewed052||policy==='reviewed-051'||policy==='reviewed-048';
   const id=[mode,key[0],octaves,arpeggio,policy].join('|');
   if(!cache.has(id)){
@@ -642,7 +643,7 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
     // 053: mirror A-minor ascent DIGITS and strings, not its raised pitches.
     // Natural G/F/E use 4/2/1 in one NORMAL fourth-position contact frame.
     // A4 remains the third-finger natural harmonic, not a stopped-frame note.
-    if(policy==='preferred'&&mode==='minor'&&key[0]==='A'&&octaves===2&&!arpeggio){
+    if(reviewed053&&mode==='minor'&&key[0]==='A'&&octaves===2&&!arpeggio){
       down=down.map(p=>{
         if(![67,65,64].includes(p.midi))return p;
         const f={67:4,65:2,64:1}[p.midi];
@@ -653,7 +654,7 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
     }
     // Keep the reviewed F-sharp arpeggio route, but avoid confusing the
     // wide note interval with a 'semitone' movement label in any UI surface.
-    if(policy==='preferred'&&mode==='minor'&&key[0]==='F♯'&&arpeggio){
+    if(reviewed053&&mode==='minor'&&key[0]==='F♯'&&arpeggio){
       const clarify=(r,direction)=>r.map(p=>p.shiftCue?{...p,shiftCue:{...p.shiftCue,symbol:'換把',
         description:direction==='up'?'C♯4第1指到F♯4第4指須向琴橋換把；兩音不在同一固定擴增手型。':
           'F♯4第4指到C♯4第1指須向弦枕換把；兩音不在同一固定擴增手型。'}}:p);
@@ -662,7 +663,7 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
     // Owner-selected exception to the generic upper-position1-3 heuristic:
     // A-string G4/A4/B-flat4 fit a complete NORMAL sixth-position134 frame.
     // Do not make high fourth fingers available to the generic candidate set.
-    if(policy==='preferred'&&mode==='major'&&key[0]==='B♭'&&octaves===2&&!arpeggio){
+    if(reviewed053&&mode==='major'&&key[0]==='B♭'&&octaves===2&&!arpeggio){
       up=up.map(p=>{
         if(![67,69,70].includes(p.midi))return p;
         const f={67:1,69:3,70:4}[p.midi],anchor=10,shape='normal';
@@ -674,7 +675,7 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
     // E-minor's C-string E2/F-sharp2 fingers2/4 also fit one complete
     // normal upper-first/lower-second frame. Prefer the owner's chart frame
     // over keeping an unused extended first finger at the lower reference.
-    if(policy==='preferred'&&mode==='minor'&&key[0]==='E'&&!arpeggio){
+    if(reviewed053&&mode==='minor'&&key[0]==='E'&&!arpeggio){
       const normalPair=r=>r.map(p=>{
         if(p.s!==0||!((p.midi===40&&p.f===2)||(p.midi===42&&p.f===4)))return p;
         const found=candidates(p.midi,{s:0,f:p.f},['normal']).find(q=>q.anchor===3);
@@ -686,7 +687,7 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
     // 053: A-key arpeggios use the approved ascending scale's exact
     // degree placements, then reverse them. This does not rewrite either
     // scale descent (A major intentionally retains its own descent).
-    if(policy==='preferred'&&key[0]==='A'&&arpeggio){
+    if(reviewed053&&key[0]==='A'&&arpeggio){
       const scale=route(mode,key,'up',2,false,policy);
       up=upNotes.map(note=>{
         const p=scale.find(q=>q.midi===note.midi);
@@ -698,6 +699,24 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
         return selected;
       });
       down=[...up].reverse().map(p=>({...p}));
+    }
+    // 054: preserve the approved ascent for every major scale and mirror
+    // its physical route exactly. Directional cues describe the return leg.
+    if(policy==='preferred'&&mode==='major'&&!arpeggio){
+      if(key[0]==='E'&&octaves===2){
+        up=up.map(p=>p.midi===51?{...p,shiftCue:{toMidi:52,s:2,f:1,symbol:'↓',placement:'inside',
+          description:'D♯3至E3同一第1指向琴橋移動，由向後擴增轉為前擴增；後續E3、F♯3、G♯3維持擴增124，並非正常第一把位。'}}:p);
+      }
+      down=[...up].reverse().map(p=>{const q={...p};delete q.shiftCue;return q;});
+      for(let i=0;i<up.length-1;i++){
+        const cue=up[i].shiftCue,next=up[i+1];
+        if(!cue||cue.toMidi!==next.midi)continue;
+        const description=up[i].midi===51?
+          'E3至D♯3同一第1指向弦枕移動，由前擴增回到向後擴增手型。':
+          'C♯4至B3同一第1指連同手型向弦枕移動全音，回到正常第一把位。';
+        down[up.length-2-i].shiftCue={toMidi:up[i].midi,s:up[i].s,f:up[i].f,
+          symbol:'↑',placement:'inside',description};
+      }
     }
     if(motion){
       const source=policy==='first-family'?'computed-first-family-comparison-v1':'computed-movement-events-v1';

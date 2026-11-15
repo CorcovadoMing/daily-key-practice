@@ -13,7 +13,7 @@ for(const [mode,name] of [['major','MAJOR_KEYS'],['minor','MINOR_KEYS']]){
    const expected=O.route(mode,key,'up',arp?2:oct,arp);
    a.equal(labels(up).length,notes.length);expected.forEach((p,i)=>a.ok(labels(up)[i].includes(F.pointStyling(F.notePlacement(p.midi,{},Object.fromEntries(expected.map(q=>[q.midi,q])))).label)));
    const n=notes[1],p=expected[1],annotations={upMap:JSON.stringify({[n.midi]:{s:p.s,f:4}}),downMap:JSON.stringify({[n.midi]:{s:p.s,f:1}})};
-   if((mode==='major'&&!(['A','E'].includes(key[0])&&oct===2))||arp){
+   if(mode==='major'||arp){
     a.deepEqual(labels(F.chartSVG(mode,key,'down',oct,annotations,null,[],reverse,arp)),
       labels(F.chartSVG(mode,key,'up',oct,annotations,null,[],reverse,arp)).reverse());
    }
