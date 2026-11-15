@@ -11,7 +11,7 @@ const{chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright'),a=require('
  for(const [mode,k]of[['minor',key],['major',['A',3,'A B C♯ D E F♯ G♯ A']]])for(const octaves of[1,2])for(const direction of['up','down']){
   const chart=F.chartSVG(mode,k,direction,octaves,{},null,[],false,true);host.replaceChildren(chart);
   const scale=O.route(mode,k,'up',2),arp=O.route(mode,k,direction,2,true);
-  for(const note of arp){const match=scale.find(p=>p.midi===note.midi);if(!match||match.s!==note.s||match.f!==note.f||match.anchor!==note.anchor||match.shape!==note.shape)throw Error('arp not scale-derived');}
+  for(const note of arp){if(mode==='minor'&&[60,64].includes(note.midi)){if(note.f!==(note.midi===60?1:4)||note.anchor!==3||note.shape!=='extended')throw Error('latest A-minor0143');continue;}const match=scale.find(p=>p.midi===note.midi);if(!match||match.s!==note.s||match.f!==note.f||match.anchor!==note.anchor||match.shape!==note.shape)throw Error('arp not scale-derived');}
   const displayed=[...chart.querySelectorAll('[data-position-group]')];if(displayed.length!==7)throw Error('arp octave toggle changed range');
   if(chart.querySelectorAll('.cello-harmonic-mark').length!==1)throw Error('arp harmonic missing');cases++;
  }

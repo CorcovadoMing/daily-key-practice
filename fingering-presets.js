@@ -476,9 +476,10 @@ function reviewedMajor048(key,octaves,arpeggio,up){
   return result;
 }
 function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
-  if(!['preferred','reviewed-054','reviewed-053','reviewed-052','reviewed-051','reviewed-048','reviewed-047','reviewed-046','reviewed-045','minimum-shifts','minimum-movements','first-family'].includes(policy))
+  if(!['preferred','reviewed-055','reviewed-054','reviewed-053','reviewed-052','reviewed-051','reviewed-048','reviewed-047','reviewed-046','reviewed-045','minimum-shifts','minimum-movements','first-family'].includes(policy))
     throw Error('Unknown route policy');
-  const reviewed054=policy==='preferred'||policy==='reviewed-054';
+  const reviewed055=policy==='preferred'||policy==='reviewed-055';
+  const reviewed054=reviewed055||policy==='reviewed-054';
   const reviewed053=reviewed054||policy==='reviewed-053';
   const reviewed052=reviewed053||policy==='reviewed-052';
   const reviewed048=reviewed052||policy==='reviewed-051'||policy==='reviewed-048';
@@ -721,7 +722,7 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
     }
     // 055: only the E-minor arpeggio apex changes to the owner's second
     // finger, in a verified normal upper-third/lower-fourth contact frame.
-    if(policy==='preferred'&&mode==='minor'&&key[0]==='E'&&arpeggio){
+    if(reviewed055&&mode==='minor'&&key[0]==='E'&&arpeggio){
       const apex=up.at(-1);
       if(apex.midi!==64||apex.s!==3)throw Error('Unexpected E-minor arpeggio apex');
       const found=candidates(apex.midi,{s:3,f:2},['normal']).find(p=>p.anchor===6);
@@ -731,7 +732,7 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
     }
     // 055: B-minor upper digits follow the owner's scale13123 and
     // arpeggio1143. Natural-minor return pitches require different frames.
-    if(policy==='preferred'&&mode==='minor'&&key[0]==='B'){
+    if(reviewed055&&mode==='minor'&&key[0]==='B'){
       const place=(p,f,anchor,shape)=>{
         const found=candidates(p.midi,{s:3,f},[shape]).find(q=>q.anchor===anchor);
         if(!found)throw Error('Invalid reviewed B-minor upper frame');
@@ -749,13 +750,24 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
     }
     // 055: only high E-flat4 in G-minor's natural two-octave descent.
     // Start the extension at this note; do not relabel preceding normal G/F.
-    if(policy==='preferred'&&mode==='minor'&&key[0]==='G'&&octaves===2&&!arpeggio){
+    if(reviewed055&&mode==='minor'&&key[0]==='G'&&octaves===2&&!arpeggio){
       down=down.map(p=>{
         if(p.midi!==63)return p;
         const found=candidates(p.midi,{s:3,f:1},['backwardExtended']).find(q=>q.anchor===7);
         if(!found)throw Error('Invalid G-minor high E-flat first finger');
         return {...found,displaySegmentStart:true,source:'reviewed-g-minor-high-eflat1-055-v1'};
       });
+    }
+    // 056: owner's latest A-minor arpeggio A-string0143 supersedes the
+    // earlier scale-derived0213; only C4/E4 change to one extended frame3.
+    if(policy==='preferred'&&mode==='minor'&&key[0]==='A'&&arpeggio){
+      up=up.map(p=>{
+        if(![60,64].includes(p.midi))return p;
+        const found=candidates(p.midi,{s:3,f:p.midi===60?1:4},['extended']).find(q=>q.anchor===3);
+        if(!found)throw Error('Invalid A-minor arpeggio0143');
+        return {...found,source:'reviewed-a-minor-arpeggio0143-056-v1'};
+      });
+      down=[...up].reverse().map(p=>({...p}));
     }
     if(motion){
       const source=policy==='first-family'?'computed-first-family-comparison-v1':'computed-movement-events-v1';

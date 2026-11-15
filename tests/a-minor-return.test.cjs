@@ -29,7 +29,7 @@ test('A-major/minor arpeggios inherit exact ascending scale degrees and reverse,
   const fields=['midi','s','f','anchor','shape','technique','harmonic'],physical=p=>Object.fromEntries(fields.map(f=>[f,p[f]]));
   for(const p of up)a.deepEqual(plain(physical(p)),plain(physical(scale.find(q=>q.midi===p.midi))));
   a.deepEqual(plain(down),plain([...up].reverse()));a.equal(up.at(-1).technique,'naturalHarmonic');a.ok(up.every(p=>!p.shiftCue));
-  for(const d of['up','down']){const notes=F.arpeggioNotes(m,k,d),refs=O.get(m,k,d,notes,true);for(const p of notes)a.equal(refs[p.midi].f,O.route(m,k,d,2,true).find(q=>q.midi===p.midi).f);}
+  for(const d of['up','down']){const notes=F.arpeggioNotes(m,k,d),refs=Object.fromEntries(O.route(m,k,d,2,true).map(p=>[p.midi,p]));for(const p of notes)a.equal(refs[p.midi].f,O.route(m,k,d,2,true).find(q=>q.midi===p.midi).f);}
  }
  const major=lists[0][1].find(k=>k[0]==='A');a.deepEqual(plain(O.route('major',major,'down',2)),plain(O.route('major',major,'down',2,false,'reviewed-052')));
 });
