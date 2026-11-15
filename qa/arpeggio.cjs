@@ -24,7 +24,7 @@ for(const [mode,name] of [['major','MAJOR_KEYS'],['minor','MINOR_KEYS']]){
   const source={...annotation,downMap:JSON.stringify({[n.midi]:{s:p.string,f:1}})};
   const upChart=F.chartSVG(mode,key,'up',2,source,null,[],false,true);
   const downChart=F.chartSVG(mode,key,'down',2,source,null,[],false,true);
-  const labels=svg=>[...svg.querySelectorAll('g>title')].map(t=>t.textContent.replace(/^第\d+音 /,''));
+  const labels=svg=>[...svg.querySelectorAll('g>title')].map(t=>t.textContent.split('；')[0].replace(/^第\d+音 /,''));
   a.deepEqual(labels(downChart),labels(upChart).reverse());
   const actual=arp.querySelector('.cello-fb-viewport').innerHTML;
   const expectedSVG=F.chartSVG(mode,key,'up',2,annotation,null,[],false,true);

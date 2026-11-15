@@ -1,0 +1,52 @@
+// node qa/fingering-047.cjs > qa/fingering-047.md
+const fs=require('fs'),vm=require('vm'),c={window:{}};vm.createContext(c);
+for(const f of['fingerboard.js','fingering-presets.js'])vm.runInContext(fs.readFileSync(f,'utf8'),c);
+const F=c.window.CelloFingerboard,O=c.window.CelloFingeringOptimizer,h=fs.readFileSync('index.html','utf8');
+const key=vm.runInNewContext(h.match(/const MINOR_KEYS = (\[[\s\S]*?\n    \]);/)[1]).find(k=>k[0]==='F♯');
+console.log(`# 047 · F♯小調音階與琶音指定路線
+
+## 為何046改了弦，047又改回
+
+046通用政策允許每方向多1次移動，換取更多第一把位家族、較少手位基準變更與位移，所以把低A2提早放到G弦、D♯3提早放到D弦；下降G♯2放在G弦後擴增。這符合當時通用偏好，但不是使用者這次明確指定的弦分組。
+
+047先把F♯小調兩八度音階固定選用**046已存在的minimum-movements候選**，不重調任何全域權重。上行3–3–3–5若不計最上方終止主音，加入F♯4後就是3–3–3–6，共15音，沒有刪除最高音。
+
+- C弦：F♯2／G♯2／A2，一般134（不是擴增134）。
+- G弦：B2／C♯3／D♯3，真正穩定擴增124。
+- D弦：E♯3／F♯3／G♯3，一般124（指號124不代表一定擴增）。
+- A弦：A3空弦、B3／C♯4／D♯4擴增124、E♯4／F♯4第四把位23。頂點F♯4同一3指／第四把位接下行E4的1指，不為上行尾端強換12而增加下降事件。
+- 下行低G♯2改回C弦4指，接F♯2的2指。空弦仍中性白0；沒有新增箭頭。音高、拼寫、小調上下行差異與共同頂點都不變。
+
+## 實際取捨：少移動事件，不代表少手位基準變更
+
+同一步的換弦／換把／手型開合同時發生，事件E只算一次，分項C分開加總。
+
+| 方向 | 政策 | E事件 | C分項 | 換弦 | 手位基準變更 | 手型開合 | 基準位移 | 第一家族外音 |
+|---|---|---:|---:|---:|---:|---:|---:|---:|`);
+for(const dir of['up','down'])for(const policy of['reviewed-046','preferred']){
+ const m=O.movementMetrics(O.route('minor',key,dir,2,false,policy));
+ console.log(`| ${dir==='up'?'上行':'下行'} | ${policy==='reviewed-046'?'046':'047'} | ${m.events} | ${m.components} | ${m.stringChanges} | ${m.anchorShifts} | ${m.shapeChanges} | ${m.travel} | ${m.outsideFirstNotes} |`);
+}
+console.log('\n合計E為10→8，但C為16→18，手位基準變更3→6、位移13→17。這次依使用者指定的弦組與實際演奏偏好選擇，不能宣稱所有指標都改善。\n\n## 音階逐音路線\n');
+for(const dir of['up','down']){
+ const notes=F.scaleNotes('minor',key,dir,2),r=O.route('minor',key,dir,2);
+ console.log(`### ${dir==='up'?'上行':'下行'}\n\n| 音 | 弦 | 指 | 把位／手型 |\n|---|---|---:|---|`);
+ r.forEach((p,i)=>console.log(`| ${notes[i].name}${Math.floor(p.midi/12-1)} | ${'CGDA'[p.s]} | ${p.f} | ${p.positionLabel} |`));
+}
+console.log(`\n## F♯小調琶音追加確認\n
+低三音F♯2(C4)、A2(G1)、C♯3(G4)完全不變。F♯3→A3改為D弦同一般把位的1→4（基準4）。上方C♯4→F♯4採A弦1→4，但音高相差五半音，單一固定擴增最多跨四半音，必須另換把半音：C♯4基準4擴增1指→F♯4基準5擴增4指。下行精確反轉。
+
+畫面在這一接音明示「換把半音」，上行說明向琴橋，下行說明向弦枕；不是新增通用箭頭，任一端點自訂弦／指改動便隱藏。兩音都橙色不表示同一手位。\n
+| 方向 | 政策 | E事件 | C分項 | 手位基準變更 | 基準位移 |\n|---|---|---:|---:|---:|---:|`);
+for(const d of ['up','down'])for(const policy of ['reviewed-046','preferred']){
+ const r=O.route('minor',key,d,2,true,policy),m=O.movementMetrics(r);
+ console.log(`| ${d==='up'?'上行':'下行'} | ${policy==='reviewed-046'?'046':'047'} | ${m.events} | ${m.components} | ${m.anchorShifts} | ${m.travel} |`);
+}
+console.log('\n每方向E仍為4，分項5→7、手位基準變更1→2、位移4→3；不宣稱所有指標都更少。全域046計分不重調。');
+console.log(`\n## 驗證與範圍\n
+- 只改144條方向路線中的F♯小調兩八度音階上下行與琶音上下行4條，其餘140條逐一相同；一八度音階及所有其它調性、F/C確認路線均不變。
+- reviewed-046完整144條路線與發布b477bcd核對；minimum-movements比較候選144條也未變，另有固定校驗碼回歸。
+- 這裡的手位基準／手型開合是模型名義分項，不是精確生物力學分類；某些前後擴增轉換的四指音位實際整體平移半音，但046分類為手型變更。完整24調實體音位稽核另列此限制，移動事件總數不受這項分類問題影響；047不偷偷重調全域計分。
+- 正常134仍合法；本調真正或混合擴增134／431均為0。空弦與既有自訂覆蓋、弦序、升降記號不變。
+- Node完整403項測試、192個DOM組合、24調琶音DOM及320／390／1440px各24調響應式檢查通過；這是模型與瀏覽器驗證，不宣稱老師逐音實奏驗收。全24調演奏者觀點稽核另行處理，本次沒有藉此改排其它調性。046報告原檔保留，重算046時使用reviewed-046政策。
+`);

@@ -2,7 +2,7 @@ const {JSDOM}=require(process.env.JSDOM_MODULE||'jsdom'),fs=require('fs'),vm=req
 const dom=new JSDOM('',{runScripts:'outside-only'}),w=dom.window;
 for(const f of ['fingerboard.js','fingering-presets.js','fingerboard-editor.js'])w.eval(fs.readFileSync(f,'utf8'));
 const F=w.CelloFingerboard,O=w.CelloFingeringOptimizer,html=fs.readFileSync('index.html','utf8');
-const labels=svg=>[...svg.querySelectorAll('g>title')].map(t=>t.textContent.replace(/^第\d+音 /,''));
+const labels=svg=>[...svg.querySelectorAll('g>title')].map(t=>t.textContent.split('；')[0].replace(/^第\d+音 /,''));
 let cases=0;
 for(const [mode,name] of [['major','MAJOR_KEYS'],['minor','MINOR_KEYS']]){
  const keys=vm.runInNewContext(html.match(new RegExp('const '+name+' = (\\[[\\s\\S]*?\\n    \\]);'))[1]);
@@ -64,6 +64,15 @@ for(const map of [{56:{s:2,f:3}},{55:{s:2,f:3}}]){
 }
 for(const [dir,oct,arp] of [['up',2,false],['down',1,false],['down',2,true]])
  a.equal(F.chartSVG('minor',cm,dir,oct,{},null,[],false,arp).querySelectorAll('.cello-shift-cue').length,0);
+const fsharp=['F♯',3,'F♯ G♯ A B C♯ D♯ E♯ F♯','F♯ G♯ A B C♯ D E F♯'];
+for(const dir of ['up','down']){
+ const chart=F.chartSVG('minor',fsharp,dir,2,{},null,[],false,true),cue=chart.querySelector('.cello-shift-cue');
+ a.equal(chart.querySelectorAll('.cello-shift-cue').length,1);a.equal(cue.textContent,'換把半音');
+ a.match(cue.getAttribute('aria-label'),dir==='up'?/向琴橋/:/向弦枕/);
+ a.match(cue.getAttribute('aria-label'),/五半音.*不是同一固定擴增/);
+ const changed=F.chartSVG('minor',fsharp,dir,2,{upMap:JSON.stringify({66:{s:3,f:3}})},null,[],false,true);
+ a.equal(changed.querySelectorAll('.cello-shift-cue').length,0);
+}
 // Legacy fallback retains symmetric arpeggios too, without optimizer loaded.
 const optimizer=w.CelloFingeringOptimizer;delete w.CelloFingeringOptimizer;
 const minor=['E',1,'E F♯ G A B C♯ D♯ E','E F♯ G A B C D E'];

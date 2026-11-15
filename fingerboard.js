@@ -300,13 +300,15 @@
         'font-weight':800,fill:isOpen?color:'#ffffff'
       },isOpen?'0':explicit?String(style.finger):'?'));
       if(note.shiftCue){
-        point.append(svgNode('text',{x:x+7,y:y+4.5,'font-size':9,'font-weight':700,
+        const below=note.shiftCue.placement==='below';
+        point.append(svgNode('text',{x:below?x:x+7,y:below?y+29:y+4.5,
+          'text-anchor':below?'middle':'start','font-size':9,'font-weight':700,
           fill:'#273c2e',class:'cello-shift-cue',role:'img','aria-label':note.shiftCue.description,
           'data-shift-to':note.shiftCue.toMidi},note.shiftCue.symbol));
       }
       if(!isOpen){
         point.append(svgNode('text',{
-          x:x+(note.shiftCue?39:21),y:y+1,'font-size':13,
+          x:x+(note.shiftCue&&note.shiftCue.placement!=='below'?39:21),y:y+1,'font-size':13,
           'font-weight':note.order===1||note.order===notes.length?800:650,
           fill:'#273c2e'
         },note.name));

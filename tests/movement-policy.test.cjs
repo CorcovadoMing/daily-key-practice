@@ -63,6 +63,6 @@ test('F-sharp minor has stable stretched124, no mixed134/431 in either octave/di
  for(const oct of[1,2])for(const d of['up','down']){
   const r=O.route('minor',k,d,oct),m=O.movementMetrics(r);a.equal(m.stretched134,0);a.equal(m.mixed134,0);a.ok(m.stretched124>=1);
  }
- const r=O.route('minor',k,'up',2),segment=r.filter(p=>[45,47,49].includes(p.midi));
- a.deepEqual(Array.from(segment,p=>p.f),[1,2,4]);a.ok(segment.every(p=>p.s===1&&p.anchor===2&&p.shape==='extended'));
+ const r=O.route('minor',k,'up',2),segment=r.filter(p=>[47,49,51].includes(p.midi));
+ a.deepEqual(Array.from(segment,p=>p.f),[1,2,4]);a.ok(segment.every(p=>p.s===1&&p.anchor===4&&p.shape==='extended'));
 });

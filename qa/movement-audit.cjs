@@ -2,7 +2,7 @@
 const fs=require('fs'),vm=require('vm'),c={window:{}};vm.createContext(c);
 for(const f of ['fingerboard.js','fingering-presets.js'])vm.runInContext(fs.readFileSync(f,'utf8'),c);
 const O=c.window.CelloFingeringOptimizer,h=fs.readFileSync('index.html','utf8');
-const policies=['minimum-shifts','reviewed-045','preferred'],groups=[[1,false,'一八度'],[2,false,'兩八度'],[2,true,'琶音']];
+const policies=['minimum-shifts','reviewed-045','reviewed-046'],groups=[[1,false,'一八度'],[2,false,'兩八度'],[2,true,'琶音']];
 const identity=r=>JSON.stringify(Array.from(r,p=>[p.midi,p.s,p.f,p.anchor,p.shape]));
 const zero=()=>({events:0,stringChanges:0,anchorShifts:0,shapeChanges:0,components:0,travel:0,extensionNotes:0,firstFamilyNotes:0,outsideFirstNotes:0,semitone12:0,semitone34:0,stretched134:0,stretched124:0,mixed134:0,normal134:0,rawMixed134:0});
 const add=(a,b)=>{for(const k of Object.keys(a))a[k]+=b[k]||0;return a};

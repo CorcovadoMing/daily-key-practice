@@ -454,7 +454,7 @@ function reviewedMinorFirstPosition(notes,direction){
   return result;
 }
 function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
-  if(!['preferred','reviewed-045','minimum-shifts','minimum-movements','first-family'].includes(policy))
+  if(!['preferred','reviewed-046','reviewed-045','minimum-shifts','minimum-movements','first-family'].includes(policy))
     throw Error('Unknown route policy');
   const id=[mode,key[0],octaves,arpeggio,policy].join('|');
   if(!cache.has(id)){
@@ -463,7 +463,7 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
     const motion=!['minimum-shifts','reviewed-045'].includes(policy);
     const solve=(notes,dir='up',turn=null)=>motion?
       searchMotion(notes,dir,null,null,turn,policy==='first-family'):search(notes,dir,null,null,turn);
-    const reviewed=policy==='preferred'||policy==='reviewed-045';
+    const reviewed=policy==='preferred'||policy==='reviewed-045'||policy==='reviewed-046';
     let up,down;
     if(mode==='major'||arpeggio){
       up=solve(upNotes);
@@ -480,9 +480,10 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
         down=reviewedMinorFirstPosition(downNotes,'down');
       }
     }
-    const pinned=(mode==='major'&&key[0]==='F'&&octaves===2&&!arpeggio)||
+    const fsharpLayout=policy==='preferred'&&mode==='minor'&&key[0]==='F♯'&&octaves===2&&!arpeggio;
+    const pinned=fsharpLayout||(mode==='major'&&key[0]==='F'&&octaves===2&&!arpeggio)||
       (mode==='minor'&&key[0]==='C');
-    if(policy==='preferred'&&!pinned&&up&&down){
+    if((policy==='preferred'||policy==='reviewed-046')&&!pinned&&up&&down){
       const caps={up:movementMetrics(up).events+1,down:movementMetrics(down).events+1};
       let alternativeUp,alternativeDown;
       if(mode==='major'||arpeggio){
@@ -498,7 +499,31 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
         down=alternativeDown.map(p=>({...p,source:'computed-first-family-near-tie-v1'}));
       }
     }
+    if(policy==='preferred'&&mode==='minor'&&key[0]==='F♯'&&arpeggio&&up){
+      // Keep the lower three exactly as selected in046. D-string normal1/4
+      // spans three semitones; A-string1/4 spans FIVE and needs a real shift.
+      up=up.map((p,i)=>{
+        if(i<3)return {...p,source:'reviewed-fsharp-arpeggio-v1'};
+        const s=i<5?2:3,f=[1,4,1,4][i-3],anchor=[4,4,4,5][i-3],shape=i<5?'normal':'extended';
+        const found=candidates(p.midi,{s,f},[shape]).find(q=>q.anchor===anchor);
+        if(!found)throw Error('Invalid reviewed F-sharp arpeggio');
+        return {...found,source:'reviewed-fsharp-arpeggio-v1'};
+      });
+      if(up.some((p,i)=>i&&!transition(up[i-1],p,'up')))throw Error('Invalid F-sharp arpeggio transition');
+      down=[...up].reverse().map(p=>({...p}));
+      up[5].shiftCue={toMidi:66,s:3,f:4,symbol:'換把半音',placement:'below',
+        description:'C♯4第1指到F♯4第4指相差五半音，須另外向琴橋換把半音；不是同一固定擴增手型。'};
+      down[0].shiftCue={toMidi:61,s:3,f:1,symbol:'換把半音',placement:'below',
+        description:'F♯4第4指到C♯4第1指相差五半音，須另外向弦枕換把半音；不是同一固定擴增手型。'};
+    }
     if(!up||!down)throw Error('No playable route: '+id);
+    // 047 owner review selects the already-existing exact minimum-movement
+    // candidate for this one scale: 3/3/3/6 including apex, low G-sharp on C.
+    // Do not globally retune the near-tie policy or one-octave/arpeggio routes.
+    if(fsharpLayout){
+      up=up.map(p=>({...p,source:'reviewed-fsharp-3336-v1'}));
+      down=down.map(p=>({...p,source:'reviewed-fsharp-3336-v1'}));
+    }
     if(motion){
       const source=policy==='first-family'?'computed-first-family-comparison-v1':'computed-movement-events-v1';
       up=up.map(p=>({...p,source:p.source||source}));down=down.map(p=>({...p,source:p.source||source}));

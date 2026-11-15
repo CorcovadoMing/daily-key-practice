@@ -169,7 +169,8 @@
             g.append(sv('text',{x:x+20,y:y+16,'font-size':pos.modified?12:10,
               'font-weight':pos.modified?900:700,
               fill:pos.modified?'#a82055':'#675879'},'('+style.finger+')'));
-            if(shiftCue)g.append(sv('text',{x:x+42,y:y+16,'font-size':9,
+            if(shiftCue)g.append(sv('text',{x:shiftCue.placement==='below'?x:x+42,
+              y:shiftCue.placement==='below'?y+29:y+16,'text-anchor':shiftCue.placement==='below'?'middle':'start','font-size':9,
               class:'cello-shift-cue',role:'img','aria-label':shiftCue.description},shiftCue.symbol));
           }
         }
