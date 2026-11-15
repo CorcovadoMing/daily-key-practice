@@ -32,3 +32,13 @@ test('title spacing clears mobile top chrome and restored/direct behavior remain
  a.match(jump,/cardScrollRequest\+\+/);a.match(jump,/item.title.focus\(\{preventScroll:true\}\)/);a.match(jump,/item.card.scrollIntoView/);
  a.equal((html.match(/if\(opening\)scrollExpandedTitleAfterLayout/g)||[]).length,1);
 });
+test('downward switch commits both heights and compensates before restoring scroll settings',async()=>{
+ const s=setup(),old=s.env.cardInstances.get('y');let y=400,instant=false,delta;
+ old.opened=true;old.card={compareDocumentPosition:()=>4};s.item.card={};s.item.title.getBoundingClientRect=()=>({top:y});
+ s.env.Node={DOCUMENT_POSITION_FOLLOWING:4};s.env.document.documentElement={style:{overflowAnchor:'auto',scrollBehavior:'smooth'}};
+ s.env.syncPracticeCards=(_,forceInstant)=>{instant=forceInstant;s.item.opened=true;y=-1200};
+ s.env.window.scrollBy=o=>{delta=o;a.equal(s.env.document.documentElement.style.overflowAnchor,'none');a.equal(o.behavior,'instant');y-=o.top};
+ s.env.toggleCardExpansion('x');a.equal(instant,true);a.equal(delta.top,-1600);a.equal(y,400);
+ a.equal(s.env.document.documentElement.style.overflowAnchor,'auto');a.equal(s.env.document.documentElement.style.scrollBehavior,'smooth');
+ await s.settle();a.equal(s.scrolls.length,1);
+});

@@ -9,6 +9,6 @@ for(const[m,keys]of lists)for(const k of keys)for(const[o,arp]of[[1,false],[2,fa
 }
 for(const[m,keys]of lists){const k=keys.find(k=>k[0]==='A'),editor=F.createEditor(m,k).element;a.equal(editor.querySelectorAll('.cello-harmonic-mark').length,1);const board=F.create(m,k,{});for(const score of board.querySelectorAll('.cello-scale-score'))a.equal(score.querySelectorAll('.cello-harmonic-mark').length,0);}
 const cm=lists[1][1].find(k=>k[0]==='C'),chart=F.chartSVG('minor',cm,'down',2),cue=chart.querySelector('.cello-shift-cue'),circle=cue.parentElement.querySelector('circle'),finger=cue.parentElement.querySelector('text');
-a.equal(finger.textContent,'4');a.equal(cue.textContent,'↑');a.ok(+cue.getAttribute('x')>+finger.getAttribute('x'));a.ok(+cue.getAttribute('x')<+circle.getAttribute('cx')+ +circle.getAttribute('r'));a.equal(cue.getAttribute('fill'),'#ffffff');
+a.equal(finger.textContent,'4');a.equal(cue.textContent,'↑');a.ok(+cue.getAttribute('x')>+finger.getAttribute('x'));a.ok(+cue.getAttribute('x')<+circle.getAttribute('cx')+ +circle.getAttribute('r'));a.equal(cue.getAttribute('fill'),finger.getAttribute('fill'));
 const editor=F.createEditor('minor',cm,{},'down').element,teacherCue=editor.querySelector('.cello-shift-cue');a.equal(teacherCue.parentElement.querySelector('text').textContent,'4');a.equal(teacherCue.textContent,'↑');
 console.log('PASS '+count+' harmonic scope/string-order DOM cases, custom suppression, teacher marks, no staff marks, and inside4↑');dom.window.close();

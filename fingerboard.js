@@ -119,45 +119,53 @@
       next.string===cue.s&&next.finger===cue.f?cue:null;
   }
 
-  // Colors summarize the computed hand state; exact chart position is in the tooltip.
-  // Custom fingers have no asserted hand state until individually checked.
-  const POSITION_COLORS={
-    open:'#ffffff',
-    half:'#428b9a',
-    first:'#348569',
-    extended:'#c99236',
-    shifting:'#795bb2',
-    high:'#426f9e',
-    harmonic:'#426f9e',
-    unverified:'#8f9a97',
-    custom:'#be476c'
-  };
+  // Chart supplied by Ming, Slack1794717734.119329. Photo-sampled colors;
+  // position is assigned only from a reviewed hand anchor, never pitch alone.
+  const CHART_POSITIONS=[null,
+    ['半把位','#5872a5'],['第一把位','#688d62'],
+    ['上第一把位／下第二把位','#b06261'],['上第二把位','#7a4c7d'],
+    ['第三把位','#403f47'],['上第三把位／下第四把位','#3c3d35'],
+    ['第四把位','#593237'],['上第四把位／下第五把位','#262127'],
+    ['第五把位','#335582'],['第六把位','#446038'],
+    ['上第六把位','#562c2f'],['第七把位','#2a202b'],['上第七把位','#262e43']
+  ];
+  const POSITION_COLORS={open:'#ffffff',
+    unverified:'#8f9a97',custom:'#be476c',harmonic:'#426f9e',
+    ...Object.fromEntries(CHART_POSITIONS.flatMap((p,i)=>p?[[`position-${i}`,p[1]]]:[]))};
+  function contrastInk(hex){
+    const rgb=hex.slice(1).match(/../g).map(c=>parseInt(c,16)/255)
+      .map(v=>v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4));
+    const l=rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722;
+    return (l+.05)/.05>=1.05/(l+.05)?'#000000':'#ffffff';
+  }
   function pointStyling(position){
-    const group=position.semitones===0?'open':position.displayExtended?'extended':(position.group||'unverified');
-    const label={open:'空弦',half:'半把位',first:'第一把位',
-      extended:'擴增把位',shifting:'其他把位',high:'高把位',
-      harmonic:'自然泛音',custom:'已修改',unverified:'照片尚未核對'}[group]||'照片尚未核對';
-    return {finger:position.finger,group,label:position.semitones===0?'空弦':position.positionLabel||label};
+    let group,label,extended=false;
+    const chart=Number.isInteger(position.anchor)?CHART_POSITIONS[position.anchor]:null;
+    if(position.semitones===0){group='open';label='空弦';}
+    else if(position.custom||position.group==='custom'){group='custom';label='老師／學生修改（把位未核對）';}
+    else if(position.technique==='naturalHarmonic'||position.group==='harmonic'){group='harmonic';label=position.positionLabel||'泛音（不指定一般把位）';}
+    else if(chart&&[1,2,3,4].includes(position.finger)&&position.group!=='unverified'){
+      extended=position.displayExtended||position.shape==='extended'||position.shape==='backwardExtended'||position.group==='extended';
+      group=`position-${position.anchor}`;
+      label=(extended?'擴增':'')+chart[0]+(extended&&position.shape==='backwardExtended'?'（向後擴增）':'');
+    }else{group='unverified';label='把位尚未核對';}
+    return {finger:position.finger,group,label,extended,textColor:contrastInk(POSITION_COLORS[group])};
   }
   function makeLegend(){
     const aside=element('aside',{class:'cello-fb-legend','aria-label':'把位顏色圖例'});
-    const title=element('div',{class:'cello-legend-title'},'指板顏色圖例');
-    aside.append(title);
-    const entries=[
-      ['open','空弦'],['half','半把位'],['first','第一把位'],
-      ['extended','擴增把位區段（不含空弦）'],['shifting','其他把位'],['high','高把位'],
-      ['harmonic','○ 自然泛音（輕觸）'],['custom','老師／學生修改']
-    ];
-    for(const [group,label] of entries){
+    aside.append(element('div',{class:'cello-legend-title'},'指板顏色圖例'));
+    const entries=[['open','空弦（不屬把位）'],
+      ...CHART_POSITIONS.flatMap((p,i)=>p?[[`position-${i}`,p[0]]]:[]),
+      ['extension-example','擴增：沿用基準把位色，另加虛線外框'],['harmonic','自然泛音（不屬一般把位）'],['custom','老師／學生修改（把位未核對）'],
+      ['unverified','把位尚未核對']];
+    for(const [group,label]of entries){
       const item=element('div',{class:'cello-legend-item'});
+      item.style.whiteSpace='normal';item.style.overflowWrap='anywhere';item.style.fontSize='11px';
       const marker=element('span',{class:'cello-legend-dot '+group});
-      marker.style.background=POSITION_COLORS[group];
-      item.append(marker,element('span',{},label));
-      aside.append(item);
+      marker.style.background=POSITION_COLORS[group]||POSITION_COLORS['position-2'];if(group==='extension-example'){marker.style.border='2px dashed '+contrastInk(POSITION_COLORS['position-2']);}item.append(marker,element('span',{},label));aside.append(item);
     }
     return aside;
   }
-
   function chartSVG(mode,key,direction,octaves,annotations={},interaction=null,remoteDrafts=[],reverseStrings=false,arpeggio=false){
     const scale=scaleNotes(mode,key,direction,octaves);
     const notes=arpeggio?arpeggioNotes(mode,key,direction):scale;
@@ -294,17 +302,17 @@
         (note.shiftCue?'；'+note.shiftCue.description:'')));
       point.append(svgNode('circle',{
         cx:x,cy:y,r:15.5,fill:isOpen?'#f7f9f6':color,
-        stroke:isOpen?color:'#ffffff','stroke-width':isOpen?3:2.1
+        stroke:isOpen?color:style.extended?style.textColor:'#ffffff','stroke-width':isOpen?3:style.extended?3.3:2.1,'stroke-dasharray':style.extended?'3 2':'none'
       }));
       point.append(svgNode('text',{
         x:note.shiftCue?.placement==='inside'?x-3:x,y:y+4.5,'text-anchor':'middle','font-size':12.5,
-        'font-weight':800,fill:isOpen?color:'#ffffff'
+        'font-weight':800,fill:isOpen?color:style.textColor
       },isOpen?'0':explicit?String(style.finger):'?'));
       if(note.shiftCue){
         const below=note.shiftCue.placement==='below',inside=note.shiftCue.placement==='inside';
         point.append(svgNode('text',{x:below?x:inside?x+2:x+7,y:below?y+29:y+4.5,
           'text-anchor':below?'middle':'start','font-size':9,'font-weight':700,
-          fill:inside?'#ffffff':'#273c2e',class:'cello-shift-cue',role:'img','aria-label':note.shiftCue.description,
+          fill:inside?style.textColor:'#273c2e',class:'cello-shift-cue',role:'img','aria-label':note.shiftCue.description,
           'data-shift-to':note.shiftCue.toMidi},note.shiftCue.symbol));
       }
       if(!isOpen){
@@ -887,6 +895,6 @@
   window.CelloFingerboard={
     create,
     // Pure helpers exported for automated pitch and placement checks.
-    arpeggioNotes,chartSVG,scoreAccidentals,staffStep,makeScore,scaleNotes,positionFor,pitchClass,decodeMap,pointStyling,POSITION_COLORS,makeLegend,notePlacement,resolvedShiftCue
+    arpeggioNotes,chartSVG,scoreAccidentals,staffStep,makeScore,scaleNotes,positionFor,pitchClass,decodeMap,pointStyling,POSITION_COLORS,CHART_POSITIONS,contrastInk,makeLegend,notePlacement,resolvedShiftCue
   };
 })();

@@ -20,6 +20,8 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright'),a=require(
   await title.evaluate(el=>{el.click();el.closest('.key-card').querySelector('.student-note-button').click()});await page.waitForTimeout(650);
   a.equal(await page.evaluate(()=>scrollCalls.filter(c=>c.title).length),0,'modal must not be displaced');
   await page.evaluate(()=>document.querySelector('dialog[open]').close());
+  await title.evaluate(el=>{if(el.getAttribute('aria-expanded')==='true')el.click();window.scrollCalls=[];el.click();window.dispatchEvent(new WheelEvent('wheel'));});
+  await page.waitForTimeout(650);a.equal(await page.evaluate(()=>scrollCalls.some(c=>c.title)),false,'user wheel supersedes pending alignment');
   await page.evaluate(()=>scrollCalls=[]);
   await page.locator('#bottom-practice-nav .practice-jump').first().evaluate(el=>el.click());await page.waitForTimeout(700);
   a.ok(await page.evaluate(()=>scrollCalls.some(c=>c.card)),'existing direct jump');a.equal(await page.evaluate(()=>scrollCalls.some(c=>c.title)),false);

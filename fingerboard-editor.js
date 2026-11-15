@@ -86,7 +86,7 @@
       const refs=(window.CelloFingeringOptimizer||window.CelloFingeringPresets)?.get(mode,key,direction,notes())||{};
       const proposal=refs[String(note.midi)];
       if(proposal)return {s:proposal.s,semi:note.midi-OPEN[proposal.s].midi,f:proposal.f,
-        group:proposal.group,positionLabel:proposal.positionLabel,displayExtended:proposal.displayExtended,technique:proposal.technique,modified:false};
+        anchor:proposal.anchor,shape:proposal.shape,group:proposal.group,positionLabel:proposal.positionLabel,displayExtended:proposal.displayExtended,technique:proposal.technique,modified:false};
       const pos=fb.positionFor(note.midi);
       return {s:pos.string,semi:pos.semitones,f:pos.semitones===0?0:null,group:'unverified',modified:false};
     }
@@ -149,7 +149,7 @@
       }
       for(let i=0;i<ns.length;i++){
         const n=ns[i],pos=placement(n),x=XX[pos.s],y=NUT+pos.semi*STEP;
-        const style=fb.pointStyling({semitones:pos.semi,finger:pos.f,group:pos.group,positionLabel:pos.positionLabel,displayExtended:pos.displayExtended});
+        const style=fb.pointStyling({semitones:pos.semi,finger:pos.f,anchor:pos.anchor,shape:pos.shape,technique:pos.technique,group:pos.group,positionLabel:pos.positionLabel,displayExtended:pos.displayExtended});
         if(pos.semi>maxFret)continue;
         const isOpen=pos.semi===0,isSelected=i===selected;
         const g=sv('g',{role:'button',tabindex:'0','aria-label':`第${n.order}音 ${n.name}；${OPEN[pos.s].name}弦；${isOpen?'空弦':pos.semi+'半音位置'}`,class:'teacher-note-marker'});
@@ -158,9 +158,9 @@
         g.append(sv('title',{},`第${n.order}音 ${n.name}`+(isOpen?'；空弦':shiftCue?'；'+shiftCue.description:'')));
         if(isSelected)g.append(sv('circle',{cx:x,cy:y,r:23,fill:'none',stroke:'#78a888','stroke-width':3}));
         const color=isOpen&&style.group!=='extended'?'#34483a':fb.POSITION_COLORS[style.group];
-        g.append(sv('circle',{cx:x,cy:y,r:15.5,fill:isOpen?'#f7f9f6':color,stroke:isOpen?color:'#ffffff','stroke-width':isOpen?3:2}));
-        g.append(sv('text',{x:shiftCue?.placement==='inside'?x-3:x,y:y+4.5,'text-anchor':'middle','font-size':12,'font-weight':850,fill:isOpen?color:'#ffffff'},isOpen?'0':shiftCue?.placement==='inside'?style.finger:n.order));
-        if(shiftCue?.placement==='inside')g.append(sv('text',{x:x+2,y:y+4.5,'font-size':9,'font-weight':700,fill:'#ffffff',class:'cello-shift-cue',role:'img','aria-label':shiftCue.description},shiftCue.symbol));
+        g.append(sv('circle',{cx:x,cy:y,r:15.5,fill:isOpen?'#f7f9f6':color,stroke:isOpen?color:style.extended?style.textColor:'#ffffff','stroke-width':isOpen?3:style.extended?3.3:2,'stroke-dasharray':style.extended?'3 2':'none'}));
+        g.append(sv('text',{x:shiftCue?.placement==='inside'?x-3:x,y:y+4.5,'text-anchor':'middle','font-size':12,'font-weight':850,fill:isOpen?color:style.textColor},isOpen?'0':shiftCue?.placement==='inside'?style.finger:n.order));
+        if(shiftCue?.placement==='inside')g.append(sv('text',{x:x+2,y:y+4.5,'font-size':9,'font-weight':700,fill:style.textColor,class:'cello-shift-cue',role:'img','aria-label':shiftCue.description},shiftCue.symbol));
         // Match the read-only chart: open-string points show only their number.
         if(!isOpen){
           g.append(sv('text',{x:x+20,y:y+1,'font-size':13,'font-weight':750,fill:'#263e2e'},n.name));
@@ -242,7 +242,7 @@
       stage.replaceChildren(board());
       const n=selection();
       const p=placement(n);
-      const selectedStyle=fb.pointStyling({semitones:p.semi,finger:p.f,group:p.group,positionLabel:p.positionLabel,displayExtended:p.displayExtended});
+      const selectedStyle=fb.pointStyling({semitones:p.semi,finger:p.f,anchor:p.anchor,shape:p.shape,technique:p.technique,group:p.group,positionLabel:p.positionLabel,displayExtended:p.displayExtended});
       info.textContent=`目前選擇：第 ${n.order} 音 ${n.name} · ${OPEN[p.s].name} 弦${p.semi===0?'（空弦）':'，'+selectedStyle.label+([1,2,3,4].includes(selectedStyle.finger)?'、第 '+selectedStyle.finger+' 指':'（尚未核對指法）')}`;
       fingers.replaceChildren(el('span','teacher-finger-label','左手指號'));
       if(p.semi===0){

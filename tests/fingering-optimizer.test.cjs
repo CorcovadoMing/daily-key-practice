@@ -57,7 +57,7 @@ test('Werner confirmed source remains separately available and unchanged',()=>{
 test('computed defaults are bundled in a deployed existing asset',()=>{
  a.ok(html.indexOf('fingering-presets.js')<html.indexOf('fingerboard.js'));
  a.ok(fs.readFileSync('fingering-presets.js','utf8').includes('window.CelloFingeringOptimizer='));
- a.match(html,/20261115-050-experimental/);
+ a.match(html,/20261115-051-experimental/);
 });
 
 test('F major preserves GD 0124 and applies reviewed expanded124 then fourth-position12',()=>{
@@ -118,7 +118,7 @@ test('extension display colors the entire same-string anchor segment, not neighb
  a.deepEqual(Array.from(up,p=>!!p.displayExtended),[false,false,false,false,false,false,false,false,false,true,true,true,false,false,false]);
  for(const i of [9,10,11]){
   const p=F.notePlacement(up[i].midi,{},Object.fromEntries(up.map(p=>[p.midi,p])));
-  a.equal(F.pointStyling(p).group,'extended');a.match(F.pointStyling(p).label,/擴增把位/);
+  a.equal(F.pointStyling(p).group,'position-2');a.equal(F.pointStyling(p).extended,true);a.match(F.pointStyling(p).label,/擴增第一把位/);
  }
  a.equal(up[8].f,0);a.equal(up[10].shape,'normal');a.equal(O.metrics(up).extensions,1);
  const custom=F.notePlacement(up[10].midi,{[up[10].midi]:{s:2,f:3}},Object.fromEntries(up.map(p=>[p.midi,p])));

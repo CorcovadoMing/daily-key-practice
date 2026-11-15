@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261115-050-experimental">
+  <meta name="site-version" content="20261115-051-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -634,7 +634,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261115-050-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261115-051-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -659,8 +659,8 @@
 
 
 
-  <script src="fingering-presets.js?v=20261115-050"></script>
-  <script src="fingerboard.js?v=20261115-050"></script>
+  <script src="fingering-presets.js?v=20261115-051"></script>
+  <script src="fingerboard.js?v=20261115-051"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
@@ -1193,6 +1193,8 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   .map(card=>card.dataset.keyId).filter(id=>cardInstances.has(id));
 }
     let cardScrollRequest=0;
+    for(const type of ['wheel','touchmove'])window.addEventListener(type,()=>cardScrollRequest++,{passive:true});
+    window.addEventListener('keydown',event=>{if(['ArrowUp','ArrowDown','PageUp','PageDown','Home','End','Escape'].includes(event.key))cardScrollRequest++;});
     function jumpToPractice(id){
  const session=currentSession();
  if(!cardInstances.has(id)||!session)return;
@@ -1220,8 +1222,20 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
  const session=currentSession(),item=cardInstances.get(id);
  if(!session||!item)return;
  const opening=!item.opened,request=++cardScrollRequest;
+ const previous=[...cardInstances.values()].find(entry=>entry.opened&&entry!==item);
+ const movingDown=opening&&previous&&Boolean(previous.card.compareDocumentPosition(item.card)&Node.DOCUMENT_POSITION_FOLLOWING);
  expandedOverride=opening?id:null;
- syncPracticeCards(session);
+ if(movingDown){
+  // Atomic final heights prevent a disappearing lower target and max-scroll
+  // clamp. Preserve its visible start position BEFORE paint, then align once.
+  const root=document.documentElement,oldAnchor=root.style.overflowAnchor;
+  const oldBehavior=root.style.scrollBehavior,top=item.title.getBoundingClientRect().top;
+  root.style.overflowAnchor='none';root.style.scrollBehavior='auto';
+  try{
+   syncPracticeCards(session,true);
+   window.scrollBy({top:item.title.getBoundingClientRect().top-top,behavior:'instant'});
+  }finally{root.style.overflowAnchor=oldAnchor;root.style.scrollBehavior=oldBehavior;}
+ }else syncPracticeCards(session);
  // Initial/restored state, completion, and collapse never request this scroll.
  if(opening)scrollExpandedTitleAfterLayout(id,item,request);
 }
@@ -1244,7 +1258,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   }
  }
 }
-    function setCardPanelOpen(item,opened){
+    function setCardPanelOpen(item,opened,forceInstant=false){
  const panel=item.panel,previous=item.opened;
  if(previous===opened)return;
  item.opened=opened;
@@ -1255,7 +1269,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
  const before=getComputedStyle(panel),currentOpacity=panel.hidden?'0':before.opacity;
  const oldPaddingTop=panel.hidden?'0px':before.paddingTop,oldPaddingBottom=panel.hidden?'0px':before.paddingBottom,oldBorder=panel.hidden?'0px':before.borderTopWidth;
  item.panelAnimation?.cancel();item.panelAnimation=null;
- const instant=previous===undefined||window.matchMedia('(prefers-reduced-motion:reduce)').matches||typeof panel.animate!=='function';
+ const instant=forceInstant||previous===undefined||window.matchMedia('(prefers-reduced-motion:reduce)').matches||typeof panel.animate!=='function';
  if(instant){panel.hidden=!opened;return;}
  panel.hidden=false;
  const targetHeight=opened?panel.getBoundingClientRect().height:0;
@@ -1272,7 +1286,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
  item.panelAnimation=animation;
  animation.onfinish=()=>{if(item.panelAnimation!==animation)return;panel.hidden=!item.opened;item.panelAnimation=null;};
  }
-    function syncPracticeCards(session){
+    function syncPracticeCards(session,forceInstant=false){
  const order=jumpOrder(),done=new Set(session?.doneIds||[]);
  const active=expandedOverride===undefined?order.find(id=>!done.has(id)):
   (expandedOverride&&cardInstances.has(expandedOverride)?expandedOverride:null);
@@ -1282,7 +1296,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   item.card.classList.toggle('is-expanded',opened);
   item.button.setAttribute('aria-pressed',String(finished));
   item.button.querySelector('.check-circle').textContent=finished?'✓':'';
-  setCardPanelOpen(item,opened);
+  setCardPanelOpen(item,opened,forceInstant);
   item.expand.setAttribute('aria-expanded',String(opened));
   item.title.setAttribute('aria-expanded',String(opened));
  }
