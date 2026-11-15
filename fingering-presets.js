@@ -180,7 +180,8 @@ window.CelloFingeringPresets={
 })();
 
 /* Experimental computed routes, not a transcription of Werner.
- * Hand anchor is the sounding first-finger semitone above each open string.
+ * Hand anchor is the NORMAL first-finger reference above each open string.
+ * A reviewed backward extension reaches finger 1 one semitone below it.
  * Normal 1–4: [0,1,2,3]. Extended 1–4: [0,2,3,4].
  * Above fourth position use fingers 1–3 only. No thumb-position assumptions.
  */
@@ -190,14 +191,14 @@ const OPEN=[36,43,50,57];
 const LABELS=['','半把位','第一把位','上第一／下第二把位','上第二把位','第三把位',
   '上第三／下第四把位','第四把位','上第四／下第五把位','第五把位','第六把位',
   '上第六把位','第七把位','上第七把位'];
-const SHAPES={normal:[0,1,2,3],extended:[0,2,3,4]};
+const SHAPES={normal:[0,1,2,3],extended:[0,2,3,4],backwardExtended:[-1,1,2,3]};
 const cache=new Map();
-function candidates(midi,fixed){
+function candidates(midi,fixed,shapes=['normal','extended']){
   const result=[];
   for(let s=0;s<4;s++){
     const semi=midi-OPEN[s];
     if(semi<0)continue;
-    for(let anchor=1;anchor<=13;anchor++)for(const shape of Object.keys(SHAPES)){
+    for(let anchor=1;anchor<=13;anchor++)for(const shape of shapes){
       const fingers=anchor>=8?3:4;
       if(semi===0){
         if(!fixed||(fixed.s===s&&fixed.f===0))result.push({midi,s,f:0,anchor,shape});
@@ -217,7 +218,7 @@ function transition(a,b,direction){
   if(ds*sign<0||Math.abs(ds)>1||(ds===0&&da*sign<0)||Math.abs(da)>7)return null;
   // Open notes carry an explicit hand state too. Repositioning during an
   // open note costs a real shift just like repositioning on a stopped note.
-  return [Number(da!==0), Number(b.shape==='extended')+Number(a.shape!==b.shape),
+  return [Number(da!==0), Number(b.shape!=='normal')+Number(a.shape!==b.shape),
     Math.abs(ds),da*da,b.anchor];
 }
 function search(notes,direction='up',start=null,fixedMap=null,turnAt=null){
@@ -228,7 +229,7 @@ function search(notes,direction='up',start=null,fixedMap=null,turnAt=null){
       if(i===0){
         if(start&&['s','f','anchor','shape'].some(k=>p[k]!==start[k]))continue;
         // Initial hand placement is not a shift; lower/easier shapes break ties.
-        next.push({p,cost:[0,Number(p.shape==='extended'),0,0,p.anchor],previous:null});
+        next.push({p,cost:[0,Number(p.shape!=='normal'),0,0,p.anchor],previous:null});
       }else{
         let best=null;
         for(const old of layer){
@@ -247,29 +248,98 @@ function search(notes,direction='up',start=null,fixedMap=null,turnAt=null){
   return route.reverse();
 }
 function describe(p){
-  const group=p.f===0?'open':p.shape==='extended'?'extended':
+  const group=p.f===0?'open':p.shape!=='normal'?'extended':
     p.anchor===1?'half':p.anchor===2?'first':p.anchor>=8?'high':'shifting';
   return {...p,group,positionLabel:p.f===0?'空弦':LABELS[p.anchor]+
-    (p.shape==='extended'?'・擴增把位':''),
-    source:'computed-low-shift-v1',stringSource:'bounded-hand-state-search'};
+    (p.shape==='backwardExtended'?'・向後擴增把位':p.shape==='extended'?'・擴增把位':''),
+    source:p.source||'computed-low-shift-v1',stringSource:'bounded-hand-state-search'};
 }
-function route(mode,key,direction,octaves=2,arpeggio=false){
-  const id=[mode,key[0],octaves,arpeggio].join('|');
+// Presentation only: a contiguous same-string/same-anchor segment that uses
+// an extension is colored as a whole, including ordinary fingers and open 0.
+// Actual shape and shift/extension metrics remain untouched.
+function describeSegments(route){
+  const result=route.map(describe);
+  for(let start=0;start<result.length;){
+    let end=start+1;
+    while(end<result.length&&result[end].s===result[start].s&&
+      result[end].anchor===result[start].anchor)end++;
+    if(result.slice(start,end).some(p=>p.f&&p.shape!=='normal')){
+      for(let i=start;i<end;i++){
+        const p=result[i];p.displayExtended=true;p.group='extended';
+        if(p.f===0)p.positionLabel='空弦・'+LABELS[p.anchor]+'擴增把位區段';
+        else if(p.shape==='normal')p.positionLabel=LABELS[p.anchor]+'・擴增把位區段';
+      }
+    }
+    start=end;
+  }
+  return result;
+}
+// Practice preference: repeated 0/1/2/4 across adjacent strings in one
+// ordinary position beats an extended alternative saving only one shift.
+// Apply only the owner's reviewed F-major two-octave route, not a blanket
+// fingering override for unrelated keys, octaves or arpeggios. The untouched
+// minimum-shifts policy remains available for comparison and future review.
+function practicePreference(mode,key,octaves,arpeggio,minimum){
+  if(mode!=='major'||key[0]!=='F'||octaves!==2||arpeggio)return minimum;
+  const strings=[0,1,1,1,1,2,2,2,2,3,3,3,3,3,3];
+  const fingers=[4,0,1,2,4,0,1,2,4,0,1,3,1,3,4];
+  const anchors=[2,2,2,2,2,2,2,2,2,1,1,1,5,5,5];
+  const preferred=minimum.map((p,i)=>{
+    const candidate=candidates(p.midi,{s:strings[i],f:fingers[i]}).find(q=>
+      q.anchor===anchors[i]&&q.shape==='normal');
+    if(!candidate)throw Error('Invalid reviewed ordinary-shape route');
+    return {...candidate,source:'reviewed-normal-0124-v1'};
+  });
+  const before=metrics(minimum),after=metrics(preferred);
+  if(after.extensions!==0||before.extensions===0||after.shifts>before.shifts+1||
+    preferred.some((p,i)=>i&&!transition(preferred[i-1],p,'up')))
+    throw Error('Reviewed ordinary-shape preference no longer meets its bounds');
+  return preferred;
+}
+function reviewedMinorFirstPosition(notes,direction){
+  // Owner-reviewed C melodic ascent / natural descent, with the same apex.
+  // Backward extension preserves fingers 2–4 at their normal first position.
+  // It is NOT a new candidate shape in the generic minimum-shifts search.
+  const up=direction==='up',one=notes.length===8;
+  const strings=one?(up?[0,0,0,0,1,1,1,1]:[1,1,1,1,0,0,0,0]):up?[0,0,0,0,1,1,1,1,2,2,2,2,3,3,3]:
+    [3,3,2,2,2,2,2,1,1,1,1,0,0,0,0];
+  const fingers=one?(up?[0,1,2,4,0,1,3,4]:[4,2,1,0,4,2,1,0]):up?
+    [0,1,2,4,0,1,3,4,0,1,2,4,0,1,2]:[2,1,4,3,2,1,0,4,2,1,0,4,2,1,0];
+  const backward=one?(up?[]:[2]):up?[9]:[1,5,9],forward=one||up?[]:[2,3];
+  const result=notes.map((note,i)=>{
+    const shape=backward.includes(i)?'backwardExtended':forward.includes(i)?'extended':'normal';
+    const found=candidates(note.midi,{s:strings[i],f:fingers[i]},[shape]).find(p=>p.anchor===2);
+    if(!found)throw Error('Invalid reviewed C-minor first-position route');
+    return {...found,source:'reviewed-first-position-minor-v1'};
+  });
+  if(result.some((p,i)=>i&&!transition(result[i-1],p,direction)))
+    throw Error('Invalid reviewed C-minor transition');
+  return result;
+}
+function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
+  if(policy!=='preferred'&&policy!=='minimum-shifts')throw Error('Unknown route policy');
+  const id=[mode,key[0],octaves,arpeggio,policy].join('|');
   if(!cache.has(id)){
     const F=window.CelloFingerboard;
     const upNotes=arpeggio?F.arpeggioNotes(mode,key,'up'):F.scaleNotes(mode,key,'up',octaves);
     let up,down;
     if(mode==='major'||arpeggio){
-      up=search(upNotes);down=up&&[...up].reverse();
+      up=search(upNotes);
+      if(up&&policy==='preferred')up=practicePreference(mode,key,octaves,arpeggio,up);
+      down=up&&[...up].reverse();
     }else{
       const downNotes=F.scaleNotes(mode,key,'down',octaves);
       // Optimize the entire melodic/natural cycle jointly, including the
       // common apex. A cheap ascent must not force a costly descent.
       const cycle=search([...upNotes,...downNotes.slice(1)],'up',null,null,upNotes.length);
       up=cycle?.slice(0,upNotes.length);down=cycle?.slice(upNotes.length-1);
+      if(policy==='preferred'&&key[0]==='C'&&(octaves===1||octaves===2)){
+        up=reviewedMinorFirstPosition(upNotes,'up');
+        down=reviewedMinorFirstPosition(downNotes,'down');
+      }
     }
     if(!up||!down)throw Error('No playable route: '+id);
-    cache.set(id,{up:up.map(describe),down:down.map(describe)});
+    cache.set(id,{up:describeSegments(up),down:describeSegments(down)});
   }
   return cache.get(id)[direction].map(p=>({...p}));
 }
@@ -284,7 +354,7 @@ function metrics(route){
   if(!route)return null;
   let shifts=0,travel=0,crossings=0,extensions=0;
   route.forEach((p,i)=>{
-    if(p.f&&p.shape==='extended')extensions++;
+    if(p.f&&p.shape!=='normal')extensions++;
     if(i){const q=route[i-1];if(p.anchor!==q.anchor)shifts++;
       travel+=Math.abs(p.anchor-q.anchor);crossings+=Math.abs(p.s-q.s);}
   });

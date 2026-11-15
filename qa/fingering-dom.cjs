@@ -29,9 +29,26 @@ for(const [mode,name] of [['major','MAJOR_KEYS'],['minor','MINOR_KEYS']]){
   }
  }
 }
+// Whole-segment coloring includes normal fingers and open0, but not adjacent
+// strings or unvalidated custom finger overrides.
+const cm=['C',-3,'C D E♭ F G A B C','C D E♭ F G A♭ B♭ C'];
+const markers=svg=>[...svg.querySelectorAll('g')].filter(g=>g.querySelector(':scope > title'));
+const diagram=F.chartSVG('minor',cm,'up',2),points=markers(diagram),orange=F.POSITION_COLORS.extended;
+a.equal(points[8].querySelector('circle').getAttribute('stroke'),orange);
+a.equal(points[8].querySelector('text').textContent,'0');
+for(const i of [9,10,11])a.equal(points[i].querySelector('circle').getAttribute('fill'),orange);
+for(const i of [1,5,7,13,14])a.notEqual(points[i].querySelector('circle').getAttribute('fill'),orange);
+a.notEqual(points[12].querySelector('circle').getAttribute('stroke'),orange);
+a.match(F.makeLegend().textContent,/擴增把位區段（含空弦）/);
+const customPoints=markers(F.chartSVG('minor',cm,'up',2,{upMap:JSON.stringify({53:{s:2,f:3}})}));
+a.equal(customPoints[10].querySelector('circle').getAttribute('fill'),F.POSITION_COLORS.custom);
+a.doesNotMatch(customPoints[10].querySelector('title').textContent,/擴增把位/);
+const teacher=F.createEditor('minor',cm).element.querySelectorAll('.teacher-note-marker');
+a.equal(teacher[8].querySelector('circle').getAttribute('stroke'),orange);
+a.equal(teacher[10].querySelector('circle').getAttribute('fill'),orange);
 // Legacy fallback retains symmetric arpeggios too, without optimizer loaded.
 const optimizer=w.CelloFingeringOptimizer;delete w.CelloFingeringOptimizer;
 const minor=['E',1,'E F♯ G A B C♯ D♯ E','E F♯ G A B C D E'];
 a.deepEqual(labels(F.chartSVG('minor',minor,'down',2,{},null,[],false,true)),labels(F.chartSVG('minor',minor,'up',2,{},null,[],false,true)).reverse());
 w.CelloFingeringOptimizer=optimizer;
-console.log(`PASS ${cases} rendered scale/arp/octave/string-order cases, custom symmetry, safe teacher major editing and fallback.`);dom.window.close();
+console.log(`PASS ${cases} rendered scale/arp/octave/string-order cases, custom symmetry, extension segment/open coloring, safe teacher major editing and fallback.`);dom.window.close();

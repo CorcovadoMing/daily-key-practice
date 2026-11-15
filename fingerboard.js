@@ -94,7 +94,7 @@
   function notePlacement(midi,map,presets={}){
     const p=presets[String(midi)],fallback=positionFor(midi);
     const base=p?{string:p.s,stringName:OPEN[p.s].name,semitones:midi-OPEN[p.s].midi,
-      finger:p.f,group:p.group,positionLabel:p.positionLabel,anchor:p.anchor,shape:p.shape,custom:false}:{...fallback,finger:null,group:'unverified',custom:false};
+      finger:p.f,group:p.group,positionLabel:p.positionLabel,anchor:p.anchor,shape:p.shape,displayExtended:p.displayExtended,custom:false}:{...fallback,finger:null,group:'unverified',custom:false};
     const custom=map[String(midi)];
     if(!custom||!Number.isInteger(custom.s)||custom.s<0||custom.s>3)return base;
     const semi=midi-OPEN[custom.s].midi;
@@ -119,7 +119,7 @@
     custom:'#be476c'
   };
   function pointStyling(position){
-    const group=position.semitones===0?'open':(position.group||'unverified');
+    const group=position.displayExtended?'extended':position.semitones===0?'open':(position.group||'unverified');
     const label={open:'空弦',half:'半把位',first:'第一把位',
       extended:'擴增把位',shifting:'其他把位',high:'高把位',
       custom:'已修改',unverified:'照片尚未核對'}[group]||'照片尚未核對';
@@ -131,7 +131,7 @@
     aside.append(title);
     const entries=[
       ['open','空弦'],['half','半把位'],['first','第一把位'],
-      ['extended','擴增把位'],['shifting','其他把位'],['high','高把位'],
+      ['extended','擴增把位區段（含空弦）'],['shifting','其他把位'],['high','高把位'],
       ['custom','老師／學生修改']
     ];
     for(const [group,label] of entries){
@@ -266,7 +266,7 @@
       if(replacedByRemote.has(note.midi))continue;
       const x=xPositions[note.position.string],y=top+note.position.semitones*step;
       const isOpen=note.position.semitones===0,style=note.style;
-      const color=isOpen?'#34483a':POSITION_COLORS[style.group];
+      const color=isOpen&&style.group!=='extended'?'#34483a':POSITION_COLORS[style.group];
       const explicit=[1,2,3,4].includes(note.position.finger);
       const modified=note.position.custom===true;
       const point=svgNode('g',interaction?{
@@ -276,14 +276,14 @@
       }:{});
       point.append(svgNode('title',{},
         '第'+note.order+'音 '+note.name+'，'+note.position.stringName+'弦'+
-        (isOpen?'，空弦':'，'+style.label+(explicit?'，第'+style.finger+'指':''))));
+        (isOpen?'，'+style.label:'，'+style.label+(explicit?'，第'+style.finger+'指':''))));
       point.append(svgNode('circle',{
         cx:x,cy:y,r:15.5,fill:isOpen?'#f7f9f6':color,
-        stroke:isOpen?'#34483a':'#ffffff','stroke-width':isOpen?3:2.1
+        stroke:isOpen?color:'#ffffff','stroke-width':isOpen?3:2.1
       }));
       point.append(svgNode('text',{
         x,y:y+4.5,'text-anchor':'middle','font-size':12.5,
-        'font-weight':800,fill:isOpen?'#34483a':'#ffffff'
+        'font-weight':800,fill:isOpen?color:'#ffffff'
       },isOpen?'0':explicit?String(style.finger):'?'));
       if(!isOpen){
         point.append(svgNode('text',{
@@ -711,7 +711,7 @@
     scoreSection.append(element('h3',{class:'music-section-title'},'音階 · 兩個八度'),makeScore(mode,key));
     const boardSection=element('section',{class:'fingerboard-section'});
     boardSection.append(element('h3',{class:'music-section-title'},'指板 · 指法'),
-      element('p',{class:'caption'},'低換把計算預設（非 Werner 原譜）：一般手型相鄰指距半音，擴增手型另標。把位依第一指位置命名；指向音點可查看確切把位。已儲存修改優先保留。'),toolbar,boards);
+      element('p',{class:'caption'},'低換把／一般手型優先預設（非 Werner 原譜）：相鄰弦能維持同一一般把位的 0124 時，優先保留一般手型，不為少一次換把而硬用擴增。一般相鄰指距半音，同弦同把位只要用到擴增，整段音點（含空弦）一併標色。把位依一般手型的第一指基準命名；向後擴增由第一指伸向低半音，其他指保留原位。指向音點可查看確切把位。已儲存修改優先保留。'),toolbar,boards);
     const arpeggioSection=element('section',{class:'arpeggio-section fingerboard-section'});
     const arpeggioBoards=element('div',{class:'cello-fb-two-up'});
     const arpeggioViews={};
