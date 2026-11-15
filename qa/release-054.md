@@ -31,3 +31,5 @@
 - 沒有使用真實麥克風、改裝置權限或聲稱手機Safari／真實大提琴收音驗收。
 
 重跑：`node --test tests/*.test.cjs`；`JSDOM_MODULE=/path/to/jsdom node qa/major-symmetry.cjs`；`PLAYWRIGHT_MODULE=/path/to/playwright URL=http://127.0.0.1:8804 node qa/tuner-hold-browser.cjs`。
+
+CI相容性補充：初次驗證因淺層checkout沒有053歷史而使不變程式比對測試失敗，部署未執行。測試改用已對053確認的區塊SHA256，保留相同不變性檢查，不再依賴Git歷史；應用程式碼完全不改，並從無Git歷史匯出重跑全套。
