@@ -1,6 +1,6 @@
 const fs=require('fs'),vm=require('vm'),a=require('node:assert/strict'),c={window:{}};vm.createContext(c);for(const f of['fingerboard.js','fingering-presets.js'])vm.runInContext(fs.readFileSync(f,'utf8'),c);const O=c.window.CelloFingeringOptimizer,F=c.window.CelloFingerboard,h=fs.readFileSync('index.html','utf8'),lists=[['major','MAJOR_KEYS'],['minor','MINOR_KEYS']].map(([m,n])=>[m,vm.runInNewContext(h.match(new RegExp('const '+n+' = (\\[[\\s\\S]*?\\n    \\]);'))[1])]),OPEN=[36,43,50,57],summary=[],sameOne=[],uniform=[],changed=[];let notes=0,harmonics=0,normalContext=0,routeCount=0;
 for(const[m,ks]of lists)for(const k of ks){let contexts=0,translations=0;for(const[o,arp]of[[1,false],[2,false],[2,true]])for(const d of['up','down']){
- const r=O.route(m,k,d,o,arp),old=O.route(m,k,d,o,arp,'reviewed-051'),refs=Object.fromEntries(r.map(p=>[p.midi,p])),id=[m,k[0],o,arp?'arp':'scale',d].join(' ');routeCount++;
+ const r=O.route(m,k,d,o,arp,'reviewed-052'),old=O.route(m,k,d,o,arp,'reviewed-051'),refs=Object.fromEntries(r.map(p=>[p.midi,p])),id=[m,k[0],o,arp?'arp':'scale',d].join(' ');routeCount++;
  const plain=xs=>Array.from(xs,p=>[p.midi,p.s,p.f,p.anchor,p.shape]);if(JSON.stringify(plain(r))!==JSON.stringify(plain(old)))changed.push(id);
  r.forEach((p,i)=>{notes++;const pos=F.notePlacement(p.midi,{},refs),style=F.pointStyling(pos),semi=p.midi-OPEN[p.s];
  if(!p.f){a.equal(style.group,'open');a.equal(style.extended,false);a.equal(pos.anchor,undefined);}

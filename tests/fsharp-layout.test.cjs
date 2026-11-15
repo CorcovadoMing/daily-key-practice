@@ -41,7 +41,7 @@ test('all140 unrelated physical routes and the complete046/raw comparators remai
  a.equal(hash(raw),'b6785ce28ef1fa8ae6d0c17440923f41953689349bfcf28ac9164fdf2e72b280');
 });
 
-test('F-sharp arpeggio preserves lower three and shows the necessary half-step shift',()=>{
+test('F-sharp arpeggio preserves lower three and retains exact shift geometry with clarified non-semitone wording',()=>{
  const up=O.route('minor',key,'up',2,true),down=O.route('minor',key,'down',2,true),old=O.route('minor',key,'up',2,true,'reviewed-046');
  a.deepEqual(plain(up).slice(0,3),plain(old).slice(0,3));
  a.equal(Array.from(up,p=>p.s).join(''),'0112233');a.equal(Array.from(up,p=>p.f).join(''),'4141414');
@@ -49,7 +49,7 @@ test('F-sharp arpeggio preserves lower three and shows the necessary half-step s
  a.deepEqual(plain(down),plain(up).reverse());
  a.equal(up[4].midi-up[3].midi,3);a.equal(up[3].shape,'normal');a.equal(up[4].shape,'normal');
  a.equal(up[6].midi-up[5].midi,5);a.equal(up[6].anchor-up[5].anchor,1);
- a.equal(up[5].shiftCue.symbol,'換把半音');a.equal(down[0].shiftCue.toMidi,61);
+ a.equal(up[5].shiftCue.symbol,'換把');a.equal(down[0].shiftCue.toMidi,61);
  for(const r of[up,down]){const m=O.movementMetrics(r);a.deepEqual([m.events,m.components,m.anchorShifts,m.travel],[4,7,2,3]);}
  const map=Object.fromEntries(up.map(p=>[p.midi,p]));
  a.equal(c.window.CelloFingerboard.resolvedShiftCue(61,{66:{s:3,f:3}},map),null);

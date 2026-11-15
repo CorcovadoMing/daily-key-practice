@@ -20,7 +20,7 @@ test('A minor ascending01241243 keeps all lower notes and the exact descending c
  a.equal(Array.from(up.filter(p=>p.s===3),p=>p.f).join(''),'01241243');
  a.deepEqual(plain(up).slice(11,14),[[64,3,1,7,'extended'],[66,3,2,7,'extended'],[68,3,4,7,'extended']]);
  a.deepEqual(plain(up).slice(0,11),plain(O.route('minor',k,'up',2,false,'reviewed-048')).slice(0,11));
- a.deepEqual(plain(down),plain(O.route('minor',k,'down',2,false,'reviewed-048')));
+ a.deepEqual(plain(O.route('minor',k,'down',2,false,'reviewed-051')),plain(O.route('minor',k,'down',2,false,'reviewed-048')));
  a.deepEqual(plain(up).at(-1),plain(down)[0]);
  const refs=O.get('minor',k,'up',F.scaleNotes('minor',k,'up',2));
  const shown=F.notePlacement(69,{},refs);a.equal(shown.technique,'naturalHarmonic');a.equal(shown.anchor,undefined);a.equal(shown.shape,undefined);

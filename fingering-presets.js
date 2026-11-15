@@ -476,9 +476,10 @@ function reviewedMajor048(key,octaves,arpeggio,up){
   return result;
 }
 function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
-  if(!['preferred','reviewed-051','reviewed-048','reviewed-047','reviewed-046','reviewed-045','minimum-shifts','minimum-movements','first-family'].includes(policy))
+  if(!['preferred','reviewed-052','reviewed-051','reviewed-048','reviewed-047','reviewed-046','reviewed-045','minimum-shifts','minimum-movements','first-family'].includes(policy))
     throw Error('Unknown route policy');
-  const reviewed048=policy==='preferred'||policy==='reviewed-051'||policy==='reviewed-048';
+  const reviewed052=policy==='preferred'||policy==='reviewed-052';
+  const reviewed048=reviewed052||policy==='reviewed-051'||policy==='reviewed-048';
   const id=[mode,key[0],octaves,arpeggio,policy].join('|');
   if(!cache.has(id)){
     const F=window.CelloFingerboard;
@@ -571,7 +572,7 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
       if(['midi','s','f','anchor','shape'].some(k=>up.at(-1)[k]!==down[0][k]))
         throw Error('F-sharp12124 apex mismatch');
     }
-    if(policy==='preferred'||policy==='reviewed-051'){
+    if(reviewed052||policy==='reviewed-051'){
       // Only A-key two-octave scale/arpeggio A4 endpoints use this harmonic.
       // The sounding pitch equals open A's second partial. The third finger
       // LIGHTLY touches its midpoint; it is not a stopped normal-position note.
@@ -601,7 +602,7 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
     // 052 owner explicitly requests A-major ASCENT only: normal134,
     // forward extended124, then the existing third-finger A4 harmonic.
     // Existing descent and all other major mirrors remain unchanged.
-    if(policy==='preferred'&&mode==='major'&&key[0]==='A'&&octaves===2&&!arpeggio){
+    if(reviewed052&&mode==='major'&&key[0]==='A'&&octaves===2&&!arpeggio){
       up=up.map(p=>{
         if(![64,66,68].includes(p.midi))return {...p,source:'reviewed-a-major-ascent-052-v1'};
         const f={64:1,66:2,68:4}[p.midi];
@@ -613,7 +614,7 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
     // 052 owner-reviewed E-major/minor A-string ASCENT 0|1↓|134.
     // First-position B1 shifts a whole tone toward the bridge to C-sharp1;
     // C-sharp/D-sharp/E then share ONE normal upper-second-position frame.
-    if(policy==='preferred'&&key[0]==='E'&&octaves===2&&!arpeggio){
+    if(reviewed052&&key[0]==='E'&&octaves===2&&!arpeggio){
       up=up.map(p=>{
         if(p.s!==3)return {...p,source:'reviewed-e-ascent-01134-052-v1'};
         const f={57:0,59:1,61:1,63:3,64:4}[p.midi],anchor=p.midi<=59?2:4;
@@ -628,7 +629,7 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
     // Four audited E/B-minor ascent closures (one/two octaves). Only the
     // first finger moves one semitone toward the bridge; fingers2-4 stay put.
     // The following normal134 is NOT one continuous extended hand shape.
-    if(policy==='preferred'&&mode==='minor'&&['E','B'].includes(key[0])&&!arpeggio){
+    if(reviewed052&&mode==='minor'&&['E','B'].includes(key[0])&&!arpeggio){
       for(let i=0;i<up.length-1;i++){
         const a=up[i],b=up[i+1];
         if(a.s!==b.s||a.f!==1||b.f!==1||a.anchor!==2||b.anchor!==2||
@@ -637,6 +638,66 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
           description:'同一第1指向琴橋方向移動半音，收回向後擴增；其餘手指不移位，後續回到正常第一把位。'}};
         up[i+1]={...b,displaySegmentStart:true};
       }
+    }
+    // 053: mirror A-minor ascent DIGITS and strings, not its raised pitches.
+    // Natural G/F/E use 4/2/1 in one NORMAL fourth-position contact frame.
+    // A4 remains the third-finger natural harmonic, not a stopped-frame note.
+    if(policy==='preferred'&&mode==='minor'&&key[0]==='A'&&octaves===2&&!arpeggio){
+      down=down.map(p=>{
+        if(![67,65,64].includes(p.midi))return p;
+        const f={67:4,65:2,64:1}[p.midi];
+        const found=candidates(p.midi,{s:3,f},['normal']).find(q=>q.anchor===7);
+        if(!found)throw Error('Invalid A-minor natural descending421');
+        return {...found,source:'reviewed-a-minor-return-053-v1'};
+      });
+    }
+    // Keep the reviewed F-sharp arpeggio route, but avoid confusing the
+    // wide note interval with a 'semitone' movement label in any UI surface.
+    if(policy==='preferred'&&mode==='minor'&&key[0]==='F♯'&&arpeggio){
+      const clarify=(r,direction)=>r.map(p=>p.shiftCue?{...p,shiftCue:{...p.shiftCue,symbol:'換把',
+        description:direction==='up'?'C♯4第1指到F♯4第4指須向琴橋換把；兩音不在同一固定擴增手型。':
+          'F♯4第4指到C♯4第1指須向弦枕換把；兩音不在同一固定擴增手型。'}}:p);
+      up=clarify(up,'up');down=clarify(down,'down');
+    }
+    // Owner-selected exception to the generic upper-position1-3 heuristic:
+    // A-string G4/A4/B-flat4 fit a complete NORMAL sixth-position134 frame.
+    // Do not make high fourth fingers available to the generic candidate set.
+    if(policy==='preferred'&&mode==='major'&&key[0]==='B♭'&&octaves===2&&!arpeggio){
+      up=up.map(p=>{
+        if(![67,69,70].includes(p.midi))return p;
+        const f={67:1,69:3,70:4}[p.midi],anchor=10,shape='normal';
+        if(p.midi!==OPEN[3]+anchor+SHAPES[shape][f-1])throw Error('Invalid reviewed B-flat normal134');
+        return {midi:p.midi,s:3,f,anchor,shape,source:'reviewed-bflat-upper134-053-v1'};
+      });
+      down=[...up].reverse().map(p=>({...p}));
+    }
+    // E-minor's C-string E2/F-sharp2 fingers2/4 also fit one complete
+    // normal upper-first/lower-second frame. Prefer the owner's chart frame
+    // over keeping an unused extended first finger at the lower reference.
+    if(policy==='preferred'&&mode==='minor'&&key[0]==='E'&&!arpeggio){
+      const normalPair=r=>r.map(p=>{
+        if(p.s!==0||!((p.midi===40&&p.f===2)||(p.midi===42&&p.f===4)))return p;
+        const found=candidates(p.midi,{s:0,f:p.f},['normal']).find(q=>q.anchor===3);
+        if(!found)throw Error('Invalid E-minor upper-first24');
+        return {...found,source:'reviewed-e-minor-upper-first24-053-v1'};
+      });
+      up=normalPair(up);down=normalPair(down);
+    }
+    // 053: A-key arpeggios use the approved ascending scale's exact
+    // degree placements, then reverse them. This does not rewrite either
+    // scale descent (A major intentionally retains its own descent).
+    if(policy==='preferred'&&key[0]==='A'&&arpeggio){
+      const scale=route(mode,key,'up',2,false,policy);
+      up=upNotes.map(note=>{
+        const p=scale.find(q=>q.midi===note.midi);
+        if(!p)throw Error('Missing A-arpeggio scale degree');
+        const selected={...p,source:'reviewed-a-scale-derived-arpeggio-053-v1'};
+        // Recompute contextual rendering for this shorter route; never
+        // carry a scale-only next-note cue onto a different arpeggio leap.
+        for(const field of['group','positionLabel','displayExtended','shiftCue'])delete selected[field];
+        return selected;
+      });
+      down=[...up].reverse().map(p=>({...p}));
     }
     if(motion){
       const source=policy==='first-family'?'computed-first-family-comparison-v1':'computed-movement-events-v1';

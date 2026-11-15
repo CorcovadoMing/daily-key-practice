@@ -67,9 +67,9 @@ for(const [dir,oct,arp] of [['up',2,false],['down',1,false],['down',2,true]])
 const fsharp=['F♯',3,'F♯ G♯ A B C♯ D♯ E♯ F♯','F♯ G♯ A B C♯ D E F♯'];
 for(const dir of ['up','down']){
  const chart=F.chartSVG('minor',fsharp,dir,2,{},null,[],false,true),cue=chart.querySelector('.cello-shift-cue');
- a.equal(chart.querySelectorAll('.cello-shift-cue').length,1);a.equal(cue.textContent,'換把半音');
+ a.equal(chart.querySelectorAll('.cello-shift-cue').length,1);a.equal(cue.textContent,'換把');
  a.match(cue.getAttribute('aria-label'),dir==='up'?/向琴橋/:/向弦枕/);
- a.match(cue.getAttribute('aria-label'),/五半音.*不是同一固定擴增/);
+ a.match(cue.getAttribute('aria-label'),/不在同一固定擴增/);a.doesNotMatch(cue.parentElement.textContent,/半音/);a.doesNotMatch(cue.getAttribute('aria-label'),/半音/);
  const changed=F.chartSVG('minor',fsharp,dir,2,{upMap:JSON.stringify({66:{s:3,f:3}})},null,[],false,true);
  a.equal(changed.querySelectorAll('.cello-shift-cue').length,0);
 }
