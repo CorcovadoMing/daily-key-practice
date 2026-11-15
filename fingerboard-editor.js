@@ -40,13 +40,13 @@
     const octaveGroup=el('div','cello-fb-group');
     const rangeGroup=el('div','cello-fb-group');
     const noteStrip=el('div','teacher-note-strip');
-    const help=el('p','teacher-editor-help','先點選上方的音符，再點指板上亮起的同音高位置；也可以直接拖動音符到其他弦位。');
+    const help='先點選上方的音符，再點指板上亮起的同音高位置；也可以直接拖動音符到其他弦位。';
     const stage=el('div','teacher-fb-scroll');
     const info=el('div','teacher-note-status');
     const fingers=el('div','teacher-finger-choices');
     const reset=el('button','teacher-reset','重設目前方向的指板配置');
     reset.type='button';
-    const foot=el('p','teacher-editor-help','○ 空心點＝空弦，正好落在粗弦枕線上。位置圓點是半音音位示意，大提琴沒有品絲；換弦僅允許同音高。');
+    stage.setAttribute('aria-description',help+'空弦位於弦枕；換弦僅允許同音高。');
 
     function button(parent,label,action){
       const b=el('button','cello-fb-button',label);
@@ -67,7 +67,8 @@
     });
     if(!lockedDirection)toolbar.append(directionGroup);
     toolbar.append(octaveGroup,rangeGroup);
-    root.append(toolbar,noteStrip,help,stage,fb.makeLegend(),info,fingers,reset,foot);
+    let legend=fb.makeLegend();
+    root.append(toolbar,noteStrip,stage,legend,info,fingers,reset);
 
     function notes(){return fb.scaleNotes(mode,key,direction,octaves);}
     function selection(){return notes()[selected]||null;}
@@ -155,12 +156,13 @@
         const g=sv('g',{role:'button',tabindex:'0','aria-label':`第${n.order}音 ${n.name}；${OPEN[pos.s].name}弦；${isOpen?'空弦':pos.semi+'半音位置'}`,class:'teacher-note-marker'});
         const refs=(window.CelloFingeringOptimizer||window.CelloFingeringPresets)?.get(mode,key,direction,ns)||{};
         const shiftCue=fb.resolvedShiftCue(n.midi,maps[direction],refs);
+        g.setAttribute('data-position-group',style.group);g.setAttribute('data-position-extended',String(Boolean(style.extended)));
         g.append(sv('title',{},`第${n.order}音 ${n.name}`+(isOpen?'；空弦':shiftCue?'；'+shiftCue.description:'')));
         if(isSelected)g.append(sv('circle',{cx:x,cy:y,r:23,fill:'none',stroke:'#78a888','stroke-width':3}));
         const color=isOpen&&style.group!=='extended'?'#34483a':fb.POSITION_COLORS[style.group];
-        g.append(sv('circle',{cx:x,cy:y,r:15.5,fill:isOpen?'#f7f9f6':color,stroke:isOpen?color:style.extended?style.textColor:'#ffffff','stroke-width':isOpen?3:style.extended?3.3:2,'stroke-dasharray':style.extended?'3 2':'none'}));
-        g.append(sv('text',{x:shiftCue?.placement==='inside'?x-3:x,y:y+4.5,'text-anchor':'middle','font-size':12,'font-weight':850,fill:isOpen?color:style.textColor},isOpen?'0':shiftCue?.placement==='inside'?style.finger:n.order));
-        if(shiftCue?.placement==='inside')g.append(sv('text',{x:x+2,y:y+4.5,'font-size':9,'font-weight':700,fill:style.textColor,class:'cello-shift-cue',role:'img','aria-label':shiftCue.description},shiftCue.symbol));
+        g.append(sv('circle',{cx:x,cy:y,r:15.5,fill:isOpen?'#f7f9f6':color,stroke:isOpen?color:style.extended?style.borderColor:'#ffffff','stroke-width':isOpen?3:style.extended?1.5:2,'stroke-dasharray':'none'}));
+        g.append(sv('text',{x:shiftCue?.placement==='inside'?x-3:x,y:y+4.5,'text-anchor':'middle','font-size':12,'font-weight':850,fill:isOpen?color:style.textColor,stroke:style.textStroke,'stroke-width':.9,'paint-order':'stroke'},isOpen?'0':shiftCue?.placement==='inside'?style.finger:n.order));
+        if(shiftCue?.placement==='inside')g.append(sv('text',{x:x+2,y:y+4.5,'font-size':9,'font-weight':700,fill:style.textColor,stroke:style.textStroke,'stroke-width':.8,'paint-order':'stroke',class:'cello-shift-cue',role:'img','aria-label':shiftCue.description},shiftCue.symbol));
         // Match the read-only chart: open-string points show only their number.
         if(!isOpen){
           g.append(sv('text',{x:x+20,y:y+1,'font-size':13,'font-weight':750,fill:'#263e2e'},n.name));
@@ -240,6 +242,7 @@
         noteStrip.append(b);
       }
       stage.replaceChildren(board());
+      const nextLegend=fb.makeLegend(stage);legend.replaceWith(nextLegend);legend=nextLegend;
       const n=selection();
       const p=placement(n);
       const selectedStyle=fb.pointStyling({semitones:p.semi,finger:p.f,anchor:p.anchor,shape:p.shape,technique:p.technique,group:p.group,positionLabel:p.positionLabel,displayExtended:p.displayExtended});

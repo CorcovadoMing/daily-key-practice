@@ -4,7 +4,7 @@ test('all13 chart anchors have precise names, sampled colors and accessible digi
  a.equal(F.CHART_POSITIONS.length,14);
  for(let anchor=1;anchor<=13;anchor++)for(const shape of['normal','extended','backwardExtended']){
   const style=F.pointStyling({semitones:anchor+1,finger:2,anchor,shape,group:'shifting'});a.equal(style.group,'position-'+anchor);a.equal(style.extended,shape!=='normal');a.ok(style.label.includes(F.CHART_POSITIONS[anchor][0]));a.doesNotMatch(style.label,/其他把位/);
-  const x=lum(F.POSITION_COLORS[style.group]),y=lum(style.textColor);a.ok((Math.max(x,y)+.05)/(Math.min(x,y)+.05)>=4.5);
+  a.equal(style.textColor,'#ffffff');const x=lum(style.textStroke==='none'?F.POSITION_COLORS[style.group]:style.textStroke),y=lum(style.textColor);a.ok((Math.max(x,y)+.05)/(Math.min(x,y)+.05)>=4.5);
  }
 });
 test('opens, edits, harmonics and unverified placements never inherit an ordinary chart position',()=>{

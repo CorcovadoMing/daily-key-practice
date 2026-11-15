@@ -149,22 +149,27 @@
       group=`position-${position.anchor}`;
       label=(extended?'擴增':'')+chart[0]+(extended&&position.shape==='backwardExtended'?'（向後擴增）':'');
     }else{group='unverified';label='把位尚未核對';}
-    return {finger:position.finger,group,label,extended,textColor:contrastInk(POSITION_COLORS[group])};
+    const borderColor=contrastInk(POSITION_COLORS[group]);
+    return {finger:position.finger,group,label,extended,borderColor,textColor:group==='open'?'#34483a':'#ffffff',
+      textStroke:group!=='open'&&borderColor==='#000000'?'#18251b':'none'};
   }
-  function makeLegend(){
+  function makeLegend(diagram=null){
+    const points=diagram?.querySelectorAll?.('[data-position-group]')||[];
+    const used=new Set([...points].map(p=>p.getAttribute('data-position-group')));
+    const hasExtension=[...points].some(p=>p.getAttribute('data-position-extended')==='true');
     const aside=element('aside',{class:'cello-fb-legend','aria-label':'把位顏色圖例'});
     aside.append(element('div',{class:'cello-legend-title'},'指板顏色圖例'));
     const entries=[['open','空弦（不屬把位）'],
       ...CHART_POSITIONS.flatMap((p,i)=>p?[[`position-${i}`,p[0]]]:[]),
-      ['extension-example','擴增：沿用基準把位色，另加虛線外框'],['harmonic','自然泛音（不屬一般把位）'],['custom','老師／學生修改（把位未核對）'],
+      ['extension-example','擴增：沿用基準把位色，細實線框'],['harmonic','自然泛音（不屬一般把位）'],['custom','老師／學生修改（把位未核對）'],
       ['unverified','把位尚未核對']];
-    for(const [group,label]of entries){
+    for(const [group,label]of entries.filter(([g])=>g==='extension-example'?hasExtension:used.has(g))){
       const item=element('div',{class:'cello-legend-item'});
       item.style.whiteSpace='normal';item.style.overflowWrap='anywhere';item.style.fontSize='11px';
       const marker=element('span',{class:'cello-legend-dot '+group});
-      marker.style.background=POSITION_COLORS[group]||POSITION_COLORS['position-2'];if(group==='extension-example'){marker.style.border='2px dashed '+contrastInk(POSITION_COLORS['position-2']);}item.append(marker,element('span',{},label));aside.append(item);
+      marker.style.background=POSITION_COLORS[group]||POSITION_COLORS['position-2'];if(group==='extension-example'){marker.style.border='1.5px solid '+contrastInk(POSITION_COLORS['position-2']);}item.append(marker,element('span',{},label));aside.append(item);
     }
-    return aside;
+    aside.hidden=used.size===0;return aside;
   }
   function chartSVG(mode,key,direction,octaves,annotations={},interaction=null,remoteDrafts=[],reverseStrings=false,arpeggio=false){
     const scale=scaleNotes(mode,key,direction,octaves);
@@ -296,23 +301,25 @@
         'aria-label':'選擇第'+note.order+'音 '+note.name+'，編輯同音高弦位及指號',
         'aria-pressed':String(interaction.selectedMidi===note.midi)
       }:{});
+      point.setAttribute('data-position-group',style.group);
+      point.setAttribute('data-position-extended',String(Boolean(style.extended)));
       point.append(svgNode('title',{},
         '第'+note.order+'音 '+note.name+'，'+note.position.stringName+'弦'+
         (isOpen?'，空弦':'，'+style.label+(explicit?'，第'+style.finger+'指':''))+
         (note.shiftCue?'；'+note.shiftCue.description:'')));
       point.append(svgNode('circle',{
         cx:x,cy:y,r:15.5,fill:isOpen?'#f7f9f6':color,
-        stroke:isOpen?color:style.extended?style.textColor:'#ffffff','stroke-width':isOpen?3:style.extended?3.3:2.1,'stroke-dasharray':style.extended?'3 2':'none'
+        stroke:isOpen?color:style.extended?style.borderColor:'#ffffff','stroke-width':isOpen?3:style.extended?1.5:2.1,'stroke-dasharray':'none'
       }));
       point.append(svgNode('text',{
         x:note.shiftCue?.placement==='inside'?x-3:x,y:y+4.5,'text-anchor':'middle','font-size':12.5,
-        'font-weight':800,fill:isOpen?color:style.textColor
+        'font-weight':800,fill:isOpen?color:style.textColor,stroke:style.textStroke,'stroke-width':.9,'paint-order':'stroke'
       },isOpen?'0':explicit?String(style.finger):'?'));
       if(note.shiftCue){
         const below=note.shiftCue.placement==='below',inside=note.shiftCue.placement==='inside';
         point.append(svgNode('text',{x:below?x:inside?x+2:x+7,y:below?y+29:y+4.5,
           'text-anchor':below?'middle':'start','font-size':9,'font-weight':700,
-          fill:inside?style.textColor:'#273c2e',class:'cello-shift-cue',role:'img','aria-label':note.shiftCue.description,
+          fill:inside?style.textColor:'#273c2e',stroke:inside?style.textStroke:'none','stroke-width':.8,'paint-order':'stroke',class:'cello-shift-cue',role:'img','aria-label':note.shiftCue.description,
           'data-shift-to':note.shiftCue.toMidi},note.shiftCue.symbol));
       }
       if(!isOpen){
@@ -546,7 +553,7 @@
       if(!saveAllowed()){
         const bad=invalidNotes();
         const warning=panels[edit.dir].hint;
-        warning.textContent=bad.length?
+        warning.hidden=false;warning.textContent=bad.length?
           '仍有 '+bad.length+' 個音未設定有效指號；請選擇指號後儲存。':
           '這次修改超過可儲存的長度，請減少修改。';
         if(bad.length)edit.midi=Number(bad[0][0]);
@@ -710,8 +717,8 @@
         'aria-label':(dir==='up'?'上行':'下行')+'批次編輯音符'});
       editor.hidden=true;
       const status=element('div',{class:'cello-inline-status'});
-      const hint=element('p',{class:'cello-inline-hint'},
-        '可以連續修改多個音符，最後一次確認；點空白處可選擇儲存或放棄。');
+      const hint=element('p',{class:'cello-inline-warning',role:'alert'});hint.hidden=true;
+      editor.setAttribute('aria-description','可以連續修改多個音符，最後一次確認；點空白處可選擇儲存或放棄。');
       const range=element('button',{type:'button',class:'cello-inline-range',
         'aria-pressed':'false'},'顯示更多把位');
       const stringChoices=element('div',{class:'cello-inline-choices'});
@@ -739,36 +746,42 @@
       section.hidden=mode==='major'&&dir==='down';
       boards.append(section);
       panels[dir]={heading,viewport,editor,status,hint,stringChoices,
-        fingerChoices,range,back,restoreSelected,reset,save,memo};
+        fingerChoices,range,back,restoreSelected,reset,save,memo,legend,section};
     }
     const scoreSection=element('section',{class:'score-section'});
     scoreSection.append(element('h3',{class:'music-section-title'},'音階 · 兩個八度'),makeScore(mode,key));
     const boardSection=element('section',{class:'fingerboard-section'});
     boardSection.append(element('h3',{class:'music-section-title'},'指板 · 指法'),
-      element('p',{class:'caption'},'移動優先指法（非 Werner 原譜）：換弦、換把、擴增開合都算移動，同一步同時發生算一次。無特別音域、接音或擴增等理由時優先第一把位。相鄰弦能維持同一一般把位的 0124 時，優先保留一般手型，不為少一次換把而硬用擴增。一般相鄰指距半音，同弦同把位只要用到擴增，整段按弦音一併標色；空弦不屬任何把位，永遠保持白色 0。把位依一般手型的第一指基準命名；向後擴增由第一指伸向低半音，其他指保留原位。指向音點可查看確切把位。已儲存修改優先保留。'),toolbar,boards);
+      toolbar,boards);
     const arpeggioSection=element('section',{class:'arpeggio-section fingerboard-section'});
     const arpeggioBoards=element('div',{class:'cello-fb-two-up'});
-    const arpeggioViews={};
+    const arpeggioViews={},arpeggioLegends={};
     arpeggioSection.append(element('h3',{class:'music-section-title'},'琶音 · 兩個八度'),
       makeScore(mode,key,true),arpeggioBoards);
     for(const dir of ['up']){
       const section=element('section',{class:'cello-fb-direction'});
       const viewport=element('div',{class:'cello-fb-viewport'});
-      section.append(element('h4',{class:'cello-fb-direction-heading'},'上下行相同'),viewport);
+      arpeggioLegends[dir]=makeLegend();
+      section.append(element('h4',{class:'cello-fb-direction-heading'},'上下行相同'),viewport,arpeggioLegends[dir]);
       arpeggioViews[dir]=viewport;arpeggioBoards.append(section);
     }
-    arpeggioSection.append(element('p',{class:'caption'},'琶音採獨立移動優先預設，下行原路反向。音階上行已儲存的個別修改仍優先套用於相同音高，並以粉紅色標示；自訂路線不保證最少換把。'));
+
     root.append(scoreSection,boardSection,arpeggioSection,dialog);
 
     function renderDirection(dir){
       const pane=panels[dir],editing=edit.dir===dir;
+      const asymmetric=mode==='major'&&['A','E'].includes(key[0])&&(choices.get(id)||2)===2;
+      pane.section.hidden=mode==='major'&&dir==='down'&&!asymmetric;
+      pane.viewport.setAttribute('aria-label',mode==='major'&&!asymmetric?'音階指板，上下行相同':dir==='up'?'上行音階':'下行音階'+(asymmetric?'，唯讀，沿用已儲存的共用自訂指法':''));
+      pane.section.setAttribute('aria-label',pane.viewport.getAttribute('aria-label'));
       if(arpeggioViews[dir]){
         const arp=chartSVG(mode,key,dir,2,annotations,null,[],stringOrder==='ADGC',true);
         arp.setAttribute('aria-label',key[0]+(mode==='major'?'大調':'小調')+'琶音，兩個八度上下行相同指法，下行反向演奏');
         arpeggioViews[dir].replaceChildren(arp);
+        const legend=makeLegend(arp);arpeggioLegends[dir].replaceWith(legend);arpeggioLegends[dir]=legend;
       }
-      const saved=decodeMap(annotations[dir+'Map']);
-      if(mode==='major'&&dir==='up')pane.heading.textContent='上下行相同';
+      const saved=decodeMap(annotations[(mode==='major'?'up':dir)+'Map']);
+      if(mode==='major'&&!asymmetric&&dir==='up')pane.heading.textContent='上下行相同';
       else pane.heading.innerHTML=(dir==='up'?'<svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 19V5m-6 6 6-6 6 6"/></svg> 上行':'<svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14m-6-6 6 6 6-6"/></svg> 下行');
       if(remoteDrafts.some(remote=>remote.direction===dir)){
         pane.heading.append(element('span',{class:'cello-fb-remote-label'},'（其他人編輯中）'));
@@ -782,13 +795,14 @@
         annotations[dir+'Map']||'';
       pane.viewport.replaceChildren(chartSVG(mode,key,dir,choices.get(id)||2,
         {...annotations,[dir+'Map']:value},
-        typeof onSave==='function'?{
+        typeof onSave==='function'&&!(asymmetric&&dir==='down')?{
           selectedMidi:editing?edit.midi:null,
           originalMap:editing?JSON.stringify(edit.original):null,
           confirmedMap:annotations[dir+'Map']||'',
           select:midi=>begin(dir,midi),
           chooseString:s=>chooseString(s),showMore:editing&&edit.showMore
         }:null,remoteDrafts,stringOrder==='ADGC'));
+      const legend=makeLegend(pane.viewport);pane.legend.replaceWith(legend);pane.legend=legend;
       pane.editor.hidden=!editing;
       if(!editing)return;
       const count=Object.keys(edit.pending).length;
@@ -799,7 +813,8 @@
         (invalid?' · '+invalid+' 個音待設定指號':'');
       pane.hint.textContent=invalid?
         '請先為未設定指號的音選擇 1～4 指，再確認整批修改。':
-        '可連續改多個音；上一步只撤銷最後一個操作。';
+        '';
+      pane.hint.hidden=!invalid;
       pane.range.textContent=edit.showMore?'收起高把位':'顯示更多把位';
       pane.range.setAttribute('aria-pressed',String(edit.showMore));
       pane.back.disabled=edit.undo.length===0;

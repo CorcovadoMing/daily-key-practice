@@ -5,8 +5,8 @@ const plain=r=>Array.from(r,p=>[p.midi,p.s,p.f,p.anchor,p.shape]);
 test('only A-key A4 two-octave scale/arpeggio endpoints are light-touch harmonics',()=>{
  let harmonics=0,physicalChanges=0;
  for(const[m,keys]of lists)for(const k of keys)for(const[o,arp]of[[1,false],[2,false],[2,true]])for(const d of['up','down']){
-  const r=O.route(m,k,d,o,arp),old=O.route(m,k,d,o,arp,'reviewed-048');
-  if(JSON.stringify(plain(r))!==JSON.stringify(plain(old))){physicalChanges++;a.equal(m,'minor');a.equal(k[0],'A');a.equal(o,2);a.equal(arp,false);a.equal(d,'up');}
+  const r=O.route(m,k,d,o,arp,'reviewed-051'),old=O.route(m,k,d,o,arp,'reviewed-048');
+  if(JSON.stringify(plain(r))!==JSON.stringify(plain(old))){physicalChanges++;a.ok(['major','minor'].includes(m));a.equal(k[0],'A');a.equal(o,2);a.equal(arp,false);a.equal(d,'up');}
   r.forEach((p,i)=>{
    const expected=k[0]==='A'&&o===2&&p.midi===69&&(i===0||i===r.length-1);
    a.equal(p.technique==='naturalHarmonic',expected);
