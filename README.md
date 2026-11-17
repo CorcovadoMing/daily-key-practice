@@ -76,3 +76,9 @@
 只針對F♯小調兩八度音階採用已存在的最少移動候選：上行C／G／D／A弦3／3／3／6音（不計頂點則3／3／3／5），下行低G♯2回C弦。每方向事件5→4，但模型手位基準變更較多，非所有指標都變少；另依確認修改F♯小調琶音：D弦同把位1／4，A弦高音1／4間明示必須「換把半音」。一八度音階及其它調性不動。
 
 [047逐音路線與取捨](qa/fingering-047.md)，可用 `node qa/fingering-047.cjs` 重算。
+
+### 20261118-001 已確認四調指法
+
+依語音逐調確認更新 F／降 B／降 E 大調與升 F 小調的兩八度預設，音階和琶音分開套用，保留自訂指法優先及其他調性。包含降 E 音階 B♭3 移至 D 弦、升 F 小調琶音 C♯4 移至 D 弦，指號皆對應實際音高與手型。[修改清單與驗證範圍](qa/fingering-20261118-001.md)。目前只完成這批，並非宣稱 24 調已全部實奏驗收。
+
+The same experimental release modestly increases iOS Safari metronome peak from 0.65 to 0.85 (about +2.3 dB), retaining the volume slider, silence, accents and both audio engines. Other platforms keep existing gain. Synthetic audio checks do not replace on-device listening validation.

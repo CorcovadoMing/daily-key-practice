@@ -3,7 +3,7 @@ const c={window:{}};vm.createContext(c);for(const f of['fingerboard.js','fingeri
 const O=c.window.CelloFingeringOptimizer,h=fs.readFileSync('index.html','utf8'),lists=[['major','MAJOR_KEYS'],['minor','MINOR_KEYS']].map(([m,n])=>[m,vm.runInNewContext(h.match(new RegExp('const '+n+' = (\\[[\\s\\S]*?\\n    \\]);'))[1])]);
 const key=lists[1][1].find(k=>k[0]==='F♯'),plain=r=>Array.from(r,p=>[p.midi,p.s,p.f,p.anchor,p.shape]);
 test('reviewed ascending12124 closes extension at the exact shared apex',()=>{
- const up=O.route('minor',key,'up',2),down=O.route('minor',key,'down',2);
+ const up=O.route('minor',key,'up',2,false,'reviewed-048'),down=O.route('minor',key,'down',2,false,'reviewed-048');
  a.equal(Array.from(up.slice(9),p=>p.f).join(''),'012124');
  a.deepEqual(plain(up).slice(12),[[63,3,1,6,'extended'],[65,3,2,6,'extended'],[66,3,4,6,'normal']]);
  a.deepEqual(plain(down).slice(0,2),[[66,3,4,6,'normal'],[64,3,2,6,'normal']]);
@@ -16,7 +16,7 @@ test('reviewed ascending12124 closes extension at the exact shared apex',()=>{
 });
 test('12124 adds a separate closing event, not a longitudinal shift',()=>{
  for(const[d,expected]of[['up',[5,11,4,8]],['down',[4,7,2,7]]]){
-  const m=O.movementMetrics(O.route('minor',key,d,2));a.deepEqual([m.events,m.components,m.anchorShifts,m.travel],expected);
+  const m=O.movementMetrics(O.route('minor',key,d,2,false,'reviewed-048'));a.deepEqual([m.events,m.components,m.anchorShifts,m.travel],expected);
  }
 });
 test('reviewed048 scope keeps130 other directions and exact047 reference',()=>{

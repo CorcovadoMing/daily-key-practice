@@ -42,7 +42,7 @@ test('all140 unrelated physical routes and the complete046/raw comparators remai
 });
 
 test('F-sharp arpeggio preserves lower three and retains exact shift geometry with clarified non-semitone wording',()=>{
- const up=O.route('minor',key,'up',2,true),down=O.route('minor',key,'down',2,true),old=O.route('minor',key,'up',2,true,'reviewed-046');
+ const up=O.route('minor',key,'up',2,true,'reviewed-058'),down=O.route('minor',key,'down',2,true,'reviewed-058'),old=O.route('minor',key,'up',2,true,'reviewed-046');
  a.deepEqual(plain(up).slice(0,3),plain(old).slice(0,3));
  a.equal(Array.from(up,p=>p.s).join(''),'0112233');a.equal(Array.from(up,p=>p.f).join(''),'4141414');
  a.deepEqual(Array.from(up,p=>p.anchor),[2,2,2,4,4,4,5]);

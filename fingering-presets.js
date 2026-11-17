@@ -476,9 +476,9 @@ function reviewedMajor048(key,octaves,arpeggio,up){
   return result;
 }
 function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
-  if(!['preferred','reviewed-055','reviewed-054','reviewed-053','reviewed-052','reviewed-051','reviewed-048','reviewed-047','reviewed-046','reviewed-045','minimum-shifts','minimum-movements','first-family'].includes(policy))
+  if(!['preferred','reviewed-058','reviewed-055','reviewed-054','reviewed-053','reviewed-052','reviewed-051','reviewed-048','reviewed-047','reviewed-046','reviewed-045','minimum-shifts','minimum-movements','first-family'].includes(policy))
     throw Error('Unknown route policy');
-  const reviewed055=policy==='preferred'||policy==='reviewed-055';
+  const reviewed055=policy==='preferred'||policy==='reviewed-058'||policy==='reviewed-055';
   const reviewed054=reviewed055||policy==='reviewed-054';
   const reviewed053=reviewed054||policy==='reviewed-053';
   const reviewed052=reviewed053||policy==='reviewed-052';
@@ -760,7 +760,7 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
     }
     // 056: owner's latest A-minor arpeggio A-string0143 supersedes the
     // earlier scale-derived0213; only C4/E4 change to one extended frame3.
-    if(policy==='preferred'&&mode==='minor'&&key[0]==='A'&&arpeggio){
+    if(['preferred','reviewed-058'].includes(policy)&&mode==='minor'&&key[0]==='A'&&arpeggio){
       up=up.map(p=>{
         if(![60,64].includes(p.midi))return p;
         const found=candidates(p.midi,{s:3,f:p.midi===60?1:4},['extended']).find(q=>q.anchor===3);
@@ -768,6 +768,43 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
         return {...found,source:'reviewed-a-minor-arpeggio0143-056-v1'};
       });
       down=[...up].reverse().map(p=>({...p}));
+    }
+    // 059: owner's spoken review of these four two-octave routes only.
+    // Fingerboard sequences are specified low-to-high, including descent.
+    // Resolve physical contact frames, never relabel a finger at a wrong pitch.
+    if(policy==='preferred'&&octaves===2){
+      const place=(p,s,f,anchor,shape='normal')=>{
+        const found=candidates(p.midi,{s,f},[shape]).find(q=>q.anchor===anchor);
+        if(!found)throw Error('Invalid voice-reviewed059 placement: '+key[0]+'/'+p.midi);
+        return {...found,source:'owner-voice-review-059-v1'};
+      };
+      if(mode==='major'&&arpeggio&&['F','E♭'].includes(key[0])){
+        up[up.length-1]=place(up.at(-1),3,2,key[0]==='F'?7:5);
+        down=[...up].reverse().map(p=>({...p}));
+      }
+      if(mode==='major'&&key[0]==='B♭'){
+        const spec=arpeggio?{58:[1,2,'backwardExtended'],62:[1,5],65:[4,5],70:[3,11]}:
+          {63:[1,6,'extended'],65:[2,6,'extended'],67:[1,10,'extended'],69:[2,10,'extended'],70:[3,10,'extended']};
+        up=up.map(p=>spec[p.midi]?place(p,3,...spec[p.midi]):p);
+        down=[...up].reverse().map(p=>({...p}));
+      }
+      if(mode==='major'&&key[0]==='E♭'&&!arpeggio){
+        const spec={55:[2,1,5],56:[2,2,5],58:[2,4,5],60:[3,1,3],62:[3,3,3],63:[3,4,3]};
+        up=up.map(p=>spec[p.midi]?place(p,...spec[p.midi]):p);
+        down=[...up].reverse().map(p=>({...p}));
+      }
+      if(mode==='minor'&&key[0]==='F♯'){
+        if(arpeggio){
+          const spec={54:[2,2,3],57:[2,1,7,'extended'],61:[2,4,7,'extended'],66:[3,2,8]};
+          up=up.map(p=>spec[p.midi]?place(p,...spec[p.midi]):p);
+          down=[...up].reverse().map(p=>({...p}));
+        }else{
+          const ascent={59:[3,1,2],61:[3,3,2],63:[3,1,6],65:[3,3,6],66:[3,4,6]};
+          const descent={62:[3,1,5,'extended'],64:[3,2,5,'extended'],66:[3,4,6],42:[0,1,6],44:[0,3,6]};
+          up=up.map(p=>ascent[p.midi]?place(p,...ascent[p.midi]):p);
+          down=down.map(p=>descent[p.midi]?place(p,...descent[p.midi]):p);
+        }
+      }
     }
     if(motion){
       const source=policy==='first-family'?'computed-first-family-comparison-v1':'computed-movement-events-v1';

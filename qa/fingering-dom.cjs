@@ -65,13 +65,12 @@ for(const map of [{56:{s:2,f:3}},{55:{s:2,f:3}}]){
 for(const [dir,oct,arp] of [['up',2,false],['down',1,false],['down',2,true]])
  a.equal(F.chartSVG('minor',cm,dir,oct,{},null,[],false,arp).querySelectorAll('.cello-shift-cue').length,0);
 const fsharp=['F♯',3,'F♯ G♯ A B C♯ D♯ E♯ F♯','F♯ G♯ A B C♯ D E F♯'];
+// The reviewed arpeggio moves C-sharp to D; the old A-string cue is stale.
 for(const dir of ['up','down']){
- const chart=F.chartSVG('minor',fsharp,dir,2,{},null,[],false,true),cue=chart.querySelector('.cello-shift-cue');
- a.equal(chart.querySelectorAll('.cello-shift-cue').length,1);a.equal(cue.textContent,'換把');
- a.match(cue.getAttribute('aria-label'),dir==='up'?/向琴橋/:/向弦枕/);
- a.match(cue.getAttribute('aria-label'),/不在同一固定擴增/);a.doesNotMatch(cue.parentElement.textContent,/半音/);a.doesNotMatch(cue.getAttribute('aria-label'),/半音/);
- const changed=F.chartSVG('minor',fsharp,dir,2,{upMap:JSON.stringify({66:{s:3,f:3}})},null,[],false,true);
- a.equal(changed.querySelectorAll('.cello-shift-cue').length,0);
+ const chart=F.chartSVG('minor',fsharp,dir,2,{},null,[],false,true);
+ a.equal(chart.querySelectorAll('.cello-shift-cue').length,0);
+ const expected=O.route('minor',fsharp,dir,2,true);
+ markers(chart).forEach((p,i)=>a.equal(p.querySelector('text').textContent,String(expected[i].f)));
 }
 // Legacy fallback retains symmetric arpeggios too, without optimizer loaded.
 const optimizer=w.CelloFingeringOptimizer;delete w.CelloFingeringOptimizer;
@@ -79,11 +78,16 @@ const minor=['E',1,'E F♯ G A B C♯ D♯ E','E F♯ G A B C D E'];
 a.deepEqual(labels(F.chartSVG('minor',minor,'down',2,{},null,[],false,true)),labels(F.chartSVG('minor',minor,'up',2,{},null,[],false,true)).reverse());
 w.CelloFingeringOptimizer=optimizer;
 console.log(`PASS ${cases} rendered scale/arp/octave/string-order cases, custom symmetry, extension segment/open coloring, safe teacher major editing and fallback.`);
-// Reviewed12124: only the preceding D-sharp/E-sharp segment retains extension border.
+// Owner-reviewed normal134 ascent, and natural descent124 at its own frame.
 const fsUp=markers(F.chartSVG('minor',fsharp,'up',2)),fsDown=markers(F.chartSVG('minor',fsharp,'down',2));
-for(const i of[12,13])a.equal(fsUp[i].querySelector('circle').getAttribute('stroke-width'),'1.5');
-for(const p of[fsUp[14],fsDown[0],fsDown[1]]){
- a.equal(p.querySelector('circle').getAttribute('stroke-dasharray'),'none');a.doesNotMatch(p.querySelector('title').textContent,/擴增/);
+for(const i of[12,13,14])a.doesNotMatch(fsUp[i].querySelector('title').textContent,/擴增/);
+a.doesNotMatch(fsDown[0].querySelector('title').textContent,/擴增/);
+for(const i of[1,2])a.match(fsDown[i].querySelector('title').textContent,/擴增/);
+for(const [m,k]of [['major',['F',-1,'F G A B♭ C D E F']],['major',['B♭',-2,'B♭ C D E♭ F G A B♭']],['major',['E♭',-3,'E♭ F G A♭ B♭ C D E♭']],['minor',fsharp]]){
+ for(const dir of['up','down'])for(const arp of[false,true]){
+  const chart=F.chartSVG(m,k,dir,2,{},null,[],false,arp),expected=O.route(m,k,dir,2,arp);
+  markers(chart).forEach((p,i)=>a.equal(p.querySelector('text').textContent,String(expected[i].f)));
+ }
 }
 const fsTeacher=F.createEditor('minor',fsharp).element.querySelectorAll('.teacher-note-marker');
 a.equal(fsTeacher[14].querySelector('circle').getAttribute('stroke-dasharray'),'none');

@@ -3,9 +3,47 @@ const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
 function processor(rate=48000){let P;const messages=[];const c={sampleRate:rate,currentTime:0,AudioWorkletProcessor:class{constructor(){this.port={postMessage:m=>messages.push({...m,time:c.currentTime})};}},registerProcessor:(n,p)=>P=p};vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../metronome-worklet.js'),'utf8'),c);const p=new P();return {p,c,messages,send:d=>p.port.onmessage({data:d}),render(seconds){let peak=0;for(let i=0;i<seconds*rate/128;i++){let out=new Float32Array(128);p.process([],[[out]]);peak=Math.max(peak,...out.map(Math.abs));c.currentTime+=128/rate;}return peak;}};}
 for(const rate of [44100,48000])test(`B audio timing, accent, gain and stop at ${rate}`,()=>{const x=processor(rate);x.send({type:'start',settings:{bpm:120,count:3,accent:2,volume:100}});const peak=x.render(1.1);assert.ok(peak>.60&&peak<=.65);assert.deepEqual(x.messages.map(m=>m.beat),[1,2,3]);assert.ok(Math.abs(x.messages[1].time-x.messages[0].time-.5)<.004);assert.equal(x.p.frequency,850);x.send({type:'stop'});assert.equal(x.render(.8),0);assert.equal(x.messages.length,3);});
 test('B settings changes, silence, restart and no missed-beat burst',()=>{const x=processor();x.send({type:'start'});x.render(.1);x.send({type:'configure',settings:{bpm:240,volume:0,count:2,accent:2},resetBeat:true});assert.equal(x.render(1.5),0);assert.ok(x.messages.slice(-3).every(m=>m.count===2));x.c.currentTime+=20;const count=x.messages.length;x.render(.002);assert.equal(x.messages.length,count+1);x.send({type:'stop'});x.send({type:'start',settings:{volume:100}});x.render(.1);assert.equal(x.messages.at(-1).beat,1);});
-function controller({unsupported=false,reject=false,delayed=false}={}){const elements={};const defaults={'metro-bpm':80,'metro-beats':4,'metro-accent':1,'metro-volume':100};const $=id=>elements[id]??=( {value:defaults[id],textContent:'',setAttribute(){},addEventListener(){},replaceChildren(){}} );let intervals=0,nodes=[];let resolveModule;const modulePromise=delayed?new Promise(r=>resolveModule=r):reject?Promise.reject(new Error('missing')):Promise.resolve();class Context{constructor(){this.state='running';this.currentTime=0;this.destination={};this.audioWorklet=unsupported?null:{addModule:()=>modulePromise};}resume(){return Promise.resolve();}addEventListener(){}createOscillator(){return {frequency:{},connect(){},disconnect(){},start(){},stop(){}};}createGain(){return {gain:{setValueAtTime(){},linearRampToValueAtTime(){},exponentialRampToValueAtTime(){}},connect(){}};}}class Node{constructor(){this.messages=[];this.port={postMessage:m=>this.messages.push(m),close:()=>this.closed=true};nodes.push(this);}connect(){this.connected=true;}disconnect(){this.connected=false;}}
-const c={window:{AudioContext:Context,AudioWorkletNode:Node},AudioWorkletNode:Node,$,setInterval:()=>{intervals++;return 1;},clearInterval:id=>{if(id)intervals=0;},setTimeout:()=>1,clearTimeout(){},document:{createElement:()=>({})}};vm.runInNewContext(html.slice(html.indexOf('  const Context = window.AudioContext'),html.indexOf('  let tunerContext'))+';globalThis.api={startMetro,stopMetro};',c);return {...c,$,nodes,resolveModule,intervals:()=>intervals};}
+function controller({unsupported=false,reject=false,delayed=false,device={}}={}){const elements={};const defaults={'metro-bpm':80,'metro-beats':4,'metro-accent':1,'metro-volume':100};const $=id=>elements[id]??=( {value:defaults[id],textContent:'',setAttribute(){},addEventListener(){},replaceChildren(){}} );let intervals=0,nodes=[],ramps=[],frequencies=[];let resolveModule;const modulePromise=delayed?new Promise(r=>resolveModule=r):reject?Promise.reject(new Error('missing')):Promise.resolve();class Context{constructor(){this.state='running';this.currentTime=0;this.destination={};this.audioWorklet=unsupported?null:{addModule:()=>modulePromise};}resume(){return Promise.resolve();}addEventListener(){}createOscillator(){return {frequency:{},connect(){},disconnect(){},start(time){frequencies.push({value:this.frequency.value,time});},stop(){}};}createGain(){return {gain:{setValueAtTime(){},linearRampToValueAtTime(value,time){ramps.push({value,time});},exponentialRampToValueAtTime(){}},connect(){}};}}class Node{constructor(){this.messages=[];this.port={postMessage:m=>this.messages.push(m),close:()=>this.closed=true};nodes.push(this);}connect(){this.connected=true;}disconnect(){this.connected=false;}}
+const c={window:{navigator:device,AudioContext:Context,AudioWorkletNode:Node},AudioWorkletNode:Node,$,setInterval:()=>{intervals++;return 1;},clearInterval:id=>{if(id)intervals=0;},setTimeout:()=>1,clearTimeout(){},document:{createElement:()=>({})}};vm.runInNewContext(html.slice(html.indexOf('  const Context = window.AudioContext'),html.indexOf('  let tunerContext'))+';globalThis.api={startMetro,stopMetro};',c);return {...c,$,nodes,ramps,frequencies,resolveModule,intervals:()=>intervals};}
 test('AudioWorklet is default with no user-facing A/B selector; stops and restarts alone',async()=>{assert.doesNotMatch(html,/id="metro-engine"/);const x=controller();await x.api.startMetro();assert.equal(x.intervals(),0);assert.equal(x.nodes[0].connected,true);x.api.stopMetro();assert.equal(x.nodes[0].connected,false);assert.equal(x.intervals(),0);await x.api.startMetro();assert.equal(x.nodes[1].connected,true);assert.equal(x.intervals(),0);});
 for(const mode of ['unsupported','reject'])test(`AudioWorklet ${mode} uses internal fallback with honest message`,async()=>{const x=controller({[mode]:true});await x.api.startMetro();assert.equal(x.intervals(),1);assert.match(x.$('metro-status').textContent,/相容節拍模式/);x.api.stopMetro();assert.equal(x.intervals(),0);await x.api.startMetro();assert.equal(x.intervals(),1);assert.match(x.$('metro-status').textContent,/相容節拍模式/);});
 test('cancel during module loading cannot start late audio',async()=>{const x=controller({delayed:true});const started=x.api.startMetro();await Promise.resolve();x.api.stopMetro();x.resolveModule();await started;assert.equal(x.intervals(),0);assert.ok(x.nodes.every(n=>!n.connected));});
 test('B live BPM/volume changes forward settings, processor error stops cleanly',async()=>{const x=controller();await x.api.startMetro();x.$('metro-bpm').value=150;x.$('metro-bpm').onchange();assert.equal(x.nodes[0].messages.at(-1).settings.bpm,150);x.nodes[0].onprocessorerror();assert.equal(x.nodes[0].connected,false);assert.equal(x.intervals(),0);assert.match(x.$('metro-status').textContent,/再次按開始/);await x.api.startMetro();assert.equal(x.intervals(),1);assert.equal(x.nodes.length,1);assert.match(x.$('metro-status').textContent,/相容節拍模式/);});
+
+const iphone = {userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1'};
+const ipad = {userAgent:'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) AppleWebKit/605.1.15 Version/18.0 Safari/605.1.15', platform:'MacIntel',maxTouchPoints:5};
+for (const [name,device,level] of [
+ ['iPhone Safari',iphone,.85],['iPad desktop Safari',ipad,.85],
+ ['iPad mobile Safari',{userAgent:iphone.userAgent.replace('iPhone','iPad')},.85],
+ ['Mac Safari',{...ipad,maxTouchPoints:0},.65],
+ ['Android',{userAgent:'Android Chrome/130 Safari/537.36'},.65],
+ ['iPhone Chrome',{userAgent:iphone.userAgent+' CriOS/130'},.65],
+ ['iPhone Firefox',{userAgent:iphone.userAgent+' FxiOS/130'},.65],
+ ['unknown',{},.65]
+]) test(`${name}: Worklet and fallback share peak, slider, mute and accent`,async()=>{
+ const primary=controller({device});await primary.api.startMetro();
+ assert.equal(primary.nodes[0].messages.at(-1).settings.peakLevel,level);
+ for(const volume of [0,25,50,100]) {
+  const fallback=controller({device,unsupported:true});fallback.$('metro-volume').value=volume;
+  await fallback.api.startMetro();
+  assert.equal(fallback.ramps.length,volume?1:0);
+  if(volume){assert.equal(fallback.ramps[0].value,level*volume/100);assert.equal(fallback.frequencies[0].value,1200);}
+  const w=processor();w.send({type:'start',settings:{...primary.nodes[0].messages.at(-1).settings,volume}});
+  const peak=w.render(.11);assert.ok(peak<=level*volume/100+1e-7);assert.ok(peak>=level*volume/100*.95);
+  assert.equal(w.p.peak,level*volume/100);assert.equal(w.p.frequency,1200);
+ }
+});
+for(const rate of [44100,48000])test(`iOS generated audio bounded, clocks unchanged at ${rate}`,()=>{
+ for(const bpm of [30,80,240])for(const volume of [0,25,50,100]) {
+  const base=processor(rate),ios=processor(rate);
+  for(const [x,peakLevel] of [[base,.65],[ios,.85]])x.send({type:'start',settings:{bpm,count:4,accent:2,volume,peakLevel}});
+  const b=base.render(2.2),i=ios.render(2.2);
+  assert.deepEqual(ios.messages,base.messages);assert.equal(ios.p.frequency,base.p.frequency);
+  assert.ok(Number.isFinite(i)&&i<1);assert.ok(i<=.85*volume/100+1e-7);
+  if(volume)assert.ok(i>b*1.2);else assert.equal(i,0);
+ }
+});
+test('audio asset cache bust and malformed peak clamping',()=>{
+ assert.match(html,/metronome-worklet\.js\?v=20261118-001/);
+ for(const peakLevel of [4,Infinity,NaN,-1]) {const x=processor();x.send({type:'start',settings:{volume:200,peakLevel}});const peak=x.render(.2);assert.ok(Number.isFinite(peak)&&peak<=.85);}
+});
