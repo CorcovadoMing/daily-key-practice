@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261118-009-experimental">
+  <meta name="site-version" content="20261118-010-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -635,7 +635,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261118-009-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261118-010-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -660,8 +660,8 @@
 
 
 
-  <script src="fingering-presets.js?v=20261118-009"></script>
-  <script src="fingerboard.js?v=20261118-007"></script>
+  <script src="fingering-presets.js?v=20261118-010"></script>
+  <script src="fingerboard.js?v=20261118-010"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
@@ -710,7 +710,7 @@
     let replaySession=null; // Temporary rehearsal: never added to personal history.
     let expandedOverride=undefined,renderedSessionKey=null;
     const boardInstances=new Map(),cardInstances=new Map();
-    let roomEditingPreviews={};
+    let roomEditingPreviews={},roomArpeggioPreviews={};
     // Confirmed classroom fingering changes also become personal local edits
     // on every connected participant's browser, including the student's.
     function inheritConfirmedFingerings(roomId,roomData){
@@ -747,6 +747,40 @@
       state.roomFingeringSnapshots=seen;
       if(changed||!prior||!Object.keys(prior).length)persist();
     }
+    function inheritConfirmedArpeggioFingerings(roomId,roomData){
+      if(!roomId||!roomData)return;
+      const stamp=String(roomData.createdAt||'legacy');
+      const identity=roomId+':'+stamp;
+      const incoming=roomData.arpeggioFingerings&&typeof roomData.arpeggioFingerings==='object'?roomData.arpeggioFingerings:{};
+      const seen=state.roomArpeggioSnapshots||{};
+      const prior=seen[identity]||{};
+      let changed=false;
+      for(const key of new Set([...Object.keys(prior),...Object.keys(incoming)])){
+        if(!/^(major|minor)-(?:[0-9]|10|11)$/.test(key))continue;
+        const local={...(state.arpeggioFingerings[key]||{})};
+        let updated=false;
+        for(const field of ['upMap']){
+          const old=typeof prior[key]?.[field]==='string'?prior[key][field]:'';
+          const next=typeof incoming[key]?.[field]==='string'?incoming[key][field]:'';
+          if(old===next)continue;
+          const merged=field.endsWith('Map')?
+            mergeFingeringMap(local[field]||'',old,next,false):next;
+          if(merged)local[field]=merged;
+          else delete local[field];
+          updated=true;
+        }
+        if(!updated)continue;
+        if(Object.keys(local).length)state.arpeggioFingerings[key]=local;
+        else delete state.arpeggioFingerings[key];
+        changed=true;
+      }
+      seen[identity]=JSON.parse(JSON.stringify(incoming));
+      // Bound retained per-room snapshots; old rooms are only 24 hours long.
+      const keys=Object.keys(seen);
+      if(keys.length>32)for(const key of keys.slice(0,keys.length-32))delete seen[key];
+      state.roomArpeggioSnapshots=seen;
+      if(changed||!prior||!Object.keys(prior).length)persist();
+    }
     function roomLayoutSignature(room){
       if(!room)return '';
       const se=room.session;
@@ -764,6 +798,18 @@
       }
       for(const [key,board]of boardInstances)
         board.setRemoteDrafts(roomEditingPreviews[key]||[]);
+    }
+    function setClassroomArpeggioDrafts(id,records){
+      if(!sharedRoom||sharedRoom.id!==id)return;
+      roomArpeggioPreviews={};
+      for(const record of Object.values(records||{})){
+        if(!record||!/^(major|minor)-(?:[0-9]|10|11)$/.test(record.keyId)||
+          record.direction!=='up')continue;
+        if(!roomArpeggioPreviews[record.keyId])roomArpeggioPreviews[record.keyId]=[];
+        roomArpeggioPreviews[record.keyId].push(record);
+      }
+      for(const [key,board]of boardInstances)
+        board.setRemoteArpeggioDrafts(roomArpeggioPreviews[key]||[]);
     }
     let currentDate = getLocalDate();
     let toastTimer;
@@ -930,16 +976,17 @@
     }
     function setClassroomRoom(id,data){
       const previous=sharedRoom;
-      if(previous?.id!==id){roomEditingPreviews={};replaySession=null;}
-      if(id)inheritConfirmedFingerings(id,data);
+      if(previous?.id!==id){roomEditingPreviews={};roomArpeggioPreviews={};replaySession=null;}
+      if(id){inheritConfirmedFingerings(id,data);inheritConfirmedArpeggioFingerings(id,data);}
       const historyChanged=id?archiveClassroomSession(id,data):false;
-      if(!id){sharedRoom=null;roomEditingPreviews={};}
-      else sharedRoom={id,majorCount:clamp(data?.majorCount??2),minorCount:clamp(data?.minorCount??2),showScale:Boolean(data?.showScale),excludedKeys:Array.isArray(data?.excludedKeys)?data.excludedKeys:[],fingerings:data?.fingerings&&typeof data.fingerings==='object'?data.fingerings:{},session:data?.session?{...data.session,majorIds:Array.isArray(data.session.majorIds)?data.session.majorIds:[],minorIds:Array.isArray(data.session.minorIds)?data.session.minorIds:[],doneIds:Array.isArray(data.session.doneIds)?data.session.doneIds:[]}:null};
+      if(!id){sharedRoom=null;roomEditingPreviews={};roomArpeggioPreviews={};}
+      else sharedRoom={id,arpeggioFingerings:data?.arpeggioFingerings||{},majorCount:clamp(data?.majorCount??2),minorCount:clamp(data?.minorCount??2),showScale:Boolean(data?.showScale),excludedKeys:Array.isArray(data?.excludedKeys)?data.excludedKeys:[],fingerings:data?.fingerings&&typeof data.fingerings==='object'?data.fingerings:{},session:data?.session?{...data.session,majorIds:Array.isArray(data.session.majorIds)?data.session.majorIds:[],minorIds:Array.isArray(data.session.minorIds)?data.session.minorIds:[],doneIds:Array.isArray(data.session.doneIds)?data.session.doneIds:[]}:null};
       // Room updates must not destroy a teacher's unsaved batch edit. When only
       // confirmed fingerings / checkmarks change, update existing cards in place.
       if(previous&&sharedRoom&&roomLayoutSignature(previous)===roomLayoutSignature(sharedRoom)){
         for(const [key,board] of boardInstances){
           board.updateAnnotations(sharedRoom.fingerings[key]||{});
+          board.updateArpeggioAnnotations(sharedRoom.arpeggioFingerings[key]||{});
         }
         const session=sharedRoom.session;
         if(session){
@@ -1160,9 +1207,11 @@ function createCard(mode,index,doneIds){
  const guide=window.CelloFingerboard.create(mode,key,note,
   (direction,map,original,resetAll)=>saveInlineFingering(id,direction,map,original,resetAll),
   draft=>sharedRoom?window.classroomSync?.setDraft(id,draft):null,
-  {annotations:state.arpeggioFingerings[id]||{},localOnly:true,
+  {annotations:(sharedRoom?sharedRoom.arpeggioFingerings:state.arpeggioFingerings)[id]||{},
+   onPreview:draft=>sharedRoom?window.classroomSync?.setArpeggioDraft(id,draft):null,
    onSave:(direction,map,original,resetAll)=>saveArpeggioFingering(id,map,original,resetAll)});
  boardInstances.set(id,guide);cardInstances.set(id,{card,button:complete,title,panel,expand,guide});
+ guide.setRemoteArpeggioDrafts(roomArpeggioPreviews[id]||[]);
  guide.setRemoteDrafts(roomEditingPreviews[id]||[]);panel.append(guide);card.append(heading,panel);
  return card;
 }
@@ -1177,12 +1226,22 @@ function mergeFingeringMap(latest,previous,proposed,resetAll=false){
   }
   return Object.keys(current).length?JSON.stringify(current):'';
 }
-// Arpeggio edits are personal even while connected to a classroom. Never
-// send these through the existing room's scale-only Firebase schema.
-function saveArpeggioFingering(id,map,original='',resetAll=false){
- const note={...(state.arpeggioFingerings[id]||{})};
+// Arpeggio and scale records remain separate in local storage and room state.
+async function saveArpeggioFingering(id,map,original='',resetAll=false){
+ const note={...((sharedRoom?sharedRoom.arpeggioFingerings:state.arpeggioFingerings)[id]||{})};
  const finalMap=mergeFingeringMap(note.upMap||'',original,map,resetAll);
  if(finalMap)note.upMap=finalMap;else delete note.upMap;
+ if(sharedRoom){
+  const roomId=sharedRoom.id;
+  let saved=false;
+  try{saved=await window.classroomSync?.setArpeggioFingering(id,note,'up',original,resetAll);}
+  catch{showToast('琶音指法未能同步，請確認連線後重試');}
+  // The editor closes on confirmation. A denied/offline transaction must not
+  // leave an optimistic fingering looking saved; restore the latest room view.
+  if(!saved&&sharedRoom?.id===roomId)
+   boardInstances.get(id)?.updateArpeggioAnnotations(sharedRoom.arpeggioFingerings[id]||{});
+  return saved;
+ }
  if(Object.keys(note).length)state.arpeggioFingerings[id]=note;
  else delete state.arpeggioFingerings[id];
  persist();
@@ -1597,12 +1656,12 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         state.continuedSession=null;persist();
       }
     }
-    window.DailyKeyPractice={setClassroomRoom,setClassroomDrafts,
+    window.DailyKeyPractice={setClassroomRoom,setClassroomDrafts,setClassroomArpeggioDrafts,
       getPreferences:()=>({...state.preferences}),showToast};
     render();
   </script>
   <script src="firebase-config.js?v=20261106-001"></script>
-  <script type="module" src="classroom.js?v=20261106-022"></script>
+  <script type="module" src="classroom.js?v=20261118-010"></script>
 <script>
 // AUDIO_TOOLS_START
 (function () {

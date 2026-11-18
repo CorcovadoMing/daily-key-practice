@@ -497,7 +497,7 @@
     const octaveGroup=element('div',{class:'cello-fb-group','aria-label':'音階八度數'});
     const boards=element('div',{class:'cello-fb-two-up'});
     const panels={};
-    let remoteDrafts=[];
+    let remoteDrafts=[],remoteArpeggioDrafts=[];
     // A single transaction stages any number of note edits for one direction.
     // Only clicking Confirm (or Save in the leave dialog) persists the map.
     const edit={dir:null,midi:null,original:{},pending:{},undo:[],showMore:false};
@@ -548,20 +548,26 @@
       document.addEventListener('scroll',onScroll,true);
       document.addEventListener('keydown',onKeydown,true);
     }
-    function announceDraft(){
-      if(typeof onPreview!=='function')return;
-      if(edit.dir===null||edit.dir==='arpeggio'){onPreview(null);return;}
+    function announceDraft(finishedDirection=null){
+      if(edit.dir===null){
+        const clear=finishedDirection==='arpeggio'?arpeggioOptions.onPreview:onPreview;
+        if(finishedDirection!==null&&typeof clear==='function')clear(null);
+        return;
+      }
+      const preview=edit.dir==='arpeggio'?arpeggioOptions.onPreview:onPreview;
+      if(typeof preview!=='function')return;
       const changed=Object.keys({...edit.original,...edit.pending}).filter(k=>
         JSON.stringify(edit.original[k])!==JSON.stringify(edit.pending[k])).map(Number);
-      onPreview({direction:edit.dir,selectedMidi:edit.midi,
+      preview({direction:sourceDir(edit.dir),selectedMidi:edit.midi,
         previewMap:JSON.stringify(edit.pending),changed});
     }
     function closeEditor(){
+      const finishedDirection=edit.dir;
       edit.dir=null;edit.midi=null;edit.original={};edit.pending={};
       edit.undo=[];edit.showMore=false;
       stopTracking();
       render();
-      announceDraft();
+      announceDraft(finishedDirection);
     }
     function saveSession(){
       if(edit.dir===null)return;
@@ -790,7 +796,7 @@
       const saved=decodeMap(mapFor(isArpeggio?dir:mode==='major'?'up':dir));
       if(isArpeggio||(mode==='major'&&!asymmetric&&dir==='up'))pane.heading.textContent='上下行相同';
       else pane.heading.innerHTML=(dir==='up'?'<svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 19V5m-6 6 6-6 6 6"/></svg> 上行':'<svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14m-6-6 6 6 6-6"/></svg> 下行');
-      if(!isArpeggio&&remoteDrafts.some(remote=>remote.direction===dir)){
+      if((isArpeggio?remoteArpeggioDrafts:remoteDrafts).some(remote=>remote.direction===sourceDir(dir))){
         pane.heading.append(element('span',{class:'cello-fb-remote-label'},'（其他人編輯中）'));
       }
       if(Object.keys(saved).length||(!isArpeggio&&(dir==='up'?annotations.up:annotations.down))){
@@ -808,7 +814,7 @@
           confirmedMap:mapFor(dir),
           select:midi=>begin(dir,midi),
           chooseString:s=>chooseString(s),showMore:editing&&edit.showMore
-        }:null,isArpeggio?[]:remoteDrafts,stringOrder==='ADGC',isArpeggio));
+        }:null,isArpeggio?remoteArpeggioDrafts:remoteDrafts,stringOrder==='ADGC',isArpeggio));
       const legend=makeLegend(pane.viewport);pane.legend.replaceWith(legend);pane.legend=legend;
       pane.editor.hidden=!editing;
       if(!editing)return;
@@ -898,6 +904,12 @@
     root.refreshStringOrder=()=>render();
     root.isEditing=()=>edit.dir!==null;
     root.requestLeave=next=>exitEditor(next);
+    root.setRemoteArpeggioDrafts=incoming=>{
+      const next=Array.isArray(incoming)?incoming.filter(Boolean).slice(0,8):[];
+      if(JSON.stringify(next)===JSON.stringify(remoteArpeggioDrafts))return;
+      remoteArpeggioDrafts=next;
+      renderDirection('arpeggio');
+    };
     root.setRemoteDrafts=(incoming)=>{
       const next=Array.isArray(incoming)?incoming.filter(Boolean).slice(0,8):[];
       if(JSON.stringify(remoteDrafts)===JSON.stringify(next))return;
@@ -905,7 +917,9 @@
       renderDirection('up');renderDirection('down');renderDirection('arpeggio');
     };
     root.updateArpeggioAnnotations=(incoming)=>{
-      arpeggioAnnotations={...(incoming||{})};
+      const next={...(incoming||{})};
+      if(JSON.stringify(next)===JSON.stringify(arpeggioAnnotations))return;
+      arpeggioAnnotations=next;
       renderDirection('arpeggio');
     };
     root.updateAnnotations=(incoming)=>{

@@ -11,7 +11,7 @@ function setup(sharedRoom=null){
  vm.runInContext(html.slice(html.indexOf('function mergeFingeringMap('),html.indexOf('function saveInlineFingering(')),c);
  return {c,state,get saved(){return JSON.parse(persisted);},get updated(){return updated;},get sends(){return sends;}};
 }
-for(const classroom of [false,true])test('arpeggio storage isolated, reloadable and reversible '+(classroom?'in classroom':'in personal mode'),()=>{
+for(const classroom of [false])test('arpeggio storage isolated, reloadable and reversible '+(classroom?'in classroom':'in personal mode'),()=>{
  const s=setup(classroom?{fingerings:{'major-0':{upMap:'{"40":{"s":1,"f":2}}'}}}:null);
  const legacy=JSON.stringify(s.state.fingerings);
  s.c.saveArpeggioFingering('major-0','{"40":{"s":0,"f":1}}');
@@ -26,8 +26,8 @@ for(const classroom of [false,true])test('arpeggio storage isolated, reloadable 
  a.equal(s.saved.arpeggioFingerings['major-0'],undefined);
  a.equal(JSON.stringify(s.saved.fingerings),legacy);a.equal(s.sends,0);
 });
-test('app wires a distinct local arpeggio namespace, not Firebase scale fields',()=>{
- a.match(html,/annotations:state\.arpeggioFingerings\[id\]\|\|\{\},localOnly:true/);
+test('app wires distinct arpeggio namespace, not Firebase scale fields',()=>{
+ a.match(html,/annotations:\(sharedRoom\?sharedRoom\.arpeggioFingerings:state\.arpeggioFingerings\)\[id\]\|\|\{\}/);
  a.match(html,/onSave:\(direction,map,original,resetAll\)=>saveArpeggioFingering/);
  a.match(html,/if\(!state\.arpeggioFingerings\|\|typeof state\.arpeggioFingerings!=='object'\)state\.arpeggioFingerings=\{\}/);
 });

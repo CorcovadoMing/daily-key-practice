@@ -44,6 +44,9 @@ let latestOwnDraft = null;
 let draftWriteQueue = Promise.resolve();
 let draftDisconnectRef = null;
 let draftErrorReported = false;
+let ownDraftRefArpeggio=null,latestOwnDraftArpeggio=null,draftDisconnectRefArpeggio=null;
+let unsubscribeEditsArpeggio=null,draftErrorReportedArpeggio=false;
+let draftWriteQueueArpeggio=Promise.resolve();
 
 function setStatus(message) { status.textContent = message; }
 function updateButtons() {
@@ -209,7 +212,84 @@ function queueOwnDraftWrite(){
   });
 }
 
+// Independent channel prevents older scale-only clients from rendering arpeggio drafts.
+function clearOwnDraftArpeggio(){
+  const old=ownDraftRefArpeggio;
+  ownDraftRefArpeggio=null;
+  latestOwnDraftArpeggio=null;
+  draftDisconnectRefArpeggio=null;
+  if(old&&firebase){
+    // Keep queued writes ordered: old sessions cannot reappear after cleanup.
+    draftWriteQueueArpeggio=draftWriteQueueArpeggio.catch(()=>{}).then(async()=>{
+      await firebase.remove(old);
+      await firebase.onDisconnect(old).cancel();
+    }).catch(error=>console.debug('Editing preview cleanup pending disconnect:',error));
+  }
+}
+function watchEditsArpeggio(id){
+  if(unsubscribeEditsArpeggio)unsubscribeEditsArpeggio();
+  const ref=firebase.ref(database,'roomArpeggioEdits/'+id);
+  unsubscribeEditsArpeggio=firebase.onValue(ref,snapshot=>{
+    if(activeId!==id)return;
+    const entries=snapshot.val()||{},remotes={};
+    const now=Date.now();
+    for(const [editorKey,draft] of Object.entries(entries)){
+      if(!draft||editorKey===ownDraftRefArpeggio?.key||
+        !/^(major|minor)-(?:[0-9]|10|11)$/.test(draft.keyId)||
+        draft.direction!=='up'||
+        !Number.isInteger(draft.selectedMidi)||
+        !Number.isFinite(draft.updatedAt)||now-draft.updatedAt>300000)continue;
+      let changed=[];
+      try{changed=JSON.parse(draft.changed);}catch{}
+      if(!Array.isArray(changed))changed=[];
+      remotes[editorKey]={keyId:draft.keyId,direction:draft.direction,
+        selectedMidi:draft.selectedMidi,previewMap:draft.previewMap||'{}',
+        changed:changed.filter(x=>Number.isInteger(x)&&x>=36&&x<=100).slice(0,30)};
+    }
+    practice.setClassroomArpeggioDrafts(id,remotes);
+  },error=>console.warn('Live classroom edit preview unavailable; room fingering saves still work.',error));
+}
+// Allocate a reference without registering onDisconnect on an empty node.
+// Room rules require an owned existing record for a delete, so the first
+// successful SET must happen before onDisconnect.remove() is registered.
+function registerDraftPresenceArpeggio(id){
+  if(!ready||!connected||activeId!==id||!firebase)return;
+  if(!ownDraftRefArpeggio)ownDraftRefArpeggio=firebase.push(firebase.ref(database,'roomArpeggioEdits/'+id));
+  if(latestOwnDraftArpeggio){
+    latestOwnDraftArpeggio={...latestOwnDraftArpeggio,updatedAt:Date.now()};
+    queueOwnDraftWriteArpeggio();
+  }
+}
+function queueOwnDraftWriteArpeggio(){
+  if(!ready||!connected||!activeId||!firebase||!editorUserId)return;
+  if(!ownDraftRefArpeggio)ownDraftRefArpeggio=firebase.push(firebase.ref(database,'roomArpeggioEdits/'+activeId));
+  const ref=ownDraftRefArpeggio,room=activeId,payload=latestOwnDraftArpeggio;
+  draftWriteQueueArpeggio=draftWriteQueueArpeggio.catch(()=>{}).then(async()=>{
+    if(activeId!==room||ownDraftRefArpeggio!==ref||!connected)return;
+    if(!payload){
+      await firebase.remove(ref);
+      return;
+    }
+    await firebase.set(ref,payload);
+    if(draftDisconnectRefArpeggio!==ref){
+      // Registration is now authorized because the owner's record exists.
+      await firebase.onDisconnect(ref).remove();
+      draftDisconnectRefArpeggio=ref;
+    }
+    draftErrorReportedArpeggio=false;
+  }).catch(error=>{
+    console.warn('Live classroom edit preview could not be synchronized:',error);
+    if(!draftErrorReportedArpeggio){
+      draftErrorReportedArpeggio=true;
+      practice.showToast('即時指法預覽未能同步，請檢查連線或課堂資料權限');
+    }
+  });
+}
+
 function cleanupListeners() {
+  if(unsubscribeEditsArpeggio)unsubscribeEditsArpeggio();
+  unsubscribeEditsArpeggio=null;
+  clearOwnDraftArpeggio();
   if(unsubscribeRoom) unsubscribeRoom();
   if(unsubscribeConnection) unsubscribeConnection();
   if(unsubscribeEdits)unsubscribeEdits();
@@ -307,19 +387,20 @@ async function joinRoom(id) {
       if(!connected){
         presenceConnectionRef=null;
         ownDraftRef=null;
+        ownDraftRefArpeggio=null;draftDisconnectRefArpeggio=null;
         draftDisconnectRef=null; // server removes prior ghost on disconnect
         onlineNumber.textContent='離線';
       }
       else if(ready && !wasConnected){
         void markPresent(id);
-        void registerDraftPresence(id);
+        void registerDraftPresence(id);void registerDraftPresenceArpeggio(id);
       }
       updateConnectionState();
     });
     watchPresence(id);
-    watchEdits(id);
+    watchEdits(id);watchEditsArpeggio(id);
     ready = true;
-    if(connected){void markPresent(id);void registerDraftPresence(id);}
+    if(connected){void markPresent(id);void registerDraftPresence(id);void registerDraftPresenceArpeggio(id);}
     updateConnectionState();
     return true;
   } catch(error) {
@@ -393,12 +474,12 @@ async function createRoom() {
 async function changeRoom(update) {
   if(!ready || !connected || !roomRef) {
     practice.showToast('課堂目前無法同步，請確認網路連線');
-    return;
+    return false;
   }
   if(roomExpiresAt && roomExpiresAt <= Date.now()) {
     updateConnectionState();
     practice.showToast('房間已過期，請建立新房間');
-    return;
+    return false;
   }
   try {
     const result = await firebase.runTransaction(roomRef, current => {
@@ -406,9 +487,11 @@ async function changeRoom(update) {
       return update(current);
     }, { applyLocally: false });
     if(!result.committed) practice.showToast('操作未完成，請再試一次');
+    return Boolean(result.committed);
   } catch(error) {
     practice.showToast('同步失敗，請稍後再試');
     console.error('Classroom update failed:', error);
+    return false;
   }
 }
 window.classroomSync = {
@@ -513,6 +596,53 @@ window.classroomSync = {
       const updated={...current,fingerings,updatedAt:Date.now()};
       if(!Object.keys(fingerings).length)delete updated.fingerings;
       return updated;
+    });
+  },
+  setArpeggioDraft(keyId,draft){
+    if(!activeId||!editorUserId)return;
+    if(!draft){
+      latestOwnDraftArpeggio=null;
+      queueOwnDraftWriteArpeggio();
+      return;
+    }
+    if(!/^(major|minor)-(?:[0-9]|10|11)$/.test(keyId)||
+      draft.direction!=='up'||!Number.isInteger(draft.selectedMidi))return;
+    const previewMap=typeof draft.previewMap==='string'?draft.previewMap:'{}';
+    if(previewMap.length>1800)return;
+    const changed=JSON.stringify(Array.isArray(draft.changed)?draft.changed.slice(0,30):[]);
+    if(changed.length>160)return;
+    // Keep the latest preview even if the connection has not completed
+    // initializing. It will be flushed on connection/reconnection.
+    latestOwnDraftArpeggio={
+      owner:editorUserId,keyId,direction:draft.direction,
+      selectedMidi:draft.selectedMidi,previewMap,changed,updatedAt:Date.now()
+    };
+    queueOwnDraftWriteArpeggio();
+  },
+  setArpeggioFingering(id,note,direction='up',originalMap=null,resetAll=false) {
+    if(direction!=='up'||!/^(major|minor)-(?:[0-9]|10|11)$/.test(id))return;
+    const parse=text=>{
+      try{const value=JSON.parse(text);return value&&typeof value==='object'&&!Array.isArray(value)?value:{};}catch{return {};}
+    };
+    return changeRoom(current=>{
+      const records={...(current.arpeggioFingerings||{})};
+      const saved=resetAll?{}:{...parse(records[id]?.upMap)};
+      const previous=parse(originalMap),proposed=parse(note?.upMap);
+      if(!resetAll){
+        const keys=originalMap===null?Object.keys({...saved,...proposed}):
+          [...new Set([...Object.keys(previous),...Object.keys(proposed)])];
+        for(const pitch of keys){
+          if(originalMap!==null&&JSON.stringify(previous[pitch])===JSON.stringify(proposed[pitch]))continue;
+          if(Object.prototype.hasOwnProperty.call(proposed,pitch))saved[pitch]=proposed[pitch];
+          else delete saved[pitch];
+        }
+      }
+      const value=Object.keys(saved).length?JSON.stringify(saved):'';
+      if(value.length>1800)return;
+      if(value)records[id]={upMap:value};else delete records[id];
+      const next={...current,updatedAt:Date.now()};
+      if(Object.keys(records).length)next.arpeggioFingerings=records;else delete next.arpeggioFingerings;
+      return next;
     });
   }
 };
