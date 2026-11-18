@@ -902,6 +902,45 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
         up=apply(up,{54:[2,2,3],58:[3,1,1],61:[3,4,1],66:[3,2,8]});mirror();
       }
     }
+    // 20261118-011: final five voice-reviewed keys, physical low-to-high maps.
+    // Each direction uses its original pitches; transfers never cascade.
+    if(policy==='preferred'&&octaves===2){
+      const apply=(r,spec)=>r.map(p=>{
+        if(!spec[p.midi])return p;
+        const [s,f,anchor,shape='normal']=spec[p.midi];
+        if(f===0?p.midi!==OPEN[s]:p.midi!==OPEN[s]+anchor+SHAPES[shape][f-1])
+          throw Error('Invalid final-five pitch: '+key[0]+'/'+p.midi);
+        return {midi:p.midi,s,f,anchor,shape,source:'reviewed-final-five-011'};
+      });
+      const mirror=()=>{down=[...up].reverse().map(p=>({...p}));};
+      if(mode==='major'&&key[0]==='A♭'){
+        up=apply(up,arpeggio?{68:[3,4,8]}:{65:[3,1,8],67:[3,3,8],68:[3,4,8]});mirror();
+      }
+      if(mode==='major'&&key[0]==='D♭'&&!arpeggio){
+        up=apply(up,{37:[0,1,1,'extended'],39:[0,2,1,'extended'],41:[0,4,1,'extended'],42:[0,1,6,'extended'],44:[0,2,6,'extended'],46:[0,4,6,'extended'],48:[1,1,5],49:[1,2,5],51:[1,4,5],53:[2,1,3],54:[2,2,3],56:[2,4,3],58:[3,1,1],60:[3,3,1],61:[3,4,1]});mirror();
+      }
+      if(mode==='minor'&&key[0]==='F'){
+        if(arpeggio){up=apply(up,{44:[1,1,1,'extended'],48:[1,4,1,'extended'],53:[2,2,2],56:[2,1,6,'extended'],60:[2,4,6,'extended'],65:[3,2,7]});mirror();}
+        else{
+          up=apply(up,{50:[2,0,2],52:[2,1,2],53:[2,2,2],55:[2,4,2],56:[2,1,6,'extended'],58:[2,2,6,'extended'],60:[2,4,6,'extended'],62:[3,1,5],64:[3,3,5],65:[3,4,5]});
+          down=apply(down,{41:[0,1,5],43:[0,3,5],44:[0,4,5],46:[1,1,3],48:[1,3,3],49:[1,4,3],51:[2,1,1,'extended'],53:[2,2,1,'extended'],55:[2,4,1,'extended'],56:[2,1,6,'extended'],58:[2,2,6,'extended'],60:[2,4,6,'extended'],61:[3,1,4,'extended'],63:[3,2,4,'extended'],65:[3,4,4,'extended']});
+        }
+      }
+      if(mode==='minor'&&key[0]==='B♭'){
+        if(arpeggio){up=apply(up,{46:[1,1,3],49:[1,4,3],53:[2,1,3],58:[2,4,4,'extended'],61:[3,1,4,'extended'],65:[3,4,4,'extended'],70:[3,3,11]});mirror();}
+        else{
+          up=apply(up,{46:[1,1,3],48:[1,3,3],49:[1,4,3],57:[3,0,1],58:[3,1,1],60:[3,3,1],61:[3,4,1],63:[3,1,6,'extended'],65:[3,2,6,'extended'],67:[3,1,10,'extended'],69:[3,2,10,'extended'],70:[3,3,10,'extended']});
+          down=apply(down,{46:[1,1,3],48:[1,3,3],49:[1,4,3],51:[2,1,1],53:[2,3,1],54:[2,4,1],56:[2,1,6,'extended'],58:[2,2,6,'extended'],60:[2,4,6,'extended'],61:[3,1,4,'extended'],63:[3,2,4,'extended'],65:[3,4,4,'extended'],66:[3,1,9,'extended'],68:[3,2,9,'extended'],70:[3,3,11]});
+        }
+      }
+      if(mode==='minor'&&key[0]==='E♭'){
+        if(arpeggio){up=apply(up,{39:[0,2,2],42:[0,1,6,'extended'],46:[0,4,6,'extended'],51:[1,2,7],54:[2,1,4,'extended'],58:[2,4,4,'extended'],63:[3,2,5]});mirror();}
+        else{
+          up=apply(up,{50:[2,0,1],51:[2,1,1],53:[2,3,1],54:[2,1,4,'extended'],56:[2,2,4,'extended'],58:[2,4,4,'extended'],60:[3,1,3],62:[3,3,3],63:[3,4,3]});
+          down=apply(down,{44:[1,1,1],46:[1,3,1],47:[1,4,1],49:[1,1,6,'extended'],51:[1,2,6,'extended'],53:[1,4,6,'extended'],54:[2,1,4,'extended'],56:[2,2,4,'extended'],58:[2,4,4,'extended'],59:[3,1,2,'extended'],61:[3,2,2,'extended'],63:[3,4,2,'extended']});
+        }
+      }
+    }
     if(motion){
       const source=policy==='first-family'?'computed-first-family-comparison-v1':'computed-movement-events-v1';
       up=up.map(p=>({...p,source:p.source||source}));down=down.map(p=>({...p,source:p.source||source}));

@@ -17,19 +17,19 @@ test('F-sharp melodic/natural directions are distinct; lower C and arp C-sharp m
  a.equal(digits(arp,2),'214');a.equal(digits(arp,3),'2');a.equal(arp.find(p=>p.midi===61).s,2);
  a.ok(arp.every(p=>!p.shiftCue));a.deepEqual(plain(get('minor','F♯','down',true)),plain([...arp].reverse()));
 });
-test('all historical058 full routes remain exact and110 untouched current routes unchanged',()=>{
+test('all historical058 full routes remain exact and92 untouched current routes unchanged',()=>{
  const hash=r=>crypto.createHash('sha256').update(JSON.stringify(r)).digest('hex');let unchanged=0,changed=0;
  for(const[id,expected]of JSON.parse(fs.readFileSync('tests/fixtures/routes-058.json'))){
   const[m,k,o,arp,d]=id.split('|'),key=lists[m].find(q=>q[0]===k),ar=arp==='true',oct=Number(o);
   a.equal(hash(O.route(m,key,d,oct,ar,'reviewed-058')),expected,id+' historical');
-  const target=oct===2&&((m==='major'&&((['F','A'].includes(k)&&ar)||k==='E'||k==='B'||(k==='F♯'&&ar)||k==='B♭'||k==='E♭'))||(m==='minor'&&(k==='F♯'||k==='C♯'||k==='G♯')));
+  const target=oct===2&&((m==='major'&&((['F','A'].includes(k)&&ar)||k==='E'||k==='B'||(k==='F♯'&&ar)||k==='B♭'||k==='E♭'))||(m==='minor'&&(k==='F♯'||k==='C♯'||k==='G♯')))||oct===2&&((m==='major'&&(k==='A♭'||k==='D♭'&&!ar))||(m==='minor'&&['F','B♭','E♭'].includes(k)));
   const now=O.route(m,key,d,oct,ar);
   if(!target){a.equal(hash(now),expected,id+' untouched');unchanged++;}else{a.notEqual(hash(now),expected,id+' requested');changed++;}
   const notes=ar?c.window.CelloFingerboard.arpeggioNotes(m,key,d):c.window.CelloFingerboard.scaleNotes(m,key,d,oct);
   a.deepEqual(Array.from(now,p=>p.midi),Array.from(notes,p=>p.midi));
   for(const p of now){if(p.technique==='naturalHarmonic'||!p.f)continue;const offsets={normal:[0,1,2,3],extended:[0,2,3,4],backwardExtended:[-1,1,2,3]};a.equal(p.midi,[36,43,50,57][p.s]+p.anchor+offsets[p.shape][p.f-1]);}
  }
- a.equal(unchanged,110);a.equal(changed,34);
+ a.equal(unchanged,92);a.equal(changed,52);
 });
 
 test('A-major arpeggio0143 only; scale, lower strings and A harmonic preserved',()=>{

@@ -25,13 +25,13 @@ test('144 routes: targeted changes only, exact pitches, physical contact frames 
  const hash=r=>crypto.createHash('sha256').update(JSON.stringify(r)).digest('hex');let changed=0;
  for(const[id,expected]of JSON.parse(fs.readFileSync('tests/fixtures/routes-006.json'))){
   const[m,k,oct,ar,d]=id.split('|'),o=Number(oct),arp=ar==='true',key=lists[m].find(q=>q[0]===k),r=O.route(m,key,d,o,arp);
-  const target=o===2&&((m==='minor'&&(k==='C♯'||k==='G♯'))||(m==='major'&&(k==='B'||k==='F♯'&&arp)));
+  const target=o===2&&((m==='minor'&&(k==='C♯'||k==='G♯'))||(m==='major'&&(k==='B'||k==='F♯'&&arp)))||o===2&&((m==='major'&&(k==='A♭'||k==='D♭'&&!arp))||(m==='minor'&&['F','B♭','E♭'].includes(k)));
   if(target){a.notEqual(hash(r),expected,id);changed++;}else a.equal(hash(r),expected,id+' must not change');
   const notes=arp?F.arpeggioNotes(m,key,d):F.scaleNotes(m,key,d,o);a.deepEqual(Array.from(r,p=>p.midi),Array.from(notes,p=>p.midi));
   for(const[pIndex,p]of r.entries()){if(p.f&&p.technique!=='naturalHarmonic')a.equal(p.midi,[36,43,50,57][p.s]+p.anchor+O.SHAPES[p.shape][p.f-1],id+' pitch');if(pIndex)a.ok(O.movementStep(r[pIndex-1],p,d),id+' transition');}
   a.equal(O.movementMetrics(r).stretched134,0,id);a.equal(O.movementMetrics(r).mixed134,0,id);
  }
- a.equal(changed,14);
+ a.equal(changed,32);
 });
 
 test('B-major arpeggio4142143 moves only lower B3 to D with the same second finger',()=>{
