@@ -17,19 +17,19 @@ test('F-sharp melodic/natural directions are distinct; lower C and arp C-sharp m
  a.equal(digits(arp,2),'214');a.equal(digits(arp,3),'2');a.equal(arp.find(p=>p.midi===61).s,2);
  a.ok(arp.every(p=>!p.shiftCue));a.deepEqual(plain(get('minor','F♯','down',true)),plain([...arp].reverse()));
 });
-test('all historical058 full routes remain exact and126 untouched current routes unchanged',()=>{
+test('all historical058 full routes remain exact and124 untouched current routes unchanged',()=>{
  const hash=r=>crypto.createHash('sha256').update(JSON.stringify(r)).digest('hex');let unchanged=0,changed=0;
  for(const[id,expected]of JSON.parse(fs.readFileSync('tests/fixtures/routes-058.json'))){
   const[m,k,o,arp,d]=id.split('|'),key=lists[m].find(q=>q[0]===k),ar=arp==='true',oct=Number(o);
   a.equal(hash(O.route(m,key,d,oct,ar,'reviewed-058')),expected,id+' historical');
-  const target=oct===2&&((m==='major'&&((['F','A'].includes(k)&&ar)||(k==='E'&&!ar)||k==='B♭'||k==='E♭'))||(m==='minor'&&k==='F♯'));
+  const target=oct===2&&((m==='major'&&((['F','A'].includes(k)&&ar)||k==='E'||k==='B♭'||k==='E♭'))||(m==='minor'&&k==='F♯'));
   const now=O.route(m,key,d,oct,ar);
   if(!target){a.equal(hash(now),expected,id+' untouched');unchanged++;}else{a.notEqual(hash(now),expected,id+' requested');changed++;}
   const notes=ar?c.window.CelloFingerboard.arpeggioNotes(m,key,d):c.window.CelloFingerboard.scaleNotes(m,key,d,oct);
   a.deepEqual(Array.from(now,p=>p.midi),Array.from(notes,p=>p.midi));
   for(const p of now){if(p.technique==='naturalHarmonic'||!p.f)continue;const offsets={normal:[0,1,2,3],extended:[0,2,3,4],backwardExtended:[-1,1,2,3]};a.equal(p.midi,[36,43,50,57][p.s]+p.anchor+offsets[p.shape][p.f-1]);}
  }
- a.equal(unchanged,126);a.equal(changed,18);
+ a.equal(unchanged,124);a.equal(changed,20);
 });
 
 test('A-major arpeggio0143 only; scale, lower strings and A harmonic preserved',()=>{
@@ -58,7 +58,7 @@ test('E-flat arpeggio D-string114 and only top E-flat2 on A; pitch and reverse e
  a.deepEqual(plain(down),plain([...up].reverse()));
 });
 
-test('E-major scale D-string124124 moves A3/B3 and leaves A-string134, arpeggio unchanged',()=>{
+test('E-major scale D-string124124 moves A3/B3 and leaves A-string134 and one-octave scale unchanged',()=>{
  const key=lists.major.find(k=>k[0]==='E'),up=get('major','E'),down=get('major','E','down');
  a.equal(digits(up,2),'124124');a.equal(digits(up,3),'134');
  a.deepEqual(Array.from(up.filter(p=>p.s===2),p=>p.midi),[51,52,54,56,57,59]);
@@ -66,7 +66,17 @@ test('E-major scale D-string124124 moves A3/B3 and leaves A-string134, arpeggio 
  a.ok(up.every(p=>!p.shiftCue));a.ok(down.every(p=>!p.shiftCue));
  a.deepEqual(plain(down),plain([...up].reverse()));
  for(const d of ['up','down']){
-  a.deepEqual(plain(get('major','E',d,true)),plain(O.route('major',key,d,2,true,'reviewed-058')));
   a.deepEqual(plain(O.route('major',key,d,1,false)),plain(O.route('major',key,d,1,false,'reviewed-058')));
  }
+});
+
+test('E-major arpeggio moves B3 to D114, E4 second finger; pitches and reverse exact',()=>{
+ const up=get('major','E','up',true),down=get('major','E','down',true);
+ a.equal(digits(up,2),'114');a.equal(digits(up,3),'2');
+ a.deepEqual(Array.from(up,p=>p.midi),[40,44,47,52,56,59,64]);
+ a.deepEqual(Array.from(up.filter(p=>p.s===2),p=>p.midi),[52,56,59]);
+ const b=up.find(p=>p.midi===59);a.equal(b.s,2);a.equal(b.f,4);a.equal(b.anchor,6);a.equal(b.shape,'normal');
+ const e=up.at(-1);a.equal(e.s,3);a.equal(e.f,2);a.equal(e.anchor,6);a.equal(e.shape,'normal');
+ a.deepEqual(plain(down),plain([...up].reverse()));
+ a.equal(digits(get('major','E'),2),'124124');
 });

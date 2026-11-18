@@ -841,6 +841,18 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
       });
       down=[...up].reverse().map(p=>({...p}));
     }
+    // 20261118-006: E-major arpeggio D-string114 and A-string E4 second.
+    if(policy==='preferred'&&mode==='major'&&key[0]==='E'&&arpeggio){
+      const spec={56:[2,1,6],59:[2,4,6],64:[3,2,6]};
+      up=up.map(p=>{
+        if(!spec[p.midi])return p;
+        const [s,f,anchor]=spec[p.midi];
+        const found=candidates(p.midi,{s,f},['normal']).find(q=>q.anchor===anchor);
+        if(!found)throw Error('Invalid E-major arpeggio D-string114/A2');
+        return {...found,source:'reviewed-e-major-arpeggio114-20261118-006'};
+      });
+      down=[...up].reverse().map(p=>({...p}));
+    }
     if(motion){
       const source=policy==='first-family'?'computed-first-family-comparison-v1':'computed-movement-events-v1';
       up=up.map(p=>({...p,source:p.source||source}));down=down.map(p=>({...p,source:p.source||source}));
