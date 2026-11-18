@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261118-003-experimental">
+  <meta name="site-version" content="20261118-004-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -635,7 +635,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261118-003-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261118-004-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -859,6 +859,11 @@
         JSON.stringify(session.majorIds)===JSON.stringify(major)&&
         JSON.stringify(session.minorIds)===JSON.stringify(minor);
     }
+    // Personal practice must be explicitly sequential; a lucky full-pool draw
+    // is not consent to auto-open. Rooms retain their existing schema inference.
+    function autoAdvanceSession(session){
+      return session?.sequenceMode==='signature'||Boolean(sharedRoom&&signatureOrderedSession(session));
+    }
     function excludedKeys(){return Array.isArray(visiblePreferences().excludedKeys)?visiblePreferences().excludedKeys:[];}
     function eligible(mode){return (mode==='major'?MAJOR_KEYS:MINOR_KEYS).map((_,i)=>i).filter(i=>!excludedKeys().includes(selectedId(mode,i)));}
     function updateExclusions(next){
@@ -942,8 +947,10 @@
           q('#progress-track').setAttribute('aria-valuemax',String(total));
           q('#progress-track').setAttribute('aria-valuenow',String(done.length));
           q('#progress-fill').style.width=(total?100*done.length/total:0)+'%';
-          if(JSON.stringify(previous.session?.doneIds||[])!==JSON.stringify(done))
-            expandedOverride=undefined;
+          if(JSON.stringify(previous.session?.doneIds||[])!==JSON.stringify(done)){
+            if(autoAdvanceSession(session))expandedOverride=undefined;
+            else if(done.includes(expandedOverride))expandedOverride=null;
+          }
           syncPracticeCards(session);
         }
         if(historyChanged)renderHistory();
@@ -1289,7 +1296,9 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
  }
     function syncPracticeCards(session,forceInstant=false){
  const order=jumpOrder(),done=new Set(session?.doneIds||[]);
- const active=expandedOverride===undefined?order.find(id=>!done.has(id)):
+ // Automatic first/next selection belongs only to signature-order practice.
+ // Explicit null means the user collapsed everything, including in ordered mode.
+ const active=expandedOverride===undefined?(autoAdvanceSession(session)?order.find(id=>!done.has(id)):null):
   (expandedOverride&&cardInstances.has(expandedOverride)?expandedOverride:null);
  for(const [id,item] of cardInstances){
   const finished=done.has(id),opened=id===active;
@@ -1366,7 +1375,8 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       const all=[...session.majorIds.map(i=>selectedId('major',i)),...session.minorIds.map(i=>selectedId('minor',i))];
       if(!all.includes(id))return;
       session.doneIds=session.doneIds.includes(id)?session.doneIds.filter(item=>item!==id):[...session.doneIds,id];
-      expandedOverride=undefined;
+      if(autoAdvanceSession(session))expandedOverride=undefined;
+      else if(session.doneIds.includes(expandedOverride))expandedOverride=null;
       if(session===state.continuedSession){
         // Continuation updates its ORIGINAL dated record, not today's draw history.
         const history=state.continuedSession.sourceKind==='classroom'?
