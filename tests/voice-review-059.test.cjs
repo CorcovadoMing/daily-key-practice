@@ -46,3 +46,14 @@ test('A-major arpeggio0143 only; scale, lower strings and A harmonic preserved',
  }
  a.deepEqual(plain(get('major','A','down',true)),plain(get('major','A','up',true).reverse()));
 });
+
+test('E-flat arpeggio D-string114 and only top E-flat2 on A; pitch and reverse exact',()=>{
+ const up=get('major','E♭','up',true),down=get('major','E♭','down',true);
+ a.equal(digits(up,2),'114');a.equal(digits(up,3),'2');
+ a.deepEqual(Array.from(up,p=>p.midi),[39,43,46,51,55,58,63]);
+ for(const midi of [55,58]){const p=up.find(p=>p.midi===midi);a.equal(p.s,2);a.equal(p.f,midi===55?1:4);a.equal(p.anchor,5);a.equal(p.shape,'normal');}
+ const low=up.find(p=>p.midi===51);a.equal(low.s,2);a.equal(low.f,1);
+ const open=up.find(p=>p.midi===43);a.equal(open.s,1);a.equal(open.f,0);
+ a.equal(up.at(-1).midi,63);a.equal(up.at(-1).f,2);
+ a.deepEqual(plain(down),plain([...up].reverse()));
+});

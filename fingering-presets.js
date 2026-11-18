@@ -817,6 +817,17 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
         }
       }
     }
+    // 20261118-003: E-flat arpeggio D-string114; move B-flat3 off A.
+    // Keep the lower E-flat first finger and the reviewed top E-flat second.
+    if(policy==='preferred'&&mode==='major'&&key[0]==='E♭'&&arpeggio){
+      up=up.map(p=>{
+        if(![55,58].includes(p.midi))return p;
+        const found=candidates(p.midi,{s:2,f:p.midi===55?1:4},['normal']).find(q=>q.anchor===5);
+        if(!found)throw Error('Invalid E-flat arpeggio D-string114');
+        return {...found,source:'reviewed-eflat-arpeggio114-20261118-003'};
+      });
+      down=[...up].reverse().map(p=>({...p}));
+    }
     if(motion){
       const source=policy==='first-family'?'computed-first-family-comparison-v1':'computed-movement-events-v1';
       up=up.map(p=>({...p,source:p.source||source}));down=down.map(p=>({...p,source:p.source||source}));
