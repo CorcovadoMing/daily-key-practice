@@ -828,6 +828,19 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
       });
       down=[...up].reverse().map(p=>({...p}));
     }
+    // 20261118-005: E-major scale D-string124124, including A3/B3.
+    // Two normal contact frames replace the old extension/shift cues.
+    if(policy==='preferred'&&mode==='major'&&key[0]==='E'&&octaves===2&&!arpeggio){
+      const spec={51:[1,1],52:[2,1],54:[4,1],56:[1,6],57:[2,6],59:[4,6]};
+      up=up.map(p=>{
+        if(!spec[p.midi])return p;
+        const [f,anchor]=spec[p.midi];
+        const found=candidates(p.midi,{s:2,f},['normal']).find(q=>q.anchor===anchor);
+        if(!found)throw Error('Invalid E-major scale D-string124124');
+        return {...found,source:'reviewed-e-major-scale124124-20261118-005'};
+      });
+      down=[...up].reverse().map(p=>({...p}));
+    }
     if(motion){
       const source=policy==='first-family'?'computed-first-family-comparison-v1':'computed-movement-events-v1';
       up=up.map(p=>({...p,source:p.source||source}));down=down.map(p=>({...p,source:p.source||source}));
