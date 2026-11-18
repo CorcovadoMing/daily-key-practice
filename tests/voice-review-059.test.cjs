@@ -17,17 +17,32 @@ test('F-sharp melodic/natural directions are distinct; lower C and arp C-sharp m
  a.equal(digits(arp,2),'214');a.equal(digits(arp,3),'2');a.equal(arp.find(p=>p.midi===61).s,2);
  a.ok(arp.every(p=>!p.shiftCue));a.deepEqual(plain(get('minor','F♯','down',true)),plain([...arp].reverse()));
 });
-test('all historical058 full routes remain exact and130 untouched current routes unchanged',()=>{
+test('all historical058 full routes remain exact and128 untouched current routes unchanged',()=>{
  const hash=r=>crypto.createHash('sha256').update(JSON.stringify(r)).digest('hex');let unchanged=0,changed=0;
  for(const[id,expected]of JSON.parse(fs.readFileSync('tests/fixtures/routes-058.json'))){
   const[m,k,o,arp,d]=id.split('|'),key=lists[m].find(q=>q[0]===k),ar=arp==='true',oct=Number(o);
   a.equal(hash(O.route(m,key,d,oct,ar,'reviewed-058')),expected,id+' historical');
-  const target=oct===2&&((m==='major'&&((k==='F'&&ar)||k==='B♭'||k==='E♭'))||(m==='minor'&&k==='F♯'));
+  const target=oct===2&&((m==='major'&&((['F','A'].includes(k)&&ar)||k==='B♭'||k==='E♭'))||(m==='minor'&&k==='F♯'));
   const now=O.route(m,key,d,oct,ar);
   if(!target){a.equal(hash(now),expected,id+' untouched');unchanged++;}else{a.notEqual(hash(now),expected,id+' requested');changed++;}
   const notes=ar?c.window.CelloFingerboard.arpeggioNotes(m,key,d):c.window.CelloFingerboard.scaleNotes(m,key,d,oct);
   a.deepEqual(Array.from(now,p=>p.midi),Array.from(notes,p=>p.midi));
   for(const p of now){if(p.technique==='naturalHarmonic'||!p.f)continue;const offsets={normal:[0,1,2,3],extended:[0,2,3,4],backwardExtended:[-1,1,2,3]};a.equal(p.midi,[36,43,50,57][p.s]+p.anchor+offsets[p.shape][p.f-1]);}
  }
- a.equal(unchanged,130);a.equal(changed,14);
+ a.equal(unchanged,128);a.equal(changed,16);
+});
+
+test('A-major arpeggio0143 only; scale, lower strings and A harmonic preserved',()=>{
+ const key=lists.major.find(k=>k[0]==='A');
+ for(const d of ['up','down']){
+  const before=O.route('major',key,d,2,true,'reviewed-058'),after=get('major','A',d,true);
+  a.equal(digits(after,3),'0143');
+  for(const p of after){
+   const old=before.find(q=>q.midi===p.midi);
+   if([61,64].includes(p.midi)){a.equal(p.s,3);a.equal(p.f,p.midi===61?1:4);a.equal(p.anchor,4);a.equal(p.shape,'normal');}
+   else a.deepEqual(plain(p),plain(old));
+  }
+  for(const o of [1,2])a.deepEqual(plain(O.route('major',key,d,o,false)),plain(O.route('major',key,d,o,false,'reviewed-058')));
+ }
+ a.deepEqual(plain(get('major','A','down',true)),plain(get('major','A','up',true).reverse()));
 });

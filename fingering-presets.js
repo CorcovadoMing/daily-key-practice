@@ -769,6 +769,17 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
       });
       down=[...up].reverse().map(p=>({...p}));
     }
+    // 20261118-002: A-major arpeggio A-string0143 only. C-sharp/E
+    // share a normal frame4; preserve open A and the third-finger A4 harmonic.
+    if(policy==='preferred'&&mode==='major'&&key[0]==='A'&&arpeggio){
+      up=up.map(p=>{
+        if(![61,64].includes(p.midi))return p;
+        const found=candidates(p.midi,{s:3,f:p.midi===61?1:4},['normal']).find(q=>q.anchor===4);
+        if(!found)throw Error('Invalid A-major arpeggio0143');
+        return {...found,source:'reviewed-a-major-arpeggio0143-20261118-002'};
+      });
+      down=[...up].reverse().map(p=>({...p}));
+    }
     // 059: owner's spoken review of these four two-octave routes only.
     // Fingerboard sequences are specified low-to-high, including descent.
     // Resolve physical contact frames, never relabel a finger at a wrong pitch.
