@@ -9,7 +9,7 @@ function playable(route,direction){
   const p=route[i],semi=p.midi-OPEN[p.s];
   a.ok(p.anchor>=1&&p.anchor<=13);a.equal(p.f===0,semi===0);
   if(p.f){a.equal(semi,p.anchor+O.SHAPES[p.shape][p.f-1]);if(p.anchor>=8&&p.f>3){
-    if(p.source==='reviewed-four-key-voice-v1')a.ok(['61:2:4:8:normal','63:2:4:9:extended','68:3:4:8:normal'].includes(identity(p)),'explicit voice-selected high fourth finger');
+    if(p.source==='reviewed-four-key-voice-v1')a.ok(['61:2:4:8:normal','68:3:4:8:normal'].includes(identity(p)),'explicit voice-selected high fourth finger');
     else{a.equal(p.source,'reviewed-bflat-upper134-053-v1');a.equal(p.midi,70);a.equal(p.s,3);a.equal(p.f,4);a.equal(p.anchor,10);a.equal(p.shape,'normal');}
    }
    a.equal(p.positionLabel.includes('擴增把位'),p.shape!=='normal'||p.displayExtended===true);}
@@ -68,7 +68,7 @@ test('Werner confirmed source remains separately available and unchanged',()=>{
 test('computed defaults are bundled in a deployed existing asset',()=>{
  a.ok(html.indexOf('fingering-presets.js')<html.indexOf('fingerboard.js'));
  a.ok(fs.readFileSync('fingering-presets.js','utf8').includes('window.CelloFingeringOptimizer='));
- a.match(html,/20261118-008-experimental/);
+ a.match(html,/20261118-009-experimental/);
 });
 
 test('F major preserves GD 0124 and applies reviewed expanded124 then fourth-position12',()=>{

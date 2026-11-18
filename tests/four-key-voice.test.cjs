@@ -15,8 +15,8 @@ test('B-major scale D124124/A124123 moves exactly the first three A notes',()=>{
 });
 test('G-sharp minor low-to-high direction-specific fingers and string transfers',()=>{
  const up=get('minor','G♯'),down=get('minor','G♯','down');
- a.equal(digits(up),'134124124124134');a.deepEqual(midi(up,1),[44,46,47,49,51,53]);a.deepEqual(midi(up,2),[55,56,58,59,61,63]);a.deepEqual(midi(up,3),[65,67,68]);
- a.equal(digits(down),'134134124124124');a.deepEqual(midi(down,1),[44,46,47,49,51,52]);a.deepEqual(midi(down,2),[54,56,58,59,61,63]);a.deepEqual(midi(down,3),[64,66,68]);
+ a.equal(digits(up),'134124124124134');a.deepEqual(midi(up,1),[44,46,47,49,51,53]);a.deepEqual(midi(up,2),[55,56,58]);a.deepEqual(midi(up,3),[59,61,63,65,67,68]);
+ a.equal(digits(down),'134134124124124');a.deepEqual(midi(down,1),[44,46,47,49,51,52]);a.deepEqual(midi(down,2),[54,56,58]);a.deepEqual(midi(down,3),[59,61,63,64,66,68]);
 });
 test('F-sharp major arpeggio4142142 keeps original strings and pitch order',()=>{
  const up=get('major','F♯','up',true);a.equal(digits(up),'4142142');a.deepEqual(Array.from(up,p=>p.s),[0,1,1,2,3,3,3]);a.deepEqual(Array.from(up,p=>p.midi),[42,46,49,54,58,61,66]);a.deepEqual(plain(get('major','F♯','down',true)),plain([...up].reverse()));
@@ -42,9 +42,9 @@ test('B-major arpeggio4142143 moves only lower B3 to D with the same second fing
  a.equal(up.at(-1).midi,71);a.equal(up.at(-1).s,3);a.equal(up.at(-1).f,3);
  a.deepEqual(plain(down),plain([...up].reverse()));
 });
-test('confirmed G-sharp minor arpeggio1414144 moves B3/D-sharp4 to D, not apex',()=>{
+test('G-sharp minor arpeggio1414144 moves B3/D-sharp4 back to A, retaining all fingers',()=>{
  const up=get('minor','G♯','up',true),down=get('minor','G♯','down',true);
  a.equal(digits(up),'1414144');a.deepEqual(Array.from(up,p=>p.midi),[44,47,51,56,59,63,68]);
- a.deepEqual(midi(up,1),[44,47]);a.deepEqual(midi(up,2),[51,56,59,63]);a.deepEqual(midi(up,3),[68]);
+ a.deepEqual(midi(up,1),[44,47]);a.deepEqual(midi(up,2),[51,56]);a.deepEqual(midi(up,3),[59,63,68]);
  a.equal(up.at(-1).s,3);a.equal(up.at(-1).f,4);a.deepEqual(plain(down),plain([...up].reverse()));
 });

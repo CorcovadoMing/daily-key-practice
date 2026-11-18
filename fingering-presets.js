@@ -878,12 +878,13 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
           63:[3,1,6],64:[3,2,6],66:[3,4,6],68:[3,1,11,'extended'],70:[3,2,11,'extended'],71:[3,3,11,'extended']});mirror();
       }
       if(mode==='minor'&&key[0]==='G♯'&&!arpeggio){
+        // 20261118-009: D's highest B3/C-sharp4/D-sharp4 move to A both ways.
         up=apply(up,{44:[1,1,1],46:[1,3,1],47:[1,4,1],49:[1,1,6,'extended'],51:[1,2,6,'extended'],53:[1,4,6,'extended'],
-          55:[2,1,5],56:[2,2,5],58:[2,4,5],59:[2,1,9,'extended'],61:[2,2,9,'extended'],63:[2,4,9,'extended'],
+          55:[2,1,5],56:[2,2,5],58:[2,4,5],59:[3,1,2,'extended'],61:[3,2,2,'extended'],63:[3,4,2,'extended'],
           65:[3,1,8],67:[3,3,8],68:[3,4,8]});
         down=apply(down,{44:[1,1,1],46:[1,3,1],47:[1,4,1],49:[1,1,6],51:[1,3,6],52:[1,4,6],
           54:[2,1,4,'extended'],56:[2,2,4,'extended'],58:[2,4,4,'extended'],
-          59:[2,1,9,'extended'],61:[2,2,9,'extended'],63:[2,4,9,'extended'],
+          59:[3,1,2,'extended'],61:[3,2,2,'extended'],63:[3,4,2,'extended'],
           64:[3,1,7,'extended'],66:[3,2,7,'extended'],68:[3,4,7,'extended']});
       }
       if(mode==='major'&&key[0]==='B'&&arpeggio){
@@ -893,9 +894,9 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
           63:[3,1,6],66:[3,4,6],71:[3,3,12]});mirror();
       }
       if(mode==='minor'&&key[0]==='G♯'&&arpeggio){
-        // B3 and D-sharp4 move to D; the highest G-sharp4 remains on A.
+        // 20261118-009: return B3/D-sharp4 to A without changing fingers.
         up=apply(up,{44:[1,1,1],47:[1,4,1],51:[2,1,1],56:[2,4,2,'extended'],
-          59:[2,1,9,'extended'],63:[2,4,9,'extended'],68:[3,4,8]});mirror();
+          59:[3,1,2,'extended'],63:[3,4,2,'extended'],68:[3,4,8]});mirror();
       }
       if(mode==='major'&&key[0]==='F♯'&&arpeggio){
         up=apply(up,{54:[2,2,3],58:[3,1,1],61:[3,4,1],66:[3,2,8]});mirror();
