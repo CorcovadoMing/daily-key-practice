@@ -82,3 +82,9 @@
 依語音逐調確認更新 F／降 B／降 E 大調與升 F 小調的兩八度預設，音階和琶音分開套用，保留自訂指法優先及其他調性。包含降 E 音階 B♭3 移至 D 弦、升 F 小調琶音 C♯4 移至 D 弦，指號皆對應實際音高與手型。[修改清單與驗證範圍](qa/fingering-20261118-001.md)。目前只完成這批，並非宣稱 24 調已全部實奏驗收。
 
 The same experimental release modestly increases iOS Safari metronome peak from 0.65 to 0.85 (about +2.3 dB), retaining the volume slider, silence, accents and both audio engines. Other platforms keep existing gain. Synthetic audio checks do not replace on-device listening validation.
+
+### 琶音指板直接編輯
+
+琶音可像音階一樣點音、移弦、選指、批次確認，並支援撤銷、選取／全部還原及離開時儲存或放棄。上下行共用一份琶音指法；音階一／兩八度切換不影響兩八度琶音。琶音使用獨立的本機儲存欄位，不套用或覆寫既有音階自訂資料。教室中琶音仍只儲存在目前瀏覽器，畫面有明示，不同步到其他裝置；音階原有課堂同步維持不變，Firebase 規則與權限未變更。
+
+驗證：`node --test tests/*.test.cjs`；`JSDOM_MODULE=/path/to/jsdom node qa/arpeggio-editor.cjs`。DOM 模擬不代表 iOS 實機觸控驗收。

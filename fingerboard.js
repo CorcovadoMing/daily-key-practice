@@ -306,7 +306,7 @@
       const explicit=[1,2,3,4].includes(note.position.finger);
       const modified=note.position.custom===true;
       const point=svgNode('g',interaction?{
-        role:'button',tabindex:'0',class:'cello-fb-note',
+        role:'button',tabindex:'0',class:'cello-fb-note','data-midi':note.midi,
         'aria-label':'選擇第'+note.order+'音 '+note.name+'，編輯同音高弦位及指號',
         'aria-pressed':String(interaction.selectedMidi===note.midi)
       }:{});
@@ -484,9 +484,14 @@
     wrap.append(svg);return wrap;
   }
 
-  function create(mode,key,initialAnnotations={},onSave=null,onPreview=null){
+  function create(mode,key,initialAnnotations={},onSave=null,onPreview=null,arpeggioOptions={}){
     const id=(mode==='major'?'major-':'minor-')+key[0];
+    // Arpeggio maps never consume scale overrides, including legacy upMap.
     let annotations={...initialAnnotations};
+    let arpeggioAnnotations={...(arpeggioOptions.annotations||{})};
+    const mapFor=dir=>dir==='arpeggio'?(arpeggioAnnotations.upMap||''):(annotations[dir+'Map']||'');
+    const saveFor=dir=>dir==='arpeggio'?arpeggioOptions.onSave:onSave;
+    const sourceDir=dir=>dir==='arpeggio'?'up':dir;
     const root=element('div',{class:'cello-fingerboard'});
     const toolbar=element('div',{class:'cello-fb-toolbar'});
     const octaveGroup=element('div',{class:'cello-fb-group','aria-label':'音階八度數'});
@@ -503,14 +508,14 @@
       return JSON.stringify(Object.entries(map).sort(([a],[b])=>Number(a)-Number(b)));
     }
     function isDirty(){return edit.dir!==null&&signature(edit.original)!==signature(edit.pending);}
-    function notes(dir){return scaleNotes(mode,key,dir,choices.get(id)||2);}
+    function notes(dir){return dir==='arpeggio'?arpeggioNotes(mode,key,'up'):scaleNotes(mode,key,dir,choices.get(id)||2);}
     function defaultPosition(dir,midi){
-      const ref=(window.CelloFingeringOptimizer||window.CelloFingeringPresets)?.get(mode,key,dir,notes(dir))||{};
+      const ref=(window.CelloFingeringOptimizer||window.CelloFingeringPresets)?.get(mode,key,sourceDir(dir),notes(dir),dir==='arpeggio')||{};
       return notePlacement(midi,{},ref);
     }
     function proposedPosition(dir,midi){
-      const ref=(window.CelloFingeringOptimizer||window.CelloFingeringPresets)?.get(mode,key,dir,notes(dir))||{};
-      const map=edit.dir===dir?edit.pending:decodeMap(annotations[dir+'Map']);
+      const ref=(window.CelloFingeringOptimizer||window.CelloFingeringPresets)?.get(mode,key,sourceDir(dir),notes(dir),dir==='arpeggio')||{};
+      const map=edit.dir===dir?edit.pending:decodeMap(mapFor(dir));
       return notePlacement(midi,map,ref);
     }
     function selectedNote(){return edit.dir===null?null:notes(edit.dir).find(n=>n.midi===edit.midi);}
@@ -534,7 +539,7 @@
       document.removeEventListener('keydown',onKeydown,true);
     }
     function startTracking(){
-      if(tracking||typeof onSave!=='function')return;
+      if(tracking||typeof saveFor(edit.dir)!=='function')return;
       tracking=true;
       document.addEventListener('pointerdown',onPointerDown,true);
       document.addEventListener('pointermove',onPointerMove,true);
@@ -545,7 +550,7 @@
     }
     function announceDraft(){
       if(typeof onPreview!=='function')return;
-      if(edit.dir===null){onPreview(null);return;}
+      if(edit.dir===null||edit.dir==='arpeggio'){onPreview(null);return;}
       const changed=Object.keys({...edit.original,...edit.pending}).filter(k=>
         JSON.stringify(edit.original[k])!==JSON.stringify(edit.pending[k])).map(Number);
       onPreview({direction:edit.dir,selectedMidi:edit.midi,
@@ -575,9 +580,10 @@
       const previous=JSON.stringify(edit.original);
       // The caller merges this transaction's per-note delta into the latest
       // room map so simultaneous changes to different pitches are preserved.
-      annotations[dir+'Map']=value;
+      if(dir==='arpeggio')arpeggioAnnotations.upMap=value;
+      else annotations[dir+'Map']=value;
       closeEditor();
-      onSave(dir,value,previous,false);
+      saveFor(dir)(sourceDir(dir),value,previous,false);
     }
     function exitEditor(next=null){
       if(edit.dir===null){if(next)next();return;}
@@ -651,7 +657,7 @@
         return;
       }
       if(edit.dir===null){
-        edit.dir=dir;edit.original=clone(decodeMap(annotations[dir+'Map']));
+        edit.dir=dir;edit.original=clone(decodeMap(mapFor(dir)));
         edit.pending=clone(edit.original);edit.undo=[];edit.showMore=false;
         startTracking();
       }
@@ -719,13 +725,13 @@
       announceDraft();
     }
 
-    for(const dir of ['up','down']){
+    for(const dir of ['up','down','arpeggio']){
       const section=element('section',{class:'cello-fb-direction',
         'aria-label':mode==='major'&&dir==='up'?'音階指板，上下行相同':dir==='up'?'上行音階':'下行音階'});
       const heading=element('h4',{class:'cello-fb-direction-heading'});
       const viewport=element('div',{class:'cello-fb-viewport'});
       const editor=element('div',{class:'cello-inline-editor',
-        'aria-label':(dir==='up'?'上行':'下行')+'批次編輯音符'});
+        'aria-label':(dir==='arpeggio'?'琶音':dir==='up'?'上行':'下行')+'批次編輯音符'});
       editor.hidden=true;
       const status=element('div',{class:'cello-inline-status'});
       const hint=element('p',{class:'cello-inline-warning',role:'alert'});hint.hidden=true;
@@ -766,53 +772,43 @@
       toolbar,boards);
     const arpeggioSection=element('section',{class:'arpeggio-section fingerboard-section'});
     const arpeggioBoards=element('div',{class:'cello-fb-two-up'});
-    const arpeggioViews={},arpeggioLegends={};
     arpeggioSection.append(element('h3',{class:'music-section-title'},'琶音 · 兩個八度'),
       makeScore(mode,key,true),arpeggioBoards);
-    for(const dir of ['up']){
-      const section=element('section',{class:'cello-fb-direction'});
-      const viewport=element('div',{class:'cello-fb-viewport'});
-      arpeggioLegends[dir]=makeLegend();
-      section.append(element('h4',{class:'cello-fb-direction-heading'},'上下行相同'),viewport,arpeggioLegends[dir]);
-      arpeggioViews[dir]=viewport;arpeggioBoards.append(section);
-    }
+    // Reuse the scale transaction UI, but give arpeggios independent storage.
+    arpeggioBoards.append(panels.arpeggio.section);
+    if(arpeggioOptions.localOnly)arpeggioSection.append(
+      element('p',{class:'fingering-note'},'琶音修改只儲存在此瀏覽器，不與教室同步。'));
 
     root.append(scoreSection,boardSection,arpeggioSection,dialog);
 
     function renderDirection(dir){
-      const pane=panels[dir],editing=edit.dir===dir;
+      const pane=panels[dir],editing=edit.dir===dir,isArpeggio=dir==='arpeggio';
       const asymmetric=false; // 054: all major scales use the approved ascent and exact reverse.
       pane.section.hidden=mode==='major'&&dir==='down'&&!asymmetric;
-      pane.viewport.setAttribute('aria-label',mode==='major'&&!asymmetric?'音階指板，上下行相同':dir==='up'?'上行音階':'下行音階'+(asymmetric?'，唯讀，沿用已儲存的共用自訂指法':''));
+      pane.viewport.setAttribute('aria-label',isArpeggio?'琶音指板，上下行相同':mode==='major'&&!asymmetric?'音階指板，上下行相同':dir==='up'?'上行音階':'下行音階'+(asymmetric?'，唯讀，沿用已儲存的共用自訂指法':''));
       pane.section.setAttribute('aria-label',pane.viewport.getAttribute('aria-label'));
-      if(arpeggioViews[dir]){
-        const arp=chartSVG(mode,key,dir,2,annotations,null,[],stringOrder==='ADGC',true);
-        arp.setAttribute('aria-label',key[0]+(mode==='major'?'大調':'小調')+'琶音，兩個八度上下行相同指法，下行反向演奏');
-        arpeggioViews[dir].replaceChildren(arp);
-        const legend=makeLegend(arp);arpeggioLegends[dir].replaceWith(legend);arpeggioLegends[dir]=legend;
-      }
-      const saved=decodeMap(annotations[(mode==='major'?'up':dir)+'Map']);
-      if(mode==='major'&&!asymmetric&&dir==='up')pane.heading.textContent='上下行相同';
+      const saved=decodeMap(mapFor(isArpeggio?dir:mode==='major'?'up':dir));
+      if(isArpeggio||(mode==='major'&&!asymmetric&&dir==='up'))pane.heading.textContent='上下行相同';
       else pane.heading.innerHTML=(dir==='up'?'<svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 19V5m-6 6 6-6 6 6"/></svg> 上行':'<svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14m-6-6 6 6 6-6"/></svg> 下行');
-      if(remoteDrafts.some(remote=>remote.direction===dir)){
+      if(!isArpeggio&&remoteDrafts.some(remote=>remote.direction===dir)){
         pane.heading.append(element('span',{class:'cello-fb-remote-label'},'（其他人編輯中）'));
       }
-      if(Object.keys(saved).length||(dir==='up'?annotations.up:annotations.down)){
+      if(Object.keys(saved).length||(!isArpeggio&&(dir==='up'?annotations.up:annotations.down))){
         pane.heading.append(element('span',{class:'cello-fb-changed'},'（已修改）'));
       }
-      const memo=dir==='up'?annotations.up:annotations.down;
+      const memo=isArpeggio?'':dir==='up'?annotations.up:annotations.down;
       pane.memo.textContent=memo||'';pane.memo.hidden=!memo;
       const value=editing?(Object.keys(edit.pending).length?JSON.stringify(edit.pending):''):
-        annotations[dir+'Map']||'';
-      pane.viewport.replaceChildren(chartSVG(mode,key,dir,choices.get(id)||2,
-        {...annotations,[dir+'Map']:value},
-        typeof onSave==='function'&&!(asymmetric&&dir==='down')?{
+        mapFor(dir);
+      pane.viewport.replaceChildren(chartSVG(mode,key,sourceDir(dir),isArpeggio?2:choices.get(id)||2,
+        isArpeggio?{upMap:value}:{...annotations,[dir+'Map']:value},
+        typeof saveFor(dir)==='function'&&!(asymmetric&&dir==='down')?{
           selectedMidi:editing?edit.midi:null,
           originalMap:editing?JSON.stringify(edit.original):null,
-          confirmedMap:annotations[dir+'Map']||'',
+          confirmedMap:mapFor(dir),
           select:midi=>begin(dir,midi),
           chooseString:s=>chooseString(s),showMore:editing&&edit.showMore
-        }:null,remoteDrafts,stringOrder==='ADGC'));
+        }:null,isArpeggio?[]:remoteDrafts,stringOrder==='ADGC',isArpeggio));
       const legend=makeLegend(pane.viewport);pane.legend.replaceWith(legend);pane.legend=legend;
       pane.editor.hidden=!editing;
       if(!editing)return;
@@ -872,7 +868,7 @@
       two.setAttribute('aria-pressed',String(count===2));
       standardOrder.setAttribute('aria-pressed',String(stringOrder!=='ADGC'));
       reverseOrder.setAttribute('aria-pressed',String(stringOrder==='ADGC'));
-      renderDirection('up');renderDirection('down');
+      renderDirection('up');renderDirection('down');renderDirection('arpeggio');
     }
     function addButton(label,count){
       const btn=element('button',{type:'button',class:'cello-fb-button'},label);
@@ -906,13 +902,17 @@
       const next=Array.isArray(incoming)?incoming.filter(Boolean).slice(0,8):[];
       if(JSON.stringify(remoteDrafts)===JSON.stringify(next))return;
       remoteDrafts=next;
-      renderDirection('up');renderDirection('down');
+      renderDirection('up');renderDirection('down');renderDirection('arpeggio');
+    };
+    root.updateArpeggioAnnotations=(incoming)=>{
+      arpeggioAnnotations={...(incoming||{})};
+      renderDirection('arpeggio');
     };
     root.updateAnnotations=(incoming)=>{
       const value=incoming&&typeof incoming==='object'?incoming:{};
       if(JSON.stringify(value)===JSON.stringify(annotations))return;
       annotations={...value};
-      renderDirection('up');renderDirection('down');
+      renderDirection('up');renderDirection('down');renderDirection('arpeggio');
     };
     render();
     return root;

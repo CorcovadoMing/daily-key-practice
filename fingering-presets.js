@@ -853,6 +853,53 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
       });
       down=[...up].reverse().map(p=>({...p}));
     }
+    // Voice-confirmed four-key data update. Explicit high fourth fingers are
+    // validated against physical frames here, not added to generic candidates.
+    if(policy==='preferred'&&octaves===2){
+      const place=(p,s,f,anchor,shape='normal')=>{
+        if(p.midi!==OPEN[s]+anchor+SHAPES[shape][f-1])
+          throw Error('Invalid four-key reviewed pitch: '+key[0]+'/'+p.midi);
+        return {midi:p.midi,s,f,anchor,shape,source:'reviewed-four-key-voice-v1'};
+      };
+      const apply=(r,spec)=>r.map(p=>spec[p.midi]?place(p,...spec[p.midi]):p);
+      const mirror=()=>{down=[...up].reverse().map(p=>({...p}));};
+      if(mode==='minor'&&key[0]==='C♯'){
+        if(arpeggio){up=apply(up,{37:[0,1,1],40:[0,4,1],61:[3,2,3]});mirror();}
+        else{
+          up=apply(up,{37:[0,1,1],39:[0,3,1],40:[0,4,1],58:[2,1,8],60:[2,3,8],61:[2,4,8]});
+          down=apply(down,{37:[0,1,1],39:[0,3,1],40:[0,4,1],42:[0,1,6],44:[0,3,6],45:[0,4,6],
+            47:[1,1,4,'extended'],49:[1,2,4,'extended'],51:[1,4,4,'extended'],
+            52:[2,1,2,'extended'],54:[2,2,2,'extended'],56:[2,4,2,'extended'],
+            57:[2,1,7,'extended'],59:[2,2,7,'extended'],61:[2,4,7,'extended']});
+        }
+      }
+      if(mode==='major'&&key[0]==='B'&&!arpeggio){
+        up=apply(up,{58:[2,1,8],59:[2,2,8],61:[2,4,8],
+          63:[3,1,6],64:[3,2,6],66:[3,4,6],68:[3,1,11,'extended'],70:[3,2,11,'extended'],71:[3,3,11,'extended']});mirror();
+      }
+      if(mode==='minor'&&key[0]==='G♯'&&!arpeggio){
+        up=apply(up,{44:[1,1,1],46:[1,3,1],47:[1,4,1],49:[1,1,6,'extended'],51:[1,2,6,'extended'],53:[1,4,6,'extended'],
+          55:[2,1,5],56:[2,2,5],58:[2,4,5],59:[2,1,9,'extended'],61:[2,2,9,'extended'],63:[2,4,9,'extended'],
+          65:[3,1,8],67:[3,3,8],68:[3,4,8]});
+        down=apply(down,{44:[1,1,1],46:[1,3,1],47:[1,4,1],49:[1,1,6],51:[1,3,6],52:[1,4,6],
+          54:[2,1,4,'extended'],56:[2,2,4,'extended'],58:[2,4,4,'extended'],
+          59:[2,1,9,'extended'],61:[2,2,9,'extended'],63:[2,4,9,'extended'],
+          64:[3,1,7,'extended'],66:[3,2,7,'extended'],68:[3,4,7,'extended']});
+      }
+      if(mode==='major'&&key[0]==='B'&&arpeggio){
+        // Starts on G, then D/A: retain all original three-string placements.
+        up=apply(up,{47:[1,4,1],51:[2,1,1],54:[2,4,1],59:[3,2,1],
+          63:[3,1,6],66:[3,4,6],71:[3,3,12]});mirror();
+      }
+      if(mode==='minor'&&key[0]==='G♯'&&arpeggio){
+        // B3 and D-sharp4 move to D; the highest G-sharp4 remains on A.
+        up=apply(up,{44:[1,1,1],47:[1,4,1],51:[2,1,1],56:[2,4,2,'extended'],
+          59:[2,1,9,'extended'],63:[2,4,9,'extended'],68:[3,4,8]});mirror();
+      }
+      if(mode==='major'&&key[0]==='F♯'&&arpeggio){
+        up=apply(up,{54:[2,2,3],58:[3,1,1],61:[3,4,1],66:[3,2,8]});mirror();
+      }
+    }
     if(motion){
       const source=policy==='first-family'?'computed-first-family-comparison-v1':'computed-movement-events-v1';
       up=up.map(p=>({...p,source:p.source||source}));down=down.map(p=>({...p,source:p.source||source}));

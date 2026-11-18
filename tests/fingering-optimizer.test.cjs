@@ -8,7 +8,10 @@ function playable(route,direction){
  for(let i=0;i<route.length;i++){
   const p=route[i],semi=p.midi-OPEN[p.s];
   a.ok(p.anchor>=1&&p.anchor<=13);a.equal(p.f===0,semi===0);
-  if(p.f){a.equal(semi,p.anchor+O.SHAPES[p.shape][p.f-1]);if(p.anchor>=8&&p.f>3){a.equal(p.source,'reviewed-bflat-upper134-053-v1');a.equal(p.midi,70);a.equal(p.s,3);a.equal(p.f,4);a.equal(p.anchor,10);a.equal(p.shape,'normal');}
+  if(p.f){a.equal(semi,p.anchor+O.SHAPES[p.shape][p.f-1]);if(p.anchor>=8&&p.f>3){
+    if(p.source==='reviewed-four-key-voice-v1')a.ok(['61:2:4:8:normal','63:2:4:9:extended','68:3:4:8:normal'].includes(identity(p)),'explicit voice-selected high fourth finger');
+    else{a.equal(p.source,'reviewed-bflat-upper134-053-v1');a.equal(p.midi,70);a.equal(p.s,3);a.equal(p.f,4);a.equal(p.anchor,10);a.equal(p.shape,'normal');}
+   }
    a.equal(p.positionLabel.includes('擴增把位'),p.shape!=='normal'||p.displayExtended===true);}
   if(i)a.ok(O.transition(route[i-1],p,direction),identity(route[i-1])+' -> '+identity(p));
  }
@@ -24,7 +27,15 @@ for(const [mode,name] of [['major','MAJOR_KEYS'],['minor','MINOR_KEYS']]){
     a.deepEqual(Array.from(route,p=>p.midi),Array.from(notes,n=>n.midi));
     a.equal(Object.keys(O.get(mode,key,dir,notes)).length,notes.length);
    }
-   a.equal(identity(up.at(-1)),identity(down[0]));
+   if(mode==='minor'&&octaves===2&&['C♯','G♯'].includes(key[0])){
+    // Voice-selected ascent134 / natural-return124 share the same fourth-finger
+    // contact point but prepare different remaining fingers at the turn.
+    const top=up.at(-1),back=down[0],s=key[0]==='C♯'?2:3,midi=key[0]==='C♯'?61:68;
+    a.equal(identity(top),[midi,s,4,8,'normal'].join(':'));
+    a.equal(identity(back),[midi,s,4,7,'extended'].join(':'));
+    a.equal(top.source,'reviewed-four-key-voice-v1');a.equal(back.source,'reviewed-four-key-voice-v1');
+    a.equal(top.anchor+O.SHAPES[top.shape][3],back.anchor+O.SHAPES[back.shape][3]);
+   }else a.equal(identity(up.at(-1)),identity(down[0]));
    if(mode==='major')a.deepEqual(Array.from(down,identity),Array.from(up,identity).reverse());
    else if(mode==='minor')a.equal(up.at(-3).midi-down[2].midi,1); // melodic 6th vs natural 6th
   });
@@ -57,7 +68,7 @@ test('Werner confirmed source remains separately available and unchanged',()=>{
 test('computed defaults are bundled in a deployed existing asset',()=>{
  a.ok(html.indexOf('fingering-presets.js')<html.indexOf('fingerboard.js'));
  a.ok(fs.readFileSync('fingering-presets.js','utf8').includes('window.CelloFingeringOptimizer='));
- a.match(html,/20261118-006-experimental/);
+ a.match(html,/20261118-007-experimental/);
 });
 
 test('F major preserves GD 0124 and applies reviewed expanded124 then fourth-position12',()=>{

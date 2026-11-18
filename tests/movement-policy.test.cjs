@@ -51,7 +51,7 @@ for(const[m,keys]of lists)for(const k of keys)for(const[oct,arp]of[[1,false],[2,
   a.equal(nm.components,nm.stringChanges+nm.anchorShifts+nm.shapeChanges);a.ok(nm.events<=nm.components);
   a.equal(nm.stretched134,0);a.equal(nm.mixed134,0);
   for(let i=1;i<n.length;i++)a.ok(O.movementStep(n[i-1],n[i],d));
-  if(n[0].source==='computed-first-family-near-tie-v1'&&!n.some(p=>['reviewed-e-minor-upper-first24-053-v1','reviewed-b-minor-upper-055-v1','reviewed-g-minor-high-eflat1-055-v1','owner-voice-review-059-v1'].includes(p.source))){
+  if(n[0].source==='computed-first-family-near-tie-v1'&&!n.some(p=>['reviewed-e-minor-upper-first24-053-v1','reviewed-b-minor-upper-055-v1','reviewed-g-minor-high-eflat1-055-v1','owner-voice-review-059-v1','reviewed-four-key-voice-v1'].includes(p.source))){
    a.ok(nm.events<=rm.events+1);a.ok(nm.anchorShifts<=rm.anchorShifts);a.ok(nm.travel<=rm.travel);a.ok(nm.outsideFirstNotes<=rm.outsideFirstNotes);
   }
   if(m==='minor'&&k[0]==='C')a.deepEqual(plain(n),plain(o));
