@@ -887,8 +887,9 @@ function route(mode,key,direction,octaves=2,arpeggio=false,policy='preferred'){
           64:[3,1,7,'extended'],66:[3,2,7,'extended'],68:[3,4,7,'extended']});
       }
       if(mode==='major'&&key[0]==='B'&&arpeggio){
-        // Starts on G, then D/A: retain all original three-string placements.
-        up=apply(up,{47:[1,4,1],51:[2,1,1],54:[2,4,1],59:[3,2,1],
+        // 20261118-008: move lower B3 to D, retaining its second finger;
+        // the highest B4 remains on A with the third finger.
+        up=apply(up,{47:[1,4,1],51:[2,1,1],54:[2,4,1],59:[2,2,8],
           63:[3,1,6],66:[3,4,6],71:[3,3,12]});mirror();
       }
       if(mode==='minor'&&key[0]==='G♯'&&arpeggio){

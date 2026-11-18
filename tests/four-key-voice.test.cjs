@@ -34,10 +34,12 @@ test('144 routes: targeted changes only, exact pitches, physical contact frames 
  a.equal(changed,14);
 });
 
-test('confirmed B-major arpeggio4142143 retains original G/D/A mapping',()=>{
+test('B-major arpeggio4142143 moves only lower B3 to D with the same second finger',()=>{
  const up=get('major','B','up',true),down=get('major','B','down',true);
  a.equal(digits(up),'4142143');a.deepEqual(Array.from(up,p=>p.midi),[47,51,54,59,63,66,71]);
- a.deepEqual(Array.from(up,p=>p.s),[1,2,2,3,3,3,3]);a.equal(digits(up,0),'');
+ a.deepEqual(Array.from(up,p=>p.s),[1,2,2,2,3,3,3]);a.equal(digits(up,0),'');
+ a.equal(up.find(p=>p.midi===59).f,2);a.equal(up.find(p=>p.midi===59).anchor,8);a.equal(up.find(p=>p.midi===59).shape,'normal');
+ a.equal(up.at(-1).midi,71);a.equal(up.at(-1).s,3);a.equal(up.at(-1).f,3);
  a.deepEqual(plain(down),plain([...up].reverse()));
 });
 test('confirmed G-sharp minor arpeggio1414144 moves B3/D-sharp4 to D, not apex',()=>{
