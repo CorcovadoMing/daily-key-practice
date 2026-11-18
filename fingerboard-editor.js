@@ -30,6 +30,9 @@
   }
   function createEditor(mode,key,annotations={},lockedDirection=null){
     const maps={up:validated(annotations.upMap),down:validated(annotations.downMap)};
+    // Major scales have one shared route. Keep archived downMap untouched,
+    // but never offer edits to a direction that the practice view hides.
+    if(mode==='major')lockedDirection='up';
     let direction=lockedDirection==='down'?'down':'up',octaves=2,maxFret=14,selected=0;
     const root=el('div','teacher-fingerboard');
     const toolbar=el('div','teacher-tools');
@@ -37,13 +40,13 @@
     const octaveGroup=el('div','cello-fb-group');
     const rangeGroup=el('div','cello-fb-group');
     const noteStrip=el('div','teacher-note-strip');
-    const help=el('p','teacher-editor-help','先點選上方的音符，再點指板上亮起的同音高位置；也可以直接拖動音符到其他弦位。');
+    const help='先點選上方的音符，再點指板上亮起的同音高位置；也可以直接拖動音符到其他弦位。';
     const stage=el('div','teacher-fb-scroll');
     const info=el('div','teacher-note-status');
     const fingers=el('div','teacher-finger-choices');
     const reset=el('button','teacher-reset','重設目前方向的指板配置');
     reset.type='button';
-    const foot=el('p','teacher-editor-help','○ 空心點＝空弦，正好落在粗弦枕線上。位置圓點是半音音位示意，大提琴沒有品絲；換弦僅允許同音高。');
+    stage.setAttribute('aria-description',help+'空弦位於弦枕；換弦僅允許同音高。');
 
     function button(parent,label,action){
       const b=el('button','cello-fb-button',label);
@@ -64,7 +67,8 @@
     });
     if(!lockedDirection)toolbar.append(directionGroup);
     toolbar.append(octaveGroup,rangeGroup);
-    root.append(toolbar,noteStrip,help,stage,fb.makeLegend(),info,fingers,reset,foot);
+    let legend=fb.makeLegend();
+    root.append(toolbar,noteStrip,stage,legend,info,fingers,reset);
 
     function notes(){return fb.scaleNotes(mode,key,direction,octaves);}
     function selection(){return notes()[selected]||null;}
@@ -73,17 +77,17 @@
       if(m && Number.isInteger(m.s)&&m.s>=0&&m.s<4){
         const semi=note.midi-OPEN[m.s].midi;
         if(semi>=0&&semi<=24){
-          const ref=window.CelloFingeringPresets?.get(mode,key,direction,notes())?.[String(note.midi)];
+          const ref=(window.CelloFingeringOptimizer||window.CelloFingeringPresets)?.get(mode,key,direction,notes())?.[String(note.midi)];
           const same=Boolean(ref&&ref.s===m.s);
           const f=semi===0?0:([1,2,3,4].includes(m.f)?m.f:
             same?ref.f:null);
-          return {s:m.s,semi,f,group:same?ref.group:'custom',modified:true};
+          return {s:m.s,semi,f,group:'custom',positionLabel:'老師／學生修改（把位未核對）',modified:true};
         }
       }
-      const refs=window.CelloFingeringPresets?.get(mode,key,direction,notes())||{};
+      const refs=(window.CelloFingeringOptimizer||window.CelloFingeringPresets)?.get(mode,key,direction,notes())||{};
       const proposal=refs[String(note.midi)];
       if(proposal)return {s:proposal.s,semi:note.midi-OPEN[proposal.s].midi,f:proposal.f,
-        group:proposal.group,modified:false};
+        anchor:proposal.anchor,shape:proposal.shape,group:proposal.group,positionLabel:proposal.positionLabel,displayExtended:proposal.displayExtended,technique:proposal.technique,modified:false};
       const pos=fb.positionFor(note.midi);
       return {s:pos.string,semi:pos.semitones,f:pos.semitones===0?0:null,group:'unverified',modified:false};
     }
@@ -146,24 +150,34 @@
       }
       for(let i=0;i<ns.length;i++){
         const n=ns[i],pos=placement(n),x=XX[pos.s],y=NUT+pos.semi*STEP;
-        const style=fb.pointStyling({semitones:pos.semi,finger:pos.f,group:pos.group});
+        const style=fb.pointStyling({semitones:pos.semi,finger:pos.f,anchor:pos.anchor,shape:pos.shape,technique:pos.technique,group:pos.group,positionLabel:pos.positionLabel,displayExtended:pos.displayExtended});
         if(pos.semi>maxFret)continue;
         const isOpen=pos.semi===0,isSelected=i===selected;
         const g=sv('g',{role:'button',tabindex:'0','aria-label':`第${n.order}音 ${n.name}；${OPEN[pos.s].name}弦；${isOpen?'空弦':pos.semi+'半音位置'}`,class:'teacher-note-marker'});
-        g.append(sv('title',{},`第${n.order}音 ${n.name}`));
+        const refs=(window.CelloFingeringOptimizer||window.CelloFingeringPresets)?.get(mode,key,direction,ns)||{};
+        const shiftCue=fb.resolvedShiftCue(n.midi,maps[direction],refs);
+        g.setAttribute('data-position-group',style.group);g.setAttribute('data-position-extended',String(Boolean(style.extended)));
+        g.append(sv('title',{},`第${n.order}音 ${n.name}`+(isOpen?'；空弦':shiftCue?'；'+shiftCue.description:'')));
         if(isSelected)g.append(sv('circle',{cx:x,cy:y,r:23,fill:'none',stroke:'#78a888','stroke-width':3}));
-        const color=isOpen?'#34483a':fb.POSITION_COLORS[style.group];
-        g.append(sv('circle',{cx:x,cy:y,r:15.5,fill:isOpen?'#f7f9f6':color,stroke:isOpen?color:'#ffffff','stroke-width':isOpen?3:2}));
-        g.append(sv('text',{x,y:y+4.5,'text-anchor':'middle','font-size':12,'font-weight':850,fill:isOpen?'#34483a':'#ffffff'},n.order));
+        const color=isOpen&&style.group!=='extended'?'#34483a':fb.POSITION_COLORS[style.group];
+        g.append(sv('circle',{cx:x,cy:y,r:15.5,fill:isOpen?'#f7f9f6':color,stroke:isOpen?color:style.extended?style.borderColor:'#ffffff','stroke-width':isOpen?3:style.extended?1.5:2,'stroke-dasharray':'none'}));
+        const accent=fb.bMinorAccent({mode,key,octaves,arpeggio:false},{anchor:pos.anchor,shape:pos.shape,finger:pos.f,group:pos.group,custom:pos.modified});
+        if(accent){g.setAttribute('data-position-accent',accent);g.querySelector('circle[r="15.5"]').setAttribute('fill',accent);}
+        g.append(sv('text',{x:shiftCue?.placement==='inside'?x-3:x,y:y+4.5,'text-anchor':'middle','font-size':12,'font-weight':850,fill:isOpen?color:style.textColor,stroke:style.textStroke,'stroke-width':.9,'paint-order':'stroke'},isOpen?'0':shiftCue?.placement==='inside'?style.finger:n.order));
+        if(shiftCue?.placement==='inside')g.append(sv('text',{x:x+2,y:y+4.5,'font-size':9,'font-weight':700,fill:style.textColor,stroke:style.textStroke,'stroke-width':.8,'paint-order':'stroke',class:'cello-shift-cue',role:'img','aria-label':shiftCue.description},shiftCue.symbol));
         // Match the read-only chart: open-string points show only their number.
         if(!isOpen){
           g.append(sv('text',{x:x+20,y:y+1,'font-size':13,'font-weight':750,fill:'#263e2e'},n.name));
+          if(pos.technique==='naturalHarmonic')g.append(sv('circle',{cx:x+24,cy:y-19,r:3.2,fill:'none',stroke:'#263e2e','stroke-width':1.3,class:'cello-harmonic-mark',role:'img','aria-label':'自然泛音：第3指輕觸A弦二分之一，發聲A4'}));
           if([1,2,3,4].includes(style.finger)){
             if(pos.modified)g.append(sv('rect',{x:x+17,y:y+4,width:28,height:17,
               rx:5,fill:'#fff0f5',stroke:'#d15c80','stroke-width':1}));
             g.append(sv('text',{x:x+20,y:y+16,'font-size':pos.modified?12:10,
               'font-weight':pos.modified?900:700,
               fill:pos.modified?'#a82055':'#675879'},'('+style.finger+')'));
+            if(shiftCue&&shiftCue.placement!=='inside')g.append(sv('text',{x:shiftCue.placement==='below'?x:x+42,
+              y:shiftCue.placement==='below'?y+29:y+16,'text-anchor':shiftCue.placement==='below'?'middle':'start','font-size':9,
+              class:'cello-shift-cue',role:'img','aria-label':shiftCue.description},shiftCue.symbol));
           }
         }
         doc.append(g);
@@ -230,9 +244,10 @@
         noteStrip.append(b);
       }
       stage.replaceChildren(board());
+      const nextLegend=fb.makeLegend(stage);legend.replaceWith(nextLegend);legend=nextLegend;
       const n=selection();
       const p=placement(n);
-      const selectedStyle=fb.pointStyling({semitones:p.semi,finger:p.f,group:p.group});
+      const selectedStyle=fb.pointStyling({semitones:p.semi,finger:p.f,anchor:p.anchor,shape:p.shape,technique:p.technique,group:p.group,positionLabel:p.positionLabel,displayExtended:p.displayExtended});
       info.textContent=`目前選擇：第 ${n.order} 音 ${n.name} · ${OPEN[p.s].name} 弦${p.semi===0?'（空弦）':'，'+selectedStyle.label+([1,2,3,4].includes(selectedStyle.finger)?'、第 '+selectedStyle.finger+' 指':'（尚未核對指法）')}`;
       fingers.replaceChildren(el('span','teacher-finger-label','左手指號'));
       if(p.semi===0){
@@ -255,7 +270,8 @@
       getValue(){
         return {
           upMap:Object.keys(maps.up).length?JSON.stringify(maps.up):'',
-          downMap:Object.keys(maps.down).length?JSON.stringify(maps.down):''
+          downMap:mode==='major'?(annotations.downMap||''):
+            (Object.keys(maps.down).length?JSON.stringify(maps.down):'')
         };
       }
     };

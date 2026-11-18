@@ -2,7 +2,7 @@
 class PracticeMetronome extends AudioWorkletProcessor {
   constructor() {
     super(); this.running = false; this.beat = 0; this.clickStart = -Infinity;
-    this.settings = { bpm: 80, count: 4, accent: 1, volume: 100 };
+    this.settings = { bpm: 80, count: 4, accent: 1, volume: 100, peakLevel: 0.65 };
     this.port.onmessage = ({ data }) => {
       if (data.type === 'stop') { this.running = false; this.clickStart = -Infinity; }
       if (data.type === 'configure' || data.type === 'start') {
@@ -22,7 +22,10 @@ class PracticeMetronome extends AudioWorkletProcessor {
       if (this.running && now >= this.next) {
         // Do not replay missed beats after a suspended render context.
         this.clickStart = now; this.frequency = this.beat + 1 === this.settings.accent ? 1200 : 850;
-        this.peak = this.settings.volume / 100 * 0.65;
+        // Bound the platform peak and slider even if a malformed message arrives.
+        const level = Number(this.settings.peakLevel);
+        const peakLevel = Number.isFinite(level) ? Math.max(0, Math.min(0.85, level)) : 0.65;
+        this.peak = Math.max(0, Math.min(100, Number(this.settings.volume) || 0)) / 100 * peakLevel;
         this.port.postMessage({ beat: this.beat + 1, count: this.settings.count });
         this.beat = (this.beat + 1) % this.settings.count;
         this.next = now + 60 / this.settings.bpm;

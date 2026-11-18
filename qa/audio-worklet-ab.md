@@ -1,0 +1,13 @@
+# Local AudioWorklet A/B experiment
+
+Base: experimental branch commit `44d68dad361549bc5b83d2f241c093e7944e4172` (026). Stable/main is unchanged. This patch is local only, not released.
+
+In metronome settings choose A (original/default) or B (AudioWorklet). Selection is intentionally session-only and reload defaults to A. Switching while playing stops the previous engine before starting the selected one. B loading is cancelable; unsupported/failed module loading falls back to A with a message. Runtime processor failure stops audio, selects A and asks for an explicit restart. Hiding/leaving the page uses the existing stop behavior; suspended contexts require restart. BPM and volume changes reach B on its message port; already-started clicks retain their original envelope, as in A.
+
+B generates a 50ms sine click, 850Hz regular / 1200Hz accent, 2ms attack to volume × .65, exponential decay to .001 at 45ms. This matches A's envelope and frequency, not a guarantee of perceptually identical device output. Beat labels still update on the UI thread; sound does not wait for them. No microphone configuration, tuner calculation, iOS volume compensation, or persistent setting changes.
+
+Automated: `node --test tests/*.test.cjs` (130 tests). The new DSP tests use simulated rendering at 44.1/48kHz; controller tests mock Web Audio. They are not real Safari integration or hardware listening tests.
+
+Before publishing, serve this branch over localhost/HTTPS and verify module fetch, A/B switching, rapid stop while B loads, BPM/accent/count/volume, tab hiding and return. On iPad Safari compare A/B with the same BPM/volume/device volume and repeatedly toggle the tuner mic. Record click gaps and subjective output volume. AudioWorklet can avoid main-thread scheduling contention but cannot prevent iOS audio-session or hardware-route interruptions. If both engines hitch only at microphone transitions, investigate audio-session behavior rather than assuming scheduler failure.
+
+Chromium browser smoke completed on managed local preview: B selected, start remained active with B still selected and beat label `3 / 4` (processor message received, no fallback); switching to A while running showed `1 / 4`, blank error/status; Stop returned unchecked control and `●`. No microphone prompt occurred, tuner was never opened. Classroom remained in personal mode; create/join controls were never used. Browser logs inspected showed extension metadata errors only, not application/worklet errors. This confirms real Chromium module load and control integration, not physical sound quality or Safari behavior. Preview stopped after QA.

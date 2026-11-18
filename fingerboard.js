@@ -1,7 +1,7 @@
 /* Clean cello fingerboard note-position diagrams for scale practice.
  * Standard open strings: C2 G2 D3 A3. Circles show left-hand fingers (0 = open string, ? = not specified).
  * A schematic semitone spacing is used for legibility; physical distances are not to scale.
- * Per-note string choices favor the highest possible open string / lowest stopped position.
+ * Computed default routes minimize hand shifts within bounded playable hand states.
  */
 (function(){
   'use strict';
@@ -94,7 +94,8 @@
   function notePlacement(midi,map,presets={}){
     const p=presets[String(midi)],fallback=positionFor(midi);
     const base=p?{string:p.s,stringName:OPEN[p.s].name,semitones:midi-OPEN[p.s].midi,
-      finger:p.f,group:p.group,custom:false}:{...fallback,finger:null,group:'unverified',custom:false};
+      finger:p.f,group:p.f===0?'open':p.group,positionLabel:p.f===0?'空弦':p.positionLabel,
+      ...(p.f===0?{}:p.technique==='naturalHarmonic'?{technique:p.technique,harmonic:p.harmonic}:{anchor:p.anchor,shape:p.shape,displayExtended:p.displayExtended}),custom:false}:{...fallback,finger:null,group:'unverified',custom:false};
     const custom=map[String(midi)];
     if(!custom||!Number.isInteger(custom.s)||custom.s<0||custom.s>3)return base;
     const semi=midi-OPEN[custom.s].midi;
@@ -103,57 +104,93 @@
     const finger=semi===0?0:([1,2,3,4].includes(custom.f)?custom.f:
       same?p.f:null);
     return {string:custom.s,stringName:OPEN[custom.s].name,semitones:semi,
-      finger,group:same?p.group:'custom',custom:true};
+      finger,group:'custom',positionLabel:'老師／學生修改（把位未核對）',custom:true};
   }
 
-  // Presentation colors do not assert a particular hand position for
-  // unverified notes. Only the user's photographed fingerings set groups.
-  const POSITION_COLORS={
-    open:'#ffffff',
-    half:'#428b9a',
-    first:'#348569',
-    extended:'#c99236',
-    shifting:'#795bb2',
-    high:'#426f9e',
-    unverified:'#8f9a97',
-    custom:'#be476c'
-  };
+  // A reviewed one-off movement cue survives only while BOTH physical notes
+  // still match its reviewed string/finger, including saved/custom edits.
+  function resolvedShiftCue(midi,map,presets){
+    const p=presets[String(midi)],cue=p?.shiftCue;
+    if(!cue)return null;
+    const changed=(custom,s,f)=>custom&&(custom.s!==s||(custom.f!=null&&custom.f!==f));
+    if(changed(map[String(midi)],p.s,p.f)||changed(map[String(cue.toMidi)],cue.s,cue.f))return null;
+    const current=notePlacement(midi,map,presets),next=notePlacement(cue.toMidi,map,presets);
+    return current.string===p.s&&current.finger===p.f&&
+      next.string===cue.s&&next.finger===cue.f?cue:null;
+  }
+
+  // Chart supplied by Ming, Slack1794717734.119329. Photo-sampled colors;
+  // position is assigned only from a reviewed hand anchor, never pitch alone.
+  const CHART_POSITIONS=[null,
+    ['半把位','#5872a5'],['第一把位','#688d62'],
+    ['上第一把位／下第二把位','#b06261'],['上第二把位','#7a4c7d'],
+    ['第三把位','#403f47'],['上第三把位／下第四把位','#3c3d35'],
+    ['第四把位','#593237'],['上第四把位／下第五把位','#262127'],
+    ['第五把位','#335582'],['第六把位','#446038'],
+    ['上第六把位','#562c2f'],['第七把位','#2a202b'],['上第七把位','#262e43']
+  ];
+  const POSITION_COLORS={open:'#ffffff',
+    unverified:'#8f9a97',custom:'#be476c',harmonic:'#426f9e',
+    ...Object.fromEntries(CHART_POSITIONS.flatMap((p,i)=>p?[[`position-${i}`,p[1]]]:[]))};
+  function contrastInk(hex){
+    const rgb=hex.slice(1).match(/../g).map(c=>parseInt(c,16)/255)
+      .map(v=>v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4));
+    const l=rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722;
+    return (l+.05)/.05>=1.05/(l+.05)?'#000000':'#ffffff';
+  }
   function pointStyling(position){
-    const group=position.semitones===0?'open':(position.group||'unverified');
-    const label={open:'空弦',half:'半把位',first:'第一把位',
-      extended:'延伸手型',shifting:'其他把位',high:'高把位',
-      custom:'已修改',unverified:'照片尚未核對'}[group]||'照片尚未核對';
-    return {finger:position.finger,group,label};
+    let group,label,extended=false;
+    const chart=Number.isInteger(position.anchor)?CHART_POSITIONS[position.anchor]:null;
+    if(position.semitones===0){group='open';label='空弦';}
+    else if(position.custom||position.group==='custom'){group='custom';label='老師／學生修改（把位未核對）';}
+    else if(position.technique==='naturalHarmonic'||position.group==='harmonic'){group='harmonic';label=position.positionLabel||'泛音（不指定一般把位）';}
+    else if(chart&&[1,2,3,4].includes(position.finger)&&position.group!=='unverified'){
+      extended=position.displayExtended||position.shape==='extended'||position.shape==='backwardExtended'||position.group==='extended';
+      group=`position-${position.anchor}`;
+      label=(extended?'擴增':'')+chart[0]+(extended&&position.shape==='backwardExtended'?'（向後擴增）':'');
+    }else{group='unverified';label='把位尚未核對';}
+    const borderColor=contrastInk(POSITION_COLORS[group]);
+    return {finger:position.finger,group,label,extended,borderColor,textColor:group==='open'?'#34483a':'#ffffff',
+      textStroke:group!=='open'&&borderColor==='#000000'?'#18251b':'none'};
   }
-  function makeLegend(){
+  function bMinorAccent(context,position){
+    if(context?.mode!=='minor'||context.key?.[0]!=='B'||position.custom||
+      ['custom','unverified','harmonic'].includes(position.group))return null;
+    if(context.arpeggio)return position.string===3&&position.semitones===14&&
+      position.anchor===12&&position.shape==='normal'&&position.finger===3?'#247873':null;
+    return context.octaves===2&&position.anchor===11&&position.shape==='extended'&&position.finger>0?'#a45b38':null;
+  }
+  function makeLegend(diagram=null){
+    const points=diagram?.querySelectorAll?.('[data-position-group]')||[];
+    const used=new Set([...points].map(p=>p.getAttribute('data-position-group')+(p.getAttribute('data-position-extended')==='true'?':extended':'')));
     const aside=element('aside',{class:'cello-fb-legend','aria-label':'把位顏色圖例'});
-    const title=element('div',{class:'cello-legend-title'},'指板顏色圖例');
-    aside.append(title);
-    const entries=[
-      ['open','空弦'],['half','半把位'],['first','第一把位'],
-      ['extended','延伸把位'],['shifting','其他把位'],['high','高把位'],
-      ['custom','老師／學生修改']
-    ];
-    for(const [group,label] of entries){
+    aside.append(element('div',{class:'cello-legend-title'},'指板顏色圖例'));
+    const entries=[['open','空弦（不屬把位）'],
+      ...CHART_POSITIONS.flatMap((p,i)=>p?[[`position-${i}`,p[0]],[`position-${i}:extended`,'擴增'+p[0]]]:[]),['harmonic','自然泛音（不屬一般把位）'],['custom','老師／學生修改（把位未核對）'],
+      ['unverified','把位尚未核對']];
+    for(const [entry,label]of entries.filter(([g])=>used.has(g))){
+      const [group,variant]=entry.split(':'),extended=variant==='extended';
       const item=element('div',{class:'cello-legend-item'});
-      const marker=element('span',{class:'cello-legend-dot '+group});
-      marker.style.background=POSITION_COLORS[group];
-      item.append(marker,element('span',{},label));
-      aside.append(item);
+      item.style.whiteSpace='normal';item.style.overflowWrap='anywhere';item.style.fontSize='11px';
+      const marker=element('span',{class:'cello-legend-dot '+group,'data-legend-position':entry});
+      marker.style.background=POSITION_COLORS[group]||POSITION_COLORS['position-2'];
+      const accent=[...points].find(p=>p.getAttribute('data-position-group')===group&&(p.getAttribute('data-position-extended')==='true')===extended&&p.hasAttribute('data-position-accent'))?.getAttribute('data-position-accent');
+      if(accent){marker.style.background=accent;marker.setAttribute('data-position-accent',accent);}
+      if(extended){marker.style.border='1.5px solid '+contrastInk(accent||POSITION_COLORS[group]);}item.append(marker,element('span',{},label));aside.append(item);
     }
-    return aside;
+    aside.hidden=used.size===0;return aside;
   }
-
   function chartSVG(mode,key,direction,octaves,annotations={},interaction=null,remoteDrafts=[],reverseStrings=false,arpeggio=false){
     const scale=scaleNotes(mode,key,direction,octaves);
     const notes=arpeggio?arpeggioNotes(mode,key,direction):scale;
-    const sourceDirection=arpeggio?'up':direction;
+    const sourceDirection=arpeggio||mode==='major'?'up':direction;
     const map=decodeMap(sourceDirection==='up'?annotations.upMap:annotations.downMap);
-    const sourceScale=sourceDirection===direction?scale:scaleNotes(mode,key,sourceDirection,octaves);
-    const presets=window.CelloFingeringPresets?.get(mode,key,sourceDirection,sourceScale)||{};
+    const presets=window.CelloFingeringOptimizer?.get(mode,key,direction,notes,arpeggio)||
+      window.CelloFingeringPresets?.get(mode,key,sourceDirection,
+        sourceDirection===direction?scale:scaleNotes(mode,key,sourceDirection,octaves))||{};
     const plotted=notes.map(note=>{
       const position=notePlacement(note.midi,map,presets);
-      return {...note,position,style:pointStyling(position)};
+      return {...note,position,style:pointStyling(position),shiftCue:resolvedShiftCue(note.midi,map,presets)};
     });
     // While editing, reveal nearby equivalent pitches on other strings.
     // Very high alternatives remain available in the buttons below.
@@ -265,32 +302,48 @@
       if(replacedByRemote.has(note.midi))continue;
       const x=xPositions[note.position.string],y=top+note.position.semitones*step;
       const isOpen=note.position.semitones===0,style=note.style;
-      const color=isOpen?'#34483a':POSITION_COLORS[style.group];
+      const color=isOpen&&style.group!=='extended'?'#34483a':POSITION_COLORS[style.group];
       const explicit=[1,2,3,4].includes(note.position.finger);
       const modified=note.position.custom===true;
       const point=svgNode('g',interaction?{
-        role:'button',tabindex:'0',class:'cello-fb-note',
+        role:'button',tabindex:'0',class:'cello-fb-note','data-midi':note.midi,
         'aria-label':'選擇第'+note.order+'音 '+note.name+'，編輯同音高弦位及指號',
         'aria-pressed':String(interaction.selectedMidi===note.midi)
       }:{});
+      point.setAttribute('data-position-group',style.group);
+      point.setAttribute('data-position-extended',String(Boolean(style.extended)));
       point.append(svgNode('title',{},
         '第'+note.order+'音 '+note.name+'，'+note.position.stringName+'弦'+
-        (isOpen?'，空弦':'，'+style.label+(explicit?'，第'+style.finger+'指':''))));
+        (isOpen?'，空弦':'，'+style.label+(explicit?'，第'+style.finger+'指':''))+
+        (note.shiftCue?'；'+note.shiftCue.description:'')));
       point.append(svgNode('circle',{
         cx:x,cy:y,r:15.5,fill:isOpen?'#f7f9f6':color,
-        stroke:isOpen?'#34483a':'#ffffff','stroke-width':isOpen?3:2.1
+        stroke:isOpen?color:style.extended?style.borderColor:'#ffffff','stroke-width':isOpen?3:style.extended?1.5:2.1,'stroke-dasharray':'none'
       }));
+      const accent=bMinorAccent({mode,key,octaves,arpeggio},note.position);
+      if(accent){point.setAttribute('data-position-accent',accent);point.querySelector('circle').setAttribute('fill',accent);}
       point.append(svgNode('text',{
-        x,y:y+4.5,'text-anchor':'middle','font-size':12.5,
-        'font-weight':800,fill:isOpen?'#34483a':'#ffffff'
+        x:note.shiftCue?.placement==='inside'?x-3:x,y:y+4.5,'text-anchor':'middle','font-size':12.5,
+        'font-weight':800,fill:isOpen?color:style.textColor,stroke:style.textStroke,'stroke-width':.9,'paint-order':'stroke'
       },isOpen?'0':explicit?String(style.finger):'?'));
+      if(note.shiftCue){
+        const below=note.shiftCue.placement==='below',inside=note.shiftCue.placement==='inside';
+        point.append(svgNode('text',{x:below?x:inside?x+2:x+7,y:below?y+29:y+4.5,
+          'text-anchor':below?'middle':'start','font-size':9,'font-weight':700,
+          fill:inside?style.textColor:'#273c2e',stroke:inside?style.textStroke:'none','stroke-width':.8,'paint-order':'stroke',class:'cello-shift-cue',role:'img','aria-label':note.shiftCue.description,
+          'data-shift-to':note.shiftCue.toMidi},note.shiftCue.symbol));
+      }
       if(!isOpen){
         point.append(svgNode('text',{
-          x:x+21,y:y+1,'font-size':13,
+          x:x+(note.shiftCue&& !['below','inside'].includes(note.shiftCue.placement)?39:21),y:y+1,'font-size':13,
           'font-weight':note.order===1||note.order===notes.length?800:650,
           fill:'#273c2e'
         },note.name));
-
+        if(note.position.technique==='naturalHarmonic'){
+          point.append(svgNode('circle',{cx:x+25,cy:y-19,r:3.2,fill:'none',stroke:'#273c2e',
+            'stroke-width':1.3,class:'cello-harmonic-mark',role:'img',
+            'aria-label':'自然泛音：第3指輕觸A弦二分之一，發聲A4'}));
+        }
       }
       if(interaction){
         // An invisible touch target makes the same displayed marker usable on phones.
@@ -431,15 +484,20 @@
     wrap.append(svg);return wrap;
   }
 
-  function create(mode,key,initialAnnotations={},onSave=null,onPreview=null){
+  function create(mode,key,initialAnnotations={},onSave=null,onPreview=null,arpeggioOptions={}){
     const id=(mode==='major'?'major-':'minor-')+key[0];
+    // Arpeggio maps never consume scale overrides, including legacy upMap.
     let annotations={...initialAnnotations};
+    let arpeggioAnnotations={...(arpeggioOptions.annotations||{})};
+    const mapFor=dir=>dir==='arpeggio'?(arpeggioAnnotations.upMap||''):(annotations[dir+'Map']||'');
+    const saveFor=dir=>dir==='arpeggio'?arpeggioOptions.onSave:onSave;
+    const sourceDir=dir=>dir==='arpeggio'?'up':dir;
     const root=element('div',{class:'cello-fingerboard'});
     const toolbar=element('div',{class:'cello-fb-toolbar'});
     const octaveGroup=element('div',{class:'cello-fb-group','aria-label':'音階八度數'});
     const boards=element('div',{class:'cello-fb-two-up'});
     const panels={};
-    let remoteDrafts=[];
+    let remoteDrafts=[],remoteArpeggioDrafts=[];
     // A single transaction stages any number of note edits for one direction.
     // Only clicking Confirm (or Save in the leave dialog) persists the map.
     const edit={dir:null,midi:null,original:{},pending:{},undo:[],showMore:false};
@@ -450,14 +508,14 @@
       return JSON.stringify(Object.entries(map).sort(([a],[b])=>Number(a)-Number(b)));
     }
     function isDirty(){return edit.dir!==null&&signature(edit.original)!==signature(edit.pending);}
-    function notes(dir){return scaleNotes(mode,key,dir,choices.get(id)||2);}
+    function notes(dir){return dir==='arpeggio'?arpeggioNotes(mode,key,'up'):scaleNotes(mode,key,dir,choices.get(id)||2);}
     function defaultPosition(dir,midi){
-      const ref=window.CelloFingeringPresets?.get(mode,key,dir,notes(dir))||{};
+      const ref=(window.CelloFingeringOptimizer||window.CelloFingeringPresets)?.get(mode,key,sourceDir(dir),notes(dir),dir==='arpeggio')||{};
       return notePlacement(midi,{},ref);
     }
     function proposedPosition(dir,midi){
-      const ref=window.CelloFingeringPresets?.get(mode,key,dir,notes(dir))||{};
-      const map=edit.dir===dir?edit.pending:decodeMap(annotations[dir+'Map']);
+      const ref=(window.CelloFingeringOptimizer||window.CelloFingeringPresets)?.get(mode,key,sourceDir(dir),notes(dir),dir==='arpeggio')||{};
+      const map=edit.dir===dir?edit.pending:decodeMap(mapFor(dir));
       return notePlacement(midi,map,ref);
     }
     function selectedNote(){return edit.dir===null?null:notes(edit.dir).find(n=>n.midi===edit.midi);}
@@ -481,7 +539,7 @@
       document.removeEventListener('keydown',onKeydown,true);
     }
     function startTracking(){
-      if(tracking||typeof onSave!=='function')return;
+      if(tracking||typeof saveFor(edit.dir)!=='function')return;
       tracking=true;
       document.addEventListener('pointerdown',onPointerDown,true);
       document.addEventListener('pointermove',onPointerMove,true);
@@ -490,20 +548,26 @@
       document.addEventListener('scroll',onScroll,true);
       document.addEventListener('keydown',onKeydown,true);
     }
-    function announceDraft(){
-      if(typeof onPreview!=='function')return;
-      if(edit.dir===null){onPreview(null);return;}
+    function announceDraft(finishedDirection=null){
+      if(edit.dir===null){
+        const clear=finishedDirection==='arpeggio'?arpeggioOptions.onPreview:onPreview;
+        if(finishedDirection!==null&&typeof clear==='function')clear(null);
+        return;
+      }
+      const preview=edit.dir==='arpeggio'?arpeggioOptions.onPreview:onPreview;
+      if(typeof preview!=='function')return;
       const changed=Object.keys({...edit.original,...edit.pending}).filter(k=>
         JSON.stringify(edit.original[k])!==JSON.stringify(edit.pending[k])).map(Number);
-      onPreview({direction:edit.dir,selectedMidi:edit.midi,
+      preview({direction:sourceDir(edit.dir),selectedMidi:edit.midi,
         previewMap:JSON.stringify(edit.pending),changed});
     }
     function closeEditor(){
+      const finishedDirection=edit.dir;
       edit.dir=null;edit.midi=null;edit.original={};edit.pending={};
       edit.undo=[];edit.showMore=false;
       stopTracking();
       render();
-      announceDraft();
+      announceDraft(finishedDirection);
     }
     function saveSession(){
       if(edit.dir===null)return;
@@ -511,7 +575,7 @@
       if(!saveAllowed()){
         const bad=invalidNotes();
         const warning=panels[edit.dir].hint;
-        warning.textContent=bad.length?
+        warning.hidden=false;warning.textContent=bad.length?
           '仍有 '+bad.length+' 個音未設定有效指號；請選擇指號後儲存。':
           '這次修改超過可儲存的長度，請減少修改。';
         if(bad.length)edit.midi=Number(bad[0][0]);
@@ -522,9 +586,10 @@
       const previous=JSON.stringify(edit.original);
       // The caller merges this transaction's per-note delta into the latest
       // room map so simultaneous changes to different pitches are preserved.
-      annotations[dir+'Map']=value;
+      if(dir==='arpeggio')arpeggioAnnotations.upMap=value;
+      else annotations[dir+'Map']=value;
       closeEditor();
-      onSave(dir,value,previous,false);
+      saveFor(dir)(sourceDir(dir),value,previous,false);
     }
     function exitEditor(next=null){
       if(edit.dir===null){if(next)next();return;}
@@ -598,7 +663,7 @@
         return;
       }
       if(edit.dir===null){
-        edit.dir=dir;edit.original=clone(decodeMap(annotations[dir+'Map']));
+        edit.dir=dir;edit.original=clone(decodeMap(mapFor(dir)));
         edit.pending=clone(edit.original);edit.undo=[];edit.showMore=false;
         startTracking();
       }
@@ -666,17 +731,17 @@
       announceDraft();
     }
 
-    for(const dir of ['up','down']){
+    for(const dir of ['up','down','arpeggio']){
       const section=element('section',{class:'cello-fb-direction',
         'aria-label':mode==='major'&&dir==='up'?'音階指板，上下行相同':dir==='up'?'上行音階':'下行音階'});
       const heading=element('h4',{class:'cello-fb-direction-heading'});
       const viewport=element('div',{class:'cello-fb-viewport'});
       const editor=element('div',{class:'cello-inline-editor',
-        'aria-label':(dir==='up'?'上行':'下行')+'批次編輯音符'});
+        'aria-label':(dir==='arpeggio'?'琶音':dir==='up'?'上行':'下行')+'批次編輯音符'});
       editor.hidden=true;
       const status=element('div',{class:'cello-inline-status'});
-      const hint=element('p',{class:'cello-inline-hint'},
-        '可以連續修改多個音符，最後一次確認；點空白處可選擇儲存或放棄。');
+      const hint=element('p',{class:'cello-inline-warning',role:'alert'});hint.hidden=true;
+      editor.setAttribute('aria-description','可以連續修改多個音符，最後一次確認；點空白處可選擇儲存或放棄。');
       const range=element('button',{type:'button',class:'cello-inline-range',
         'aria-pressed':'false'},'顯示更多把位');
       const stringChoices=element('div',{class:'cello-inline-choices'});
@@ -684,7 +749,7 @@
       const actions=element('div',{class:'cello-inline-actions'});
       const back=element('button',{type:'button',class:'cello-inline-undo'},'上一步');
       const restoreSelected=element('button',{type:'button',class:'cello-inline-restore-selected',
-        title:'將目前選取的粉紅色修改音符還原 Werner 預設，並保留其他音'},'復原選取的修改');
+        title:'將目前選取的粉紅色修改音符還原移動優先預設，並保留其他音'},'復原選取的修改');
       const reset=element('button',{type:'button',class:'cello-inline-reset',
         title:'暫時將整個方向還原預設；可按「上一步」撤銷，按「確認修改」才儲存'},'復原所有修改');
       const save=element('button',{type:'button',class:'cello-inline-save'},'確認修改');
@@ -704,55 +769,53 @@
       section.hidden=mode==='major'&&dir==='down';
       boards.append(section);
       panels[dir]={heading,viewport,editor,status,hint,stringChoices,
-        fingerChoices,range,back,restoreSelected,reset,save,memo};
+        fingerChoices,range,back,restoreSelected,reset,save,memo,legend,section};
     }
     const scoreSection=element('section',{class:'score-section'});
     scoreSection.append(element('h3',{class:'music-section-title'},'音階 · 兩個八度'),makeScore(mode,key));
     const boardSection=element('section',{class:'fingerboard-section'});
-    boardSection.append(element('h3',{class:'music-section-title'},'指板 · 指法'),toolbar,boards);
+    boardSection.append(element('h3',{class:'music-section-title'},'指板 · 指法'),
+      toolbar,boards);
     const arpeggioSection=element('section',{class:'arpeggio-section fingerboard-section'});
     const arpeggioBoards=element('div',{class:'cello-fb-two-up'});
-    const arpeggioViews={};
     arpeggioSection.append(element('h3',{class:'music-section-title'},'琶音 · 兩個八度'),
       makeScore(mode,key,true),arpeggioBoards);
-    for(const dir of ['up']){
-      const section=element('section',{class:'cello-fb-direction'});
-      const viewport=element('div',{class:'cello-fb-viewport'});
-      section.append(element('h4',{class:'cello-fb-direction-heading'},'上下行相同'),viewport);
-      arpeggioViews[dir]=viewport;arpeggioBoards.append(section);
-    }
-    arpeggioSection.append(element('p',{class:'caption'},'上下行皆沿用音階上行的已儲存指法；下行反向演奏。請在上方音階指板編輯。'));
+    // Reuse the scale transaction UI, but give arpeggios independent storage.
+    arpeggioBoards.append(panels.arpeggio.section);
+    if(arpeggioOptions.localOnly)arpeggioSection.append(
+      element('p',{class:'fingering-note'},'琶音修改只儲存在此瀏覽器，不與教室同步。'));
+
     root.append(scoreSection,boardSection,arpeggioSection,dialog);
 
     function renderDirection(dir){
-      const pane=panels[dir],editing=edit.dir===dir;
-      if(arpeggioViews[dir]){
-        const arp=chartSVG(mode,key,dir,2,annotations,null,[],stringOrder==='ADGC',true);
-        arp.setAttribute('aria-label',key[0]+(mode==='major'?'大調':'小調')+'琶音，兩個八度上下行相同指法，下行反向演奏');
-        arpeggioViews[dir].replaceChildren(arp);
-      }
-      const saved=decodeMap(annotations[dir+'Map']);
-      if(mode==='major'&&dir==='up')pane.heading.textContent='上下行相同';
+      const pane=panels[dir],editing=edit.dir===dir,isArpeggio=dir==='arpeggio';
+      const asymmetric=false; // 054: all major scales use the approved ascent and exact reverse.
+      pane.section.hidden=mode==='major'&&dir==='down'&&!asymmetric;
+      pane.viewport.setAttribute('aria-label',isArpeggio?'琶音指板，上下行相同':mode==='major'&&!asymmetric?'音階指板，上下行相同':dir==='up'?'上行音階':'下行音階'+(asymmetric?'，唯讀，沿用已儲存的共用自訂指法':''));
+      pane.section.setAttribute('aria-label',pane.viewport.getAttribute('aria-label'));
+      const saved=decodeMap(mapFor(isArpeggio?dir:mode==='major'?'up':dir));
+      if(isArpeggio||(mode==='major'&&!asymmetric&&dir==='up'))pane.heading.textContent='上下行相同';
       else pane.heading.innerHTML=(dir==='up'?'<svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 19V5m-6 6 6-6 6 6"/></svg> 上行':'<svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14m-6-6 6 6 6-6"/></svg> 下行');
-      if(remoteDrafts.some(remote=>remote.direction===dir)){
+      if((isArpeggio?remoteArpeggioDrafts:remoteDrafts).some(remote=>remote.direction===sourceDir(dir))){
         pane.heading.append(element('span',{class:'cello-fb-remote-label'},'（其他人編輯中）'));
       }
-      if(Object.keys(saved).length||(dir==='up'?annotations.up:annotations.down)){
+      if(Object.keys(saved).length||(!isArpeggio&&(dir==='up'?annotations.up:annotations.down))){
         pane.heading.append(element('span',{class:'cello-fb-changed'},'（已修改）'));
       }
-      const memo=dir==='up'?annotations.up:annotations.down;
+      const memo=isArpeggio?'':dir==='up'?annotations.up:annotations.down;
       pane.memo.textContent=memo||'';pane.memo.hidden=!memo;
       const value=editing?(Object.keys(edit.pending).length?JSON.stringify(edit.pending):''):
-        annotations[dir+'Map']||'';
-      pane.viewport.replaceChildren(chartSVG(mode,key,dir,choices.get(id)||2,
-        {...annotations,[dir+'Map']:value},
-        typeof onSave==='function'?{
+        mapFor(dir);
+      pane.viewport.replaceChildren(chartSVG(mode,key,sourceDir(dir),isArpeggio?2:choices.get(id)||2,
+        isArpeggio?{upMap:value}:{...annotations,[dir+'Map']:value},
+        typeof saveFor(dir)==='function'&&!(asymmetric&&dir==='down')?{
           selectedMidi:editing?edit.midi:null,
           originalMap:editing?JSON.stringify(edit.original):null,
-          confirmedMap:annotations[dir+'Map']||'',
+          confirmedMap:mapFor(dir),
           select:midi=>begin(dir,midi),
           chooseString:s=>chooseString(s),showMore:editing&&edit.showMore
-        }:null,remoteDrafts,stringOrder==='ADGC'));
+        }:null,isArpeggio?remoteArpeggioDrafts:remoteDrafts,stringOrder==='ADGC',isArpeggio));
+      const legend=makeLegend(pane.viewport);pane.legend.replaceWith(legend);pane.legend=legend;
       pane.editor.hidden=!editing;
       if(!editing)return;
       const count=Object.keys(edit.pending).length;
@@ -763,7 +826,8 @@
         (invalid?' · '+invalid+' 個音待設定指號':'');
       pane.hint.textContent=invalid?
         '請先為未設定指號的音選擇 1～4 指，再確認整批修改。':
-        '可連續改多個音；上一步只撤銷最後一個操作。';
+        '';
+      pane.hint.hidden=!invalid;
       pane.range.textContent=edit.showMore?'收起高把位':'顯示更多把位';
       pane.range.setAttribute('aria-pressed',String(edit.showMore));
       pane.back.disabled=edit.undo.length===0;
@@ -810,7 +874,7 @@
       two.setAttribute('aria-pressed',String(count===2));
       standardOrder.setAttribute('aria-pressed',String(stringOrder!=='ADGC'));
       reverseOrder.setAttribute('aria-pressed',String(stringOrder==='ADGC'));
-      renderDirection('up');renderDirection('down');
+      renderDirection('up');renderDirection('down');renderDirection('arpeggio');
     }
     function addButton(label,count){
       const btn=element('button',{type:'button',class:'cello-fb-button'},label);
@@ -840,17 +904,29 @@
     root.refreshStringOrder=()=>render();
     root.isEditing=()=>edit.dir!==null;
     root.requestLeave=next=>exitEditor(next);
+    root.setRemoteArpeggioDrafts=incoming=>{
+      const next=Array.isArray(incoming)?incoming.filter(Boolean).slice(0,8):[];
+      if(JSON.stringify(next)===JSON.stringify(remoteArpeggioDrafts))return;
+      remoteArpeggioDrafts=next;
+      renderDirection('arpeggio');
+    };
     root.setRemoteDrafts=(incoming)=>{
       const next=Array.isArray(incoming)?incoming.filter(Boolean).slice(0,8):[];
       if(JSON.stringify(remoteDrafts)===JSON.stringify(next))return;
       remoteDrafts=next;
-      renderDirection('up');renderDirection('down');
+      renderDirection('up');renderDirection('down');renderDirection('arpeggio');
+    };
+    root.updateArpeggioAnnotations=(incoming)=>{
+      const next={...(incoming||{})};
+      if(JSON.stringify(next)===JSON.stringify(arpeggioAnnotations))return;
+      arpeggioAnnotations=next;
+      renderDirection('arpeggio');
     };
     root.updateAnnotations=(incoming)=>{
       const value=incoming&&typeof incoming==='object'?incoming:{};
       if(JSON.stringify(value)===JSON.stringify(annotations))return;
       annotations={...value};
-      renderDirection('up');renderDirection('down');
+      renderDirection('up');renderDirection('down');renderDirection('arpeggio');
     };
     render();
     return root;
@@ -859,6 +935,6 @@
   window.CelloFingerboard={
     create,
     // Pure helpers exported for automated pitch and placement checks.
-    arpeggioNotes,chartSVG,scoreAccidentals,staffStep,makeScore,scaleNotes,positionFor,pitchClass,decodeMap,pointStyling,POSITION_COLORS,makeLegend,notePlacement
+    arpeggioNotes,chartSVG,scoreAccidentals,staffStep,makeScore,scaleNotes,positionFor,pitchClass,decodeMap,pointStyling,POSITION_COLORS,CHART_POSITIONS,contrastInk,makeLegend,notePlacement,resolvedShiftCue,bMinorAccent
   };
 })();

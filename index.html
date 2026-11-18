@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261114-042">
+  <meta name="site-version" content="20261118-011">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -183,6 +183,8 @@
     .key-expand[aria-expanded="true"]{background:#ebf3eb;border-color:#bbd3c0}
     .key-card.is-expanded{border-color:#bacfbd;box-shadow:0 3px 14px rgba(34,65,41,.05)}
     .key-card{scroll-margin-top:18px}
+    .key-title{scroll-margin-top:calc(24px + env(safe-area-inset-top,0px))}
+    @media(max-width:660px){.key-title{scroll-margin-top:calc(72px + env(safe-area-inset-top,0px))}}
     .key-card:hover{border-color:#c3d3c0;transform:translateY(-1px)}
     .key-card.done{background:#f5f8f2;border-color:#cce0c8}
     .check-circle{height:20px;width:20px;border:1.7px solid #c8d1ca;border-radius:50%;display:grid;place-items:center;flex:none;margin-top:2px;color:white;font-size:13px;font-weight:800}
@@ -414,6 +416,7 @@
     .tuner-readout{display:flex;align-items:baseline;justify-content:center;gap:7px;margin-bottom:5px;min-height:22px}
     .tuner-readout #tuner-note,.tuner-readout #tuner-cents{font-size:18px;font-weight:800;line-height:22px;min-height:22px;width:auto;min-width:0;flex:0 0 auto;white-space:nowrap;text-align:center;font-variant-numeric:tabular-nums}
     .tuner-readout #tuner-cents{font-weight:400;color:#84917e}
+    #tuner-panel[data-reading-state="held"] .audio-meter-wrap{filter:grayscale(1)}
     .audio-status{font-size:12px;margin:0;max-width:200px}.audio-status:empty{display:none}.audio-error{color:#9b3939!important}
     #metro-beat{min-width:36px;font-variant-numeric:tabular-nums}
      .audio-meter[data-active="false"] .audio-band{transition:none}
@@ -632,7 +635,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261114-042 · <a href="./experimental/" aria-label="開啟實驗版 Experimental" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Experimental</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261118-011 · <a href="./experimental/" aria-label="開啟實驗版 Experimental" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Experimental</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -657,8 +660,8 @@
 
 
 
-  <script src="fingering-presets.js?v=20261106-012"></script>
-  <script src="fingerboard.js?v=20261114-042"></script>
+  <script src="fingering-presets.js?v=20261118-011"></script>
+  <script src="fingerboard.js?v=20261118-010"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
@@ -696,6 +699,8 @@
     const q = selector => document.querySelector(selector);
     const state = readStore();
     if(!state.fingerings || typeof state.fingerings !== 'object') state.fingerings={};
+    // A new namespace, not a migration: existing scale maps remain untouched.
+    if(!state.arpeggioFingerings||typeof state.arpeggioFingerings!=='object')state.arpeggioFingerings={};
     if(!Array.isArray(state.preferences.excludedKeys))state.preferences.excludedKeys=[];
     if(!Array.isArray(state.personalHistory))state.personalHistory=[];
     if(!Array.isArray(state.classroomHistory))state.classroomHistory=[];
@@ -705,7 +710,7 @@
     let replaySession=null; // Temporary rehearsal: never added to personal history.
     let expandedOverride=undefined,renderedSessionKey=null;
     const boardInstances=new Map(),cardInstances=new Map();
-    let roomEditingPreviews={};
+    let roomEditingPreviews={},roomArpeggioPreviews={};
     // Confirmed classroom fingering changes also become personal local edits
     // on every connected participant's browser, including the student's.
     function inheritConfirmedFingerings(roomId,roomData){
@@ -742,6 +747,40 @@
       state.roomFingeringSnapshots=seen;
       if(changed||!prior||!Object.keys(prior).length)persist();
     }
+    function inheritConfirmedArpeggioFingerings(roomId,roomData){
+      if(!roomId||!roomData)return;
+      const stamp=String(roomData.createdAt||'legacy');
+      const identity=roomId+':'+stamp;
+      const incoming=roomData.arpeggioFingerings&&typeof roomData.arpeggioFingerings==='object'?roomData.arpeggioFingerings:{};
+      const seen=state.roomArpeggioSnapshots||{};
+      const prior=seen[identity]||{};
+      let changed=false;
+      for(const key of new Set([...Object.keys(prior),...Object.keys(incoming)])){
+        if(!/^(major|minor)-(?:[0-9]|10|11)$/.test(key))continue;
+        const local={...(state.arpeggioFingerings[key]||{})};
+        let updated=false;
+        for(const field of ['upMap']){
+          const old=typeof prior[key]?.[field]==='string'?prior[key][field]:'';
+          const next=typeof incoming[key]?.[field]==='string'?incoming[key][field]:'';
+          if(old===next)continue;
+          const merged=field.endsWith('Map')?
+            mergeFingeringMap(local[field]||'',old,next,false):next;
+          if(merged)local[field]=merged;
+          else delete local[field];
+          updated=true;
+        }
+        if(!updated)continue;
+        if(Object.keys(local).length)state.arpeggioFingerings[key]=local;
+        else delete state.arpeggioFingerings[key];
+        changed=true;
+      }
+      seen[identity]=JSON.parse(JSON.stringify(incoming));
+      // Bound retained per-room snapshots; old rooms are only 24 hours long.
+      const keys=Object.keys(seen);
+      if(keys.length>32)for(const key of keys.slice(0,keys.length-32))delete seen[key];
+      state.roomArpeggioSnapshots=seen;
+      if(changed||!prior||!Object.keys(prior).length)persist();
+    }
     function roomLayoutSignature(room){
       if(!room)return '';
       const se=room.session;
@@ -759,6 +798,18 @@
       }
       for(const [key,board]of boardInstances)
         board.setRemoteDrafts(roomEditingPreviews[key]||[]);
+    }
+    function setClassroomArpeggioDrafts(id,records){
+      if(!sharedRoom||sharedRoom.id!==id)return;
+      roomArpeggioPreviews={};
+      for(const record of Object.values(records||{})){
+        if(!record||!/^(major|minor)-(?:[0-9]|10|11)$/.test(record.keyId)||
+          record.direction!=='up')continue;
+        if(!roomArpeggioPreviews[record.keyId])roomArpeggioPreviews[record.keyId]=[];
+        roomArpeggioPreviews[record.keyId].push(record);
+      }
+      for(const [key,board]of boardInstances)
+        board.setRemoteArpeggioDrafts(roomArpeggioPreviews[key]||[]);
     }
     let currentDate = getLocalDate();
     let toastTimer;
@@ -856,6 +907,11 @@
         JSON.stringify(session.majorIds)===JSON.stringify(major)&&
         JSON.stringify(session.minorIds)===JSON.stringify(minor);
     }
+    // Personal practice must be explicitly sequential; a lucky full-pool draw
+    // is not consent to auto-open. Rooms retain their existing schema inference.
+    function autoAdvanceSession(session){
+      return session?.sequenceMode==='signature'||Boolean(sharedRoom&&signatureOrderedSession(session));
+    }
     function excludedKeys(){return Array.isArray(visiblePreferences().excludedKeys)?visiblePreferences().excludedKeys:[];}
     function eligible(mode){return (mode==='major'?MAJOR_KEYS:MINOR_KEYS).map((_,i)=>i).filter(i=>!excludedKeys().includes(selectedId(mode,i)));}
     function updateExclusions(next){
@@ -920,16 +976,17 @@
     }
     function setClassroomRoom(id,data){
       const previous=sharedRoom;
-      if(previous?.id!==id){roomEditingPreviews={};replaySession=null;}
-      if(id)inheritConfirmedFingerings(id,data);
+      if(previous?.id!==id){roomEditingPreviews={};roomArpeggioPreviews={};replaySession=null;}
+      if(id){inheritConfirmedFingerings(id,data);inheritConfirmedArpeggioFingerings(id,data);}
       const historyChanged=id?archiveClassroomSession(id,data):false;
-      if(!id){sharedRoom=null;roomEditingPreviews={};}
-      else sharedRoom={id,majorCount:clamp(data?.majorCount??2),minorCount:clamp(data?.minorCount??2),showScale:Boolean(data?.showScale),excludedKeys:Array.isArray(data?.excludedKeys)?data.excludedKeys:[],fingerings:data?.fingerings&&typeof data.fingerings==='object'?data.fingerings:{},session:data?.session?{...data.session,majorIds:Array.isArray(data.session.majorIds)?data.session.majorIds:[],minorIds:Array.isArray(data.session.minorIds)?data.session.minorIds:[],doneIds:Array.isArray(data.session.doneIds)?data.session.doneIds:[]}:null};
+      if(!id){sharedRoom=null;roomEditingPreviews={};roomArpeggioPreviews={};}
+      else sharedRoom={id,arpeggioFingerings:data?.arpeggioFingerings||{},majorCount:clamp(data?.majorCount??2),minorCount:clamp(data?.minorCount??2),showScale:Boolean(data?.showScale),excludedKeys:Array.isArray(data?.excludedKeys)?data.excludedKeys:[],fingerings:data?.fingerings&&typeof data.fingerings==='object'?data.fingerings:{},session:data?.session?{...data.session,majorIds:Array.isArray(data.session.majorIds)?data.session.majorIds:[],minorIds:Array.isArray(data.session.minorIds)?data.session.minorIds:[],doneIds:Array.isArray(data.session.doneIds)?data.session.doneIds:[]}:null};
       // Room updates must not destroy a teacher's unsaved batch edit. When only
       // confirmed fingerings / checkmarks change, update existing cards in place.
       if(previous&&sharedRoom&&roomLayoutSignature(previous)===roomLayoutSignature(sharedRoom)){
         for(const [key,board] of boardInstances){
           board.updateAnnotations(sharedRoom.fingerings[key]||{});
+          board.updateArpeggioAnnotations(sharedRoom.arpeggioFingerings[key]||{});
         }
         const session=sharedRoom.session;
         if(session){
@@ -939,8 +996,10 @@
           q('#progress-track').setAttribute('aria-valuemax',String(total));
           q('#progress-track').setAttribute('aria-valuenow',String(done.length));
           q('#progress-fill').style.width=(total?100*done.length/total:0)+'%';
-          if(JSON.stringify(previous.session?.doneIds||[])!==JSON.stringify(done))
-            expandedOverride=undefined;
+          if(JSON.stringify(previous.session?.doneIds||[])!==JSON.stringify(done)){
+            if(autoAdvanceSession(session))expandedOverride=undefined;
+            else if(done.includes(expandedOverride))expandedOverride=null;
+          }
           syncPracticeCards(session);
         }
         if(historyChanged)renderHistory();
@@ -1147,8 +1206,12 @@ function createCard(mode,index,doneIds){
  const note=visibleFingerings()[id]||{};
  const guide=window.CelloFingerboard.create(mode,key,note,
   (direction,map,original,resetAll)=>saveInlineFingering(id,direction,map,original,resetAll),
-  draft=>sharedRoom?window.classroomSync?.setDraft(id,draft):null);
+  draft=>sharedRoom?window.classroomSync?.setDraft(id,draft):null,
+  {annotations:(sharedRoom?sharedRoom.arpeggioFingerings:state.arpeggioFingerings)[id]||{},
+   onPreview:draft=>sharedRoom?window.classroomSync?.setArpeggioDraft(id,draft):null,
+   onSave:(direction,map,original,resetAll)=>saveArpeggioFingering(id,map,original,resetAll)});
  boardInstances.set(id,guide);cardInstances.set(id,{card,button:complete,title,panel,expand,guide});
+ guide.setRemoteArpeggioDrafts(roomArpeggioPreviews[id]||[]);
  guide.setRemoteDrafts(roomEditingPreviews[id]||[]);panel.append(guide);card.append(heading,panel);
  return card;
 }
@@ -1162,6 +1225,28 @@ function mergeFingeringMap(latest,previous,proposed,resetAll=false){
     else delete current[pitch];
   }
   return Object.keys(current).length?JSON.stringify(current):'';
+}
+// Arpeggio and scale records remain separate in local storage and room state.
+async function saveArpeggioFingering(id,map,original='',resetAll=false){
+ const note={...((sharedRoom?sharedRoom.arpeggioFingerings:state.arpeggioFingerings)[id]||{})};
+ const finalMap=mergeFingeringMap(note.upMap||'',original,map,resetAll);
+ if(finalMap)note.upMap=finalMap;else delete note.upMap;
+ if(sharedRoom){
+  const roomId=sharedRoom.id;
+  let saved=false;
+  try{saved=await window.classroomSync?.setArpeggioFingering(id,note,'up',original,resetAll);}
+  catch{showToast('琶音指法未能同步，請確認連線後重試');}
+  // The editor closes on confirmation. A denied/offline transaction must not
+  // leave an optimistic fingering looking saved; restore the latest room view.
+  if(!saved&&sharedRoom?.id===roomId)
+   boardInstances.get(id)?.updateArpeggioAnnotations(sharedRoom.arpeggioFingerings[id]||{});
+  return saved;
+ }
+ if(Object.keys(note).length)state.arpeggioFingerings[id]=note;
+ else delete state.arpeggioFingerings[id];
+ persist();
+ boardInstances.get(id)?.updateArpeggioAnnotations(note);
+ showToast('琶音指法已儲存在此瀏覽器');
 }
 function saveInlineFingering(id,direction,map,original='',resetAll=false){
   if(direction!=='up'&&direction!=='down')return;
@@ -1190,22 +1275,52 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
  return [...q('#key-groups').querySelectorAll('.key-card')]
   .map(card=>card.dataset.keyId).filter(id=>cardInstances.has(id));
 }
+    let cardScrollRequest=0;
+    for(const type of ['wheel','touchmove'])window.addEventListener(type,()=>cardScrollRequest++,{passive:true});
+    window.addEventListener('keydown',event=>{if(['ArrowUp','ArrowDown','PageUp','PageDown','Home','End','Escape'].includes(event.key))cardScrollRequest++;});
     function jumpToPractice(id){
  const session=currentSession();
  if(!cardInstances.has(id)||!session)return;
  requestCardAction(()=>{
   const item=cardInstances.get(id),current=currentSession();
   if(!item||!current)return;
+  cardScrollRequest++; // A direct practice jump supersedes pending title alignment.
   expandedOverride=id;syncPracticeCards(current);
   item.title.focus({preventScroll:true});
   item.card.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});
  });
 }
+    function scrollExpandedTitleAfterLayout(id,item,request){
+ // Closing a preceding panel can move this title for up to460ms. Measure only
+ // after every current panel animation settles, then allow layout to commit.
+ const finished=[...cardInstances.values()].map(entry=>entry.panelAnimation?.finished).filter(Boolean);
+ Promise.allSettled(finished).then(()=>requestAnimationFrame(()=>requestAnimationFrame(()=>{
+  if(request!==cardScrollRequest||cardInstances.get(id)!==item||!item.opened||
+    !item.title.isConnected||document.querySelector('dialog[open]')||
+    [...cardInstances.values()].some(entry=>entry.guide?.isEditing?.()))return;
+  item.title.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});
+ })));
+}
     function toggleCardExpansion(id){
  const session=currentSession(),item=cardInstances.get(id);
  if(!session||!item)return;
- expandedOverride=item.opened?null:id;
- syncPracticeCards(session);
+ const opening=!item.opened,request=++cardScrollRequest;
+ const previous=[...cardInstances.values()].find(entry=>entry.opened&&entry!==item);
+ const movingDown=opening&&previous&&Boolean(previous.card.compareDocumentPosition(item.card)&Node.DOCUMENT_POSITION_FOLLOWING);
+ expandedOverride=opening?id:null;
+ if(movingDown){
+  // Atomic final heights prevent a disappearing lower target and max-scroll
+  // clamp. Preserve its visible start position BEFORE paint, then align once.
+  const root=document.documentElement,oldAnchor=root.style.overflowAnchor;
+  const oldBehavior=root.style.scrollBehavior,top=item.title.getBoundingClientRect().top;
+  root.style.overflowAnchor='none';root.style.scrollBehavior='auto';
+  try{
+   syncPracticeCards(session,true);
+   window.scrollBy({top:item.title.getBoundingClientRect().top-top,behavior:'instant'});
+  }finally{root.style.overflowAnchor=oldAnchor;root.style.scrollBehavior=oldBehavior;}
+ }else syncPracticeCards(session);
+ // Initial/restored state, completion, and collapse never request this scroll.
+ if(opening)scrollExpandedTitleAfterLayout(id,item,request);
 }
     function renderPracticeNavigation(order,done,active){
  const rail=q('#floating-practice-nav');rail.hidden=order.length===0;
@@ -1226,7 +1341,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   }
  }
 }
-    function setCardPanelOpen(item,opened){
+    function setCardPanelOpen(item,opened,forceInstant=false){
  const panel=item.panel,previous=item.opened;
  if(previous===opened)return;
  item.opened=opened;
@@ -1237,7 +1352,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
  const before=getComputedStyle(panel),currentOpacity=panel.hidden?'0':before.opacity;
  const oldPaddingTop=panel.hidden?'0px':before.paddingTop,oldPaddingBottom=panel.hidden?'0px':before.paddingBottom,oldBorder=panel.hidden?'0px':before.borderTopWidth;
  item.panelAnimation?.cancel();item.panelAnimation=null;
- const instant=previous===undefined||window.matchMedia('(prefers-reduced-motion:reduce)').matches||typeof panel.animate!=='function';
+ const instant=forceInstant||previous===undefined||window.matchMedia('(prefers-reduced-motion:reduce)').matches||typeof panel.animate!=='function';
  if(instant){panel.hidden=!opened;return;}
  panel.hidden=false;
  const targetHeight=opened?panel.getBoundingClientRect().height:0;
@@ -1254,9 +1369,11 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
  item.panelAnimation=animation;
  animation.onfinish=()=>{if(item.panelAnimation!==animation)return;panel.hidden=!item.opened;item.panelAnimation=null;};
  }
-    function syncPracticeCards(session){
+    function syncPracticeCards(session,forceInstant=false){
  const order=jumpOrder(),done=new Set(session?.doneIds||[]);
- const active=expandedOverride===undefined?order.find(id=>!done.has(id)):
+ // Automatic first/next selection belongs only to signature-order practice.
+ // Explicit null means the user collapsed everything, including in ordered mode.
+ const active=expandedOverride===undefined?(autoAdvanceSession(session)?order.find(id=>!done.has(id)):null):
   (expandedOverride&&cardInstances.has(expandedOverride)?expandedOverride:null);
  for(const [id,item] of cardInstances){
   const finished=done.has(id),opened=id===active;
@@ -1264,7 +1381,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   item.card.classList.toggle('is-expanded',opened);
   item.button.setAttribute('aria-pressed',String(finished));
   item.button.querySelector('.check-circle').textContent=finished?'✓':'';
-  setCardPanelOpen(item,opened);
+  setCardPanelOpen(item,opened,forceInstant);
   item.expand.setAttribute('aria-expanded',String(opened));
   item.title.setAttribute('aria-expanded',String(opened));
  }
@@ -1333,7 +1450,8 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       const all=[...session.majorIds.map(i=>selectedId('major',i)),...session.minorIds.map(i=>selectedId('minor',i))];
       if(!all.includes(id))return;
       session.doneIds=session.doneIds.includes(id)?session.doneIds.filter(item=>item!==id):[...session.doneIds,id];
-      expandedOverride=undefined;
+      if(autoAdvanceSession(session))expandedOverride=undefined;
+      else if(session.doneIds.includes(expandedOverride))expandedOverride=null;
       if(session===state.continuedSession){
         // Continuation updates its ORIGINAL dated record, not today's draw history.
         const history=state.continuedSession.sourceKind==='classroom'?
@@ -1538,12 +1656,12 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         state.continuedSession=null;persist();
       }
     }
-    window.DailyKeyPractice={setClassroomRoom,setClassroomDrafts,
+    window.DailyKeyPractice={setClassroomRoom,setClassroomDrafts,setClassroomArpeggioDrafts,
       getPreferences:()=>({...state.preferences}),showToast};
     render();
   </script>
   <script src="firebase-config.js?v=20261106-001"></script>
-  <script type="module" src="classroom.js?v=20261106-022"></script>
+  <script type="module" src="classroom.js?v=20261118-010"></script>
 <script>
 // AUDIO_TOOLS_START
 (function () {
@@ -1612,14 +1730,21 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   }
   if (typeof module !== 'undefined' && module.exports) { module.exports = { detectPitch, pitchReading, PitchWindow, pitchBand, tunerVisual, pitchInputFloor }; return; }
   const $ = id => document.getElementById(id);
-  function renderTuner(reading = null) {
+  let lastTunerReading = null;
+  function renderTuner(reading = null, hold = false) {
+    // Silence retains the last measurement, not a new zero-cent reading.
+    // Explicit stop/error resets through the default (non-hold) path.
+    if (hold) reading = lastTunerReading;
+    else lastTunerReading = reading;
     const view = tunerVisual(reading?.cents);
+    $('tuner-panel').dataset.readingState = view.valid ? (hold ? 'held' : 'live') : 'empty';
     $('tuner-cents').textContent = view.text;
+    $('tuner-cents').setAttribute('aria-label', hold && view.valid ? '上次音分，目前未辨識到音高' : '目前音分');
     $('tuner-note').textContent = view.valid ? reading.name : '—';
     const needle = $('tuner-needle');
-    // Snap the first valid reading after silence; never sweep in from idle center.
-    needle.style.transition = view.valid && needle.style.visibility === 'visible' ? '' : 'none';
-    $('tuner-meter').dataset.active = String(view.valid);
+    // Snap after silence; do not animate from the previous held measurement.
+    needle.style.transition = view.valid && !hold && $('tuner-meter').dataset.active === 'true' ? '' : 'none';
+    $('tuner-meter').dataset.active = String(view.valid && !hold);
     $('tuner-needle').style.visibility = view.valid ? 'visible' : 'hidden';
     $('tuner-needle').style.left = view.position + '%';
     $('tuner-needle').dataset.band = view.band;
@@ -1643,18 +1768,28 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     requestAnimationFrame(sizeTools);
   }
   const Context = window.AudioContext || window.webkitAudioContext;
+  // +2.3 dB only on iOS Safari, with 15% digital headroom even at full volume.
+  // Hardware/output loudness varies; keep the same slider for speakers/headphones.
+  function metronomePeakLevel(device = {}) {
+    const ua = device.userAgent || '';
+    const ios = /iPad|iPhone|iPod/i.test(ua)
+      || (/Macintosh/i.test(ua) && device.platform === 'MacIntel' && device.maxTouchPoints > 1);
+    const safari = /Safari/i.test(ua) && !/Android|CriOS|FxiOS|EdgiOS|OPiOS|Chrome|Chromium/i.test(ua);
+    return ios && safari ? 0.85 : 0.65;
+  }
+  const metroPeakLevel = metronomePeakLevel(window.navigator);
   let metroContext, metroTimer, metroRunning = false, metroPending = false, nextBeat = 0, beat = 0, metroGeneration = 0;
   let metroWorklet = null, workletModule = null;
   // AudioWorklet is primary; the original engine is only a session-local recovery path.
   let metroFallback = false;
   const metroFallbackMessage = 'AudioWorklet 無法使用，目前使用相容節拍模式。';
   const oscillators = new Set(), visuals = new Set();
-  const metroSettings = () => ({ bpm: bpm(), count: Number($('metro-beats').value), accent: Number($('metro-accent').value), volume: Math.max(0, Math.min(100, Number($('metro-volume').value) || 0)) });
+  const metroSettings = () => ({ peakLevel: metroPeakLevel, bpm: bpm(), count: Number($('metro-beats').value), accent: Number($('metro-accent').value), volume: Math.max(0, Math.min(100, Number($('metro-volume').value) || 0)) });
   function configureWorklet(resetBeat = false) { metroWorklet?.port.postMessage({ type: 'configure', settings: metroSettings(), resetBeat }); }
   function legacyMetro() { schedule(); metroTimer = setInterval(schedule, 25); }
   async function prepareWorklet() {
     if (!metroContext.audioWorklet || !window.AudioWorkletNode) throw new Error('不支援 AudioWorklet');
-    if (!workletModule) workletModule = metroContext.audioWorklet.addModule('./metronome-worklet.js?v=20261114-042').catch(error => { workletModule = null; throw error; });
+    if (!workletModule) workletModule = metroContext.audioWorklet.addModule('./metronome-worklet.js?v=20261118-001').catch(error => { workletModule = null; throw error; });
     await workletModule;
     return new AudioWorkletNode(metroContext, 'practice-metronome', { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [1] });
   }
@@ -1682,7 +1817,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         const o = metroContext.createOscillator(), gain = metroContext.createGain();
         o.frequency.value = accent ? 1200 : 850;
         gain.gain.setValueAtTime(0, nextBeat);
-        gain.gain.linearRampToValueAtTime(volume / 100 * 0.65, nextBeat + 0.002);
+        gain.gain.linearRampToValueAtTime(volume / 100 * metroPeakLevel, nextBeat + 0.002);
         gain.gain.exponentialRampToValueAtTime(0.001, nextBeat + 0.045);
         o.connect(gain); gain.connect(metroContext.destination); oscillators.add(o);
         o.onended = () => { oscillators.delete(o); o.disconnect(); gain.disconnect(); };
@@ -1789,6 +1924,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       pending = false; tunerRunning = true; tunerUI(); $('tuner-status').textContent = '';
       stream.getAudioTracks().forEach(track => track.onended = () => { if (generation === tunerGeneration) stopTuner('麥克風已中斷，請重新開始。'); });
       tunerTimer = setInterval(() => {
+        if (generation !== tunerGeneration || !tunerRunning) return;
         if (context.state !== 'running') { stopTuner('收音已暫停，請重新開始。'); return; }
         try { readSamples(); } catch (error) { stopTuner('無法讀取收音資料：' + error.message); return; }
         const rms = Math.sqrt(samples.reduce((sum,v)=>sum+v*v,0)/samples.length);
@@ -1802,7 +1938,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         const statusElement = $('tuner-status');
         if (statusElement.textContent !== status) statusElement.textContent = status;
         if (!frequency) {
-          if (performance.now() - lastSignal > 500) smooth.reset(); renderTuner(); return;
+          if (performance.now() - lastSignal > 500) smooth.reset(); renderTuner(null, true); return;
         }
         lastSignal = performance.now(); const reference = Math.max(430, Math.min(450, Number($('tuner-a').value) || 442));
         const reading = pitchReading(smooth.push(frequency), reference);
