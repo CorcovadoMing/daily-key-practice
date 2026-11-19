@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261119-003-experimental">
+  <meta name="site-version" content="20261119-004-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -668,7 +668,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261119-003-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261119-004-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -704,6 +704,8 @@
 })(globalThis, function () {
   'use strict';
   const centsLimit = 40;
+  // Preserve the exact 40¢ boundary after logarithmic round-off.
+  const withinCents = value => Number.isFinite(value) && Math.abs(value) <= centsLimit + 1e-7;
   const maxEvents = 220;
   const maxListeningMs = 120000;
 
@@ -720,7 +722,7 @@
         const p = i * width + j, event = heard[j - 1];
         let best = values[p - 1], dir = 1;
         if (values[p - width] > best) { best = values[p - width]; dir = 2; }
-        if (event.midi === target[i - 1].midi && Number.isFinite(event.cents) && Math.abs(event.cents) <= centsLimit) {
+        if (event.midi === target[i - 1].midi && withinCents(event.cents)) {
           // At most n*centsLimit secondary penalty: one more pitch always wins.
           const matched = values[p - width - 1] + (n * centsLimit + 1) - Math.abs(event.cents);
           if (matched > best) { best = matched; dir = 3; }
@@ -748,7 +750,7 @@
     return function push(reading, time) {
       if (lastTime !== null && time - lastTime > maxFrameGapMs) candidate = null;
       lastTime = time;
-      if (!reading || !Number.isInteger(reading.midi) || !Number.isFinite(reading.cents) || Math.abs(reading.cents) > centsLimit) {
+      if (!reading || !Number.isInteger(reading.midi) || !withinCents(reading.cents)) {
         candidate = null;
         quietSince ??= time;
         if (time - quietSince >= releaseMs) current = null;
@@ -970,18 +972,21 @@
 
   function manager(env, hooks) {
     let active = null;
-    function stop(message = null, grade = false) {
-      const session = active;
-      active = null;
+    function finish(session, message, grade) {
       if (!session) return;
       session.release?.();
       const result = grade ? align(session.view.target, session.heard) : null;
       const display = result ? {values:scoreValues(session.view.target, session.heard, result), final:true} : undefined;
       session.view.update('idle', message, result, 0, session.reference, display);
     }
+    function stop(message = null, grade = false) {
+      const session = active;
+      active = null;
+      finish(session, message, grade);
+    }
     async function toggle(view) {
       if (active?.view === view) { stop(null, active.stage === 'listening'); return; }
-      if (active) stop('已切換到另一個調性。');
+      const previous = active;
       const session = {view, stage: 'pending', heard: []};
       active = session;
       view.update('pending');
@@ -1027,13 +1032,16 @@
         },
         error(message) { if (active === session) stop(message); }
       });
+      // Attach the next exercise before releasing the last one: a switch
+      // keeps capture running but does not mix the independent attempts.
+      finish(previous, '已切換到另一項練習。', false);
     }
     return {toggle, stop, stopWithin: host => {
       if (active && host.contains(active.view.element)) stop('已離開這張調性卡，收音已停止。');
     }};
   }
 
-  function pitchChart(target) {
+  function pitchChart(target, name) {
     const make = (tag, className, text) => {
       const el = document.createElement(tag);
       el.className = className;
@@ -1041,7 +1049,7 @@
       return el;
     };
     const chart = make('section', 'scale-pitch-chart');
-    chart.setAttribute('aria-label', '音階音準圖：橫向是譜面音符順序，不是時間');
+    chart.setAttribute('aria-label', name + '音準圖：橫向是譜面音符順序，不是時間');
     const title = make('p', 'scale-pitch-title', '音準圖');
     const legend = make('span', 'scale-pitch-legend', '白圈為即時音高、實心點為已記錄；0¢ 為目標，上偏高，下偏低。');
     const scrollHint = make('span', 'scale-pitch-legend', '可左右滑動看其餘音符。');
@@ -1114,9 +1122,11 @@
     return {element:chart, update};
   }
 
-  function card(score, target, toggle) {
+  function card(score, target, toggle, kind = 'scale') {
+    const name = kind === 'arpeggio' ? '琶音' : '音階';
     const element = document.createElement('div');
     element.className = 'scale-practice';
+    element.dataset.practiceKind = kind;
     const button = document.createElement('button');
     button.type = 'button'; button.className = 'scale-practice-button';
     const status = document.createElement('p');
@@ -1132,13 +1142,15 @@
         phase = next;
         element.dataset.phase = next;
         button.textContent = next === 'idle' ? '開始練習' : next === 'pending' ? '取消收音' : '停止並看結果';
+        button.setAttribute('aria-label', next === 'idle' ? '開始' + name + '練習'
+          : next === 'pending' ? '取消' + name + '收音' : '停止' + name + '練習並看結果');
         button.setAttribute('aria-pressed', String(next !== 'idle'));
         latest.textContent = '';
       }
       let text;
       if (result) {
         const missing = result.missing.slice(0, 4).map(i => label(target[i], i)).join('、');
-        text = result.complete ? '音階通過！' : result.pairs.length
+        text = result.complete ? name + '通過！' : result.pairs.length
           ? '尚未完成；未依序辨識：' + missing + (result.missing.length > 4 ? ' 等。' : '。')
           : '未辨識到譜上音符。請靠近麥克風，放慢並把每音拉清楚。';
         text += ' 對上 ' + result.pairs.length + '／' + target.length + ' 音。';
@@ -1151,12 +1163,12 @@
         if (message && target[progress]) text += '。' + message;
         const live = display?.live;
         const liveText = live ? '聽到 ' + live.name + ' ' + centsText(live.cents) +
-          (live.slot === null ? '（未對到目前譜格）' : Math.abs(live.cents) > centsLimit ? '（尚未對準）' : '') : '';
+          (live.slot === null ? '（未對到目前譜格）' : !withinCents(live.cents) ? '（尚未對準）' : '') : '';
         if (latest.textContent !== liveText) latest.textContent = liveText;
       } else if (next === 'pending') {
         text = '等待麥克風授權…';
       } else {
-        text = message || '照譜拉兩個八度上、下行。先慢拉，每音稍留一下。聲音只在本機分析。';
+        text = message || '照譜拉' + name + '兩個八度上、下行。先慢拉，每音稍留一下。聲音只在本機分析。';
       }
       if (status.textContent !== text) status.textContent = text;
       if (result) {
@@ -1171,7 +1183,7 @@
       // A practice list can contain all 24 cards; avoid constructing thousands
       // of chart nodes for cards where listening has not been used.
       if (!chart && next !== 'idle') {
-        chart = pitchChart(target);
+        chart = pitchChart(target, name);
         element.append(chart.element);
       }
       chart?.update(display);
@@ -1186,7 +1198,7 @@
 });
 // SCALE_PRACTICE_END
   </script>
-  <script src="fingerboard.js?v=20261119-001"></script>
+  <script src="fingerboard.js?v=20261119-004"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.

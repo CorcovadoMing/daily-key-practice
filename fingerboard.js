@@ -428,8 +428,7 @@
     const down=arpeggio?arpeggioNotes(mode,key,'down'):scaleNotes(mode,key,'down',2);
     return [...up,...down.slice(1)];
   }
-  function makeScore(mode,key,arpeggio=false){
-    const sequence=scoreNotes(mode,key,arpeggio);
+  function makeScore(mode,key,arpeggio=false,sequence=scoreNotes(mode,key,arpeggio)){
     const peakIndex=(sequence.length+1)/2;
     const spacing=arpeggio?64:29;
     const signature=key[1],startX=70+Math.abs(signature)*8,width=928+Math.abs(signature)*8;
@@ -775,22 +774,26 @@
       panels[dir]={heading,viewport,editor,status,hint,stringChoices,
         fingerChoices,range,back,restoreSelected,reset,save,memo,legend,section};
     }
-    const scoreSection=element('section',{class:'score-section'});
-    const scaleScore=makeScore(mode,key);
-    scoreSection.append(element('h3',{class:'music-section-title'},'音階 · 兩個八度'),scaleScore);
-    if(window.CelloScalePractice){
-      const expected=scoreNotes(mode,key).map(note=>({...note,octave:Math.floor(staffStep(note)/7)}));
-      const practice=window.CelloScalePractice.card(scaleScore,expected,
-        view=>window.CelloScalePractice.controller?.toggle(view));
-      scoreSection.append(practice.element);
+    function appendPlayableScore(parent, arpeggio=false){
+      const sequence=scoreNotes(mode,key,arpeggio);
+      const score=makeScore(mode,key,arpeggio,sequence);
+      parent.append(element('h3',{class:'music-section-title'},(arpeggio?'琶音':'音階')+' · 兩個八度'),score);
+      if(window.CelloScalePractice){
+        const expected=sequence.map(note=>({...note,octave:Math.floor(staffStep(note)/7)}));
+        const practice=window.CelloScalePractice.card(score,expected,
+          view=>window.CelloScalePractice.controller?.toggle(view),arpeggio?'arpeggio':'scale');
+        parent.append(practice.element);
+      }
     }
+    const scoreSection=element('section',{class:'score-section'});
+    appendPlayableScore(scoreSection);
     const boardSection=element('section',{class:'fingerboard-section'});
     boardSection.append(element('h3',{class:'music-section-title'},'指板 · 指法'),
       toolbar,boards);
     const arpeggioSection=element('section',{class:'arpeggio-section fingerboard-section'});
     const arpeggioBoards=element('div',{class:'cello-fb-two-up'});
-    arpeggioSection.append(element('h3',{class:'music-section-title'},'琶音 · 兩個八度'),
-      makeScore(mode,key,true),arpeggioBoards);
+    appendPlayableScore(arpeggioSection,true);
+    arpeggioSection.append(arpeggioBoards);
     // Reuse the scale transaction UI, but give arpeggios independent storage.
     arpeggioBoards.append(panels.arpeggio.section);
     if(arpeggioOptions.localOnly)arpeggioSection.append(

@@ -18,3 +18,23 @@ for(const [mode,name] of [['major','MAJOR_KEYS'],['minor','MINOR_KEYS']]){
   }
  });
 }
+
+test('all 24 keys feed targets from the exact rendered scale and arpeggio staff',()=>{
+ class Node{
+  constructor(){this.children=[];this.attributes={};}
+  append(...children){this.children.push(...children);}
+  setAttribute(name,value){this.attributes[name]=value;}
+ }
+ context.document={createElement:()=>new Node(),createElementNS:()=>new Node()};
+ for(const [mode,name] of [['major','MAJOR_KEYS'],['minor','MINOR_KEYS']]){
+  const keys=vm.runInNewContext(html.match(new RegExp('const '+name+' = (\\[[\\s\\S]*?\\n    \\]);'))[1]);
+  for(const key of keys)for(const arpeggio of [false,true]){
+   const expected=F.scoreNotes(mode,key,arpeggio);
+   const staff=F.makeScore(mode,key,arpeggio,expected);
+   const notes=staff.children[0].children.filter(x=>'data-midi' in x.attributes);
+   assert.equal(notes.length,arpeggio?13:29);
+   assert.deepEqual(notes.map(x=>[Number(x.attributes['data-midi']),x.attributes['data-note']]),
+     Array.from(expected,n=>[n.midi,n.name]));
+  }
+ }
+});

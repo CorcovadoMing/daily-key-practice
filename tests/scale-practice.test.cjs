@@ -238,3 +238,78 @@ test('a sustained note near a click (A♭5 +20¢ at A442) passes after the short
   assert.equal(gate(null,216,true),false);
   assert.equal(gate(frequency,243,true),true,'silence resets the transient length');
 });
+
+test('arpeggio matching accepts exact tolerance after floating-point pitch conversion, not 40.01 cents',()=>{
+  const expected=[tone(69),tone(72)];
+  for(const sign of [1,-1]) {
+    const convert=(midi,cents)=>pitchReading(442*2**((midi-69+cents/100)/12),442);
+    const near=convert(69,sign*40);
+    assert.equal(align(expected,[near,convert(72,0)]).complete,true);
+    assert.equal(align(expected,[convert(69,sign*40.01),convert(72,0)]).complete,false);
+    const push=trackNotes();
+    for(const ms of [0,27,54])assert.equal(push(near,ms),null);
+    assert.equal(push(near,81).midi,69);
+  }
+});
+
+const cMajorArpeggio = [36,40,43,48,52,55,60,55,52,48,43,40,36].map(midi=>tone(midi));
+test('switch scale ↔ arpeggio keeps one mic session but grades only selected score notes',async()=>{
+  const f=fixture(), arpeggioCalls=[];
+  const arpeggio={target:cMajorArpeggio,element:{},update(...args){arpeggioCalls.push(args);}};
+  const start=f.m.toggle(f.view);
+  f.grant();await start;
+  f.play(38); // Must not be added to the succeeding arpeggio take.
+  await f.m.toggle(arpeggio);
+  assert.match(f.calls.at(-1)[1],/已切換到另一項練習/);
+  assert.equal(f.calls.at(-1)[2],null);
+  assert.equal(f.track.stopCalls,0);
+  assert.equal(f.resources.prompts,1);
+  assert.equal(arpeggioCalls.at(-1)[0],'listening');
+  f.play(37); // An inserted wrong note does not substitute for a miss.
+  for(const n of cMajorArpeggio)f.play(n.midi);
+  await f.m.toggle(arpeggio);
+  const final=arpeggioCalls.at(-1)[2];
+  assert.equal(final.complete,true);
+  assert.equal(final.pairs.length,13);
+  assert.equal(final.extra,1);
+  assert.equal(f.track.stopCalls,1);
+});
+test('switching practice mode while permission is pending still makes one request',async()=>{
+  const f=fixture(), arpeggioCalls=[];
+  const arpeggio={target:cMajorArpeggio,element:{},update(...args){arpeggioCalls.push(args);}};
+  await f.m.toggle(f.view);
+  await f.m.toggle(arpeggio);
+  assert.equal(f.resources.prompts,1);
+  assert.match(f.calls.at(-1)[1],/已切換到另一項練習/);
+  f.grant();await new Promise(setImmediate);
+  assert.equal(arpeggioCalls.at(-1)[0],'listening');
+  assert.equal(f.track.stopCalls,0);
+  f.m.stop();
+  assert.equal(f.track.stopCalls,1);
+});
+test('arpeggios use distinct kind labels, chart and results without changing button copy',()=>{
+  class Node {
+    constructor(){this.children=[];this.dataset={};this.attributes={};this.style={setProperty(){}};this.textContent='';}
+    append(...children){this.children.push(...children);}
+    setAttribute(key,f){this.attributes[key]=f;}
+    addEventListener(){}
+  }
+  const standalone={module:{exports:{}},document:{createElement:()=>new Node()}};
+  vm.runInNewContext(html.split('// SCALE_PRACTICE_START')[1].split('// SCALE_PRACTICE_END')[0],standalone);
+  const heads=cMajorArpeggio.map(()=>new Node());
+  const view=standalone.module.exports.card({querySelectorAll:()=>heads},cMajorArpeggio,()=>{},'arpeggio');
+  const [button,status]=view.element.children;
+  assert.equal(view.element.dataset.practiceKind,'arpeggio');
+  assert.equal(button.textContent,'開始練習');
+  assert.equal(button.attributes['aria-label'],'開始琶音練習');
+  view.update('pending');
+  const chart=view.element.children.at(-1);
+  assert.match(chart.attributes['aria-label'],/^琶音音準圖/);
+  const grid=chart.children[1].children[1].children[0];
+  assert.equal(grid.children.length,13);
+  const result=align(cMajorArpeggio,cMajorArpeggio);
+  view.update('idle',null,result,0,442,{values:scoreValues(cMajorArpeggio,cMajorArpeggio,result),final:true});
+  assert.match(status.textContent,/琶音通過！/);
+  assert.match(status.textContent,/13／13/);
+  assert.equal(heads.filter(n=>n.dataset.practice==='matched').length,13);
+});
