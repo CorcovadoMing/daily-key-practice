@@ -423,10 +423,14 @@
       active.set(key,written);return written===previous?null:written;
     });
   }
-  function makeScore(mode,key,arpeggio=false){
+  function scoreNotes(mode,key,arpeggio=false){
     const up=arpeggio?arpeggioNotes(mode,key,'up'):scaleNotes(mode,key,'up',2);
     const down=arpeggio?arpeggioNotes(mode,key,'down'):scaleNotes(mode,key,'down',2);
-    const sequence=[...up,...down.slice(1)];
+    return [...up,...down.slice(1)];
+  }
+  function makeScore(mode,key,arpeggio=false){
+    const sequence=scoreNotes(mode,key,arpeggio);
+    const peakIndex=(sequence.length+1)/2;
     const spacing=arpeggio?64:29;
     const signature=key[1],startX=70+Math.abs(signature)*8,width=928+Math.abs(signature)*8;
     const accidentals=scoreAccidentals(sequence,signature);
@@ -477,7 +481,7 @@
         for(let level=0;level<2;level++)svg.append(svgNode('line',{class:'scale-beam','data-level':level+1,x1:stemX(group[0]),x2:stemX(group[group.length-1]),y1:beamAt(group[0])+(down?-6:6)*level,y2:beamAt(group.at(-1))+(down?-6:6)*level,stroke:'#222','stroke-width':3.5}));
       } // The final tonic keeps its stem but has no flags: a quarter note.
     }
-    for(const [x,label] of [[startX,'上行'],[startX+up.length*spacing,'下行']]){
+    for(const [x,label] of [[startX,'上行'],[startX+peakIndex*spacing,'下行']]){
       svg.append(svgNode('text',{x,y:164,'font-size':12,fill:'#647461'},label));
       svg.append(svgNode('path',{d:`M${x+32} 160h14m-6-6 6 6-6 6`,fill:'none',stroke:'#647461','stroke-width':1.6,'stroke-linecap':'round','stroke-linejoin':'round','aria-hidden':'true'}));
     }
@@ -772,7 +776,14 @@
         fingerChoices,range,back,restoreSelected,reset,save,memo,legend,section};
     }
     const scoreSection=element('section',{class:'score-section'});
-    scoreSection.append(element('h3',{class:'music-section-title'},'音階 · 兩個八度'),makeScore(mode,key));
+    const scaleScore=makeScore(mode,key);
+    scoreSection.append(element('h3',{class:'music-section-title'},'音階 · 兩個八度'),scaleScore);
+    if(window.CelloScalePractice){
+      const expected=scoreNotes(mode,key).map(note=>({...note,octave:Math.floor(staffStep(note)/7)}));
+      const practice=window.CelloScalePractice.card(scaleScore,expected,
+        view=>window.CelloScalePractice.controller?.toggle(view));
+      scoreSection.append(practice.element);
+    }
     const boardSection=element('section',{class:'fingerboard-section'});
     boardSection.append(element('h3',{class:'music-section-title'},'指板 · 指法'),
       toolbar,boards);
@@ -935,6 +946,6 @@
   window.CelloFingerboard={
     create,
     // Pure helpers exported for automated pitch and placement checks.
-    arpeggioNotes,chartSVG,scoreAccidentals,staffStep,makeScore,scaleNotes,positionFor,pitchClass,decodeMap,pointStyling,POSITION_COLORS,CHART_POSITIONS,contrastInk,makeLegend,notePlacement,resolvedShiftCue,bMinorAccent
+    arpeggioNotes,chartSVG,scoreAccidentals,staffStep,makeScore,scoreNotes,scaleNotes,positionFor,pitchClass,decodeMap,pointStyling,POSITION_COLORS,CHART_POSITIONS,contrastInk,makeLegend,notePlacement,resolvedShiftCue,bMinorAccent
   };
 })();

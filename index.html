@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261118-011-experimental">
+  <meta name="site-version" content="20261119-001-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -469,6 +469,15 @@
     .fifths-pair .filter-key.minor[aria-pressed="true"]{background:#705582;color:#fff;border-color:#705582}
     .fifths-pair .filter-key[aria-pressed="false"]{background:#fff;color:#697269;border-color:#9da99a;border-style:dashed;opacity:1}
     .fifths-pair .filter-key:focus-visible{outline:3px solid #3c78a4;outline-offset:2px}
+    .scale-practice{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:0 0 12px;color:#425948;min-width:0}
+    .scale-practice-button{font:inherit;font-size:13px;font-weight:700;border:1px solid #8da692;border-radius:999px;color:#274a35;background:#edf4ed;padding:7px 14px;min-height:44px;cursor:pointer;white-space:nowrap}
+    .scale-practice-button:hover,.scale-practice-button[aria-pressed=true]{background:#dcebdd}
+    .scale-practice-button:focus-visible{outline:3px solid #4c81b3;outline-offset:2px}
+    .scale-practice-status{font-size:12px;margin:0;max-width:100%;flex:1 1 230px}
+    .scale-practice-latest{font-size:12px;white-space:nowrap}
+    .scale-practice-latest:empty{display:none}
+    .cello-scale-score [data-practice=matched] ellipse{fill:#1d7751}
+    .cello-scale-score [data-practice=missing] ellipse{fill:#a64433}
     .cello-scale-score{overflow-x:auto;overscroll-behavior-x:contain;scrollbar-gutter:stable}
     .cello-scale-score svg{min-width:960px;max-width:none}
     .workspace .cello-fb-two-up{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -635,7 +644,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261118-011-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261119-001-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -661,7 +670,247 @@
 
 
   <script src="fingering-presets.js?v=20261118-011"></script>
-  <script src="fingerboard.js?v=20261118-010"></script>
+  <script>
+// SCALE_PRACTICE_START
+/* Experimental, single-voice scale practice. Audio never leaves the browser. */
+(function (root, factory) {
+  const api = factory();
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.CelloScalePractice = api;
+})(globalThis, function () {
+  'use strict';
+  const centsLimit = 40;
+  const maxEvents = 220;
+  const maxListeningMs = 120000;
+
+  // Longest ordered match: each heard note can fill one expected position.
+  // Skip-over steps are reported as extra played notes or missing score notes,
+  // never as successful substitutions. Secondary cost prefers steadier pitch
+  // when repeated notes supply several equally long alignments.
+  function align(target, heard) {
+    const n = target.length, m = heard.length;
+    const width = m + 1, values = new Float64Array((n + 1) * width);
+    const directions = new Uint8Array(values.length);
+    for (let i = 1; i <= n; i++) {
+      for (let j = 1; j <= m; j++) {
+        const p = i * width + j, event = heard[j - 1];
+        let best = values[p - 1], dir = 1;
+        if (values[p - width] > best) { best = values[p - width]; dir = 2; }
+        if (event.midi === target[i - 1].midi && Number.isFinite(event.cents) && Math.abs(event.cents) <= centsLimit) {
+          // At most n*centsLimit secondary penalty: one more pitch always wins.
+          const matched = values[p - width - 1] + (n * centsLimit + 1) - Math.abs(event.cents);
+          if (matched > best) { best = matched; dir = 3; }
+        }
+        values[p] = best; directions[p] = dir;
+      }
+    }
+    const pairs = [];
+    for (let i = n, j = m; i && j;) {
+      const dir = directions[i * width + j];
+      if (dir === 3) { pairs.push({ expected: --i, heard: --j }); }
+      else if (dir === 2) i--;
+      else j--;
+    }
+    pairs.reverse();
+    const covered = new Set(pairs.map(pair => pair.expected));
+    return {complete: n > 0 && pairs.length === n, pairs,
+      missing: target.flatMap((note, i) => covered.has(i) ? [] : [i]), extra: m - pairs.length};
+  }
+
+  // Debounce attacks, glissandi, short glitches and vibrato at note boundaries
+  // before producing a note event, and do not turn a held pitch into repeats.
+  function trackNotes({stableMs = 70, releaseMs = 125, maxFrameGapMs = 90} = {}) {
+    let candidate = null, current = null, quietSince = null, lastTime = null;
+    return function push(reading, time) {
+      if (lastTime !== null && time - lastTime > maxFrameGapMs) candidate = null;
+      lastTime = time;
+      if (!reading || !Number.isInteger(reading.midi) || !Number.isFinite(reading.cents) || Math.abs(reading.cents) > centsLimit) {
+        candidate = null;
+        quietSince ??= time;
+        if (time - quietSince >= releaseMs) current = null;
+        return null;
+      }
+      quietSince = null;
+      const {midi, cents} = reading;
+      if (current === midi) { candidate = null; return null; }
+      if (candidate?.midi !== midi) {
+        candidate = {midi, start: time, cents: [cents]};
+        return null;
+      }
+      candidate.cents.push(cents);
+      if (time - candidate.start < stableMs || candidate.cents.length < 3) return null;
+      const sorted = candidate.cents.sort((a, b) => a - b);
+      const result = {midi, cents: sorted[Math.floor(sorted.length / 2)], at: candidate.start};
+      current = midi; candidate = null;
+      return result;
+    };
+  }
+
+  function manager(env, hooks) {
+    let active = null;
+    const releaseStream = stream => stream?.getTracks().forEach(track => track.stop());
+    function stop(message = null, grade = false) {
+      const session = active;
+      active = null;
+      if (!session) return;
+      env.clearInterval(session.timer);
+      if (session.analyser) session.analyser.disconnect();
+      if (session.source) session.source.disconnect();
+      releaseStream(session.stream);
+      if (session.context) session.context.close().catch(() => {});
+      const result = grade ? align(session.view.target, session.heard) : null;
+      session.view.update('idle', message, result);
+    }
+    async function toggle(view) {
+      if (active?.view === view) { stop(null, active.stage === 'listening'); return; }
+      if (active) stop('已切換到另一個調性。');
+      hooks.beforeStart();
+      const session = {view, stage: 'pending', heard: []};
+      active = session;
+      view.update('pending');
+      try {
+        const Context = env.AudioContext || env.webkitAudioContext;
+        if (!env.isSecureContext || !env.navigator.mediaDevices?.getUserMedia || !Context) {
+          throw new Error('需要 HTTPS 和支援收音的瀏覽器。');
+        }
+        const context = session.context = new Context();
+        // Unlock audio during the tap. Do not wait for iOS resume to prompt.
+        context.resume().catch(() => {});
+        const stream = await env.navigator.mediaDevices.getUserMedia({
+          audio: {echoCancellation: false, noiseSuppression: false, autoGainControl: false}, video: false
+        });
+        if (active !== session) { releaseStream(stream); return; }
+        session.stream = stream;
+        const source = session.source = context.createMediaStreamSource(stream);
+        const analyser = session.analyser = context.createAnalyser();
+        analyser.fftSize = 4096;
+        source.connect(analyser); // Deliberately not connected to speakers.
+        if (context.state !== 'running') {
+          let timeout;
+          try {
+            await Promise.race([context.resume(), new Promise((_, reject) => {
+              timeout = env.setTimeout(() => reject(new Error('音訊啟動逾時，請重試。')), 4000);
+            })]);
+          } finally { env.clearTimeout(timeout); }
+        }
+        if (active !== session) return;
+        if (context.state !== 'running') throw new Error('音訊未啟動，請重試。');
+        const samples = new Float32Array(analyser.fftSize);
+        const bytes = new Uint8Array(analyser.fftSize);
+        const read = typeof analyser.getFloatTimeDomainData === 'function'
+          ? () => analyser.getFloatTimeDomainData(samples)
+          : () => {
+            analyser.getByteTimeDomainData(bytes);
+            for (let i = 0; i < bytes.length; i++) samples[i] = (bytes[i] - 128) / 128;
+          };
+        const track = trackNotes();
+        const reference = hooks.reference();
+        const start = env.performance.now();
+        let progress = 0, lastTone = start;
+        session.stage = 'listening'; view.update('listening', null, null, 0, reference);
+        const tracks = stream.getAudioTracks();
+        tracks.forEach(t => t.onended = () => { if (active === session) stop('麥克風已中斷，請重新開始。'); });
+        session.timer = env.setInterval(() => {
+          if (active !== session) return;
+          if (context.state !== 'running') { stop('系統暫停了收音，請重新開始。'); return; }
+          const now = env.performance.now();
+          if (now - start >= maxListeningMs) { stop('已達 2 分鐘收音上限。', true); return; }
+          try {
+            read();
+            const frequency = tracks.some(t => t.muted) ? null : hooks.detectPitch(samples, context.sampleRate);
+            if (frequency) lastTone = now;
+            const event = track(frequency ? hooks.pitchReading(frequency, reference) : null, now);
+            if (event) {
+              session.heard.push(event);
+              // Any fully ordered match must have the same longest prefix.
+              // Update it cheaply while listening; align all positions on finish.
+              if (event.midi === view.target[progress]?.midi) progress++;
+              if (session.heard.length >= maxEvents) {
+                stop('已達本次收音上限。', true); return;
+              }
+            }
+            const hint = now - lastTone >= 3000 ? '暫未辨識到穩定音高。' : null;
+            view.update('listening', hint, null, progress, reference,
+              event ? hooks.pitchName(event.midi) : undefined);
+          } catch {
+            stop('無法讀取麥克風，請重新開始。');
+          }
+        }, 27);
+      } catch (error) {
+        if (active !== session) return;
+        stop(error.name === 'NotAllowedError' ? '未取得麥克風權限，請在瀏覽器允許後重試。'
+          : error.name === 'NotFoundError' ? '找不到麥克風，請檢查裝置。'
+          : '無法收音：' + error.message);
+      }
+    }
+    return {toggle, stop, stopWithin: host => {
+      if (active && host.contains(active.view.element)) stop('已離開這張調性卡，收音已停止。');
+    }};
+  }
+
+  function card(score, target, toggle) {
+    const element = document.createElement('div');
+    element.className = 'scale-practice';
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = 'scale-practice-button';
+    const status = document.createElement('p');
+    status.className = 'scale-practice-status';
+    status.setAttribute('role', 'status');
+    const latest = document.createElement('span');
+    latest.className = 'scale-practice-latest';
+    const noteHeads = [...score.querySelectorAll('[data-midi]')];
+    let phase = null, previous = 0;
+    const label = (note, index) => note.name + note.octave + (index <= (target.length - 1) / 2 ? '↑' : '↓');
+    const view = {element, target, update(next, message, result, progress = 0, reference = 442, pitch) {
+      if (next !== phase) {
+        phase = next;
+        element.dataset.phase = next;
+        button.textContent = next === 'idle' ? '開始練習' : next === 'pending' ? '取消收音' : '停止並看結果';
+        button.setAttribute('aria-pressed', String(next !== 'idle'));
+        latest.textContent = '';
+      }
+      let text;
+      if (result) {
+        const missing = result.missing.slice(0, 4).map(i => label(target[i], i)).join('、');
+        text = result.complete ? '音階通過！' : result.pairs.length
+          ? '尚未完成；未依序辨識：' + missing + (result.missing.length > 4 ? ' 等。' : '。')
+          : '未辨識到譜上音符。請靠近麥克風，放慢並把每音拉清楚。';
+        text += ' 對上 ' + result.pairs.length + '／' + target.length + ' 音。';
+        if (result.extra) text += ' 略過 ' + result.extra + ' 個額外音。';
+        if (message) text = message + ' ' + text;
+      } else if (next === 'listening') {
+        text = '收音中 · A4 ' + reference + ' Hz · 依序對上 ' + progress + '／' + target.length + ' 音';
+        if (target[progress]) text += ' · 下一音 ' + label(target[progress], progress);
+        else text += ' · 可停止並看結果';
+        if (message && target[progress]) text += '。' + message;
+        if (pitch) latest.textContent = '聽到 ' + pitch;
+      } else if (next === 'pending') {
+        text = '等待麥克風授權…';
+      } else {
+        text = message || '照譜拉兩個八度上、下行。先慢拉，每音稍留一下。聲音只在本機分析。';
+      }
+      if (status.textContent !== text) status.textContent = text;
+      if (result) {
+        const hits = new Set(result.pairs.map(p => p.expected));
+        noteHeads.forEach((head, i) => { head.dataset.practice = hits.has(i) ? 'matched' : 'missing'; });
+      } else if (next !== 'listening' || progress < previous) {
+        noteHeads.forEach(head => { delete head.dataset.practice; });
+      } else if (progress > previous) {
+        for (let i = previous; i < progress; i++) noteHeads[i].dataset.practice = 'matched';
+      }
+      previous = next === 'listening' ? progress : 0;
+    }};
+    view.update('idle');
+    button.addEventListener('click', () => toggle(view));
+    element.append(button, status, latest);
+    return view;
+  }
+
+  return {align, trackNotes, manager, card};
+});
+// SCALE_PRACTICE_END
+  </script>
+  <script src="fingerboard.js?v=20261119-001"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
@@ -1345,6 +1594,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
  const panel=item.panel,previous=item.opened;
  if(previous===opened)return;
  item.opened=opened;
+ if(!opened)window.CelloScalePractice?.controller?.stopWithin(panel);
  if(!opened&&panel.contains(document.activeElement))item.title.focus({preventScroll:true});
  panel.inert=!opened;
  panel.setAttribute('aria-hidden',String(!opened));
@@ -1389,6 +1639,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
 }
     function renderGroups(session){
       const container=q('#key-groups');
+      window.CelloScalePractice?.controller?.stopWithin(container);
       boardInstances.clear();cardInstances.clear();
       container.replaceChildren();
       if(signatureOrderedSession(session)){
@@ -1423,6 +1674,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       q('#result-content').classList.toggle('visible',hasSession);
       q('#result-placeholder-code').hidden=hasSession;
       if(!hasSession){
+        window.CelloScalePractice?.controller?.stopWithin(q('#key-groups'));
         expandedOverride=undefined;renderedSessionKey=null;
         q('#bottom-practice-nav').replaceChildren();
         q('#floating-practice-list').replaceChildren();
@@ -1881,6 +2133,18 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   let tunerContext, stream, analyser, source, tunerTimer, tunerRunning = false, pending = false, tunerGeneration = 0;
   const smooth = new PitchWindow(); let lastSignal = 0;
   const tunerInputFloor = pitchInputFloor(navigator);
+  const a4Reference = () => Math.max(430, Math.min(450, Number($('tuner-a').value) || 442));
+  const scalePractice = window.CelloScalePractice?.manager(window, {
+    reference: a4Reference,
+    detectPitch: (samples, rate) => detectPitch(samples, rate, tunerInputFloor),
+    pitchReading,
+    pitchName: midi => pitchReading(442 * 2 ** ((midi - 69) / 12), 442).name,
+    beforeStart: () => {
+      if (pending || tunerRunning || !$('tuner-panel').hidden) closeTool('tuner');
+      if (metroPending || metroRunning) closeTool('metronome');
+    }
+  });
+  if (window.CelloScalePractice) window.CelloScalePractice.controller = scalePractice;
   function tunerUI() {
     $('tuner-open').setAttribute('aria-pressed',String(pending||tunerRunning));
     $('tuner-open').setAttribute('aria-label',pending?'取消麥克風授權等待並收起':tunerRunning?'停止收音並收起':'啟用調音器並開始收音');
@@ -1959,17 +2223,21 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   $('tuner-settings').onclick=()=>tunerSettings($('tuner-preferences').hidden);
   $('tuner-preferences').addEventListener('keydown',e=>{if(e.key==='Escape'){tunerSettings(false);$('tuner-settings').focus();}});
   document.addEventListener('pointerdown',e=>{if(!$('tuner-preferences').hidden&&!$('tuner-preferences').contains(e.target)&&!$('tuner-settings').contains(e.target))tunerSettings(false);});
-  $('metronome-open').onclick=startMetro;
+  $('metronome-open').onclick=()=>{
+    scalePractice?.stop('已切換到節拍器，收音已停止。');
+    startMetro();
+  };
   $('metro-settings').onclick=()=>{showPanel('metronome',$('metronome-panel').hidden);};
   document.addEventListener('pointerdown',e=>{if(!$('metronome-panel').hidden&&!$('metronome-panel').contains(e.target)&&!$('metro-settings').contains(e.target))showPanel('metronome',false);});
   $('tuner-open').onclick=()=>{
+    scalePractice?.stop('已切換到調音器，練習收音已停止。');
     if(!$('tuner-panel').hidden){closeTool('tuner');return;}
     showPanel('tuner',true);$('tuner-panel').scrollIntoView({block:'nearest',inline:'nearest'});startTuner();
   };
   $('metronome-panel').addEventListener('keydown',e=>{if(e.key==='Escape'){showPanel('metronome',false);$('metro-settings').focus();}});
   $('tuner-panel').addEventListener('keydown',e=>{if(e.key==='Escape'){closeTool('tuner');$('tuner-open').focus();}});
-  document.addEventListener('visibilitychange',()=>{if(document.hidden){closeTool('tuner');closeTool('metronome');}});
-  window.addEventListener('pagehide', () => { stopTuner(); stopMetro(); });
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){scalePractice?.stop('頁面已切換，收音已停止。');closeTool('tuner');closeTool('metronome');}});
+  window.addEventListener('pagehide', () => { scalePractice?.stop(); stopTuner(); stopMetro(); });
 })();
 // AUDIO_TOOLS_END
 
