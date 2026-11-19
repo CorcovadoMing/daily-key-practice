@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261119-002-experimental">
+  <meta name="site-version" content="20261119-003-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -668,7 +668,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261119-002-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261119-003-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -816,18 +816,165 @@
     return target[progress]?.midi === reading.midi ? progress : null;
   }
 
+  // Filter short near-click pitches only while the app's click is audible.
+  // The generated hit is 50 ms and can persist in the analyser window. No
+  // clock/beat blanking: a sustained tone in either narrow band still passes.
+  function metronomeClickGate() {
+    let band = null, since = 0, last = 0;
+    return (frequency, now, audible) => {
+      const next = audible && frequency ? [850,1200].find(click => Math.abs(frequency-click) <= click*0.015) : null;
+      if (!next) { band = null; return false; }
+      if (band !== next || now-last > 45) { band = next; since = now; }
+      last = now;
+      return now-since < 160;
+    };
+  }
+  // One microphone stream and detector shared by all listening tools. The
+  // metronome owns only its existing output engine.
+  function micCapture(env, detect, floor, suppress = () => false) {
+    let session = null;
+    const failures = error => error.name === 'NotAllowedError'
+      ? '未取得麥克風權限，請在瀏覽器允許後重試。'
+      : error.name === 'NotFoundError' ? '找不到麥克風，請檢查裝置。'
+      : '無法收音：' + error.message;
+    function dropGraph(s) {
+      env.clearInterval(s.timer);
+      env.clearTimeout(s.resumeTimeout);
+      if (s.source) { s.source.disconnect(); s.source = null; }
+      if (s.analyser) { s.analyser.disconnect(); s.analyser = null; }
+      if (s.stream) {
+        s.stream.getTracks().forEach(track => { track.onended = null; track.stop(); });
+        s.stream = null;
+      }
+      if (s.context) { s.context.close().catch(() => {}); s.context = null; }
+    }
+    function fail(s, message) {
+      if (session !== s) return;
+      session = null;
+      dropGraph(s);
+      const listeners = [...s.listeners];
+      s.listeners.clear();
+      listeners.forEach(listener => listener.error(message));
+    }
+    function ensureContext(s) {
+      if (s.context) return;
+      const Context = env.AudioContext || env.webkitAudioContext;
+      if (!env.isSecureContext || !env.navigator.mediaDevices?.getUserMedia || !Context) {
+        throw new Error('需要 HTTPS 和支援收音的瀏覽器。');
+      }
+      s.context = new Context();
+      // Unlock inside a tap; don't hold the permission prompt behind Safari resume.
+      s.context.resume().catch(() => {});
+    }
+    function ready(s, listener) {
+      if (session !== s || !s.listeners.has(listener) || listener.started) return;
+      listener.started = true;
+      listener.ready();
+    }
+    async function acquire(s) {
+      try {
+        ensureContext(s);
+        const stream = await env.navigator.mediaDevices.getUserMedia({
+          audio: {echoCancellation:false, noiseSuppression:false, autoGainControl:false}, video:false
+        });
+        if (session !== s || !s.listeners.size) {
+          stream.getTracks().forEach(track => track.stop());
+          if (session === s) { session = null; dropGraph(s); }
+          return;
+        }
+        s.phase = 'loading';
+        s.stream = stream;
+        const context = s.context, tracks = stream.getAudioTracks();
+        if (!tracks.length || tracks.every(track => track.readyState === 'ended')) throw new Error('麥克風未能啟動。');
+        tracks.forEach(track => track.onended = () => fail(s,'麥克風已中斷，請重新開始。'));
+        const source = s.source = context.createMediaStreamSource(stream);
+        const analyser = s.analyser = context.createAnalyser();
+        analyser.fftSize = 4096;
+        source.connect(analyser); // No microphone playback / feedback path.
+        if (context.state !== 'running') {
+          try {
+            await Promise.race([context.resume(), new Promise((_,reject) => {
+              s.resumeTimeout = env.setTimeout(() => reject(new Error('音訊啟動逾時，請重試。')),4000);
+            })]);
+          } finally { env.clearTimeout(s.resumeTimeout); }
+        }
+        if (session !== s) return;
+        if (context.state !== 'running') throw new Error('音訊未啟動，請重試。');
+        const samples = new Float32Array(analyser.fftSize), bytes = new Uint8Array(analyser.fftSize);
+        const read = typeof analyser.getFloatTimeDomainData === 'function'
+          ? () => analyser.getFloatTimeDomainData(samples)
+          : () => {
+            analyser.getByteTimeDomainData(bytes);
+            for (let i=0;i<bytes.length;i++) samples[i]=(bytes[i]-128)/128;
+          };
+        let paused = null;
+        s.phase = 'ready';
+        [...s.listeners].forEach(listener => ready(s,listener));
+        if (session !== s) return;
+        s.timer = env.setInterval(() => {
+          if (session !== s) return;
+          const now = env.performance.now();
+          let frequency = null, rms = 0, muted = tracks.some(t => t.muted);
+          if (context.state !== 'running') {
+            paused ??= now;
+            if (now - paused > 800) { fail(s,'系統暫停了收音，請重新開始。'); return; }
+            muted = true;
+          } else {
+            paused = null;
+            if (!muted) {
+              try {
+                read();
+                let energy = 0;
+                for (const value of samples) energy += value * value;
+                rms = Math.sqrt(energy / samples.length);
+                const measured = detect(samples,context.sampleRate,floor);
+                frequency = suppress(measured,now) ? null : measured || null;
+              } catch {
+                fail(s,'無法讀取麥克風，請重新開始。'); return;
+              }
+            }
+          }
+          if (muted) suppress(null,now);
+          const frame = {now, frequency, rms, muted};
+          [...s.listeners].forEach(listener => {
+            if (session === s && listener.started && s.listeners.has(listener)) listener.frame(frame);
+          });
+        },27);
+      } catch (error) {
+        Promise.resolve().then(() => fail(s,failures(error)));
+      }
+    }
+    function subscribe(callbacks) {
+      const fresh = !session;
+      const s = session ||= {phase:'permission', listeners:new Set()};
+      const listener = {...callbacks};
+      s.listeners.add(listener);
+      if (fresh) void acquire(s); // ensureContext runs synchronously inside the tap.
+      else if (s.phase === 'ready') Promise.resolve().then(() => ready(s,listener));
+      else if (!s.context) {
+        // Last listener cancelled during the same browser permission prompt.
+        // Reuse the pending grant, but unlock a fresh context in this tap.
+        try { ensureContext(s); }
+        catch(error) { Promise.resolve().then(() => fail(s,failures(error))); }
+      }
+      return () => {
+        if (!s.listeners.delete(listener) || s.listeners.size || session !== s) return;
+        // While a browser prompt is outstanding keep only its pending identity;
+        // if it grants with no listeners, stop the returned tracks immediately.
+        if (s.phase !== 'permission') session = null;
+        dropGraph(s);
+      };
+    }
+    return {subscribe};
+  }
+
   function manager(env, hooks) {
     let active = null;
-    const releaseStream = stream => stream?.getTracks().forEach(track => track.stop());
     function stop(message = null, grade = false) {
       const session = active;
       active = null;
       if (!session) return;
-      env.clearInterval(session.timer);
-      if (session.analyser) session.analyser.disconnect();
-      if (session.source) session.source.disconnect();
-      releaseStream(session.stream);
-      if (session.context) session.context.close().catch(() => {});
+      session.release?.();
       const result = grade ? align(session.view.target, session.heard) : null;
       const display = result ? {values:scoreValues(session.view.target, session.heard, result), final:true} : undefined;
       session.view.update('idle', message, result, 0, session.reference, display);
@@ -835,61 +982,23 @@
     async function toggle(view) {
       if (active?.view === view) { stop(null, active.stage === 'listening'); return; }
       if (active) stop('已切換到另一個調性。');
-      hooks.beforeStart();
       const session = {view, stage: 'pending', heard: []};
       active = session;
       view.update('pending');
-      try {
-        const Context = env.AudioContext || env.webkitAudioContext;
-        if (!env.isSecureContext || !env.navigator.mediaDevices?.getUserMedia || !Context) {
-          throw new Error('需要 HTTPS 和支援收音的瀏覽器。');
-        }
-        const context = session.context = new Context();
-        // Unlock audio during the tap. Do not wait for iOS resume to prompt.
-        context.resume().catch(() => {});
-        const stream = await env.navigator.mediaDevices.getUserMedia({
-          audio: {echoCancellation: false, noiseSuppression: false, autoGainControl: false}, video: false
-        });
-        if (active !== session) { releaseStream(stream); return; }
-        session.stream = stream;
-        const source = session.source = context.createMediaStreamSource(stream);
-        const analyser = session.analyser = context.createAnalyser();
-        analyser.fftSize = 4096;
-        source.connect(analyser); // Deliberately not connected to speakers.
-        if (context.state !== 'running') {
-          let timeout;
-          try {
-            await Promise.race([context.resume(), new Promise((_, reject) => {
-              timeout = env.setTimeout(() => reject(new Error('音訊啟動逾時，請重試。')), 4000);
-            })]);
-          } finally { env.clearTimeout(timeout); }
-        }
-        if (active !== session) return;
-        if (context.state !== 'running') throw new Error('音訊未啟動，請重試。');
-        const samples = new Float32Array(analyser.fftSize);
-        const bytes = new Uint8Array(analyser.fftSize);
-        const read = typeof analyser.getFloatTimeDomainData === 'function'
-          ? () => analyser.getFloatTimeDomainData(samples)
-          : () => {
-            analyser.getByteTimeDomainData(bytes);
-            for (let i = 0; i < bytes.length; i++) samples[i] = (bytes[i] - 128) / 128;
-          };
-        const track = trackNotes(), monitor = monitorPitch();
-        const reference = session.reference = hooks.reference();
-        const start = env.performance.now();
-        let progress = 0, lastTone = start, held = null;
-        let values = Array(view.target.length).fill(null);
-        session.stage = 'listening'; view.update('listening', null, null, 0, reference, {values, listening:true, progress});
-        const tracks = stream.getAudioTracks();
-        tracks.forEach(t => t.onended = () => { if (active === session) stop('麥克風已中斷，請重新開始。'); });
-        session.timer = env.setInterval(() => {
+      const track = trackNotes(), monitor = monitorPitch();
+      let reference = 442, start = 0, progress = 0, lastTone = 0, held = null;
+      let values = Array(view.target.length).fill(null);
+      session.release = hooks.capture.subscribe({
+        ready() {
           if (active !== session) return;
-          if (context.state !== 'running') { stop('系統暫停了收音，請重新開始。'); return; }
-          const now = env.performance.now();
+          reference = session.reference = hooks.reference();
+          start = lastTone = env.performance.now();
+          session.stage = 'listening'; view.update('listening', null, null, 0, reference, {values, listening:true, progress});
+        },
+        frame({now,frequency}) {
+          if (active !== session) return;
           if (now - start >= maxListeningMs) { stop('已達 2 分鐘收音上限。', true); return; }
           try {
-            read();
-            const frequency = tracks.some(t => t.muted) ? null : hooks.detectPitch(samples, context.sampleRate);
             if (frequency) lastTone = now;
             const reading = frequency ? hooks.pitchReading(frequency, reference) : null;
             const observed = monitor(reading, now);
@@ -915,13 +1024,9 @@
           } catch {
             stop('無法讀取麥克風，請重新開始。');
           }
-        }, 27);
-      } catch (error) {
-        if (active !== session) return;
-        stop(error.name === 'NotAllowedError' ? '未取得麥克風權限，請在瀏覽器允許後重試。'
-          : error.name === 'NotFoundError' ? '找不到麥克風，請檢查裝置。'
-          : '無法收音：' + error.message);
-      }
+        },
+        error(message) { if (active === session) stop(message); }
+      });
     }
     return {toggle, stop, stopWithin: host => {
       if (active && host.contains(active.view.element)) stop('已離開這張調性卡，收音已停止。');
@@ -1077,7 +1182,7 @@
     return view;
   }
 
-  return {align, trackNotes, manager, card, chartPoint, centsText, scoreValues, monitorPitch, liveSlot};
+  return {align, trackNotes, micCapture, metronomeClickGate, manager, card, chartPoint, centsText, scoreValues, monitorPitch, liveSlot};
 });
 // SCALE_PRACTICE_END
   </script>
@@ -2301,89 +2406,60 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   $('metro-accent').onchange=()=>{beat=0;configureWorklet(true);};
   $('metro-volume').addEventListener('input', () => configureWorklet());
 
-  let tunerContext, stream, analyser, source, tunerTimer, tunerRunning = false, pending = false, tunerGeneration = 0;
+  let tunerRelease, tunerRunning = false, pending = false, tunerGeneration = 0;
   const smooth = new PitchWindow(); let lastSignal = 0;
   const tunerInputFloor = pitchInputFloor(navigator);
   const a4Reference = () => Math.max(430, Math.min(450, Number($('tuner-a').value) || 442));
-  const scalePractice = window.CelloScalePractice?.manager(window, {
+  const ignoreClick = window.CelloScalePractice.metronomeClickGate();
+  const capture = window.CelloScalePractice.micCapture(window,detectPitch,tunerInputFloor,
+    (frequency,now) => ignoreClick(frequency,now,metroRunning && Number($('metro-volume').value) > 0));
+  const scalePractice = window.CelloScalePractice.manager(window, {
+    capture,
     reference: a4Reference,
-    detectPitch: (samples, rate) => detectPitch(samples, rate, tunerInputFloor),
     pitchReading,
-    pitchName: midi => pitchReading(442 * 2 ** ((midi - 69) / 12), 442).name,
-    beforeStart: () => {
-      if (pending || tunerRunning || !$('tuner-panel').hidden) closeTool('tuner');
-      if (metroPending || metroRunning) closeTool('metronome');
-    }
+    pitchName: midi => pitchReading(442 * 2 ** ((midi - 69) / 12), 442).name
   });
-  if (window.CelloScalePractice) window.CelloScalePractice.controller = scalePractice;
+  window.CelloScalePractice.controller = scalePractice;
   function tunerUI() {
     $('tuner-open').setAttribute('aria-pressed',String(pending||tunerRunning));
     $('tuner-open').setAttribute('aria-label',pending?'取消麥克風授權等待並收起':tunerRunning?'停止收音並收起':'啟用調音器並開始收音');
     if(pending)$('tuner-status').textContent='等待麥克風授權';
   }
   function stopTuner(message = '麥克風已關閉') {
-    tunerGeneration++; pending = tunerRunning = false; clearInterval(tunerTimer);
-    if (stream) stream.getTracks().forEach(t => t.stop()); stream = null;
-    if (source) source.disconnect(); source = null;
-    if (tunerContext) { tunerContext.close().catch(() => {}); tunerContext = null; }
+    tunerGeneration++; pending = tunerRunning = false;
+    tunerRelease?.(); tunerRelease = null;
     smooth.reset(); renderTuner();
     $('tuner-status').textContent = message; tunerUI();
   }
-  async function startTuner() {
+  function startTuner() {
     if (pending || tunerRunning) { stopTuner(); return; }
     const generation = ++tunerGeneration; pending = true; tunerUI();
-    let requestedStream = null, context = null;
-    try {
-      if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia || !Context) throw new Error('需要 HTTPS 及支援麥克風的瀏覽器');
-      context = new Context(); tunerContext = context;
-      // Unlock during the tap, but do not let a stalled Safari resume prevent
-      // the microphone request. Capture can itself change the audio session.
-      context.resume().catch(() => {});
-      if (generation !== tunerGeneration) return;
-      requestedStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, video: false });
-      if (generation !== tunerGeneration) { requestedStream.getTracks().forEach(t => t.stop()); return; }
-      stream = requestedStream; source = context.createMediaStreamSource(stream); analyser = context.createAnalyser(); analyser.fftSize = 4096; source.connect(analyser);
-      $('tuner-status').textContent = '正在啟動音訊';
-      if (context.state !== 'running') {
-        let timeout;
-        try { await Promise.race([context.resume(), new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error('音訊啟動逾時，請關閉再開啟調音器；若仍無反應請重新載入 Safari。')), 4000); })]); }
-        finally { clearTimeout(timeout); }
-      }
-      if (generation !== tunerGeneration) return;
-      if (context.state !== 'running') throw new Error('音訊未啟動，請關閉再開啟調音器。');
-      const samples = new Float32Array(analyser.fftSize), bytes = new Uint8Array(analyser.fftSize);
-      const readSamples = typeof analyser.getFloatTimeDomainData === 'function'
-        ? () => analyser.getFloatTimeDomainData(samples)
-        : () => { analyser.getByteTimeDomainData(bytes); for(let i=0;i<bytes.length;i++)samples[i]=(bytes[i]-128)/128; };
-      smooth.reset(); lastSignal = performance.now(); let lastInput = lastSignal;
-      pending = false; tunerRunning = true; tunerUI(); $('tuner-status').textContent = '';
-      stream.getAudioTracks().forEach(track => track.onended = () => { if (generation === tunerGeneration) stopTuner('麥克風已中斷，請重新開始。'); });
-      tunerTimer = setInterval(() => {
+    let lastInput = 0, nextRead = null;
+    tunerRelease = capture.subscribe({
+      ready() {
+        if (generation !== tunerGeneration) return;
+        smooth.reset(); lastSignal = lastInput = performance.now();
+        pending = false; tunerRunning = true; tunerUI(); $('tuner-status').textContent = '';
+      },
+      frame({now,frequency,rms,muted}) {
         if (generation !== tunerGeneration || !tunerRunning) return;
-        if (context.state !== 'running') { stopTuner('收音已暫停，請重新開始。'); return; }
-        try { readSamples(); } catch (error) { stopTuner('無法讀取收音資料：' + error.message); return; }
-        const rms = Math.sqrt(samples.reduce((sum,v)=>sum+v*v,0)/samples.length);
-        if(rms > .0001)lastInput=performance.now();
-        const muted=stream.getAudioTracks().some(track=>track.muted);
-        const frequency = muted ? null : detectPitch(samples, context.sampleRate, tunerInputFloor);
+        if (nextRead !== null && now < nextRead) return;
+        nextRead = nextRead === null || now-nextRead >= 40 ? now+40 : nextRead+40;
+        if (rms > .0001) lastInput = now;
         const status = muted ? '麥克風被系統暫停。'
-          : performance.now() - lastInput > 2500 ? '已允許麥克風，但未收到聲音。'
+          : now - lastInput > 2500 ? '已允許麥克風，但未收到聲音。'
           : rms > 0.0001 && rms < tunerInputFloor && !frequency ? '收到聲音，但音量太小。'
           : !frequency && rms >= tunerInputFloor ? '收到聲音，但未辨識到穩定音高。' : '';
         const statusElement = $('tuner-status');
         if (statusElement.textContent !== status) statusElement.textContent = status;
         if (!frequency) {
-          if (performance.now() - lastSignal > 500) smooth.reset(); renderTuner(null, true); return;
+          if (now - lastSignal > 500) smooth.reset(); renderTuner(null, true); return;
         }
-        lastSignal = performance.now(); const reference = Math.max(430, Math.min(450, Number($('tuner-a').value) || 442));
-        const reading = pitchReading(smooth.push(frequency), reference);
-        renderTuner(reading);
-      }, 40);
-    } catch (error) {
-      if (generation !== tunerGeneration) { if (requestedStream) requestedStream.getTracks().forEach(t => t.stop()); return; }
-      const message = error.name === 'NotAllowedError' ? '未取得麥克風權限。請在瀏覽器允許後再開始。' : error.name === 'NotFoundError' ? '找不到麥克風，請檢查裝置。' : '無法收音：' + error.message;
-      stopTuner(message);
-    }
+        lastSignal = now;
+        renderTuner(pitchReading(smooth.push(frequency),a4Reference()));
+      },
+      error(message) { if (generation === tunerGeneration) stopTuner(message); }
+    });
   }
   $('tuner-a').onchange = () => { $('tuner-a').value = Math.max(430, Math.min(450, Number($('tuner-a').value) || 442)); smooth.reset(); };
   function closeTool(name){
@@ -2394,14 +2470,10 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   $('tuner-settings').onclick=()=>tunerSettings($('tuner-preferences').hidden);
   $('tuner-preferences').addEventListener('keydown',e=>{if(e.key==='Escape'){tunerSettings(false);$('tuner-settings').focus();}});
   document.addEventListener('pointerdown',e=>{if(!$('tuner-preferences').hidden&&!$('tuner-preferences').contains(e.target)&&!$('tuner-settings').contains(e.target))tunerSettings(false);});
-  $('metronome-open').onclick=()=>{
-    scalePractice?.stop('已切換到節拍器，收音已停止。');
-    startMetro();
-  };
+  $('metronome-open').onclick=startMetro;
   $('metro-settings').onclick=()=>{showPanel('metronome',$('metronome-panel').hidden);};
   document.addEventListener('pointerdown',e=>{if(!$('metronome-panel').hidden&&!$('metronome-panel').contains(e.target)&&!$('metro-settings').contains(e.target))showPanel('metronome',false);});
   $('tuner-open').onclick=()=>{
-    scalePractice?.stop('已切換到調音器，練習收音已停止。');
     if(!$('tuner-panel').hidden){closeTool('tuner');return;}
     showPanel('tuner',true);$('tuner-panel').scrollIntoView({block:'nearest',inline:'nearest'});startTuner();
   };

@@ -24,7 +24,8 @@ test('quiet and louder deterministic aperiodic noise stays rejected on iOS',()=>
 });
 test('runtime detection and status use same platform-selected gate',()=>{
  assert.ok(code.includes('const tunerInputFloor = pitchInputFloor(navigator)'));
- assert.ok(code.includes('detectPitch(samples, context.sampleRate, tunerInputFloor)'));
+ assert.ok(code.includes('micCapture(window,detectPitch,tunerInputFloor'));
+ assert.ok(html.includes('detect(samples,context.sampleRate,floor)'));
  assert.ok(code.includes('rms < tunerInputFloor'));assert.ok(code.includes('rms >= tunerInputFloor'));
  assert.ok(code.includes('diff[tau] < 0.15'));
 });

@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const html = fs.readFileSync(require('node:path').join(__dirname,'../index.html'),'utf8');
 const moduleBox = {module:{exports:{}}};
 vm.runInNewContext(html.split('// SCALE_PRACTICE_START')[1].split('// SCALE_PRACTICE_END')[0],moduleBox);
-const {align,trackNotes,manager,chartPoint,centsText,scoreValues,monitorPitch,liveSlot} = moduleBox.module.exports;
+const {align,trackNotes,manager,micCapture,metronomeClickGate,chartPoint,centsText,scoreValues,monitorPitch,liveSlot} = moduleBox.module.exports;
 const audio = {module:{exports:{}}};
 vm.runInNewContext(html.split('// AUDIO_TOOLS_START')[1].split('// AUDIO_TOOLS_END')[0],audio);
 const {pitchReading,detectPitch} = audio.module.exports;
@@ -61,23 +61,24 @@ function fixture() {
   let time=0, frequency=0, callback=null, permit, error=null;
   const track={stopCalls:0, stop(){this.stopCalls++;}, muted:false};
   const stream={getTracks:()=>[track],getAudioTracks:()=>[track]};
-  const resources={disconnects:0,closes:0,before:0};
+  const resources={disconnects:0,closes:0,prompts:0,reads:0};
   class AudioContext{
     state='running'; sampleRate=48000;
     resume(){return Promise.resolve();}
     close(){resources.closes++;return Promise.resolve();}
     createMediaStreamSource(){return {connect(){},disconnect(){resources.disconnects++;}};}
-    createAnalyser(){return {fftSize:4096,getFloatTimeDomainData(){},disconnect(){resources.disconnects++;}};}
+    createAnalyser(){return {fftSize:4096,getFloatTimeDomainData(){resources.reads++;},disconnect(){resources.disconnects++;}};}
   }
   const env={AudioContext,isSecureContext:true,navigator:{mediaDevices:{getUserMedia:()=>{
+    resources.prompts++;
     if(error)return Promise.reject(error);
     return new Promise(r=>permit=()=>r(stream));
   }}},performance:{now:()=>time},setTimeout,clearTimeout,
     setInterval:f=>{callback=f;return 1;},clearInterval:()=>{callback=null;}};
   const calls=[], view={target,element:{},update(...args){calls.push(args);}};
-  const m=manager(env,{beforeStart:()=>resources.before++,reference:()=>442,
-    detectPitch:()=>frequency,pitchReading,pitchName:String});
-  return {m,view,calls,track,resources,grant:()=>permit(),reject:e=>error=e,
+  const capture=micCapture(env,()=>frequency,.0003);
+  const m=manager(env,{capture,reference:()=>442,pitchReading,pitchName:String});
+  return {m,view,calls,track,resources,capture,grant:()=>permit(),reject:e=>error=e,
     play:(midi,cents=0)=>{
       frequency=midi?442*2**((midi-69+cents/100)/12):0;
       for(let i=0;i<5;i++){time+=27;callback?.();}
@@ -96,6 +97,7 @@ test('denied permission is visible and closes context',async()=>{
   const f=fixture();
   f.reject({name:'NotAllowedError'});
   await f.m.toggle(f.view);
+  await new Promise(setImmediate);
   assert.match(f.calls.at(-1)[1],/未取得麥克風權限/);
   assert.equal(f.resources.closes,1);
   assert.equal(f.track.stopCalls,0);
@@ -112,7 +114,9 @@ test('capture accepts the whole attempt, grades on stop and cleans every resourc
   assert.equal(phase,'idle');
   assert.equal(result.complete,true);
   assert.equal(result.extra,2);
-  assert.deepEqual(f.resources,{disconnects:2,closes:1,before:1});
+  assert.equal(f.resources.disconnects,2);
+  assert.equal(f.resources.closes,1);
+  assert.equal(f.resources.prompts,1);
   assert.equal(f.track.stopCalls,1);
 });
 test('hidden-card interruption stops rather than scoring a partial take',async()=>{
@@ -174,4 +178,63 @@ test('final slots follow weighted pairs, prefer a cleaner take and preserve miss
   const result=align(expected,heard);
   assert.equal(result.complete,false);
   assert.deepEqual(json(scoreValues(expected,heard,result)),[-6,null,4,-17]);
+});
+
+
+test('two subscribers share one permission prompt and one audio analysis per frame',async()=>{
+  const f=fixture(), updates=[];
+  const start=f.m.toggle(f.view);
+  const release=f.capture.subscribe({ready(){updates.push('ready')},frame(r){updates.push(r.frequency)},error:e=>assert.fail(e)});
+  f.grant();await start;
+  f.play(36);
+  assert.equal(f.resources.prompts,1);
+  assert.equal(f.resources.reads,5);
+  assert.equal(updates.length,6);
+  assert.equal(f.calls.at(-1)[0],'listening');
+  f.m.stop();
+  assert.equal(f.track.stopCalls,0);
+  f.play(38);
+  assert.equal(f.resources.reads,10);
+  assert.equal(updates.length,11);
+  release();
+  assert.equal(f.track.stopCalls,1);
+  assert.equal(f.resources.closes,1);
+});
+test('last pending cancel and immediate restart reuse one request with a fresh context',async()=>{
+  const f=fixture();
+  const noop={ready(){},frame(){},error:e=>assert.fail(e)};
+  const first=f.capture.subscribe(noop);
+  first();
+  assert.equal(f.resources.closes,1);
+  const second=f.capture.subscribe(noop);
+  f.grant();await new Promise(setImmediate);
+  assert.equal(f.resources.prompts,1);
+  assert.equal(f.track.stopCalls,0);
+  second();assert.equal(f.track.stopCalls,1);
+  assert.equal(f.resources.closes,2);
+});
+test('mic interruption releases both listeners and all owned resources',async()=>{
+  const f=fixture(), updates=[];
+  const start=f.m.toggle(f.view);
+  f.capture.subscribe({ready(){},frame(){},error:e=>updates.push(e)});
+  f.grant();await start;f.track.onended();
+  assert.match(updates[0],/麥克風已中斷/);
+  assert.match(f.calls.at(-1)[1],/麥克風已中斷/);
+  assert.equal(f.track.stopCalls,1);
+  assert.equal(f.resources.closes,1);
+});
+test('short near-click estimates are filtered without beat gating other notes',()=>{
+  const gate=metronomeClickGate();
+  for(const x of [850,843,856,1200,1193,1209])assert.ok(gate(x,0,true),x);
+  for(const x of [66,110,147,221,493,600,831,880,1175,1244])assert.equal(gate(x,27,true),false,x);
+  assert.equal(gate(850,27,false),false,'mute or stopped metronome never filters');
+});
+test('a sustained note near a click (A♭5 +20¢ at A442) passes after the short guard',()=>{
+  const gate=metronomeClickGate(), frequency=442*2**((11+.2)/12);
+  assert.ok(frequency>843&&frequency<846);
+  for(let ms=0;ms<160;ms+=27)assert.equal(gate(frequency,ms,true),true);
+  assert.equal(gate(frequency,162,true),false);
+  assert.equal(gate(frequency,189,true),false);
+  assert.equal(gate(null,216,true),false);
+  assert.equal(gate(frequency,243,true),true,'silence resets the transient length');
 });
