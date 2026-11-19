@@ -35,6 +35,11 @@ test('all 24 keys feed targets from the exact rendered scale and arpeggio staff'
    assert.equal(notes.length,arpeggio?13:29);
    assert.deepEqual(notes.map(x=>[Number(x.attributes['data-midi']),x.attributes['data-note']]),
      Array.from(expected,n=>[n.midi,n.name]));
+   assert.ok(notes.every(note=>note.children.filter(x=>x.attributes.class==='scale-stem').length===1),
+     'every individual note owns its own stem, including repeated pitches and the final tonic');
+   assert.ok(notes.every(note=>!note.children.some(x=>x.attributes.class==='scale-beam')),
+     'shared beams cannot inherit the note highlight');
+   assert.equal(staff.children[0].children.filter(x=>x.attributes.class==='scale-beam').length,arpeggio?0:14);
   }
  }
 });

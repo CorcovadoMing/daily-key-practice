@@ -456,6 +456,7 @@
       }
       svg.append(mark);
     }
+    const noteGroups=[];
     sequence.forEach((note,i)=>{
       const x=startX+i*spacing,y=110-(staffStep(note)-18)*5;
       for(let ly=120;ly<=y;ly+=10)svg.append(svgNode('line',{x1:x-11,x2:x+11,y1:ly,y2:ly,stroke:'#444','stroke-width':1}));
@@ -464,6 +465,7 @@
       g.append(svgNode('title',{},note.name+' · MIDI '+note.midi));
       if(accidentals[i])g.append(svgNode('text',{class:'scale-accidental',x:x-18,y:y+5,'text-anchor':'middle','font-family':'Georgia, serif','font-size':18,fill:'#222'},accidentals[i]));
       g.append(svgNode('ellipse',{cx:x,cy:y,rx:5.8,ry:3.7,transform:'rotate(-20 '+x+' '+y+')',fill:'#222'}));
+      noteGroups.push(g);
       svg.append(g);
     });
     // Four-note visual groups; no meter or barlines are imposed on the exercise.
@@ -475,7 +477,9 @@
       const stemX=n=>n.x+(down?-5:5);
       const slope=Math.max(-0.08,Math.min(0.08,(group.at(-1).y-group[0].y)/Math.max(1,group.at(-1).x-group[0].x)));
       const beamAt=n=>beamY+slope*(n.x-group[0].x)+(down?Math.max(0,-slope*(group.at(-1).x-group[0].x)):Math.min(0,-slope*(group.at(-1).x-group[0].x)));
-      for(const n of group)svg.append(svgNode('line',{class:'scale-stem',x1:stemX(n),x2:stemX(n),y1:n.y,y2:beamAt(n),stroke:'#222','stroke-width':1.25}));
+      // The stem belongs to the note rather than its shared neutral beam.
+      group.forEach((n,j)=>noteGroups[start+j].append(svgNode('line',
+        {class:'scale-stem',x1:stemX(n),x2:stemX(n),y1:n.y,y2:beamAt(n),stroke:'#222','stroke-width':1.25})));
       if(group.length>1){
         for(let level=0;level<2;level++)svg.append(svgNode('line',{class:'scale-beam','data-level':level+1,x1:stemX(group[0]),x2:stemX(group[group.length-1]),y1:beamAt(group[0])+(down?-6:6)*level,y2:beamAt(group.at(-1))+(down?-6:6)*level,stroke:'#222','stroke-width':3.5}));
       } // The final tonic keeps its stem but has no flags: a quarter note.
@@ -777,7 +781,7 @@
     function appendPlayableScore(parent, arpeggio=false){
       const sequence=scoreNotes(mode,key,arpeggio);
       const score=makeScore(mode,key,arpeggio,sequence);
-      parent.append(element('h3',{class:'music-section-title'},(arpeggio?'琶音':'音階')+' · 兩個八度'),score);
+      parent.append(element('h3',{class:'music-section-title exercise-score-title'},(arpeggio?'琶音':'音階')+' · 兩個八度'),score);
       if(window.CelloScalePractice){
         const expected=sequence.map(note=>({...note,octave:Math.floor(staffStep(note)/7)}));
         const practice=window.CelloScalePractice.card(score,expected,
@@ -785,21 +789,27 @@
         parent.append(practice.element);
       }
     }
-    const scoreSection=element('section',{class:'score-section'});
+    const scaleBlock=element('section',{class:'music-exercise-block scale-exercise','aria-label':'音階'});
+    const scoreSection=element('div',{class:'score-section'});
     appendPlayableScore(scoreSection);
-    const boardSection=element('section',{class:'fingerboard-section'});
-    boardSection.append(element('h3',{class:'music-section-title'},'指板 · 指法'),
+    const boardSection=element('div',{class:'fingerboard-section'});
+    boardSection.append(element('h4',{class:'music-section-title'},'指板 · 指法'),
       toolbar,boards);
-    const arpeggioSection=element('section',{class:'arpeggio-section fingerboard-section'});
+    scaleBlock.append(scoreSection,boardSection);
+
+    const arpeggioSection=element('section',{class:'music-exercise-block arpeggio-section','aria-label':'琶音'});
+    const arpeggioScore=element('div',{class:'score-section'});
+    appendPlayableScore(arpeggioScore,true);
+    const arpeggioBoard=element('div',{class:'arpeggio-fingerboard'});
     const arpeggioBoards=element('div',{class:'cello-fb-two-up'});
-    appendPlayableScore(arpeggioSection,true);
-    arpeggioSection.append(arpeggioBoards);
+    arpeggioBoard.append(element('h4',{class:'music-section-title'},'指板 · 指法'),arpeggioBoards);
     // Reuse the scale transaction UI, but give arpeggios independent storage.
     arpeggioBoards.append(panels.arpeggio.section);
-    if(arpeggioOptions.localOnly)arpeggioSection.append(
+    if(arpeggioOptions.localOnly)arpeggioBoard.append(
       element('p',{class:'fingering-note'},'琶音修改只儲存在此瀏覽器，不與教室同步。'));
+    arpeggioSection.append(arpeggioScore,arpeggioBoard);
 
-    root.append(scoreSection,boardSection,arpeggioSection,dialog);
+    root.append(scaleBlock,arpeggioSection,dialog);
 
     function renderDirection(dir){
       const pane=panels[dir],editing=edit.dir===dir,isArpeggio=dir==='arpeggio';

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261119-005-experimental">
+  <meta name="site-version" content="20261119-006-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -446,8 +446,13 @@
     .panel{border-radius:16px}.classroom-bar{background:#f1f4ef;border-radius:14px}
     .fingering-section{background:#fff;padding:16px 12px}
     .music-section-title{font-size:12px;font-weight:750;color:#4f6254;margin:0 0 10px}
-    .score-section{min-width:0}.fingerboard-section{min-width:0;border-top:1px solid var(--line);padding-top:18px;display:grid;gap:10px}
-    .fingerboard-section>.music-section-title{margin-bottom:0}
+    .music-exercise-block{min-width:0;display:grid;grid-template-columns:minmax(0,1fr);gap:4px;padding:clamp(8px,1.6vw,16px);border:1px solid #dce6da;border-radius:13px;background:#fbfdfb}
+    .music-exercise-block.arpeggio-section{border-color:#e5ded2;background:#fdfbf8}
+    .exercise-score-title{font-size:15px;color:#304f3a}
+    .arpeggio-section .exercise-score-title{color:#65513a}
+    .score-section{min-width:0}
+    .fingerboard-section,.arpeggio-fingerboard{min-width:0;border-top:1px solid var(--line);padding-top:12px;display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+    .fingerboard-section>.music-section-title,.arpeggio-fingerboard>.music-section-title{margin-bottom:0}
     .cello-scale-score{border:0;border-radius:0;background:transparent;margin:0 0 8px}
     .cello-fb-direction{box-shadow:none;background:transparent;border-color:#edf0ea;border-radius:8px}
     .result-summary{background:transparent;border-bottom:1px solid var(--line);border-radius:0;padding:0 0 18px}
@@ -483,7 +488,12 @@
     .scale-practice-latest{font-size:12px;white-space:nowrap}
     .scale-practice-latest:empty{display:none}
     .cello-scale-score [data-practice=matched] ellipse{fill:#1d7751}
+    .cello-scale-score [data-practice=matched] .scale-stem{stroke:#1d7751}
     .cello-scale-score [data-practice=missing] ellipse{fill:#a64433}
+    .cello-scale-score [data-practice=missing] .scale-stem{stroke:#a64433}
+    .cello-scale-score [data-practice-current=true] ellipse{fill:#255f91}
+    .cello-scale-score [data-practice-current=true] .scale-stem{stroke:#255f91;stroke-width:2}
+    @media print{.cello-scale-score [data-midi] ellipse{fill:#222}.cello-scale-score [data-midi] .scale-stem{stroke:#222;stroke-width:1.25}}
     .scale-pitch-chart{flex:0 1 100%;width:100%;min-width:0;border:1px solid #dce5d9;border-radius:12px;padding:10px;background:#fcfdfb}
     .scale-pitch-header{display:flex;flex-wrap:wrap;align-items:baseline;gap:5px 12px;margin:0 0 7px}
     .scale-pitch-title{margin:0;color:#274a35;font-size:13px;font-weight:700}
@@ -674,7 +684,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261119-005-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261119-006-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -1207,7 +1217,7 @@
     const latest = document.createElement('span');
     latest.className = 'scale-practice-latest';
     const noteHeads = [...score.querySelectorAll('[data-midi]')];
-    let chart = null, phase = null, previous = 0;
+    let chart = null, phase = null, previous = 0, currentNote = null;
     const label = (note, index) => note.name + note.octave + (index <= (target.length - 1) / 2 ? '↑' : '↓');
     const view = {element, target, get tolerance() { return preference(); },
       update(next, message, result, progress = 0, reference = 442, display) {
@@ -1256,6 +1266,13 @@
       } else if (progress > previous) {
         for (let i = previous; i < progress; i++) noteHeads[i].dataset.practice = 'matched';
       }
+      const slot = next === 'listening' ? display?.live?.slot : null;
+      const nextNote = Number.isInteger(slot) && noteHeads[slot] ? slot : null;
+      if (nextNote !== currentNote) {
+        if (currentNote !== null) delete noteHeads[currentNote].dataset.practiceCurrent;
+        if (nextNote !== null) noteHeads[nextNote].dataset.practiceCurrent = 'true';
+        currentNote = nextNote;
+      }
       previous = next === 'listening' ? progress : 0;
       // A practice list can contain all 24 cards; avoid constructing thousands
       // of chart nodes for cards where listening has not been used.
@@ -1275,7 +1292,7 @@
 });
 // SCALE_PRACTICE_END
   </script>
-  <script src="fingerboard.js?v=20261119-004"></script>
+  <script src="fingerboard.js?v=20261119-006"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
