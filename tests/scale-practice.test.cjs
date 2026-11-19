@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const html = fs.readFileSync(require('node:path').join(__dirname,'../index.html'),'utf8');
 const moduleBox = {module:{exports:{}}};
 vm.runInNewContext(html.split('// SCALE_PRACTICE_START')[1].split('// SCALE_PRACTICE_END')[0],moduleBox);
-const {align,trackNotes,manager} = moduleBox.module.exports;
+const {align,trackNotes,manager,chartPoint,centsText,scoreValues,monitorPitch,liveSlot} = moduleBox.module.exports;
 const audio = {module:{exports:{}}};
 vm.runInNewContext(html.split('// AUDIO_TOOLS_START')[1].split('// AUDIO_TOOLS_END')[0],audio);
 const {pitchReading,detectPitch} = audio.module.exports;
@@ -78,8 +78,8 @@ function fixture() {
   const m=manager(env,{beforeStart:()=>resources.before++,reference:()=>442,
     detectPitch:()=>frequency,pitchReading,pitchName:String});
   return {m,view,calls,track,resources,grant:()=>permit(),reject:e=>error=e,
-    play:(midi)=>{
-      frequency=midi?442*2**((midi-69)/12):0;
+    play:(midi,cents=0)=>{
+      frequency=midi?442*2**((midi-69+cents/100)/12):0;
       for(let i=0;i<5;i++){time+=27;callback?.();}
     }};
 }
@@ -123,4 +123,55 @@ test('hidden-card interruption stops rather than scoring a partial take',async()
   assert.match(f.calls.at(-1)[1],/已離開/);
   assert.equal(f.calls.at(-1)[2],null);
   assert.equal(f.track.stopCalls,1);
+});
+
+test('chart cents positions are signed, centered and bounded without fabricating missing points',()=>{
+  assert.deepEqual(json([-65,-45,0,26,60,null].map(x=>chartPoint(x)?.y??null)),[100,95,50,24,0,null]);
+  assert.deepEqual([0,-0.1,25,-18,null].map(centsText),['0¢','0¢','+25¢','−18¢','—']);
+  assert.equal(chartPoint(7).band,'center');
+  assert.equal(chartPoint(-14).band,'near');
+  assert.equal(chartPoint(45).band,'outside');
+});
+test('visual can show +45¢, but recording and score remain ±40¢',async()=>{
+  const f=fixture(), starting=f.m.toggle(f.view);
+  f.grant();await starting;
+  f.play(36,45);
+  let [phase,,,progress,,visual]=f.calls.at(-1);
+  assert.equal(phase,'listening');assert.equal(progress,0);
+  assert.equal(visual.live.slot,0);assert.equal(Math.round(visual.live.cents),45);
+  assert.equal(visual.values[0],null);
+  f.play(36,16);f.play(36,-17);
+  [, , , progress,,visual]=f.calls.at(-1);
+  assert.equal(progress,1);
+  assert.equal(Math.round(visual.values[0]),16);
+  assert.equal(visual.live.slot,0);assert.equal(Math.round(visual.live.cents),-17);
+  f.play(0); f.play(0);
+  [, , , progress,,visual]=f.calls.at(-1);
+  assert.equal(progress,1);assert.equal(visual.live,null);
+  assert.equal(Math.round(visual.values[0]),16);
+  f.play(39,14);
+  [, , , progress,,visual]=f.calls.at(-1);
+  assert.equal(progress,1);assert.equal(visual.live.slot,null);
+  assert.equal(Math.round(visual.live.cents),14);
+  f.m.stop();
+});
+test('visual median does not confuse a single intrusion with a new held pitch',()=>{
+  const observe=monitorPitch();
+  assert.equal(observe(tone(36,10),0),null);
+  assert.equal(observe(tone(36,11),27),null);
+  assert.deepEqual(json(observe(tone(36,12),54)),tone(36,11));
+  assert.equal(observe(tone(37,4),81).midi,36);
+  assert.equal(observe(tone(36,7),108).midi,36);
+  assert.equal(observe(tone(36,8),135).midi,36);
+  assert.deepEqual(json(observe(tone(36,9),162)),tone(36,8));
+  assert.equal(observe(null,303),null);
+  assert.equal(liveSlot(target,1,tone(36,-9),{midi:36,slot:0}),0);
+  assert.equal(liveSlot(target,1,tone(50),null),null);
+});
+test('final slots follow weighted pairs, prefer a cleaner take and preserve missing score positions',()=>{
+  const expected=[tone(36),tone(38),tone(40),tone(41)];
+  const heard=[tone(36,37),tone(36,-6),tone(39,1),tone(40,4),tone(41,-17)];
+  const result=align(expected,heard);
+  assert.equal(result.complete,false);
+  assert.deepEqual(json(scoreValues(expected,heard,result)),[-6,null,4,-17]);
 });
