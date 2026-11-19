@@ -298,7 +298,8 @@ test('arpeggios use distinct kind labels, chart and results without changing but
   vm.runInNewContext(html.split('// SCALE_PRACTICE_START')[1].split('// SCALE_PRACTICE_END')[0],standalone);
   const heads=cMajorArpeggio.map(()=>new Node());
   const view=standalone.module.exports.card({querySelectorAll:()=>heads},cMajorArpeggio,()=>{},'arpeggio');
-  const [button,status]=view.element.children;
+  const [action,status]=view.element.children;
+  const [button]=action.children;
   assert.equal(view.element.dataset.practiceKind,'arpeggio');
   assert.equal(button.textContent,'開始練習');
   assert.equal(button.attributes['aria-label'],'開始琶音練習');
@@ -312,4 +313,88 @@ test('arpeggios use distinct kind labels, chart and results without changing but
   assert.match(status.textContent,/琶音通過！/);
   assert.match(status.textContent,/13／13/);
   assert.equal(heads.filter(n=>n.dataset.practice==='matched').length,13);
+});
+
+test('all three cutoffs honor signed mathematical boundaries in both tracking and final alignment',()=>{
+  for(const tolerance of [15,25,40])for(const sign of [-1,1]){
+    const of=cents=>pitchReading(442*2**(sign*cents/1200),442);
+    assert.equal(align([tone(69)],[of(tolerance)],tolerance).complete,true);
+    assert.equal(align([tone(69)],[of(tolerance+.01)],tolerance).complete,false);
+    const a=trackNotes({tolerance}), b=trackNotes({tolerance});
+    for(const i of [0,27,54]) { assert.equal(a(of(tolerance),i),null); assert.equal(b(of(tolerance+.01),i),null); }
+    assert.equal(a(of(tolerance),81).midi,69);
+    assert.equal(b(of(tolerance+.01),81),null);
+  }
+  assert.equal(align([tone(69)],[tone(69,39)],99).complete,true,'unknown tolerance uses safe default');
+  assert.equal(align([tone(69)],[tone(69,41)],99).complete,false);
+});
+
+test('tolerance is snapshotted before permission and used for live visuals and scoring',async()=>{
+  const f=fixture();
+  let selected=15;
+  Object.defineProperty(f.view,'tolerance',{ get:()=>selected });
+  const started=f.m.toggle(f.view);
+  assert.equal(f.calls.at(-1)[5].tolerance,15);
+  selected=40; // another idle card changes the shared setting while permission is pending
+  f.grant();await started;
+  f.play(36,20);
+  let [phase,,,progress,,visual]=f.calls.at(-1);
+  assert.equal(phase,'listening');assert.equal(progress,0);
+  assert.equal(visual.tolerance,15);assert.equal(Math.round(visual.live.cents),20);
+  assert.equal(visual.live.slot,0);assert.equal(visual.values[0],null);
+  for(const note of target.slice(1)) f.play(note.midi);
+  await f.m.toggle(f.view);
+  let [, ,result, , ,display]=f.calls.at(-1);
+  assert.equal(result.complete,false);
+  assert.equal(display.tolerance,15);
+  assert.deepEqual(json(result.missing),[0]);
+});
+
+test('native tolerance selection persists and syncs scale/arpeggio without starting their mic',()=>{
+  const mounted=[];
+  class Node {
+    constructor(tag){this.tag=tag;this.children=[];this.dataset={};this.attributes={};this.handlers={};this.style={setProperty(){}};this.textContent='';}
+    append(...children){this.children.push(...children);}
+    setAttribute(key,f){this.attributes[key]=f;}
+    addEventListener(name,fn){this.handlers[name]=fn;}
+    querySelector(sel){return this.children.find(node=>sel[0]==='.'?node.className===sel.slice(1):node.tag===sel);}
+  }
+  const key='daily-key-practice:experimental:practice-tolerance';
+  const storage=new Map();
+  const localStorage={getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)};
+  const document={createElement:tag=>{const el=new Node(tag);mounted.push(el);return el;},
+    querySelectorAll:sel=>mounted.filter(el=>el.className===sel.slice(1))};
+  const load=()=>{const box={module:{exports:{}},document,localStorage};
+    vm.runInNewContext(html.split('// SCALE_PRACTICE_START')[1].split('// SCALE_PRACTICE_END')[0],box);
+    return box.module.exports;};
+  const api=load(), score={querySelectorAll:()=>[]};
+  let invoked=0;
+  const scale=api.card(score,target,()=>invoked++), arp=api.card(score,cMajorArpeggio,()=>invoked++,'arpeggio');
+  const [action]=scale.element.children, [otherAction]=arp.element.children;
+  const [button,choice]=action.children, [otherBtn,otherChoice]=otherAction.children;
+  const [label,select]=choice.children, [otherLabel,otherSelect]=otherChoice.children;
+  assert.equal(action.attributes.role,'group');
+  assert.equal(action.attributes['aria-label'],'音階練習控制');
+  assert.equal(otherAction.attributes['aria-label'],'琶音練習控制');
+  assert.equal(label.textContent,'判定：寬鬆 ▾');
+  assert.deepEqual(select.children.map(x=>[x.value,x.textContent]),[['40','寬鬆 ±40¢'],['25','標準 ±25¢'],['15','嚴謹 ±15¢']]);
+  assert.equal(select.attributes['aria-label'],'音階音準容許範圍');
+  assert.equal(otherBtn.textContent,'開始練習');
+  select.value='25';select.handlers.change();
+  assert.equal(invoked,0);
+  assert.equal(storage.get(key),'25');
+  assert.equal(select.value,'25');
+  assert.equal(otherSelect.value,'25');
+  assert.equal(otherLabel.textContent,'判定：標準 ▾');
+  assert.equal(load().card(score,target,()=>{}).tolerance,25);
+  button.handlers.click();assert.equal(invoked,1);
+  scale.update('pending',null,null,0,442,{tolerance:25});
+  assert.equal(select.disabled,true);
+  otherSelect.value='15';otherSelect.handlers.change();
+  assert.equal(select.value,'25');
+  assert.equal(label.textContent,'判定：標準 ▾');
+  assert.equal(otherLabel.textContent,'判定：嚴謹 ▾');
+  scale.update('idle',null,null);
+  assert.equal(select.disabled,false);
+  assert.equal(select.value,'15');
 });

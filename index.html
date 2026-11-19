@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261119-004-experimental">
+  <meta name="site-version" content="20261119-005-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -470,9 +470,15 @@
     .fifths-pair .filter-key[aria-pressed="false"]{background:#fff;color:#697269;border-color:#9da99a;border-style:dashed;opacity:1}
     .fifths-pair .filter-key:focus-visible{outline:3px solid #3c78a4;outline-offset:2px}
     .scale-practice{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:0 0 12px;color:#425948;min-width:0}
-    .scale-practice-button{font:inherit;font-size:13px;font-weight:700;border:1px solid #8da692;border-radius:999px;color:#274a35;background:#edf4ed;padding:7px 14px;min-height:44px;cursor:pointer;white-space:nowrap}
+    .scale-practice-action{display:inline-flex;flex:none;align-items:stretch;border:1px solid #8da692;border-radius:999px;background:#edf4ed;color:#274a35}
+    .scale-practice-button{font:inherit;font-size:13px;font-weight:700;border:0;border-radius:999px 0 0 999px;color:inherit;background:transparent;padding:7px 14px;min-height:44px;cursor:pointer;white-space:nowrap}
     .scale-practice-button:hover,.scale-practice-button[aria-pressed=true]{background:#dcebdd}
-    .scale-practice-button:focus-visible{outline:3px solid #4c81b3;outline-offset:2px}
+    .scale-practice-button:focus-visible,.scale-practice-choice:focus-within{outline:3px solid #4c81b3;outline-offset:-3px}
+    .scale-practice-choice{position:relative;display:inline-flex;align-items:center;justify-content:center;border-left:1px solid #8da692;border-radius:0 999px 999px 0;min-height:44px;min-width:100px;padding:0 10px;font-size:12px;font-weight:700;white-space:nowrap}
+    .scale-practice-choice:hover{background:#dcebdd}
+    .scale-practice-choice[data-locked=true]{background:#e8efe7;color:#526555}
+    .scale-practice-tolerance{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px}
+    .scale-practice-tolerance:disabled{cursor:default}
     .scale-practice-status{font-size:12px;margin:0;max-width:100%;flex:1 1 230px}
     .scale-practice-latest{font-size:12px;white-space:nowrap}
     .scale-practice-latest:empty{display:none}
@@ -668,7 +674,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261119-004-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261119-005-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -704,8 +710,31 @@
 })(globalThis, function () {
   'use strict';
   const centsLimit = 40;
-  // Preserve the exact 40¢ boundary after logarithmic round-off.
-  const withinCents = value => Number.isFinite(value) && Math.abs(value) <= centsLimit + 1e-7;
+  const tolerances = [[40,'寬鬆'],[25,'標準'],[15,'嚴謹']];
+  const toleranceKey = 'daily-key-practice:experimental:practice-tolerance';
+  function toleranceValue(value) {
+    const n = Number(value);
+    return tolerances.some(([cutoff]) => cutoff === n) ? n : centsLimit;
+  }
+  function toleranceName(limit) {
+    return tolerances.find(([cutoff]) => cutoff === limit)?.[1] || tolerances[0][1];
+  }
+  let selectedTolerance;
+  function preference() {
+    if (selectedTolerance === undefined) {
+      try { selectedTolerance = toleranceValue(globalThis.localStorage?.getItem(toleranceKey)); }
+      catch { selectedTolerance = centsLimit; }
+    }
+    return selectedTolerance;
+  }
+  function setPreference(value) {
+    selectedTolerance = toleranceValue(value);
+    try { globalThis.localStorage?.setItem(toleranceKey, String(selectedTolerance)); }
+    catch {} // Keep the preference for this page if storage is unavailable.
+    return selectedTolerance;
+  }
+  // Preserve the exact selected boundary after logarithmic round-off.
+  const withinCents = (value,limit = centsLimit) => Number.isFinite(value) && Math.abs(value) <= limit + 1e-7;
   const maxEvents = 220;
   const maxListeningMs = 120000;
 
@@ -713,7 +742,8 @@
   // Skip-over steps are reported as extra played notes or missing score notes,
   // never as successful substitutions. Secondary cost prefers steadier pitch
   // when repeated notes supply several equally long alignments.
-  function align(target, heard) {
+  function align(target, heard, tolerance = centsLimit) {
+    const limit = toleranceValue(tolerance);
     const n = target.length, m = heard.length;
     const width = m + 1, values = new Float64Array((n + 1) * width);
     const directions = new Uint8Array(values.length);
@@ -722,9 +752,9 @@
         const p = i * width + j, event = heard[j - 1];
         let best = values[p - 1], dir = 1;
         if (values[p - width] > best) { best = values[p - width]; dir = 2; }
-        if (event.midi === target[i - 1].midi && withinCents(event.cents)) {
-          // At most n*centsLimit secondary penalty: one more pitch always wins.
-          const matched = values[p - width - 1] + (n * centsLimit + 1) - Math.abs(event.cents);
+        if (event.midi === target[i - 1].midi && withinCents(event.cents,limit)) {
+          // At most n*limit secondary penalty: one more pitch always wins.
+          const matched = values[p - width - 1] + (n * limit + 1) - Math.abs(event.cents);
           if (matched > best) { best = matched; dir = 3; }
         }
         values[p] = best; directions[p] = dir;
@@ -745,12 +775,13 @@
 
   // Debounce attacks, glissandi, short glitches and vibrato at note boundaries
   // before producing a note event, and do not turn a held pitch into repeats.
-  function trackNotes({stableMs = 70, releaseMs = 125, maxFrameGapMs = 90} = {}) {
+  function trackNotes({stableMs = 70, releaseMs = 125, maxFrameGapMs = 90, tolerance = centsLimit} = {}) {
+    const limit = toleranceValue(tolerance);
     let candidate = null, current = null, quietSince = null, lastTime = null;
     return function push(reading, time) {
       if (lastTime !== null && time - lastTime > maxFrameGapMs) candidate = null;
       lastTime = time;
-      if (!reading || !Number.isInteger(reading.midi) || !withinCents(reading.cents)) {
+      if (!reading || !Number.isInteger(reading.midi) || !withinCents(reading.cents,limit)) {
         candidate = null;
         quietSince ??= time;
         if (time - quietSince >= releaseMs) current = null;
@@ -975,8 +1006,8 @@
     function finish(session, message, grade) {
       if (!session) return;
       session.release?.();
-      const result = grade ? align(session.view.target, session.heard) : null;
-      const display = result ? {values:scoreValues(session.view.target, session.heard, result), final:true} : undefined;
+      const result = grade ? align(session.view.target, session.heard, session.tolerance) : null;
+      const display = result ? {values:scoreValues(session.view.target, session.heard, result), final:true, tolerance:session.tolerance} : undefined;
       session.view.update('idle', message, result, 0, session.reference, display);
     }
     function stop(message = null, grade = false) {
@@ -987,10 +1018,11 @@
     async function toggle(view) {
       if (active?.view === view) { stop(null, active.stage === 'listening'); return; }
       const previous = active;
-      const session = {view, stage: 'pending', heard: []};
+      const tolerance = toleranceValue(view.tolerance);
+      const session = {view, stage: 'pending', heard: [], tolerance};
       active = session;
-      view.update('pending');
-      const track = trackNotes(), monitor = monitorPitch();
+      view.update('pending', null, null, 0, undefined, {tolerance});
+      const track = trackNotes({tolerance}), monitor = monitorPitch();
       let reference = 442, start = 0, progress = 0, lastTone = 0, held = null;
       let values = Array(view.target.length).fill(null);
       session.release = hooks.capture.subscribe({
@@ -998,7 +1030,7 @@
           if (active !== session) return;
           reference = session.reference = hooks.reference();
           start = lastTone = env.performance.now();
-          session.stage = 'listening'; view.update('listening', null, null, 0, reference, {values, listening:true, progress});
+          session.stage = 'listening'; view.update('listening', null, null, 0, reference, {values, listening:true, progress, tolerance});
         },
         frame({now,frequency}) {
           if (active !== session) return;
@@ -1025,7 +1057,7 @@
             const live = observed ? {...observed, name:hooks.pitchName(observed.midi),
               slot:liveSlot(view.target, progress, observed, held)} : null;
             const hint = now - lastTone >= 3000 ? '暫未辨識到穩定音高。' : null;
-            view.update('listening', hint, null, progress, reference, {values, live, listening:true, progress});
+            view.update('listening', hint, null, progress, reference, {values, live, listening:true, progress, tolerance});
           } catch {
             stop('無法讀取麥克風，請重新開始。');
           }
@@ -1088,7 +1120,7 @@
       dot.dataset.band = point.band;
     }
     let previousValues, liveIndex = null, latestFollow = null, wasListening = false;
-    function update({values, live, progress, listening, final} = {}) {
+    function update({values, live, progress, listening, final, tolerance} = {}) {
       if (values !== previousValues) {
         previousValues = values;
         cells.forEach(({slot, recorded, value, label}, i) => {
@@ -1102,7 +1134,11 @@
       }
       if (liveIndex !== null && liveIndex !== live?.slot) place(cells[liveIndex].current, null);
       liveIndex = Number.isInteger(live?.slot) ? live.slot : null;
-      if (liveIndex !== null) place(cells[liveIndex].current, chartPoint(live.cents));
+      if (liveIndex !== null) {
+        const point = chartPoint(live.cents);
+        if (point && !withinCents(live.cents,toleranceValue(tolerance))) point.band = 'outside';
+        place(cells[liveIndex].current, point);
+      }
       const follow = listening ? (liveIndex ?? (progress < target.length ? progress : target.length - 1)) : null;
       if (follow !== null && follow !== latestFollow) {
         const sl = scroller.scrollLeft, width = scroller.clientWidth, slot = cells[follow].slot;
@@ -1127,8 +1163,44 @@
     const element = document.createElement('div');
     element.className = 'scale-practice';
     element.dataset.practiceKind = kind;
+    const action = document.createElement('div');
+    action.className = 'scale-practice-action';
+    action.setAttribute('role', 'group');
+    action.setAttribute('aria-label', name + '練習控制');
     const button = document.createElement('button');
     button.type = 'button'; button.className = 'scale-practice-button';
+    const choice = document.createElement('div');
+    choice.className = 'scale-practice-choice';
+    const choiceLabel = document.createElement('span');
+    choiceLabel.className = 'scale-practice-choice-label';
+    choiceLabel.setAttribute('aria-hidden', 'true');
+    const selector = document.createElement('select');
+    selector.className = 'scale-practice-tolerance';
+    selector.setAttribute('aria-label', name + '音準容許範圍');
+    for (const [limit,label] of tolerances) {
+      const option = document.createElement('option');
+      option.value = String(limit);
+      option.textContent = label + ' ±' + limit + '¢';
+      selector.append(option);
+    }
+    function showChoice(limit) {
+      selector.value = String(limit);
+      choiceLabel.textContent = '判定：' + toleranceName(limit) + ' ▾';
+    }
+    selector.addEventListener('change', () => {
+      if (selector.disabled) return;
+      const limit = setPreference(selector.value);
+      showChoice(limit);
+      // Only mounted controls are touched; a running exercise's setting is frozen.
+      for (const peer of document.querySelectorAll('.scale-practice-choice')) {
+        const select = peer.querySelector('select');
+        if (!select || select.disabled) continue;
+        select.value = String(limit);
+        peer.querySelector('.scale-practice-choice-label').textContent = '判定：' + toleranceName(limit) + ' ▾';
+      }
+    });
+    choice.append(choiceLabel, selector);
+    action.append(button,choice);
     const status = document.createElement('p');
     status.className = 'scale-practice-status';
     status.setAttribute('role', 'status');
@@ -1137,7 +1209,9 @@
     const noteHeads = [...score.querySelectorAll('[data-midi]')];
     let chart = null, phase = null, previous = 0;
     const label = (note, index) => note.name + note.octave + (index <= (target.length - 1) / 2 ? '↑' : '↓');
-    const view = {element, target, update(next, message, result, progress = 0, reference = 442, display) {
+    const view = {element, target, get tolerance() { return preference(); },
+      update(next, message, result, progress = 0, reference = 442, display) {
+      const limit = toleranceValue(display?.tolerance);
       if (next !== phase) {
         phase = next;
         element.dataset.phase = next;
@@ -1145,6 +1219,9 @@
         button.setAttribute('aria-label', next === 'idle' ? '開始' + name + '練習'
           : next === 'pending' ? '取消' + name + '收音' : '停止' + name + '練習並看結果');
         button.setAttribute('aria-pressed', String(next !== 'idle'));
+        selector.disabled = next !== 'idle';
+        choice.dataset.locked = String(selector.disabled);
+        showChoice(selector.disabled ? limit : preference());
         latest.textContent = '';
       }
       let text;
@@ -1163,7 +1240,7 @@
         if (message && target[progress]) text += '。' + message;
         const live = display?.live;
         const liveText = live ? '聽到 ' + live.name + ' ' + centsText(live.cents) +
-          (live.slot === null ? '（未對到目前譜格）' : !withinCents(live.cents) ? '（尚未對準）' : '') : '';
+          (live.slot === null ? '（未對到目前譜格）' : !withinCents(live.cents,limit) ? '（尚未對準）' : '') : '';
         if (latest.textContent !== liveText) latest.textContent = liveText;
       } else if (next === 'pending') {
         text = '等待麥克風授權…';
@@ -1190,7 +1267,7 @@
     }};
     view.update('idle');
     button.addEventListener('click', () => toggle(view));
-    element.append(button, status, latest);
+    element.append(action, status, latest);
     return view;
   }
 
