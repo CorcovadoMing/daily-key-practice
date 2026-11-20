@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261120-009-experimental">
+  <meta name="site-version" content="20261120-010-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -694,7 +694,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261120-009-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261120-010-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -796,7 +796,7 @@
   // Debounce attacks, glissandi, short glitches and vibrato at note boundaries
   // before producing a note event, and do not turn a held pitch into repeats.
   function trackNotes({stableMs = 70, minFrames = 3, releaseMs = 125, maxFrameGapMs = 90, tolerance = centsLimit} = {}) {
-    const limit = toleranceValue(tolerance);
+    const limit = tolerance === chartLimit ? chartLimit : toleranceValue(tolerance);
     let candidate = null, current = null, quietSince = null, lastTime = null;
     return function push(reading, time) {
       if (lastTime !== null && time - lastTime > maxFrameGapMs) candidate = null;
@@ -1051,6 +1051,22 @@
       pairs:[...prefix.pairs,{expected:last, heard:heard.length - 1}],
       missing:prefix.missing, extra:prefix.extra};
   }
+  // Plot an out-of-tune measurement only when accepted neighbors fix
+  // its exact score position; the score alignment itself never changes.
+  function loopPlotValues(target, heard, result, observations, scored = scoreValues(target, heard, result)) {
+    if (!observations?.length || !result.missing.length) return scored;
+    const plot = scored.slice();
+    for (let j=1;j<result.pairs.length;j++) {
+      const before = result.pairs[j-1], after = result.pairs[j];
+      if (after.expected !== before.expected + 2) continue;
+      const slot = before.expected + 1;
+      const from = heard[before.heard].at, to = heard[after.heard].at;
+      const options = observations.filter(event => event.at > from && event.at < to &&
+        event.midi === target[slot].midi && withinCents(event.cents,chartLimit) && !withinCents(event.cents));
+      if (options.length === 1) plot[slot] = options[0].cents;
+    }
+    return plot;
+  }
   function emptyHistory(count) { return Array.from({length:count}, () => new Map()); }
   function addHistory(history, values) {
     return history.map((bin,i) => {
@@ -1071,7 +1087,11 @@
       const {view, mode, laps, passed, history, lastValues, heard} = session;
       const pending = heard.length > (laps ? 1 : 0);
       const result = grade && (mode === 'single' || pending || !laps) ? align(view.target, heard) : null;
-      const display = result || laps ? {values:result ? scoreValues(view.target, heard, result) : lastValues,
+      const values = result ? scoreValues(view.target, heard, result) : lastValues;
+      const chartValues = mode === 'loop' ? result
+        ? loopPlotValues(view.target, heard, result, session.observations, values)
+        : session.lastPlot : undefined;
+      const display = result || laps ? {values, chartValues,
         history:result ? history : session.beforeLastHistory, mode, laps, passed, final:true} : undefined;
       view.update('idle', message, result, 0, session.reference, display);
     }
@@ -1085,10 +1105,12 @@
       const previous = active;
       const mode = modeValue(view.mode);
       const session = {view, stage:'pending', heard:[], mode, laps:0, passed:0,
-        history:mode === 'loop' ? emptyHistory(view.target.length) : undefined};
+        history:mode === 'loop' ? emptyHistory(view.target.length) : undefined, observations:[]};
       active = session;
       view.update('pending', null, null, 0, undefined, {mode});
-      const track = trackNotes({stableMs:24,minFrames:2,releaseMs:65}), monitor = monitorPitch({minFrames:2});
+      const tracking = {stableMs:24,minFrames:2,releaseMs:65};
+      const track = trackNotes(tracking), monitor = monitorPitch({minFrames:2});
+      const observe = mode === 'loop' ? trackNotes({...tracking,tolerance:chartLimit}) : null;
       let reference = 442, progress = 0, lastTone = 0, lastActivity = 0, held = null;
       let values = Array(view.target.length).fill(null);
       const display = (live = null) => ({
@@ -1110,6 +1132,11 @@
             const reading = frequency ? hooks.pitchReading(frequency, reference) : null;
             const observed = monitor(reading, now);
             if (!observed || observed.midi !== held?.midi) held = null;
+            const observation = observe?.(reading, now);
+            if (observation && !withinCents(observation.cents) && session.observations) {
+              if (session.observations.length < maxEvents) session.observations.push(observation);
+              else session.observations = null; // No guessing after dropping observations.
+            }
             const event = track(reading, now);
             if (event) {
               lastActivity = now;
@@ -1133,8 +1160,10 @@
                 session.laps++;
                 if (boundary.complete) session.passed++;
                 session.lastValues = scoreValues(view.target, session.heard, boundary);
+                session.lastPlot = loopPlotValues(view.target, session.heard, boundary, session.observations, session.lastValues);
                 session.beforeLastHistory = session.history;
-                session.history = addHistory(session.history, session.lastValues);
+                session.history = addHistory(session.history, session.lastPlot);
+                session.observations = [];
                 session.heard = [event];
                 values = Array(view.target.length).fill(null);
                 values[0] = event.cents;
@@ -1215,7 +1244,7 @@
     }
     let previousValues, previousHistory, liveIndex = null, latestFollow = null, wasListening = false;
     function update({values, history, live, progress, listening, final, mode} = {}) {
-      const legendText = mode === 'loop' ? '白圈是即時音高，實心點是本輪，淡點是先前各輪；上偏高、下偏低。'
+      const legendText = mode === 'loop' ? '白圈是即時音高，實心點是本輪，淡點是先前各輪；超出 ±40¢ 的記錄不計分。'
         : '白圈為即時音高、實心點為已記錄；0¢ 為目標，上偏高，下偏低。';
       if (legend.textContent !== legendText) legend.textContent = legendText;
       const historyChanged = history !== previousHistory;
@@ -1236,7 +1265,7 @@
           }
           const point = chartPoint(values?.[i]);
           place(recorded, point);
-          const state = point ? '已辨識 ' + point.text : final ? '未辨識' : '尚未辨識';
+          const state = point ? (!withinCents(values[i]) ? '有音高記錄，未通過 ' : '已辨識 ') + point.text : final ? '未辨識' : '尚未辨識';
           const pastCount = bin ? [...bin.values()].reduce((sum,count) => sum + count,0) : 0;
           slot.setAttribute('aria-label', '第 ' + (i + 1) + ' 音 ' + label + '，' + state +
             (pastCount ? '，另有 ' + pastCount + ' 輪記錄' : ''));
@@ -1410,7 +1439,7 @@
         chart = pitchChart(target, name);
         element.append(chart.element);
       }
-      chart?.update(display);
+      chart?.update(display?.chartValues ? {...display,values:display.chartValues} : display);
     }};
     view.update('idle');
     button.addEventListener('click', () => toggle(view));
@@ -1418,7 +1447,7 @@
     return view;
   }
 
-  return {align, trackNotes, micCapture, metronomeClickGate, manager, card, chartPoint, centsText, scoreValues, monitorPitch, liveSlot, loopBoundary, addHistory};
+  return {align, trackNotes, micCapture, metronomeClickGate, manager, card, chartPoint, centsText, scoreValues, monitorPitch, liveSlot, loopBoundary, loopPlotValues, addHistory};
 });
 // SCALE_PRACTICE_END
   </script>
