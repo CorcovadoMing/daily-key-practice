@@ -35,14 +35,14 @@ const target = [36,38,40,41,43,45,47,48,47,45,43,41,40,38,36].map(midi =>
 const slots = { up: 3, down: 11, wrongOctave: 5 };
 
 async function fixture(sequence=target,mode='loop') {
-  let now = 0, listener;
+  let now = 0, listener, starts = 0, releases = 0;
   const heads = sequence.map(() => new Node());
   const view = card({ querySelectorAll: () => heads }, sequence, () => {});
   const states = [];
   const render = view.update.bind(view);
   view.update = (...state) => { states.push(state); return render(...state); };
   const m = manager({ performance: { now: () => now } }, {
-    capture: { subscribe: hooks => { listener = hooks; return () => {}; } },
+    capture: { subscribe: hooks => { starts++; listener = hooks; return () => { releases++; }; } },
     reference: () => 442, pitchReading, pitchName: String
   });
   Object.defineProperty(view,'mode',{value:mode});
@@ -59,7 +59,7 @@ async function fixture(sequence=target,mode='loop') {
     const all = column.children;
     return all[slot].find('scale-pitch-history').children;
   };
-  return { play, last, historyPoints, stop: () => m.toggle(view), heads };
+  return { play, last, historyPoints, stop: () => m.toggle(view), heads, captureCounts: () => [starts,releases] };
 }
 const entries = bin => Array.from(bin.entries(), pair => Array.from(pair));
 
@@ -164,7 +164,9 @@ test('single mode plots confidently detuned pitches without marking a miss or a 
 });
 
 test('fractional history at ±10, ±20 and ±40 retains measured color and scoring category',()=>{
-  const {addHistory,chartPoint}=source.module.exports;
+  const {addHistory,chartPoint,centsText}=source.module.exports;
+  assert.equal(centsText(-40.00001),'<−40¢');
+  assert.equal(centsText(+40.00001),'>+40¢');
   for(const value of [-40.1,-20.1,-10.1,10.1,20.1,40.1,-40.00001,40.00001]){
     const [bin]=addHistory([new Map()],[value]), [key]=bin.keys();
     const actual=chartPoint(value), history=chartPoint(key);
@@ -211,4 +213,139 @@ test('watchdog measures inactivity from the last fresh stable pitch, independent
   assert.match(states.at(-1)[1],/連續 2 分鐘未辨識到穩定音高，已自動停止/);
   assert.equal(releases,1);
   assert.equal(ticks.size,0);
+});
+
+const twoOctaves = (start) => {
+  const rising = [0,2,4,5,7,9,11,12,14,16,17,19,21,23,24];
+  return [...rising,...rising.slice(0,-1).reverse()].map(interval=>{
+    const midi=start+interval;
+    return {midi,name:String(midi),octave:Math.floor(midi/12)-1};
+  });
+};
+
+for (const [name,midi] of [['C',36],['F',41]]) {
+  test(name+' major: two laps share +45 tonic exactly once, storing fail at both score positions',async()=>{
+    const seq=twoOctaves(midi), end=seq.length-1;
+    const f=await fixture(seq);
+    seq.slice(0,-1).forEach(n=>f.play(n.midi));
+    f.play(midi,45);
+    let d=f.last()[5];
+    assert.equal(d.laps,1);
+    assert.equal(d.passed,0);
+    assert.equal(f.last()[3],1);
+    assert.equal(d.values[0],null);
+    assert.equal(Math.round(d.chartValues[0]),45);
+    assert.equal(f.heads[0].dataset.practice,'detuned');
+    assert.deepEqual(entries(d.history[end]),[[45,1]]);
+    f.play(seq[1].midi);
+    assert.equal(f.last()[3],2);
+    seq.slice(2,-1).forEach(n=>f.play(n.midi));
+    f.play(midi,-45);
+    d=f.last()[5];
+    assert.equal(d.laps,2);
+    assert.equal(d.passed,0);
+    assert.deepEqual(entries(d.history[0]),[[0,1],[45,1]]);
+    assert.deepEqual(entries(d.history[end]),[[45,1],[-45,1]]);
+    await f.stop();
+    const [, ,result, , , final]=f.last();
+    assert.equal(result,null,'shared endpoint alone is not a new partial');
+    assert.equal(final.values[0],null);
+    assert.equal(final.values[end],null);
+    assert.equal(Math.round(final.chartValues[0]),45);
+    assert.equal(Math.round(final.chartValues[end]),-45);
+  });
+}
+
+test('real in-tune correction can fix next lap start but cannot rewrite the previous detuned end',async()=>{
+  const seq=twoOctaves(41), end=seq.length-1, f=await fixture(seq);
+  seq.slice(0,-1).forEach(n=>f.play(n.midi));
+  f.play(41,45);
+  f.play(null); f.play(41,45); // reattack without a correction does not create laps
+  assert.equal(f.last()[5].laps,1);
+  f.play(41,10);
+  assert.equal(Math.round(f.last()[5].values[0]),10);
+  assert.equal(f.last()[5].history[end].get(45),1);
+  seq.slice(1).forEach(n=>f.play(n.midi));
+  const d=f.last()[5];
+  assert.equal(d.laps,2);
+  assert.equal(d.passed,1);
+  assert.deepEqual(entries(d.history[0]),[[0,1],[10,1]]);
+  assert.deepEqual(entries(d.history[end]),[[45,1],[0,1]]);
+});
+
+test('premature tonic and late wrong octave never close; true inclusive tonic and ordinary second lap still pass',async()=>{
+  const seq=twoOctaves(36), end=seq.length-1, f=await fixture(seq);
+  seq.slice(0,8).forEach(n=>f.play(n.midi));
+  f.play(36,45);
+  assert.equal(f.last()[5].laps,0);
+  seq.slice(8,-1).forEach(n=>f.play(n.midi));
+  f.play(24,45);
+  assert.equal(f.last()[5].laps,0);
+  f.play(36,40);
+  assert.equal(f.last()[5].passed,1);
+  seq.slice(1).forEach(n=>f.play(n.midi));
+  const d=f.last()[5];
+  assert.equal(d.laps,2);
+  assert.equal(d.passed,2);
+  assert.deepEqual(entries(d.history[end]),[[40,1],[0,1]]);
+});
+
+test('one unrelated extra pitch before a proven detuned ending still allows the turnaround',async()=>{
+  const seq=twoOctaves(41), f=await fixture(seq);
+  seq.slice(0,-1).forEach(n=>f.play(n.midi));
+  f.play(42);
+  f.play(41,45);
+  assert.equal(f.last()[5].laps,1);
+  assert.equal(f.last()[5].passed,0);
+  assert.equal(f.last()[5].history.at(-1).get(45),1);
+});
+
+test('a re-attacked penultimate after a rest does not block a proven detuned ending',async()=>{
+  const seq=twoOctaves(36), f=await fixture(seq);
+  seq.slice(0,-1).forEach(n=>f.play(n.midi));
+  f.play(null);
+  f.play(seq.at(-2).midi,5);
+  f.play(36,45);
+  assert.equal(f.last()[5].laps,1);
+  assert.equal(f.last()[5].history.at(-1).get(45),1);
+});
+
+test('220-event ceiling resets only the unfinished loop, keeps completed history and the same capture',async()=>{
+  const seq=twoOctaves(36), f=await fixture(seq);
+  seq.forEach(n=>f.play(n.midi));
+  assert.equal(f.last()[5].laps,1);
+  const history=f.last()[5].history;
+  // The carried passed tonic is already one event in the new round.
+  for(let i=0;i<218;i++) f.play(i%2?49:37);
+  assert.equal(f.last()[0],'listening');
+  assert.doesNotMatch(f.last()[1]||'',/220/);
+  f.play(49); // Same pitch stays held and must not reset.
+  assert.doesNotMatch(f.last()[1]||'',/220/);
+  f.play(37); // Actual alternate attack is the 220th event.
+  const [,notice,,progress,,reset]=f.last();
+  assert.match(notice,/220/);
+  assert.equal(progress,0);
+  assert.equal(reset.laps,1);
+  assert.equal(reset.passed,1);
+  assert.equal(reset.history,history);
+  assert.deepEqual(f.captureCounts(),[1,0]);
+  assert.ok(reset.values.every(x=>x===null));
+  seq.forEach(n=>f.play(n.midi));
+  assert.equal(f.last()[5].laps,2);
+  assert.equal(f.last()[5].passed,2);
+  assert.equal(f.last()[5].history[0].get(0),2);
+  assert.deepEqual(f.captureCounts(),[1,0]);
+  await f.stop();
+  assert.deepEqual(f.captureCounts(),[1,1]);
+});
+
+test('off-score detuned noise cannot exhaust the diagnostic allowance for a later unambiguous slot',async()=>{
+  const seq=twoOctaves(36), f=await fixture(seq);
+  for(let i=0;i<221;i++) f.play(i%2?49:37,45);
+  assert.equal(f.last()[0],'listening');
+  assert.doesNotMatch(f.last()[1]||'',/記錄過多/);
+  seq.forEach((n,i)=>f.play(n.midi,i===3?45:0));
+  assert.equal(f.last()[5].laps,1);
+  assert.equal(f.last()[5].history[3].get(45),1);
+  await f.stop();
 });

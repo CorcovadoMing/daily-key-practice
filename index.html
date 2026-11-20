@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261120-011-experimental">
+  <meta name="site-version" content="20261120-012-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -698,7 +698,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261120-011-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261120-012-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -835,7 +835,7 @@
     const boundary = Math.abs(value);
     if ((boundary === 10 || boundary === 20 || boundary === centsLimit) && !withinCents(cents,boundary)) {
       const deviation = Number(Math.abs(cents).toFixed(2));
-      return (deviation <= boundary ? '>' + sign + boundary : sign + deviation) + '¢';
+      return (deviation <= boundary ? (cents < 0 ? '<' : '>') + sign + boundary : sign + deviation) + '¢';
     }
     return sign + Math.abs(value) + '¢';
   }
@@ -1062,6 +1062,28 @@
       pairs:[...prefix.pairs,{expected:last, heard:heard.length - 1}],
       missing:prefix.missing, extra:prefix.extra};
   }
+  // A detuned tonic can mark a deliberate turnaround, but must never
+  // become a scoring pair. Demand stronger evidence than a passed tonic:
+  // real ascent and descent, including the adjacent final descending note.
+  function detunedLoopBoundary(target, heard, tonic) {
+    const last = target.length - 1;
+    const minimum = Math.ceil(target.length * .6);
+    if (last < 4 || target[0].midi !== target[last].midi || tonic?.midi !== target[last].midi ||
+        withinCents(tonic.cents) || !withinCents(tonic.cents,chartLimit) || heard.length+1 < minimum ||
+        !(heard.at(-1)?.at < tonic.at)) return null;
+    const midpoint = Math.floor(last/2);
+    const prefix = align(target.slice(0,last),heard);
+    const pairs = prefix.pairs;
+    const tailStart = Math.max(midpoint+1,last-5);
+    const hasAscent = pairs.filter(p => p.expected > 0 && p.expected < midpoint).length >= Math.min(2,midpoint-1);
+    const hasUpper = pairs.some(p => p.expected >= midpoint-2 && p.expected < tailStart);
+    const tail = pairs.filter(p => p.expected >= tailStart && p.heard >= heard.length-7);
+    const lastPair = pairs.at(-1);
+    if (!hasAscent || !hasUpper || tail.length < 2 || pairs.length+1 < minimum || lastPair?.expected !== last-1) return null;
+    const trailing = heard.slice(lastPair.heard+1).filter(extra => extra.midi !== target[last-1].midi);
+    if (trailing.length > 1 || trailing.some(extra => target.some(note => note.midi === extra.midi))) return null;
+    return {...prefix,complete:false,missing:[...prefix.missing,last]};
+  }
   // Plot an out-of-tune measurement only when accepted neighbors fix
   // its exact score position; the score alignment itself never changes.
   function practicePlotValues(target, heard, result, observations, scored = scoreValues(target, heard, result)) {
@@ -1077,6 +1099,13 @@
       if (options.length === 1) plot[slot] = options[0].cents;
     }
     return plot;
+  }
+  function withTurnaround(plot, start, end) {
+    if ((!start || Number.isFinite(plot[0])) && (!end || Number.isFinite(plot.at(-1)))) return plot;
+    const values = plot.slice();
+    if (start && !Number.isFinite(values[0])) values[0] = start.cents;
+    if (end && !Number.isFinite(values.at(-1))) values[values.length-1] = end.cents;
+    return values;
   }
   function emptyHistory(count) { return Array.from({length:count}, () => new Map()); }
   function addHistory(history, values) {
@@ -1104,11 +1133,11 @@
       if (session.idleTimer !== undefined) env.clearTimeout?.(session.idleTimer);
       session.release?.();
       const {view, mode, laps, passed, history, lastValues, heard} = session;
-      const pending = heard.length > (laps ? 1 : 0);
+      const pending = heard.length > session.carriedEvents;
       const result = grade && (mode === 'single' || pending || !laps) ? align(view.target, heard) : null;
       const values = result ? scoreValues(view.target, heard, result) : lastValues;
       const chartValues = result
-        ? practicePlotValues(view.target, heard, result, session.observations, values)
+        ? withTurnaround(practicePlotValues(view.target, heard, result, session.observations, values), session.turnaroundStart)
         : session.lastPlot;
       const display = result || laps ? {values, chartValues,
         history:result ? history : session.beforeLastHistory, mode, laps, passed, final:true} : undefined;
@@ -1123,15 +1152,16 @@
       if (active?.view === view) { stop(null, active.stage === 'listening'); return; }
       const previous = active;
       const mode = modeValue(view.mode);
-      const session = {view, stage:'pending', heard:[], mode, laps:0, passed:0,
+      const session = {view, stage:'pending', heard:[], mode, laps:0, passed:0, carriedEvents:0,
         history:mode === 'loop' ? emptyHistory(view.target.length) : undefined, observations:[]};
       active = session;
       view.update('pending', null, null, 0, undefined, {mode});
       const tracking = {stableMs:24,minFrames:2,releaseMs:65};
+      const scoreMidi = new Set(view.target.map(note=>note.midi));
       const track = trackNotes(tracking), monitor = monitorPitch({minFrames:2});
       const observe = trackNotes({...tracking,tolerance:chartLimit});
       let reference = 442, progress = 0, lastActivity = 0, held = null;
-      let activitySamples = [], lastFrameAt = null;
+      let activitySamples = [], lastFrameAt = null, turnaroundCandidate = null;
       function watchdog() {
         if (active !== session || session.stage !== 'listening') return;
         const remaining = maxListeningMs - (env.performance.now() - lastActivity);
@@ -1152,9 +1182,16 @@
         }
       }
       let values = Array(view.target.length).fill(null);
-      const display = (live = null) => ({
-        values, live, listening:true, progress, mode, history:session.history, laps:session.laps, passed:session.passed
-      });
+      let plottedSource, plottedStart, plottedValues;
+      const display = (live = null) => {
+        if (session.turnaroundStart !== plottedStart || values !== plottedSource) {
+          plottedStart = session.turnaroundStart;
+          plottedSource = values;
+          plottedValues = plottedStart ? withTurnaround(values,plottedStart) : undefined;
+        }
+        return {values, chartValues:plottedValues, live, listening:true, progress,
+          mode, history:session.history, laps:session.laps, passed:session.passed};
+      };
       session.release = hooks.capture.subscribe({
         fast:true,
         ready() {
@@ -1172,7 +1209,11 @@
             const observed = monitor(reading, now);
             if (!observed || observed.midi !== held?.midi) held = null;
             const observation = observe(reading, now);
-            if (observation && !withinCents(observation.cents) && session.observations) {
+            if (!reading || reading.midi !== view.target[0]?.midi || withinCents(reading.cents)) turnaroundCandidate = null;
+            if (mode === 'loop' && observation?.midi === view.target[0]?.midi && !withinCents(observation.cents)) {
+              turnaroundCandidate = observation;
+            }
+            if (observation && scoreMidi.has(observation.midi) && !withinCents(observation.cents) && session.observations) {
               if (session.observations.length < maxEvents) session.observations.push(observation);
               else session.observations = null; // No guessing after dropping observations.
             }
@@ -1192,26 +1233,58 @@
                 values = values.slice();
                 values[position] = event.cents;
                 progress = position + 1;
+                session.restartNotice = null;
               }
-              const boundary = mode === 'loop' ? loopBoundary(view.target, session.heard, progress) : null;
-              if (boundary) {
-                session.laps++;
-                if (boundary.complete) session.passed++;
-                session.lastValues = scoreValues(view.target, session.heard, boundary);
-                session.lastPlot = practicePlotValues(view.target, session.heard, boundary, session.observations, session.lastValues);
-                session.beforeLastHistory = session.history;
-                session.history = addHistory(session.history, session.lastPlot);
-                session.observations = [];
-                session.heard = [event];
-                values = Array(view.target.length).fill(null);
-                values[0] = event.cents;
+              // A separately re-attacked/in-tune correction can fix the
+              // next starting note, not the previous lap's ending score.
+              if (session.turnaroundStart && session.heard.length === 1 && progress === 1 &&
+                  event.midi === view.target[0].midi) {
+                values = values.slice(); values[0] = event.cents;
                 held = {midi:event.midi,slot:0};
-                progress = 1;
-              } else if (mode === 'single' && progress === view.target.length && align(view.target, session.heard).complete) {
-                stop(null, true); return;
-              } else if (session.heard.length >= maxEvents) {
-                stop('已達本輪收音上限。', true); return;
+                session.turnaroundStart = null;
+                session.carriedEvents = 1;
               }
+            }
+            let boundary = mode === 'loop' && event ? loopBoundary(view.target, session.heard, progress) : null;
+            let failedTonic = null;
+            if (!boundary && turnaroundCandidate && activitySamples.length === 3 &&
+                activitySamples.every(sample => !withinCents(sample.cents)) && lastActivity === now) {
+              failedTonic = turnaroundCandidate;
+              turnaroundCandidate = null;
+              boundary = detunedLoopBoundary(view.target,session.heard,failedTonic);
+            }
+            if (boundary) {
+              session.laps++;
+              if (boundary.complete) session.passed++;
+              session.lastValues = scoreValues(view.target, session.heard, boundary);
+              session.lastPlot = withTurnaround(
+                practicePlotValues(view.target, session.heard, boundary, session.observations, session.lastValues),
+                session.turnaroundStart, failedTonic);
+              session.beforeLastHistory = session.history;
+              session.history = addHistory(session.history, session.lastPlot);
+              session.observations = [];
+              session.heard = failedTonic ? [] : [event];
+              session.carriedEvents = session.heard.length;
+              session.turnaroundStart = failedTonic;
+              values = Array(view.target.length).fill(null);
+              if (!failedTonic) values[0] = event.cents;
+              held = {midi:(failedTonic || event).midi,slot:0};
+              progress = 1;
+            } else if (event && mode === 'single' && progress === view.target.length && align(view.target, session.heard).complete) {
+              stop(null, true); return;
+            } else if (session.heard.length >= maxEvents) {
+              if (mode === 'single') { stop('已達本次 220 音收音上限。', true); return; }
+              // Keep capture and completed laps; only abandon the bounded
+              // unfinished round. A held note cannot become a fabricated start.
+              session.heard = [];
+              session.carriedEvents = 0;
+              session.turnaroundStart = null;
+              session.observations = [];
+              turnaroundCandidate = null;
+              held = null;
+              progress = 0;
+              values = Array(view.target.length).fill(null);
+              session.restartNotice = '本輪累積 220 個辨識音，已重設未完成的本輪；收音繼續。';
             }
             const live = observed ? {...observed, name:hooks.pitchName(observed.midi),
               slot:liveSlot(view.target, progress, observed, held)} : null;
@@ -1219,7 +1292,9 @@
               Number.isFinite(values[progress-1]) && !Number.isFinite(values[progress]) && reading?.midi === live.midi &&
               activitySamples.length === 3 && activitySamples.every(sample => !withinCents(sample.cents)) &&
               lastActivity === now;
-            const hint = now - lastActivity >= 3000 ? '暫未辨識到穩定音高。' : null;
+            if (live?.slot === 0 && session.turnaroundStart && !withinCents(live.cents)) live.detuned = true;
+            const hint = session.restartNotice || (now - lastActivity >= 3000 ? '暫未辨識到穩定音高。' :
+              session.observations === null ? '本輪偏音記錄過多，無法可靠標在譜上。' : null);
             view.update('listening', hint, null, progress, reference, display(live));
           } catch {
             stop('無法讀取麥克風，請重新開始。');
@@ -1452,6 +1527,9 @@
           noteHeads.forEach(head => { delete head.dataset.practice; });
           previous = 0;
         }
+        if (display?.chartValues && Number.isFinite(display.chartValues[0])) {
+          noteHeads[0].dataset.practice = Number.isFinite(display.values?.[0]) ? 'matched' : 'detuned';
+        } else if (Number.isFinite(display?.values?.[0])) noteHeads[0].dataset.practice = 'matched';
         for (let i = previous; i < progress && i < noteHeads.length; i++) {
           if (Number.isFinite(display?.values?.[i])) noteHeads[i].dataset.practice = 'matched';
         }
@@ -1503,7 +1581,7 @@
     return view;
   }
 
-  return {align, trackNotes, micCapture, metronomeClickGate, manager, card, chartPoint, centsText, scoreValues, monitorPitch, liveSlot, loopBoundary, practicePlotValues, addHistory};
+  return {align, trackNotes, micCapture, metronomeClickGate, manager, card, chartPoint, centsText, scoreValues, monitorPitch, liveSlot, loopBoundary, detunedLoopBoundary, practicePlotValues, addHistory};
 });
 // SCALE_PRACTICE_END
   </script>
