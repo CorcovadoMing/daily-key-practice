@@ -309,7 +309,7 @@ test('arpeggios use distinct kind labels, chart and results without changing but
   assert.equal(grid.children.length,13);
   // A displayed-but-not-accepted pitch is a live cue, not a successful note.
   view.update('listening',null,null,0,442,{live:{slot:0,cents:45,name:'C2'},values:[],progress:0,listening:true});
-  assert.equal(heads[0].dataset.practiceCurrent,'true');
+  assert.equal(heads[0].dataset.practiceCurrent,undefined,'unanchored detuning cannot color a score note');
   assert.equal(heads[0].dataset.practice,undefined);
   view.update('listening',null,null,1,442,{live:{slot:0,cents:0,name:'C2'},values:[0],progress:1,listening:true});
   assert.equal(heads[0].dataset.practice,'matched');

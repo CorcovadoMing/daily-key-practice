@@ -34,7 +34,7 @@ const target = [36,38,40,41,43,45,47,48,47,45,43,41,40,38,36].map(midi =>
   ({ midi, name: String(midi), octave: Math.floor(midi / 12) - 1 }));
 const slots = { up: 3, down: 11, wrongOctave: 5 };
 
-async function fixture(sequence=target) {
+async function fixture(sequence=target,mode='loop') {
   let now = 0, listener;
   const heads = sequence.map(() => new Node());
   const view = card({ querySelectorAll: () => heads }, sequence, () => {});
@@ -45,7 +45,7 @@ async function fixture(sequence=target) {
     capture: { subscribe: hooks => { listener = hooks; return () => {}; } },
     reference: () => 442, pitchReading, pitchName: String
   });
-  assert.equal(view.mode, 'loop');
+  Object.defineProperty(view,'mode',{value:mode});
   await m.toggle(view);
   listener.ready();
   const play = (midi, cents = 0) => {
@@ -139,10 +139,76 @@ test('two full F major laps retain repeated flat-note deviations at their exact 
   assert.equal(d.passed,0);
   assert.deepEqual(entries(d.history[3]),[[45,2]]);
   assert.deepEqual(entries(d.history[25]),[[35,2]]);
-  assert.equal(f.historyPoints(3)[0].title,'+45¢ · 2 輪');
+  assert.equal(f.historyPoints(3)[0].title,'+45¢ · 2 輪（未通過）');
   await f.stop();
   assert.equal(f.last()[5].values[3],null);
   assert.notEqual(f.heads[3].dataset.practice,'matched');
   assert.equal(Math.round(f.last()[5].chartValues[3]),45);
   assert.equal(f.heads[25].dataset.practice,'matched');
+});
+
+test('single mode plots confidently detuned pitches without marking a miss or a wrong octave red', async () => {
+  const f = await fixture(target,'single');
+  target.forEach(({midi},i)=>f.play(i===slots.wrongOctave?midi+12:midi,i===slots.up?45:i===slots.down?25:0));
+  await f.stop();
+  const [phase,,, , , display]=f.last();
+  assert.equal(phase,'idle');
+  assert.equal(f.heads[slots.up].dataset.practice,'detuned');
+  assert.equal(f.heads[slots.up].dataset.practiceBand,'outside');
+  assert.equal(f.heads[slots.down].dataset.practice,'matched');
+  assert.equal(f.heads[slots.down].dataset.practiceBand,'outside','red pitch band can still pass');
+  assert.equal(f.heads[slots.wrongOctave].dataset.practice,'missing');
+  assert.equal(f.heads[slots.wrongOctave].dataset.practiceBand,undefined);
+  assert.equal(Math.round(display.chartValues[slots.up]),45);
+  assert.equal(display.values[slots.up],null);
+});
+
+test('fractional history at ±10, ±20 and ±40 retains measured color and scoring category',()=>{
+  const {addHistory,chartPoint}=source.module.exports;
+  for(const value of [-40.1,-20.1,-10.1,10.1,20.1,40.1,-40.00001,40.00001]){
+    const [bin]=addHistory([new Map()],[value]), [key]=bin.keys();
+    const actual=chartPoint(value), history=chartPoint(key);
+    assert.deepEqual([history.band,history.failed,history.text],[actual.band,actual.failed,actual.text]);
+  }
+});
+
+test('watchdog measures inactivity from the last fresh stable pitch, independent of capture frames', async ()=>{
+  const ticks=new Map(), states=[];
+  let now=0, id=0, listening, releases=0;
+  const env={performance:{now:()=>now},setTimeout(fn,ms){ticks.set(++id,{at:now+ms,fn});return id;},clearTimeout(key){ticks.delete(key);}};
+  const practice=manager(env,{
+    capture:{subscribe(listener){listening=listener;return ()=>releases++;}},
+    reference:()=>442,pitchReading,pitchName:String
+  });
+  const frame=(at,midi,cents=0,muted=false)=>{
+    advance(at);
+    listening.frame({now,frequency:midi===null?null:442*2**((midi-69+cents/100)/12),muted});
+  };
+  function advance(at){
+    for(const [key,entry] of ticks){
+      if(entry.at>at)continue;
+      now=entry.at;ticks.delete(key);entry.fn();
+    }
+    now=at;
+  }
+  const view={target,mode:'single',update(...state){states.push(state);}};
+  await practice.toggle(view);
+  listening.ready();
+  // An unaccepted but steady held note over two minutes keeps listening.
+  for(let at=27;at<124000;at+=27)frame(at,41,45);
+  assert.equal(states.at(-1)[0],'listening');
+  const lastStable=now;
+  frame(lastStable+27,null);
+  // One isolated valid frame and three muted (stale) frames cannot reset it.
+  frame(lastStable+1800,41,45);
+  for(const offset of [1827,1854,1881])frame(lastStable+offset,41,45,true);
+  // Same MIDI but unstable pitch does not reset either.
+  for(const [offset,cents] of [[2400,45],[2427,-45],[2454,45],[2481,-45]])frame(lastStable+offset,41,cents);
+  advance(lastStable+119999);
+  assert.equal(states.at(-1)[0],'listening');
+  advance(lastStable+120000); // No further audio frame required.
+  assert.equal(states.at(-1)[0],'idle');
+  assert.match(states.at(-1)[1],/連續 2 分鐘未辨識到穩定音高，已自動停止/);
+  assert.equal(releases,1);
+  assert.equal(ticks.size,0);
 });

@@ -60,13 +60,9 @@ test('all 24 keys feed targets from the exact rendered scale and arpeggio staff'
  }
 });
 
-test('local double-beam highlight shares active and next stem colors and is suppressed in print',()=>{
- const liveStem=html.match(/\[data-practice-current=true\] \.scale-stem\{stroke:(#[0-9a-f]+)/i)[1];
- const accent=html.match(/\[data-practice-current=true\] \.scale-beam-local\{stroke:(#[0-9a-f]+)/i)[1];
- assert.equal(accent,liveStem);
- const nextStem=html.match(/\[data-practice-next=true\] \.scale-stem\{stroke:(#[0-9a-f]+)/i)[1];
- const nextAccent=html.match(/\[data-practice-next=true\] \.scale-beam-local\{stroke:(#[0-9a-f]+)/i)[1];
- assert.equal(nextAccent,nextStem);
+test('local double-beam follows active pitch hue only and is suppressed in print',()=>{
+ assert.match(html,/\[data-practice-current=true\] \.scale-stem\{stroke:var\(--practice-tone\)/);
+ assert.match(html,/\[data-practice-current=true\] \.scale-beam-local\{stroke:var\(--practice-tone\)/);
  assert.match(html,/@media print\{\s*[^}]*\[data-practice-current\] \.scale-beam-local,[^}]*\[data-practice-next\] \.scale-beam-local\{stroke:none\}/);
- assert.doesNotMatch(html,/\[data-practice=(matched|missing)\] \.scale-beam-local/);
+ assert.doesNotMatch(html,/\[data-practice=(matched|missing|detuned)\] \.scale-beam-local/);
 });

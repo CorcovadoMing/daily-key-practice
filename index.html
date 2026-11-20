@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261120-010-experimental">
+  <meta name="site-version" content="20261120-011-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -487,16 +487,17 @@
     .scale-practice-status{font-size:12px;margin:0;max-width:100%;flex:1 1 230px}
     .scale-practice-latest{font-size:12px;white-space:nowrap}
     .scale-practice-latest:empty{display:none}
-    .cello-scale-score [data-practice=matched] ellipse{fill:#1d7751}
-    .cello-scale-score [data-practice=matched] .scale-stem{stroke:#1d7751;stroke-width:2}
-    .cello-scale-score [data-practice=missing] ellipse{fill:#a64433}
-    .cello-scale-score [data-practice=missing] .scale-stem{stroke:#a64433}
-    .cello-scale-score [data-practice-next=true] ellipse{fill:#5183a1}
-    .cello-scale-score [data-practice-next=true] .scale-stem{stroke:#5183a1;stroke-width:2.3}
-    .cello-scale-score [data-practice-next=true] .scale-beam-local{stroke:#5183a1}
-    .cello-scale-score [data-practice-current=true] ellipse{fill:#155e96}
-    .cello-scale-score [data-practice-current=true] .scale-stem{stroke:#155e96;stroke-width:3.2;stroke-linecap:round}
-    .cello-scale-score [data-practice-current=true] .scale-beam-local{stroke:#155e96}
+    .scale-practice,.cello-scale-score{--practice-green:#a9cba0;--practice-yellow:#e7cf85;--practice-red:#e4a798}
+    .cello-scale-score [data-practice-band=center]{--practice-tone:var(--practice-green)}
+    .cello-scale-score [data-practice-band=near]{--practice-tone:var(--practice-yellow)}
+    .cello-scale-score [data-practice-band=outside]{--practice-tone:var(--practice-red)}
+    .cello-scale-score [data-practice-band] ellipse{fill:var(--practice-tone);stroke:#4e5449;stroke-width:.65}
+    .cello-scale-score [data-practice-band] .scale-stem{stroke:var(--practice-tone);stroke-width:2.2}
+    .cello-scale-score [data-practice-next=true] ellipse{fill:none;stroke:#68776c;stroke-width:1.2}
+    .cello-scale-score [data-practice-next=true] .scale-stem{stroke:#68776c;stroke-width:1.8}
+    .cello-scale-score [data-practice-current=true] .scale-stem{stroke:var(--practice-tone);stroke-width:3.2;stroke-linecap:round}
+    .cello-scale-score [data-practice-current=true] .scale-beam-local{stroke:var(--practice-tone)}
+    .cello-scale-score [data-practice=detuned] ellipse{stroke-dasharray:1.5 1}
     @media print{
       .cello-scale-score [data-midi][data-practice-current] .scale-beam-local,.cello-scale-score [data-midi][data-practice-next] .scale-beam-local{stroke:none}
       .cello-scale-score [data-midi][data-practice] ellipse,.cello-scale-score [data-midi][data-practice-current] ellipse,.cello-scale-score [data-midi][data-practice-next] ellipse{fill:#222}
@@ -520,12 +521,15 @@
     .scale-pitch-slot:nth-child(even) .scale-pitch-track{background:#f8faf7}
     .scale-pitch-name{font-size:10px;white-space:nowrap;font-weight:700}
     .scale-pitch-cents{font-size:10px;font-variant-numeric:tabular-nums}
-    .scale-pitch-dot,.scale-pitch-current{position:absolute;top:var(--pitch-y);left:50%;transform:translate(-50%,-50%);width:7px;height:7px;box-sizing:border-box;border-radius:50%;background:#227254;z-index:1}
+    .scale-pitch-track [data-band=center]{--practice-tone:var(--practice-green);--practice-ink:#327052}
+    .scale-pitch-track [data-band=near]{--practice-tone:var(--practice-yellow);--practice-ink:#81580c}
+    .scale-pitch-track [data-band=outside]{--practice-tone:var(--practice-red);--practice-ink:#9a3321}
+    .scale-pitch-dot,.scale-pitch-current,.scale-pitch-history-dot{position:absolute;top:var(--pitch-y);left:50%;transform:translate(-50%,-50%);width:8px;height:8px;box-sizing:border-box;border-radius:50%;z-index:1}
+    .scale-pitch-dot{border:1px solid var(--practice-ink);background:var(--practice-tone)}
     .scale-pitch-history{position:absolute;inset:0;pointer-events:none}
-    .scale-pitch-history-dot{position:absolute;top:var(--pitch-y);left:50%;transform:translate(-50%,-50%);width:7px;height:7px;border-radius:50%;background:#54718c;opacity:var(--past-opacity,.24)}
-    .scale-pitch-current{width:12px;height:12px;border:2px solid #227254;background:#fff;z-index:2}
-    .scale-pitch-dot[data-band=near]{background:#956010}.scale-pitch-dot[data-band=outside]{background:#a63d2b}
-    .scale-pitch-current[data-band=near]{border-color:#956010}.scale-pitch-current[data-band=outside]{border-color:#a63d2b}
+    .scale-pitch-history-dot{border:1.5px dashed var(--practice-ink);background:transparent;opacity:var(--past-opacity,.65)}
+    .scale-pitch-current{width:12px;height:12px;border:2px solid var(--practice-ink);background:#fff;z-index:2}
+    :is(.scale-pitch-dot,.scale-pitch-history-dot)[data-failed=true]{border-radius:0;transform:translate(-50%,-50%) rotate(45deg)}
     .scale-pitch-cents[data-band=center]{color:#176043}.scale-pitch-cents[data-band=near]{color:#775017}.scale-pitch-cents[data-band=outside]{color:#9a3321}
     .scale-pitch-dot[hidden],.scale-pitch-current[hidden]{display:none}
     .cello-scale-score{overflow-x:auto;overscroll-behavior-x:contain;scrollbar-gutter:stable}
@@ -694,7 +698,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261120-010-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261120-011-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -827,7 +831,13 @@
   function centsText(cents) {
     if (!Number.isFinite(cents)) return '—';
     const value = Math.round(cents);
-    return (value > 0 ? '+' : value < 0 ? '−' : '') + Math.abs(value) + '¢';
+    const sign = value > 0 ? '+' : value < 0 ? '−' : '';
+    const boundary = Math.abs(value);
+    if ((boundary === 10 || boundary === 20 || boundary === centsLimit) && !withinCents(cents,boundary)) {
+      const deviation = Number(Math.abs(cents).toFixed(2));
+      return (deviation <= boundary ? '>' + sign + boundary : sign + deviation) + '¢';
+    }
+    return sign + Math.abs(value) + '¢';
   }
   function chartPoint(cents) {
     if (!Number.isFinite(cents)) return null;
@@ -835,7 +845,8 @@
     return {
       y: 50 - Math.max(-chartLimit, Math.min(chartLimit, cents)),
       text: centsText(cents),
-      band: distance <= 10 ? 'center' : distance <= 20 ? 'near' : 'outside'
+      failed: !withinCents(cents),
+      band: distance <= 10 + 1e-7 ? 'center' : distance <= 20 + 1e-7 ? 'near' : 'outside'
     };
   }
   function scoreValues(target, heard, result) {
@@ -1053,7 +1064,7 @@
   }
   // Plot an out-of-tune measurement only when accepted neighbors fix
   // its exact score position; the score alignment itself never changes.
-  function loopPlotValues(target, heard, result, observations, scored = scoreValues(target, heard, result)) {
+  function practicePlotValues(target, heard, result, observations, scored = scoreValues(target, heard, result)) {
     if (!observations?.length || !result.missing.length) return scored;
     const plot = scored.slice();
     for (let j=1;j<result.pairs.length;j++) {
@@ -1072,7 +1083,13 @@
     return history.map((bin,i) => {
       const value = values[i];
       if (!Number.isFinite(value)) return bin;
-      const point = Math.round(value);
+      const rounded = Math.round(value);
+      // Keep the measured visual band and pass boundary after aggregation:
+      // e.g. +40.1 must not become an inclusive +40 passing circle.
+      const boundary = Math.abs(rounded);
+      const point = (boundary === 10 || boundary === 20 || boundary === centsLimit) && !withinCents(value,boundary)
+        ? Math.sign(value) * Math.max(boundary + 1e-6, Math.abs(Math.round(value * 100) / 100))
+        : rounded;
       const next = new Map(bin);
       next.set(point, (next.get(point) || 0) + 1);
       return next;
@@ -1081,16 +1098,18 @@
 
   function manager(env, hooks) {
     let active = null;
+    const idleMessage = '連續 2 分鐘未辨識到穩定音高，已自動停止收音。';
     function finish(session, message, grade) {
       if (!session) return;
+      if (session.idleTimer !== undefined) env.clearTimeout?.(session.idleTimer);
       session.release?.();
       const {view, mode, laps, passed, history, lastValues, heard} = session;
       const pending = heard.length > (laps ? 1 : 0);
       const result = grade && (mode === 'single' || pending || !laps) ? align(view.target, heard) : null;
       const values = result ? scoreValues(view.target, heard, result) : lastValues;
-      const chartValues = mode === 'loop' ? result
-        ? loopPlotValues(view.target, heard, result, session.observations, values)
-        : session.lastPlot : undefined;
+      const chartValues = result
+        ? practicePlotValues(view.target, heard, result, session.observations, values)
+        : session.lastPlot;
       const display = result || laps ? {values, chartValues,
         history:result ? history : session.beforeLastHistory, mode, laps, passed, final:true} : undefined;
       view.update('idle', message, result, 0, session.reference, display);
@@ -1110,8 +1129,28 @@
       view.update('pending', null, null, 0, undefined, {mode});
       const tracking = {stableMs:24,minFrames:2,releaseMs:65};
       const track = trackNotes(tracking), monitor = monitorPitch({minFrames:2});
-      const observe = mode === 'loop' ? trackNotes({...tracking,tolerance:chartLimit}) : null;
-      let reference = 442, progress = 0, lastTone = 0, lastActivity = 0, held = null;
+      const observe = trackNotes({...tracking,tolerance:chartLimit});
+      let reference = 442, progress = 0, lastActivity = 0, held = null;
+      let activitySamples = [], lastFrameAt = null;
+      function watchdog() {
+        if (active !== session || session.stage !== 'listening') return;
+        const remaining = maxListeningMs - (env.performance.now() - lastActivity);
+        if (remaining <= 0) stop(idleMessage, true);
+        else session.idleTimer = env.setTimeout?.(watchdog, remaining);
+      }
+      function refreshActivity(reading, now) {
+        const valid = Number.isInteger(reading?.midi) && withinCents(reading.cents,chartLimit);
+        if (!valid || lastFrameAt === null || now <= lastFrameAt || now - lastFrameAt > 80 ||
+            activitySamples[0]?.midi !== reading.midi) activitySamples = [];
+        lastFrameAt = valid ? now : null;
+        if (!valid) return;
+        activitySamples.push(reading);
+        if (activitySamples.length > 3) activitySamples.shift();
+        if (activitySamples.length === 3) {
+          const cents = activitySamples.map(sample => sample.cents);
+          if (Math.max(...cents) - Math.min(...cents) <= 35) lastActivity = now;
+        }
+      }
       let values = Array(view.target.length).fill(null);
       const display = (live = null) => ({
         values, live, listening:true, progress, mode, history:session.history, laps:session.laps, passed:session.passed
@@ -1121,25 +1160,24 @@
         ready() {
           if (active !== session) return;
           reference = session.reference = hooks.reference();
-          lastTone = lastActivity = env.performance.now();
-          session.stage = 'listening'; view.update('listening', null, null, 0, reference, display());
+          lastActivity = env.performance.now();
+          session.stage = 'listening'; watchdog(); view.update('listening', null, null, 0, reference, display());
         },
-        frame({now,frequency}) {
+        frame({now,frequency,muted}) {
           if (active !== session) return;
-          if (now - lastActivity >= maxListeningMs) { stop('兩分鐘未辨識到新音，已停止收音。', true); return; }
+          if (now - lastActivity >= maxListeningMs) { stop(idleMessage, true); return; }
           try {
-            if (frequency) lastTone = now;
-            const reading = frequency ? hooks.pitchReading(frequency, reference) : null;
+            const reading = !muted && frequency ? hooks.pitchReading(frequency, reference) : null;
+            refreshActivity(reading, now);
             const observed = monitor(reading, now);
             if (!observed || observed.midi !== held?.midi) held = null;
-            const observation = observe?.(reading, now);
+            const observation = observe(reading, now);
             if (observation && !withinCents(observation.cents) && session.observations) {
               if (session.observations.length < maxEvents) session.observations.push(observation);
               else session.observations = null; // No guessing after dropping observations.
             }
             const event = track(reading, now);
             if (event) {
-              lastActivity = now;
               session.heard.push(event);
               // Prefix points are provisional; the weighted alignment
               // replaces them on stop or at the end of a cycle.
@@ -1160,7 +1198,7 @@
                 session.laps++;
                 if (boundary.complete) session.passed++;
                 session.lastValues = scoreValues(view.target, session.heard, boundary);
-                session.lastPlot = loopPlotValues(view.target, session.heard, boundary, session.observations, session.lastValues);
+                session.lastPlot = practicePlotValues(view.target, session.heard, boundary, session.observations, session.lastValues);
                 session.beforeLastHistory = session.history;
                 session.history = addHistory(session.history, session.lastPlot);
                 session.observations = [];
@@ -1177,7 +1215,11 @@
             }
             const live = observed ? {...observed, name:hooks.pitchName(observed.midi),
               slot:liveSlot(view.target, progress, observed, held)} : null;
-            const hint = now - lastTone >= 3000 ? '暫未辨識到穩定音高。' : null;
+            if (live && !withinCents(live.cents)) live.detuned = live.slot === progress && progress > 0 &&
+              Number.isFinite(values[progress-1]) && !Number.isFinite(values[progress]) && reading?.midi === live.midi &&
+              activitySamples.length === 3 && activitySamples.every(sample => !withinCents(sample.cents)) &&
+              lastActivity === now;
+            const hint = now - lastActivity >= 3000 ? '暫未辨識到穩定音高。' : null;
             view.update('listening', hint, null, progress, reference, display(live));
           } catch {
             stop('無法讀取麥克風，請重新開始。');
@@ -1241,11 +1283,12 @@
       if (!point) return;
       dot.style.setProperty('--pitch-y', point.y + '%');
       dot.dataset.band = point.band;
+      dot.dataset.failed = String(point.failed);
     }
     let previousValues, previousHistory, liveIndex = null, latestFollow = null, wasListening = false;
     function update({values, history, live, progress, listening, final, mode} = {}) {
-      const legendText = mode === 'loop' ? '白圈是即時音高，實心點是本輪，淡點是先前各輪；超出 ±40¢ 的記錄不計分。'
-        : '白圈為即時音高、實心點為已記錄；0¢ 為目標，上偏高，下偏低。';
+      const legendText = mode === 'loop' ? '白圈是即時；實心是本輪；空心虛線是先前各輪。菱形超出 ±40¢，不計分。'
+        : '白圈是即時；實心是本次。菱形超出 ±40¢，不計分。';
       if (legend.textContent !== legendText) legend.textContent = legendText;
       const historyChanged = history !== previousHistory;
       if (values !== previousValues || historyChanged) {
@@ -1258,8 +1301,8 @@
             for (const [cents,count] of bin || []) {
               const dot = make('span','scale-pitch-history-dot');
               place(dot, chartPoint(cents));
-              dot.style.setProperty('--past-opacity', Math.min(.48, .22 + (count - 1) * .07));
-              dot.title = centsText(cents) + ' · ' + count + ' 輪';
+              dot.style.setProperty('--past-opacity', Math.min(.90, .62 + (count - 1) * .07));
+              dot.title = centsText(cents) + ' · ' + count + ' 輪' + (!withinCents(cents) ? '（未通過）' : '');
               past.append(dot);
             }
           }
@@ -1267,14 +1310,16 @@
           place(recorded, point);
           const state = point ? (!withinCents(values[i]) ? '有音高記錄，未通過 ' : '已辨識 ') + point.text : final ? '未辨識' : '尚未辨識';
           const pastCount = bin ? [...bin.values()].reduce((sum,count) => sum + count,0) : 0;
+          const failedCount = bin ? [...bin].reduce((sum,[cents,count]) => sum + (!withinCents(cents) ? count : 0),0) : 0;
           slot.setAttribute('aria-label', '第 ' + (i + 1) + ' 音 ' + label + '，' + state +
-            (pastCount ? '，另有 ' + pastCount + ' 輪記錄' : ''));
+            (pastCount ? '，另有 ' + pastCount + ' 輪記錄' + (failedCount ? '，其中 ' + failedCount + ' 輪未通過' : '') : ''));
           value.textContent = point?.text || '—';
           value.dataset.band = point?.band || '';
         });
       }
-      if (liveIndex !== null && liveIndex !== live?.slot) place(cells[liveIndex].current, null);
-      liveIndex = Number.isInteger(live?.slot) ? live.slot : null;
+      const nextLiveIndex = Number.isInteger(live?.slot) && (withinCents(live.cents) || live.detuned) ? live.slot : null;
+      if (liveIndex !== null && liveIndex !== nextLiveIndex) place(cells[liveIndex].current, null);
+      liveIndex = nextLiveIndex;
       if (liveIndex !== null) {
         const point = chartPoint(live.cents);
         if (point && !withinCents(live.cents)) point.band = 'outside';
@@ -1383,6 +1428,7 @@
         if (target[progress]) text += ' · 下一音 ' + label(target[progress], progress);
         else text += ' · 可停止並看結果';
         if (message && target[progress]) text += '。' + message;
+        text += ' 連續 2 分鐘未辨識到穩定音高，會自動停止。';
         const live = display?.live;
         const liveText = live ? '聽到 ' + live.name + ' ' + centsText(live.cents) +
           (live.slot === null ? '（未對到目前譜格）' : !withinCents(live.cents) ? '（尚未對準）' : '') : '';
@@ -1394,11 +1440,11 @@
           : message || '照譜拉' + name + '兩個八度上、下行。聲音只在本機分析。';
       }
       if (status.textContent !== text) status.textContent = text;
-      if (result) {
-        const hits = new Set(result.pairs.map(p => p.expected));
-        noteHeads.forEach((head, i) => { head.dataset.practice = hits.has(i) ? 'matched' : 'missing'; });
-      } else if (display?.final && laps) {
-        noteHeads.forEach((head,i) => { head.dataset.practice = Number.isFinite(display.values?.[i]) ? 'matched' : 'missing'; });
+      if (result || (display?.final && laps)) {
+        noteHeads.forEach((head, i) => {
+          if (Number.isFinite(display?.values?.[i])) head.dataset.practice = 'matched';
+          else head.dataset.practice = Number.isFinite(display?.chartValues?.[i]) ? 'detuned' : 'missing';
+        });
       } else if (next !== 'listening') {
         noteHeads.forEach(head => { delete head.dataset.practice; });
       } else {
@@ -1410,13 +1456,23 @@
           if (Number.isFinite(display?.values?.[i])) noteHeads[i].dataset.practice = 'matched';
         }
       }
-      const slot = next === 'listening' ? display?.live?.slot : null;
+      const live = next === 'listening' ? display?.live : null;
+      // An out-of-range observation only changes the live sheet if the
+      // position is sufficiently clear and not already accepted.
+      const slot = live && (withinCents(live.cents) || live.detuned) ? live.slot : null;
       const nextNote = Number.isInteger(slot) && noteHeads[slot] ? slot : null;
       if (nextNote !== currentNote) {
         if (currentNote !== null) delete noteHeads[currentNote].dataset.practiceCurrent;
         if (nextNote !== null) noteHeads[nextNote].dataset.practiceCurrent = 'true';
         currentNote = nextNote;
       }
+      noteHeads.forEach((head,i) => {
+        const cents = nextNote === i ? live.cents : (display?.chartValues ?? display?.values)?.[i];
+        const band = chartPoint(cents)?.band;
+        if (band) {
+          if (head.dataset.practiceBand !== band) head.dataset.practiceBand = band;
+        } else if (head.dataset.practiceBand) delete head.dataset.practiceBand;
+      });
       const nextAwaiting = kind === 'scale' && next === 'listening' && nextNote === null && noteHeads[progress] ? progress : null;
       if (nextAwaiting !== awaiting) {
         if (awaiting !== null) delete noteHeads[awaiting].dataset.practiceNext;
@@ -1447,7 +1503,7 @@
     return view;
   }
 
-  return {align, trackNotes, micCapture, metronomeClickGate, manager, card, chartPoint, centsText, scoreValues, monitorPitch, liveSlot, loopBoundary, loopPlotValues, addHistory};
+  return {align, trackNotes, micCapture, metronomeClickGate, manager, card, chartPoint, centsText, scoreValues, monitorPitch, liveSlot, loopBoundary, practicePlotValues, addHistory};
 });
 // SCALE_PRACTICE_END
   </script>
@@ -2510,7 +2566,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     const frequency = rate / (tau + Math.max(-1, Math.min(1, shift)));
     return Number.isFinite(frequency) ? frequency : null;
   }
-  function pitchBand(cents){const distance=Math.abs(cents);return distance<=10?'green':distance<=20?'yellow':'red';}
+  function pitchBand(cents){const distance=Math.abs(cents);return distance<=10+1e-7?'green':distance<=20+1e-7?'yellow':'red';}
   function tunerVisual(cents) {
     if (!Number.isFinite(cents)) return { text: '—', position: 50, segment: '', band: '', valid: false };
     const rounded = Math.round(cents), band = pitchBand(cents);
