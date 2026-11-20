@@ -171,3 +171,77 @@ test('bounded event compaction preserves the optimum ordered path and recent raw
  const project=(events)=>Array.from(align(seq,events).pairs,p=>[p.expected,events[p.heard].id]);
  assert.deepEqual(project(compact),project(full));
 });
+
+test('a late fuzzy skip advances the chart and final scoring, but only the exact next note resets the clock',async()=>{
+ async function attempt(second){
+  let now=0, listener, releases=0, state, timer, timerAt;
+  const env={performance:{now:()=>now},setTimeout(fn,delay){timer=fn;timerAt=now+delay;return 1;},clearTimeout(){timer=null;}};
+  const practice=manager(env,{capture:{subscribe(hooks){listener=hooks;return ()=>releases++;}},
+    reference:()=>442,pitchReading,pitchName:String});
+  const sequence=[41,43,45,46,48,50,52,53,52,50,48,46,45,43,41].map(midi=>({midi}));
+  await practice.toggle({target:sequence,mode:'loop',update(...args){state=args;}});
+  listener.ready();
+  function advance(at){
+   while(timer && timerAt<=at){now=timerAt;const callback=timer;timer=null;callback();}
+   now=at;
+  }
+  function note(at,midi){
+   for(const time of [at,at+27,at+54]){
+    advance(time);listener.frame({now,frequency:442*2**((midi-69)/12)});
+   }
+  }
+  note(27,41); // confirmed at 54; this is the first qualifying timestamp.
+  assert.equal(state[3],1);
+  note(119000,second);
+  assert.equal(state[3],second===43 ? 2 : second===45 ? 3 : 4);
+  assert.equal(state[5].values[state[3]-1],0);
+  advance(120053);assert.equal(state[0],'listening');
+  advance(120054);
+  if(second===43){
+   assert.equal(state[0],'listening');
+   advance(239026);assert.equal(state[0],'listening');
+   advance(239027);
+  }
+  assert.equal(state[0],'idle');
+  assert.match(state[1],/未對上下一個譜音/);
+  assert.equal(state[2].pairs.length,2,'both actual heard notes still contribute to final alignment');
+  assert.equal(releases,1);
+ }
+ for(const midi of [45,46,43])await attempt(midi);
+});
+
+test('exact final tonic renews the clock at rollover, while a recovered loop skipping the preceding note does not',async()=>{
+ for(const skipped of [false,true]){
+  let now=0, listener, state, timer, due;
+  const env={performance:{now:()=>now},setTimeout(fn,delay){timer=fn;due=now+delay;return 1;},clearTimeout(){timer=null;}};
+  const practice=manager(env,{capture:{subscribe(hooks){listener=hooks;return ()=>{};}},
+    reference:()=>442,pitchReading,pitchName:String});
+  const sequence=twoOctaves(41);
+  await practice.toggle({target:sequence,mode:'loop',update(...args){state=args;}});
+  listener.ready();
+  function advance(at){
+   while(timer && due<=at){now=due;const callback=timer;timer=null;callback();}
+   now=at;
+  }
+  function note(at,midi){
+   for(const time of [at,at+27,at+54]){
+    advance(time);listener.frame({now,frequency:442*2**((midi-69)/12)});
+   }
+  }
+  const prefix=sequence.slice(0,skipped?-2:-1);
+  prefix.forEach((n,i)=>note(27+i*120,n.midi));
+  const deadline=27+(prefix.length-1)*120+27+120000;
+  note(deadline-1000,41);
+  assert.equal(state[5].laps,1,'both real rollovers remain intact');
+  assert.equal(state[5].passed,skipped?0:1);
+  assert.equal(state[3],1,'tonic seeds the next round');
+  advance(deadline-1);
+  assert.equal(state[0],'listening');
+  advance(deadline);
+  assert.equal(state[0],skipped?'idle':'listening');
+  if(!skipped){
+   advance(deadline-1000+27+120000);
+   assert.equal(state[0],'idle');
+  }
+ }
+});
