@@ -481,15 +481,17 @@
         {class:'scale-stem',x1:stemX(n),x2:stemX(n),y1:n.y,y2:beamAt(n),stroke:'#222','stroke-width':1.25})));
       if(group.length>1){
         const left=stemX(group[0]),right=stemX(group.at(-1));
-        const radius=Math.min(8,spacing/4);
         for(let level=0;level<2;level++){
           const y=beamAt(group[0])+(down?-6:6)*level;
           const yAt=x=>y+slope*(x-left);
           svg.append(svgNode('line',{class:'scale-beam','data-level':level+1,x1:left,x2:right,y1:y,y2:yAt(right),stroke:'#222','stroke-width':3.5}));
-          // The inactive overlays are invisible; the live note paints only its
-          // own nearby portions, clipped to either end of the shared beam.
+          // The two rails each give a note the area between adjacent stem
+          // midpoints. End notes own up to the edge of the beam. This keeps
+          // the accent visible without recoloring an adjacent note's area.
           group.forEach((n,j)=>{
-            const x1=Math.max(left,stemX(n)-radius),x2=Math.min(right,stemX(n)+radius);
+            const x=stemX(n);
+            const x1=j?(stemX(group[j-1])+x)/2:left;
+            const x2=j+1<group.length?(x+stemX(group[j+1]))/2:right;
             noteGroups[start+j].append(svgNode('line',{class:'scale-beam-local','data-level':level+1,x1,x2,y1:yAt(x1),y2:yAt(x2),'stroke-width':3.5,stroke:'none','aria-hidden':'true'}));
           });
         }

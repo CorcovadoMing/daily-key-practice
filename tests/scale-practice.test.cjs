@@ -106,10 +106,10 @@ test('capture accepts the whole attempt, grades on stop and cleans every resourc
   const f=fixture(), starting=f.m.toggle(f.view);
   f.grant();await starting;
   f.play(35);f.play(0);
-  for(const n of target)f.play(n.midi);
-  f.play(49); // Extra audio after the final tonic stays in the same attempt.
+  for(const n of target.slice(0,-1))f.play(n.midi);
+  f.play(49); // Extra audio before the final tonic stays in the same attempt.
   assert.equal(f.calls.at(-1)[0],'listening');
-  await f.m.toggle(f.view);
+  f.play(target.at(-1).midi);
   const [phase,,result]=f.calls.at(-1);
   assert.equal(phase,'idle');
   assert.equal(result.complete,true);
@@ -267,7 +267,6 @@ test('switch scale ↔ arpeggio keeps one mic session but grades only selected s
   assert.equal(arpeggioCalls.at(-1)[0],'listening');
   f.play(37); // An inserted wrong note does not substitute for a miss.
   for(const n of cMajorArpeggio)f.play(n.midi);
-  await f.m.toggle(arpeggio);
   const final=arpeggioCalls.at(-1)[2];
   assert.equal(final.complete,true);
   assert.equal(final.pairs.length,13);
@@ -344,28 +343,75 @@ test('all three cutoffs honor signed mathematical boundaries in both tracking an
   assert.equal(align([tone(69)],[tone(69,41)],99).complete,false);
 });
 
-test('tolerance is snapshotted before permission and used for live visuals and scoring',async()=>{
+test('the exercise snapshots mode before permission and always accepts up to ±40 cents',async()=>{
   const f=fixture();
-  let selected=15;
-  Object.defineProperty(f.view,'tolerance',{ get:()=>selected });
+  let mode='single';
+  Object.defineProperty(f.view,'mode',{get:()=>mode});
   const started=f.m.toggle(f.view);
-  assert.equal(f.calls.at(-1)[5].tolerance,15);
-  selected=40; // another idle card changes the shared setting while permission is pending
+  assert.equal(f.calls.at(-1)[5].mode,'single');
+  mode='loop';
   f.grant();await started;
-  f.play(36,20);
-  let [phase,,,progress,,visual]=f.calls.at(-1);
-  assert.equal(phase,'listening');assert.equal(progress,0);
-  assert.equal(visual.tolerance,15);assert.equal(Math.round(visual.live.cents),20);
-  assert.equal(visual.live.slot,0);assert.equal(visual.values[0],null);
+  f.play(36,41);
+  assert.equal(f.calls.at(-1)[3],0);
+  f.play(36,39);
+  assert.equal(f.calls.at(-1)[3],1);
   for(const note of target.slice(1)) f.play(note.midi);
-  await f.m.toggle(f.view);
-  let [, ,result, , ,display]=f.calls.at(-1);
-  assert.equal(result.complete,false);
-  assert.equal(display.tolerance,15);
-  assert.deepEqual(json(result.missing),[0]);
+  const [, ,result, , ,display]=f.calls.at(-1);
+  assert.equal(result.complete,true);
+  assert.equal(display.mode,'single');
+  assert.equal(Math.round(display.values[0]),39);
 });
 
-test('native tolerance selection persists and syncs scale/arpeggio without starting their mic',()=>{
+test('loop shares the descent tonic, layers identical positions, and preserves a partial round on stop',async()=>{
+  const f=fixture();
+  f.view.mode='loop';
+  const started=f.m.toggle(f.view);
+  f.grant();await started;
+  target.forEach((note,i)=>f.play(note.midi,i===0 ? 8 : i===14 ? -14 : i===3 ? 11 : 0));
+  let [,,,progress,,display]=f.calls.at(-1);
+  assert.equal(display.laps,1);
+  assert.equal(progress,1,'descending tonic is the next ascent start');
+  assert.equal(Math.round(display.values[0]),-14);
+  assert.deepEqual(json([...display.history[0].entries()]),[[8,1]]);
+  assert.deepEqual(json([...display.history[14].entries()]),[[-14,1]]);
+  target.slice(1).forEach((note,i)=>f.play(note.midi,i===2 ? 11 : 0));
+  [,,,progress,,display]=f.calls.at(-1);
+  assert.equal(display.laps,2);
+  assert.equal(display.passed,2);
+  assert.deepEqual(json([...display.history[0].entries()]),[[8,1],[-14,1]]);
+  assert.deepEqual(json([...display.history[3].entries()]),[[11,2]]);
+  assert.equal(progress,1);
+  f.play(target[1].midi,-7);
+  await f.m.toggle(f.view);
+  const [phase,,result,,,last]=f.calls.at(-1);
+  assert.equal(phase,'idle');
+  assert.equal(result.complete,false);
+  assert.equal(last.laps,2);
+  assert.equal(Math.round(last.values[1]),-7);
+  assert.deepEqual(json([...last.history[3].entries()]),[[11,2]]);
+  assert.equal(f.resources.prompts,1);
+  assert.equal(f.track.stopCalls,1);
+});
+
+test('loop can recover one omitted ascent note without falsely accepting an early stray tonic',async()=>{
+  const f=fixture();f.view.mode='loop';
+  const start=f.m.toggle(f.view);f.grant();await start;
+  [36,38,40,36].forEach(midi=>f.play(midi));
+  assert.equal(f.calls.at(-1)[5].laps,0);
+  target.slice(3).filter((_,i)=>i!==2).forEach(note=>f.play(note.midi));
+  const display=f.calls.at(-1)[5];
+  assert.equal(display.laps,1);
+  assert.equal(display.passed,0);
+  assert.equal(display.history[5].size,0);
+  assert.equal(display.progress,1);
+  await f.m.toggle(f.view);
+  const [,,result,,,last]=f.calls.at(-1);
+  assert.equal(result,null,'shared tonic alone is not a new incomplete take');
+  assert.equal(last.laps,1);
+  assert.equal(last.values[5],null);
+});
+
+test('native practice-mode selection persists and syncs scale/arpeggio without starting their mic',()=>{
   const mounted=[];
   class Node {
     constructor(tag){this.tag=tag;this.children=[];this.dataset={};this.attributes={};this.handlers={};this.style={setProperty(){}};this.textContent='';}
@@ -374,7 +420,7 @@ test('native tolerance selection persists and syncs scale/arpeggio without start
     addEventListener(name,fn){this.handlers[name]=fn;}
     querySelector(sel){return this.children.find(node=>sel[0]==='.'?node.className===sel.slice(1):node.tag===sel);}
   }
-  const key='daily-key-practice:experimental:practice-tolerance';
+  const key='daily-key-practice:experimental:practice-mode';
   const storage=new Map();
   const localStorage={getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)};
   const document={createElement:tag=>{const el=new Node(tag);mounted.push(el);return el;},
@@ -391,25 +437,77 @@ test('native tolerance selection persists and syncs scale/arpeggio without start
   assert.equal(action.attributes.role,'group');
   assert.equal(action.attributes['aria-label'],'音階練習控制');
   assert.equal(otherAction.attributes['aria-label'],'琶音練習控制');
-  assert.equal(label.textContent,'判定：寬鬆 ▾');
-  assert.deepEqual(select.children.map(x=>[x.value,x.textContent]),[['40','寬鬆 ±40¢'],['25','標準 ±25¢'],['15','嚴謹 ±15¢']]);
-  assert.equal(select.attributes['aria-label'],'音階音準容許範圍');
+  assert.equal(label.textContent,'單次 ▾');
+  assert.deepEqual(select.children.map(x=>[x.value,x.textContent]),[['single','單次'],['loop','循環']]);
+  assert.equal(select.attributes['aria-label'],'音階練習方式');
   assert.equal(otherBtn.textContent,'開始練習');
-  select.value='25';select.handlers.change();
+  select.value='loop';select.handlers.change();
   assert.equal(invoked,0);
-  assert.equal(storage.get(key),'25');
-  assert.equal(select.value,'25');
-  assert.equal(otherSelect.value,'25');
-  assert.equal(otherLabel.textContent,'判定：標準 ▾');
-  assert.equal(load().card(score,target,()=>{}).tolerance,25);
+  assert.equal(storage.get(key),'loop');
+  assert.equal(select.value,'loop');
+  assert.equal(otherSelect.value,'loop');
+  assert.equal(otherLabel.textContent,'循環 ▾');
+  assert.equal(load().card(score,target,()=>{}).mode,'loop');
   button.handlers.click();assert.equal(invoked,1);
-  scale.update('pending',null,null,0,442,{tolerance:25});
+  scale.update('pending',null,null,0,442,{mode:'loop'});
   assert.equal(select.disabled,true);
-  otherSelect.value='15';otherSelect.handlers.change();
-  assert.equal(select.value,'25');
-  assert.equal(label.textContent,'判定：標準 ▾');
-  assert.equal(otherLabel.textContent,'判定：嚴謹 ▾');
+  otherSelect.value='single';otherSelect.handlers.change();
+  assert.equal(select.value,'loop');
+  assert.equal(label.textContent,'循環 ▾');
+  assert.equal(otherLabel.textContent,'單次 ▾');
   scale.update('idle',null,null);
   assert.equal(select.disabled,false);
-  assert.equal(select.value,'15');
+  assert.equal(select.value,'single');
+});
+
+test('a missed pitch stays blank while subsequent notes light up; it never counts as a single pass',async()=>{
+  const f=fixture();
+  const start=f.m.toggle(f.view);f.grant();await start;
+  f.play(36);f.play(40,7);
+  let [,,,progress,,d]=f.calls.at(-1);
+  assert.equal(progress,3);
+  assert.equal(d.live.slot,2);
+  assert.equal(d.values[1],null);
+  assert.equal(Math.round(d.values[2]),7);
+  for(const n of target.slice(3)) f.play(n.midi);
+  assert.equal(f.calls.at(-1)[0],'listening');
+  await f.m.toggle(f.view);
+  assert.deepEqual(json(f.calls.at(-1)[2].missing),[1]);
+});
+
+test('chart stacks historic and current pitches by printed slot, and keeps awaiting visual distinct',()=>{
+  class Node {
+    constructor(){this.children=[];this.dataset={};this.attributes={};this.variables={};
+      this.style={setProperty:(key,value)=>{this.variables[key]=value;}};this._text='';}
+    get textContent(){return this._text;}
+    set textContent(value){this._text=value;this.children=[];}
+    append(...children){this.children.push(...children);}
+    setAttribute(key,f){this.attributes[key]=f;}
+    addEventListener(){}
+  }
+  const standalone={module:{exports:{}},document:{createElement:()=>new Node()}};
+  vm.runInNewContext(html.split('// SCALE_PRACTICE_START')[1].split('// SCALE_PRACTICE_END')[0],standalone);
+  const notes=target.map(note=>({...note,name:'C',octave:2}));
+  const heads=notes.map(()=>new Node());
+  const view=standalone.module.exports.card({querySelectorAll:()=>heads},notes,()=>{});
+  const history=notes.map(()=>new Map());
+  history[0].set(-12,3);history[0].set(4,1);history[14].set(22,1);
+  const values=Array(notes.length).fill(null);values[0]=-15;
+  view.update('listening',null,null,1,442,{mode:'loop',laps:3,passed:2,values,history,progress:1,listening:true});
+  const chart=view.element.children.at(-1);
+  const slots=chart.children[1].children[1].children[0].children;
+  const [past,recorded,live]=slots[0].children[0].children;
+  assert.equal(past.children.length,2);
+  assert.equal(past.children[0].variables['--pitch-y'],'62%');
+  assert.ok(past.children[0].variables['--past-opacity']>past.children[1].variables['--past-opacity']);
+  assert.equal(slots[14].children[0].children[0].children[0].variables['--pitch-y'],'28%');
+  assert.equal(recorded.variables['--pitch-y'],'65%');
+  assert.ok(live.hidden);
+  assert.equal(heads[1].dataset.practiceNext,'true');
+  assert.equal(heads[1].dataset.practiceCurrent,undefined);
+  view.update('listening',null,null,1,442,{mode:'loop',laps:3,values,history,progress:1,listening:true,live:{slot:1,cents:-4,name:'D2'}});
+  assert.equal(heads[1].dataset.practiceCurrent,'true');
+  assert.equal(heads[1].dataset.practiceNext,undefined);
+  view.update('idle',null,null,0,442,{mode:'loop',laps:3,values,history,final:true});
+  assert.equal(heads[1].dataset.practiceCurrent,undefined);
 });

@@ -49,7 +49,7 @@ test('all 24 keys feed targets from the exact rendered scale and arpeggio staff'
      const stem=note.children.find(x=>x.attributes.class==='scale-stem').attributes;
      const onRail=x=>Number(base.y1)+(base.y2-base.y1)*(x-base.x1)/(base.x2-base.x1);
      assert.ok(+base.x1<=+a.x1 && +a.x1<=+stem.x1 && +stem.x1<=+a.x2 && +a.x2<=+base.x2);
-     assert.ok(a.x2-a.x1<=16);
+     assert.ok(a.x2-a.x1<=29);
      assert.ok(Math.abs(a.y1-onRail(a.x1))<1e-9 && Math.abs(a.y2-onRail(a.x2))<1e-9);
      assert.equal(a.stroke,'none');
      assert.equal(a['aria-hidden'],'true');
@@ -60,10 +60,13 @@ test('all 24 keys feed targets from the exact rendered scale and arpeggio staff'
  }
 });
 
-test('local double-beam highlight shares live stem color only and is suppressed in print',()=>{
+test('local double-beam highlight shares active and next stem colors and is suppressed in print',()=>{
  const liveStem=html.match(/\[data-practice-current=true\] \.scale-stem\{stroke:(#[0-9a-f]+)/i)[1];
  const accent=html.match(/\[data-practice-current=true\] \.scale-beam-local\{stroke:(#[0-9a-f]+)/i)[1];
  assert.equal(accent,liveStem);
- assert.match(html,/@media print\{[^\n]*\[data-practice-current=true\] \.scale-beam-local\{stroke:none\}/);
+ const nextStem=html.match(/\[data-practice-next=true\] \.scale-stem\{stroke:(#[0-9a-f]+)/i)[1];
+ const nextAccent=html.match(/\[data-practice-next=true\] \.scale-beam-local\{stroke:(#[0-9a-f]+)/i)[1];
+ assert.equal(nextAccent,nextStem);
+ assert.match(html,/@media print\{\s*[^}]*\[data-practice-current\] \.scale-beam-local,[^}]*\[data-practice-next\] \.scale-beam-local\{stroke:none\}/);
  assert.doesNotMatch(html,/\[data-practice=(matched|missing)\] \.scale-beam-local/);
 });
