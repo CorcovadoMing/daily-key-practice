@@ -799,7 +799,7 @@
       if(window.CelloScalePractice){
         const expected=sequence.map(note=>({...note,octave:Math.floor(staffStep(note)/7)}));
         const practice=window.CelloScalePractice.card(score,expected,
-          view=>window.CelloScalePractice.controller?.toggle(view),arpeggio?'arpeggio':'scale');
+          view=>window.CelloScalePractice.controller?.toggle(view),arpeggio?'arpeggio':'scale',id);
         parent.append(practice.element);
       }
     }
@@ -976,3 +976,254 @@
     arpeggioNotes,chartSVG,scoreAccidentals,staffStep,makeScore,scoreNotes,scaleNotes,positionFor,pitchClass,decodeMap,pointStyling,POSITION_COLORS,CHART_POSITIONS,contrastInk,makeLegend,notePlacement,resolvedShiftCue,bMinorAccent
   };
 })();
+
+/* START practice history module */
+(function(root, factory) {
+  root.CelloPracticeHistory = factory();
+})(globalThis, function() {
+  'use strict';
+
+  const PREFIX = 'cello-practice-intonation:v1:';
+  const LIMIT = 50;
+  const EPSILON = 1e-7;
+  const MAX_COUNT = Number.MAX_SAFE_INTEGER;
+  const validSlot = x => Number.isInteger(x) && Math.abs(x) <= LIMIT;
+  const validCount = x => Number.isSafeInteger(x) && x > 0;
+  const fresh = count => Array.from({length: count}, () => new Map());
+
+  function keyFor(scope, kind, target) {
+    if (typeof scope !== 'string' || !scope.trim() || !['scale', 'arpeggio'].includes(kind) ||
+        !Array.isArray(target) || !target.length) return null;
+    const ordered = Array.from(target, note => typeof note === 'number' ? note : note?.midi);
+    if (!ordered.every(midi => Number.isInteger(midi) && midi >= 0 && midi <= 127)) return null;
+    return PREFIX + JSON.stringify([scope, kind, ordered]);
+  }
+
+  // Quantize like the live lap histogram, without moving points across tuner color bands.
+  function bucket(cents) {
+    if (!Number.isFinite(cents) || Math.abs(cents) > LIMIT + EPSILON) return null;
+    const magnitude = Math.abs(cents);
+    const rounded = Math.min(LIMIT, Math.round(magnitude));
+    const bandFloor = magnitude > 20 + EPSILON ? 21 : magnitude > 10 + EPSILON ? 11 : 0;
+    return Math.max(rounded, bandFloor) * (cents < 0 ? -1 : 1);
+  }
+
+  function appendPoints(bins, points) {
+    const result = bins.map(slot => new Map(slot));
+    for (let i = 0; i < result.length; i++) {
+      const cent = bucket(points?.[i]);
+      if (cent === null) continue;
+      result[i].set(cent, Math.min(MAX_COUNT, (result[i].get(cent) || 0) + 1));
+    }
+    return result;
+  }
+
+  function validKey(key, count) {
+    if (typeof key !== 'string' || !key.startsWith(PREFIX) || !Number.isInteger(count) || count < 1) return false;
+    try {
+      const [scope, kind, target] = JSON.parse(key.slice(PREFIX.length));
+      return keyFor(scope, kind, target) === key && target.length === count;
+    } catch {
+      return false;
+    }
+  }
+
+  const DRAFT_KEY = PREFIX + 'latest-local';
+  const validId = id => typeof id === 'string' && /^[a-zA-Z0-9-]{1,96}$/.test(id);
+  const nonnegative = n => Number.isSafeInteger(n) && n >= 0;
+  const sum = (a, b) => b > MAX_COUNT - a ? MAX_COUNT : a + b;
+
+  function decodeSlots(slots, count) {
+    if (!Array.isArray(slots) || slots.length !== count) throw new Error();
+    return slots.map(slot => {
+      if (!Array.isArray(slot) || slot.length > LIMIT * 2 + 1) throw new Error();
+      const bin = new Map();
+      for (const pair of slot) {
+        if (!Array.isArray(pair) || pair.length !== 2) throw new Error();
+        const [cent, n] = pair;
+        if (!validSlot(cent) || !validCount(n) || bin.has(cent)) throw new Error();
+        bin.set(cent, n);
+      }
+      return bin;
+    });
+  }
+
+  function sortedSlots(bins) {
+    return bins.map(slot => Array.from(slot.entries()).sort((a, b) => a[0] - b[0]));
+  }
+
+  function addBins(target, source) {
+    if (!Array.isArray(source) || source.length !== target.length) throw new Error();
+    let any = false;
+    for (let i = 0; i < target.length; i++) {
+      if (!(source[i] instanceof Map)) throw new Error();
+      for (const [measured, count] of source[i]) {
+        const cent = bucket(measured);
+        if (cent === null || !validCount(count)) throw new Error();
+        const slot = target[i];
+        slot.set(cent, sum(slot.get(cent) || 0, count));
+        any = true;
+      }
+    }
+    return any;
+  }
+
+  function read(storage, key) {
+    try {
+      return {ok: true, raw: storage.getItem(key)};
+    } catch {
+      return {ok: false, reason: 'unavailable'};
+    }
+  }
+
+  function write(storage, key, payload) {
+    try {
+      storage.setItem(key, JSON.stringify(payload));
+      return {ok: true};
+    } catch {
+      return {ok: false, reason: 'write-failed'};
+    }
+  }
+
+  function load(storage, key, count) {
+    if (!validKey(key, count)) return {ok: false, reason: 'invalid-key'};
+    const item = read(storage, key);
+    if (!item.ok) return item;
+    if (item.raw === null) return {ok: true, bins: fresh(count), exists: false};
+    try {
+      const {v, slots, lastDraftId} = JSON.parse(item.raw);
+      if (v !== 1 || (lastDraftId !== undefined && !validId(lastDraftId))) throw new Error();
+      const bins = decodeSlots(slots, count);
+      return {ok: true, bins, exists: bins.some(slot => slot.size > 0), lastDraftId};
+    } catch {
+      return {ok: false, reason: 'invalid-data'};
+    }
+  }
+
+  function save(storage, key, bins, draftId) {
+    if (!Array.isArray(bins) || (draftId !== undefined && !validId(draftId))) {
+      return {ok: false, reason: 'invalid-attempt'};
+    }
+    const current = load(storage, key, bins.length);
+    if (!current.ok) return current;
+    if (draftId !== undefined && current.lastDraftId === draftId) return {...current, duplicate: true};
+    try {
+      if (!addBins(current.bins, bins)) return {ok: false, reason: 'empty-attempt'};
+    } catch {
+      return {ok: false, reason: 'invalid-attempt'};
+    }
+    // Refuse a stale tab once another exercise or attempt has replaced its draft.
+    // Read immediately before the write; localStorage has no cross-tab transaction.
+    if (draftId !== undefined) {
+      const latest = loadDraft(storage, key, bins.length);
+      if (!latest.ok) return latest;
+      if (!latest.exists || latest.draft.id !== draftId || !latest.draft.pending) {
+        return {ok: false, reason: 'stale-draft'};
+      }
+    }
+    const lastDraftId = draftId ?? current.lastDraftId;
+    const saved = write(storage, key, {v: 1, slots: sortedSlots(current.bins), lastDraftId});
+    return saved.ok ? {...current, exists: true, lastDraftId} : saved;
+  }
+
+  function newDraftId() {
+    try {
+      const id = globalThis.crypto?.randomUUID?.();
+      if (validId(id)) return id;
+    } catch {}
+    return Array.from({length: 4}, () => Math.random().toString(36).slice(2) || '0').join('-');
+  }
+
+  function normalizeDraft(draft, count) {
+    if (!draft || !validId(draft.id) || !Array.isArray(draft.values) || draft.values.length !== count ||
+        !['loop', 'single'].includes(draft.mode) || !nonnegative(draft.laps) || !nonnegative(draft.passed) ||
+        draft.passed > draft.laps || !nonnegative(draft.progress) || draft.progress > count ||
+        typeof draft.pending !== 'boolean') throw new Error();
+    const values = Array.from(draft.values, n => {
+      if (n !== null && bucket(n) === null) throw new Error();
+      return n;
+    });
+    return {id: draft.id, values, mode: draft.mode, laps: draft.laps, passed: draft.passed,
+      progress: draft.progress, pending: draft.pending};
+  }
+
+  function currentDraftId(storage) {
+    const item = read(storage, DRAFT_KEY);
+    if (!item.ok) return item;
+    if (item.raw === null) return {ok:true,id:null};
+    try {
+      const current = JSON.parse(item.raw);
+      if (current.v !== 1 || !validId(current.id) || !validKey(current.scope,current.values?.length)) throw new Error();
+      return {ok:true,id:current.id};
+    } catch {
+      return {ok:false,reason:'invalid-draft'};
+    }
+  }
+
+  function saveDraft(storage, key, draft, options = {}) {
+    const count = draft?.values?.length;
+    if (!validKey(key, count)) return {ok: false, reason: 'invalid-key'};
+    if (!storage) return {ok: false, reason: 'unavailable'};
+    let snapshot;
+    try {
+      snapshot = normalizeDraft(draft, count);
+      for (const name of ['history', 'attemptHistory']) {
+        if (draft[name] == null) continue;
+        const bins = fresh(count);
+        addBins(bins, draft[name]);
+        snapshot[name] = sortedSlots(bins);
+      }
+    } catch {
+      return {ok: false, reason: 'invalid-draft'};
+    }
+    if (options.expectedId !== undefined) {
+      const latest = currentDraftId(storage);
+      if (!latest.ok) return latest;
+      if (latest.id !== options.expectedId) return {ok:false,reason:'stale-draft'};
+    }
+    if (options.ifCurrent) {
+      const latest = loadDraft(storage, key, count);
+      if (!latest.ok) return latest;
+      if (!latest.exists || latest.draft.id !== snapshot.id) return {ok: false, reason: 'stale-draft'};
+    }
+    return write(storage, DRAFT_KEY, {v: 1, scope: key, ...snapshot});
+  }
+
+  function loadDraft(storage, key, count) {
+    if (!validKey(key, count)) return {ok: false, reason: 'invalid-key'};
+    const item = read(storage, DRAFT_KEY);
+    if (!item.ok) return item;
+    if (item.raw === null) return {ok: true, exists: false};
+    try {
+      const snapshot = JSON.parse(item.raw);
+      if (snapshot.v !== 1 || !validKey(snapshot.scope, snapshot.values?.length)) throw new Error();
+      if (snapshot.scope !== key) return {ok: true, exists: false};
+      const draft = normalizeDraft(snapshot, count);
+      for (const name of ['history', 'attemptHistory']) {
+        if (snapshot[name] !== undefined) draft[name] = decodeSlots(snapshot[name], count);
+      }
+      if (draft.pending) {
+        const saved = load(storage, key, count);
+        if (saved.ok && saved.lastDraftId === draft.id) draft.pending = false;
+      }
+      return {ok: true, exists: true, draft};
+    } catch {
+      return {ok: false, reason: 'invalid-draft'};
+    }
+  }
+
+  function removeDraft(storage, key, count) {
+    if (!validKey(key, count)) return {ok: false, reason: 'invalid-key'};
+    const current = loadDraft(storage, key, count);
+    if (!current.ok || !current.exists) return current;
+    try {
+      storage.removeItem(DRAFT_KEY);
+      return {ok: true};
+    } catch {
+      return {ok: false, reason: 'write-failed'};
+    }
+  }
+
+  return {keyFor, bucket, appendPoints, load, save, newDraftId, currentDraftId, saveDraft, loadDraft, removeDraft};
+});
+/* END practice history module */

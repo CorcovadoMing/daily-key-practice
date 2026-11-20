@@ -5,7 +5,7 @@ function setup(reduced=false){
  const item={opened:false,title:{isConnected:true,scrollIntoView:o=>scrolls.push(o)},guide:{isEditing:()=>false}};
  const other={panelAnimation:{finished:finish},guide:{isEditing:()=>false}};
  const env={cardInstances:new Map([['x',item],['y',other]]),cardScrollRequest:0,expandedOverride:null,
- currentSession:()=>({}),syncPracticeCards(){item.opened=env.expandedOverride==='x'},document:{querySelector:()=>modal},
+ currentSession:()=>({}),unsavedPracticeIn:()=>[],syncPracticeCards(){item.opened=env.expandedOverride==='x'},document:{querySelector:()=>modal},
  requestAnimationFrame:fn=>frames.push(fn),window:{matchMedia:()=>({matches:reduced})}};
  vm.createContext(env);vm.runInContext(html.slice(html.indexOf('    function scrollExpandedTitleAfterLayout('),html.indexOf('    function renderPracticeNavigation(')),env);
  return{env,item,scrolls,resolve,modal:v=>modal=v,async settle(){resolve();await new Promise(r=>setImmediate(r));while(frames.length)frames.shift()();}};

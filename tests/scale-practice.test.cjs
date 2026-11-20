@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const html = fs.readFileSync(require('node:path').join(__dirname,'../index.html'),'utf8');
 const moduleBox = {module:{exports:{}}};
 vm.runInNewContext(html.split('// SCALE_PRACTICE_START')[1].split('// SCALE_PRACTICE_END')[0],moduleBox);
-const {align,trackNotes,manager,micCapture,metronomeClickGate,chartPoint,centsText,scoreValues,monitorPitch,liveSlot} = moduleBox.module.exports;
+const {resolveMidpoint,align,trackNotes,manager,micCapture,metronomeClickGate,chartPoint,centsText,scoreValues,monitorPitch,liveSlot} = moduleBox.module.exports;
 const audio = {module:{exports:{}}};
 vm.runInNewContext(html.split('// AUDIO_TOOLS_START')[1].split('// AUDIO_TOOLS_END')[0],audio);
 const {pitchReading,detectPitch} = audio.module.exports;
@@ -25,7 +25,7 @@ test('missing, swapped, wrong-octave, and detuned notes cannot substitute',()=>{
     target.filter((_,i)=>i!==5),
     target.map((n,i)=>i===5?target[6]:i===6?target[5]:n),
     target.map((n,i)=>i===5?tone(n.midi+12):n),
-    target.map((n,i)=>i===5?tone(n.midi,41):n)
+    target.map((n,i)=>i===5?tone(n.midi,51):n)
   ]) {
     const r=align(target,heard);
     assert.equal(r.complete,false);
@@ -73,9 +73,9 @@ function fixture() {
     resources.prompts++;
     if(error)return Promise.reject(error);
     return new Promise(r=>permit=()=>r(stream));
-  }}},performance:{now:()=>time},setTimeout,clearTimeout,
+  }}},performance:{now:()=>time},setTimeout:(...args)=>setTimeout(...args).unref(),clearTimeout,
     setInterval:f=>{callback=f;return 1;},clearInterval:()=>{callback=null;}};
-  const calls=[], view={target,element:{},update(...args){calls.push(args);}};
+  const calls=[], view={target,mode:"single",element:{},update(...args){calls.push(args);}};
   const capture=micCapture(env,()=>frequency,.0003);
   const m=manager(env,{capture,reference:()=>442,pitchReading,pitchName:String});
   return {m,view,calls,track,resources,capture,grant:()=>permit(),reject:e=>error=e,
@@ -136,23 +136,23 @@ test('chart cents positions are signed, centered and bounded without fabricating
   assert.equal(chartPoint(-14).band,'near');
   assert.equal(chartPoint(45).band,'outside');
 });
-test('visual can show +45¢, but recording and score remain ±40¢',async()=>{
+test('visual and scoring accept +45¢ in the original octave',async()=>{
   const f=fixture(), starting=f.m.toggle(f.view);
   f.grant();await starting;
   f.play(36,45);
   let [phase,,,progress,,visual]=f.calls.at(-1);
-  assert.equal(phase,'listening');assert.equal(progress,0);
+  assert.equal(phase,'listening');assert.equal(progress,1);
   assert.equal(visual.live.slot,0);assert.equal(Math.round(visual.live.cents),45);
-  assert.equal(visual.values[0],null);
+  assert.equal(Math.round(visual.values[0]),45);
   f.play(36,16);f.play(36,-17);
   [, , , progress,,visual]=f.calls.at(-1);
   assert.equal(progress,1);
-  assert.equal(Math.round(visual.values[0]),16);
+  assert.equal(Math.round(visual.values[0]),45);
   assert.equal(visual.live.slot,0);assert.equal(Math.round(visual.live.cents),-17);
   f.play(0); f.play(0);
   [, , , progress,,visual]=f.calls.at(-1);
   assert.equal(progress,1);assert.equal(visual.live,null);
-  assert.equal(Math.round(visual.values[0]),16);
+  assert.equal(Math.round(visual.values[0]),45);
   f.play(39,14);
   [, , , progress,,visual]=f.calls.at(-1);
   assert.equal(progress,1);assert.equal(visual.live.slot,null);
@@ -239,13 +239,13 @@ test('a sustained note near a click (A♭5 +20¢ at A442) passes after the short
   assert.equal(gate(frequency,243,true),true,'silence resets the transient length');
 });
 
-test('arpeggio matching accepts exact tolerance after floating-point pitch conversion, not 40.01 cents',()=>{
+test('arpeggio matching resolves exact half-semitone to score, not 50.01 cents',()=>{
   const expected=[tone(69),tone(72)];
   for(const sign of [1,-1]) {
     const convert=(midi,cents)=>pitchReading(442*2**((midi-69+cents/100)/12),442);
-    const near=convert(69,sign*40);
+    const near=resolveMidpoint(convert(69,sign*50),69,null);
     assert.equal(align(expected,[near,convert(72,0)]).complete,true);
-    assert.equal(align(expected,[convert(69,sign*40.01),convert(72,0)]).complete,false);
+    assert.equal(align(expected,[convert(69,sign*50.01),convert(72,0)]).complete,false);
     const push=trackNotes();
     for(const ms of [0,27,54])assert.equal(push(near,ms),null);
     assert.equal(push(near,81).midi,69);
@@ -255,7 +255,7 @@ test('arpeggio matching accepts exact tolerance after floating-point pitch conve
 const cMajorArpeggio = [36,40,43,48,52,55,60,55,52,48,43,40,36].map(midi=>tone(midi));
 test('switch scale ↔ arpeggio keeps one mic session but grades only selected score notes',async()=>{
   const f=fixture(), arpeggioCalls=[];
-  const arpeggio={target:cMajorArpeggio,element:{},update(...args){arpeggioCalls.push(args);}};
+  const arpeggio={target:cMajorArpeggio,mode:'single',element:{},update(...args){arpeggioCalls.push(args);}};
   const start=f.m.toggle(f.view);
   f.grant();await start;
   f.play(38); // Must not be added to the succeeding arpeggio take.
@@ -275,7 +275,7 @@ test('switch scale ↔ arpeggio keeps one mic session but grades only selected s
 });
 test('switching practice mode while permission is pending still makes one request',async()=>{
   const f=fixture(), arpeggioCalls=[];
-  const arpeggio={target:cMajorArpeggio,element:{},update(...args){arpeggioCalls.push(args);}};
+  const arpeggio={target:cMajorArpeggio,mode:'single',element:{},update(...args){arpeggioCalls.push(args);}};
   await f.m.toggle(f.view);
   await f.m.toggle(arpeggio);
   assert.equal(f.resources.prompts,1);
@@ -309,7 +309,7 @@ test('arpeggios use distinct kind labels, chart and results without changing but
   assert.equal(grid.children.length,13);
   // A displayed-but-not-accepted pitch is a live cue, not a successful note.
   view.update('listening',null,null,0,442,{live:{slot:0,cents:45,name:'C2'},values:[],progress:0,listening:true});
-  assert.equal(heads[0].dataset.practiceCurrent,undefined,'unanchored detuning cannot color a score note');
+  assert.equal(heads[0].dataset.practiceCurrent,'true','46¢ stable exact MIDI can color a score note');
   assert.equal(heads[0].dataset.practice,undefined);
   view.update('listening',null,null,1,442,{live:{slot:0,cents:0,name:'C2'},values:[0],progress:1,listening:true});
   assert.equal(heads[0].dataset.practice,'matched');
@@ -340,10 +340,10 @@ test('all three cutoffs honor signed mathematical boundaries in both tracking an
     assert.equal(b(of(tolerance+.01),81),null);
   }
   assert.equal(align([tone(69)],[tone(69,39)],99).complete,true,'unknown tolerance uses safe default');
-  assert.equal(align([tone(69)],[tone(69,41)],99).complete,false);
+  assert.equal(align([tone(69)],[tone(69,51)],99).complete,false);
 });
 
-test('the exercise snapshots mode before permission and always accepts up to ±40 cents',async()=>{
+test('the exercise snapshots mode before permission and always accepts up to ±50 cents',async()=>{
   const f=fixture();
   let mode='single';
   Object.defineProperty(f.view,'mode',{get:()=>mode});
@@ -351,15 +351,15 @@ test('the exercise snapshots mode before permission and always accepts up to ±4
   assert.equal(f.calls.at(-1)[5].mode,'single');
   mode='loop';
   f.grant();await started;
-  f.play(36,41);
+  f.play(37,-49);
   assert.equal(f.calls.at(-1)[3],0);
-  f.play(36,39);
+  f.play(36,49);
   assert.equal(f.calls.at(-1)[3],1);
   for(const note of target.slice(1)) f.play(note.midi);
   const [, ,result, , ,display]=f.calls.at(-1);
   assert.equal(result.complete,true);
   assert.equal(display.mode,'single');
-  assert.equal(Math.round(display.values[0]),39);
+  assert.equal(Math.round(display.values[0]),49);
 });
 
 test('loop shares the descent tonic, layers identical positions, and preserves a partial round on stop',async()=>{
@@ -437,7 +437,7 @@ test('native practice-mode selection persists and syncs scale/arpeggio without s
   assert.equal(action.attributes.role,'group');
   assert.equal(action.attributes['aria-label'],'音階練習控制');
   assert.equal(otherAction.attributes['aria-label'],'琶音練習控制');
-  assert.equal(label.textContent,'單次 ▾');
+  assert.equal(label.textContent,'循環 ▾');
   assert.deepEqual(select.children.map(x=>[x.value,x.textContent]),[['single','單次'],['loop','循環']]);
   assert.equal(select.attributes['aria-label'],'音階練習方式');
   assert.equal(otherBtn.textContent,'開始練習');
