@@ -466,7 +466,6 @@
       if(accidentals[i])g.append(svgNode('text',{class:'scale-accidental',x:x-18,y:y+5,'text-anchor':'middle','font-family':'Georgia, serif','font-size':18,fill:'#222'},accidentals[i]));
       g.append(svgNode('ellipse',{cx:x,cy:y,rx:5.8,ry:3.7,transform:'rotate(-20 '+x+' '+y+')',fill:'#222'}));
       noteGroups.push(g);
-      svg.append(g);
     });
     // Four-note visual groups; no meter or barlines are imposed on the exercise.
     const groupSize=arpeggio?1:4;
@@ -481,9 +480,22 @@
       group.forEach((n,j)=>noteGroups[start+j].append(svgNode('line',
         {class:'scale-stem',x1:stemX(n),x2:stemX(n),y1:n.y,y2:beamAt(n),stroke:'#222','stroke-width':1.25})));
       if(group.length>1){
-        for(let level=0;level<2;level++)svg.append(svgNode('line',{class:'scale-beam','data-level':level+1,x1:stemX(group[0]),x2:stemX(group[group.length-1]),y1:beamAt(group[0])+(down?-6:6)*level,y2:beamAt(group.at(-1))+(down?-6:6)*level,stroke:'#222','stroke-width':3.5}));
+        const left=stemX(group[0]),right=stemX(group.at(-1));
+        const radius=Math.min(8,spacing/4);
+        for(let level=0;level<2;level++){
+          const y=beamAt(group[0])+(down?-6:6)*level;
+          const yAt=x=>y+slope*(x-left);
+          svg.append(svgNode('line',{class:'scale-beam','data-level':level+1,x1:left,x2:right,y1:y,y2:yAt(right),stroke:'#222','stroke-width':3.5}));
+          // The inactive overlays are invisible; the live note paints only its
+          // own nearby portions, clipped to either end of the shared beam.
+          group.forEach((n,j)=>{
+            const x1=Math.max(left,stemX(n)-radius),x2=Math.min(right,stemX(n)+radius);
+            noteGroups[start+j].append(svgNode('line',{class:'scale-beam-local','data-level':level+1,x1,x2,y1:yAt(x1),y2:yAt(x2),'stroke-width':3.5,stroke:'none','aria-hidden':'true'}));
+          });
+        }
       } // The final tonic keeps its stem but has no flags: a quarter note.
     }
+    svg.append(...noteGroups);
     for(const [x,label] of [[startX,'上行'],[startX+peakIndex*spacing,'下行']]){
       svg.append(svgNode('text',{x,y:164,'font-size':12,fill:'#647461'},label));
       svg.append(svgNode('path',{d:`M${x+32} 160h14m-6-6 6 6-6 6`,fill:'none',stroke:'#647461','stroke-width':1.6,'stroke-linecap':'round','stroke-linejoin':'round','aria-hidden':'true'}));

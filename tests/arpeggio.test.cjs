@@ -39,7 +39,31 @@ test('all 24 keys feed targets from the exact rendered scale and arpeggio staff'
      'every individual note owns its own stem, including repeated pitches and the final tonic');
    assert.ok(notes.every(note=>!note.children.some(x=>x.attributes.class==='scale-beam')),
      'shared beams cannot inherit the note highlight');
-   assert.equal(staff.children[0].children.filter(x=>x.attributes.class==='scale-beam').length,arpeggio?0:14);
+   const beams=staff.children[0].children.filter(x=>x.attributes.class==='scale-beam');
+   assert.equal(beams.length,arpeggio?0:14);
+   for(const [i,note] of notes.entries()){
+    const overlays=note.children.filter(x=>x.attributes.class==='scale-beam-local');
+    assert.equal(overlays.length,arpeggio||i===28?0:2);
+    overlays.forEach(({attributes:a},j)=>{
+     const base=beams[Math.floor(i/4)*2+j].attributes;
+     const stem=note.children.find(x=>x.attributes.class==='scale-stem').attributes;
+     const onRail=x=>Number(base.y1)+(base.y2-base.y1)*(x-base.x1)/(base.x2-base.x1);
+     assert.ok(+base.x1<=+a.x1 && +a.x1<=+stem.x1 && +stem.x1<=+a.x2 && +a.x2<=+base.x2);
+     assert.ok(a.x2-a.x1<=16);
+     assert.ok(Math.abs(a.y1-onRail(a.x1))<1e-9 && Math.abs(a.y2-onRail(a.x2))<1e-9);
+     assert.equal(a.stroke,'none');
+     assert.equal(a['aria-hidden'],'true');
+     assert.equal(base.stroke,'#222');
+    });
+   }
   }
  }
+});
+
+test('local double-beam highlight shares live stem color only and is suppressed in print',()=>{
+ const liveStem=html.match(/\[data-practice-current=true\] \.scale-stem\{stroke:(#[0-9a-f]+)/i)[1];
+ const accent=html.match(/\[data-practice-current=true\] \.scale-beam-local\{stroke:(#[0-9a-f]+)/i)[1];
+ assert.equal(accent,liveStem);
+ assert.match(html,/@media print\{[^\n]*\[data-practice-current=true\] \.scale-beam-local\{stroke:none\}/);
+ assert.doesNotMatch(html,/\[data-practice=(matched|missing)\] \.scale-beam-local/);
 });
