@@ -81,8 +81,9 @@ test('scale detector uses visible native segments and only explicit scope choice
  assert.equal(trad.type,'radio');assert.equal(smart.checked,true);
  assert.equal(trad.name,smart.name);
  assert.notEqual(trad.name,other.element.find('scale-practice-detector').children[0].children[0].name);
- assert.equal(scale.detector,'swift');assert.equal(arpeggio.detector,'existing');
- assert.equal(arpeggio.element.find('scale-practice-detector'),undefined);
+ assert.equal(scale.detector,'swift');assert.equal(arpeggio.detector,'swift');
+ const arpTrad=arpeggio.element.find('scale-practice-detector').children[0].children[0];
+ assert.notEqual(arpTrad.name,trad.name);
  assert.equal(writes.length,0);
  assert.equal(starts,0);
  scale.update('pending','正在準備智慧偵測…');assert.equal(segment.disabled,true);
@@ -92,6 +93,11 @@ test('scale detector uses visible native segments and only explicit scope choice
  trad.checked=true;smart.checked=false;trad.handlers.change();
  assert.equal(scale.detector,'existing');assert.equal(starts,0);assert.equal(writes.length,1);
  const reloaded=fresh().card;
+ assert.equal(reloaded(score,[],()=>{},'arpeggio','major-C').detector,'swift');
+ arpTrad.checked=true;arpTrad.handlers.change();
+ assert.equal(writes.length,2);
+ assert.ok(writes[0].endsWith(':major-C'));assert.ok(writes[1].endsWith(':arpeggio:major-C'));
+ assert.equal(fresh().card(score,[],()=>{},'arpeggio','major-C').detector,'existing');
  assert.equal(reloaded(score,[],()=>{},'scale','major-C').detector,'existing');
  assert.equal(reloaded(score,[],()=>{},'scale','minor-C').detector,'swift');
 });

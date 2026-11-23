@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261123-027-experimental">
+  <meta name="site-version" content="20261123-028-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -509,12 +509,7 @@
     .scale-practice-action{display:inline-flex;flex:none;align-items:stretch;border:1px solid #8da692;border-radius:999px;background:#edf4ed;color:#274a35}
     .scale-practice-button{font:inherit;font-size:13px;font-weight:700;border:0;border-radius:999px 0 0 999px;color:inherit;background:transparent;padding:7px 14px;min-height:44px;cursor:pointer;white-space:nowrap}
     .scale-practice-button:hover,.scale-practice-button[aria-pressed=true]{background:#dcebdd}
-    .scale-practice-button:focus-visible,.scale-practice-choice:focus-within{outline:3px solid #4c81b3;outline-offset:-3px}
-    .scale-practice-choice{position:relative;display:inline-flex;align-items:center;justify-content:center;border-radius:0 999px 999px 0;min-height:44px;min-width:100px;padding:0 10px;font-size:12px;font-weight:700;white-space:nowrap}
-    .scale-practice-choice:hover{background:#dcebdd}
-    .scale-practice-choice[data-locked=true]{background:#e8efe7;color:#526555}
-    .scale-practice-mode{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px}
-    .scale-practice-mode:disabled{cursor:default}
+    .scale-practice-button:focus-visible{outline:3px solid #4c81b3;outline-offset:-3px}
     .scale-practice-history-actions{display:flex;flex:0 1 100%;flex-wrap:wrap;align-items:center;gap:5px 8px}
     .scale-practice-history-actions button{min-height:44px;padding:5px 12px;border:1px solid #8da692;border-radius:999px;background:#f0f6ef;color:#31533c;font-weight:700;cursor:pointer}
     .scale-practice-history-actions button:focus-visible{outline:3px solid #4c81b3;outline-offset:2px}
@@ -606,14 +601,14 @@
       [data-appearance=dark] :is(.result-summary,.key-card.done,.cello-fb-group,.cello-fb-legend,.fingering-note,.teacher-note-status,.online-count,.history-empty,.empty-graphic){background:var(--soft);color:var(--ink);border-color:var(--line)}
       [data-appearance=dark] :is(button,select,input:not([type=range]):not([type=checkbox]),textarea){color:var(--ink);border-color:var(--line)}
       [data-appearance=dark] :is(.room-action,.icon-button,.stepper button,.filter-all,.filter-key,.show-scales,.history-replay,.history-delete,.practice-jump,.practice-quick-list button,.cello-fb-button,.cello-inline-editor button,.teacher-tools button,.student-note-button,.scale-practice button,.scale-practice select,.audio-tools button,.audio-tools input,.audio-tools select,.theme-choice select){background:var(--theme-high);border-color:#6d7a8a;color:var(--ink)}
-      [data-appearance=dark] :is(.filter-key[aria-pressed=false],.fifths-pair .filter-key[aria-pressed=false],.ordered-practice-button,.key-expand,.fingering-edit,.history-choice-actions button,.finger-form-actions button,.teacher-finger-button,.cello-leave-keep,.scale-practice-choice[data-locked=true]){background:var(--theme-high);color:var(--ink);border-color:#6d7a8a}
+      [data-appearance=dark] :is(.filter-key[aria-pressed=false],.fifths-pair .filter-key[aria-pressed=false],.ordered-practice-button,.key-expand,.fingering-edit,.history-choice-actions button,.finger-form-actions button,.teacher-finger-button,.cello-leave-keep){background:var(--theme-high);color:var(--ink);border-color:#6d7a8a}
       [data-appearance=dark] :is(.filter-key[aria-pressed=true],.fifths-pair .filter-key[aria-pressed=true],.key-expand[aria-expanded=true],.cello-fb-button[aria-pressed=true],.cello-inline-choice[aria-pressed=true],.cello-inline-finger[aria-pressed=true],.teacher-note-pill[aria-pressed=true],.teacher-finger-button[aria-pressed=true],.history-choice-actions button.primary,.finger-form-actions button.primary,.practice-jump.is-active){background:#445970;color:#eff5fd}
       [data-appearance=dark] .teacher-note-pill[aria-pressed=true]{background:#445970;color:#eff5fd}
       [data-appearance=dark] .fifths-pair .filter-key.minor[aria-pressed=true]{background:#4b596b;color:#eaf0f8}
       [data-appearance=dark] :is(.history-chip.done,.practice-jump.is-done){background:#363e47;color:var(--muted)}
       [data-appearance=dark] :is(.history-replay,.cello-inline-undo,.cello-inline-range,.cello-inline-range[aria-pressed=true]){background:#2e4354;color:var(--theme-blue);border-color:#7192aa}
       [data-appearance=dark] :is(.cello-inline-reset,.cello-inline-restore-selected,.cello-leave-discard,.history-delete:hover){background:#513636;color:var(--theme-red);border-color:#a7655d}
-      [data-appearance=dark] :is(.history-choice-actions button.cancel,.scale-practice-choice:hover,.scale-practice-button:hover,.icon-button:hover,.ordered-practice-button:hover:not(:disabled),.fingering-edit:hover,.practice-jump:hover){background:#435268;color:var(--ink)}
+      [data-appearance=dark] :is(.history-choice-actions button.cancel,.scale-practice-button:hover,.icon-button:hover,.ordered-practice-button:hover:not(:disabled),.fingering-edit:hover,.practice-jump:hover){background:#435268;color:var(--ink)}
       [data-appearance=dark] .empty-graphic::before,[data-appearance=dark] .empty-graphic::after{background:#75889e}
       [data-appearance=dark] :is(.cello-legend-title,.cello-inline-status,.cello-inline-label,.cello-inline-open,.cello-inline-hint,.cello-fb-sequence,.cello-leave-dialog p,.finger-form p,.finger-form label,.fingering-pattern,.teacher-memo summary){color:var(--muted)}
       [data-appearance=dark] :is(.fingering-changed,.cello-fb-changed){color:var(--theme-red)}
@@ -630,14 +625,16 @@
       [data-appearance=dark]{--completion-outline:#a8b7c5;--completion-green:#93dca8}
       [data-appearance=dark] :is(.progress-fill,.key-dot){background:#6ab68a;color:#11241a}
       [data-appearance=dark] :is(.music-section-title,.history-panel-heading:not(.classroom),.history-chip:not(.minor):not(.done),.filter-heading h3,.launch-settings h2){color:var(--ink)}
-      [data-appearance=dark] :is(.fifths-signature,.filter-count,.filter-status,.caption,.room-join-label,.room-join-status,.scale-practice-choice-label,.scale-notes,.history-choice-dialog p){color:var(--muted)}
+      [data-appearance=dark] :is(.fifths-signature,.filter-count,.filter-status,.caption,.room-join-label,.room-join-status,.scale-notes,.history-choice-dialog p){color:var(--muted)}
       [data-appearance=dark] .key-card.done .key-primary{color:var(--theme-green)}
-      [data-appearance=dark] .scale-practice-choice:is(:hover,[data-locked=true]) .scale-practice-choice-label{color:var(--ink)}
       [data-appearance=dark] .result-panel .result-summary{background:transparent}
       [data-appearance=dark] .result-summary .summary-top{color:var(--ink)}
       /* Quiet decorative rims on the dark audio dock; keep pressed and focus cues separate. */
       [data-appearance=dark] .audio-tools,
       [data-appearance=dark] .audio-tools .tuner-preferences{border-color:#3c4652}
+      [data-appearance=dark] .audio-tools{color:var(--ink)}
+      [data-appearance=dark] :is(#tuner-note,#tuner-a,#tuner-detector,.tuner-detector-control){color:#eef1f5}
+      [data-appearance=dark] :is(#tuner-status,.audio-scale,.a4-control span,.tuner-readout #tuner-cents){color:#b9c3cf}
       [data-appearance=dark] .audio-tools :is(button:not([aria-pressed=true]):not([aria-expanded=true]),input:not([type=range]),select){border-color:#525f6e}
       [data-appearance=dark] :is(.progress-track,.audio-meter){background:#333c47}
       [data-appearance=dark] :is(.filter-warning,.student-note-button.has-note,.teacher-note-pill){background:#493a24;color:var(--theme-gold);border-color:#867044}
@@ -720,7 +717,6 @@
     .scale-practice>.scale-practice-action button:hover{background:#dcebdd}
     .practice-options{align-self:flex-start}
     .practice-options>summary{font-size:12px;padding-inline:9px}
-    .practice-options .scale-practice-choice{border:1px solid var(--line);border-radius:9px;margin:5px;min-width:72px}
     .scale-practice-status{flex-basis:100%}
     .scale-practice-history-actions{order:3}
     .scale-practice-coach{order:3}
@@ -794,10 +790,9 @@
     .audio-tool-pair{display:inline-flex;align-items:center;gap:3px}
     .audio-buttons{gap:8px}
     .scale-practice>.scale-practice-action{display:flex;flex-wrap:wrap;align-items:flex-start;min-width:0;gap:5px}
-    .scale-practice-action>.scale-practice-choice{border:1px solid var(--line);border-radius:9px;background:var(--paper);min-width:72px}
-    .scale-practice-action>.scale-practice-detector{min-height:44px;margin:0}
-    .scale-practice-detector:disabled{opacity:.64}
-    .scale-practice-detector:disabled label,.scale-practice-detector:disabled input{cursor:default}
+    .scale-practice-action>:is(.scale-practice-choice,.scale-practice-detector){min-height:44px;margin:0}
+    :is(.scale-practice-choice,.scale-practice-detector):disabled{opacity:.64}
+    :is(.scale-practice-choice,.scale-practice-detector):disabled :is(label,input){cursor:default}
     .history-access>.practice-stats{box-shadow:none}
     @media(max-width:380px){
       .launch-mode span{padding:0 5px}
@@ -964,7 +959,7 @@
     <select id="appearance-choice">
       <option value="light">淺色</option><option value="dark">深色</option><option value="system">跟隨系統</option>
     </select>
-  </label><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261123-027-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  </label><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261123-028-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -1275,8 +1270,8 @@
   const modeKey = 'daily-key-practice:experimental:practice-mode';
   const practiceModes = [['single','單次'],['loop','循環']];
   const modeValue = value => value === 'single' ? 'single' : 'loop';
-  const modeName = value => modeValue(value) === 'loop' ? '循環' : '單次';
-  let selectedMode, latestDraftToken, coachService, coachStorageAsked=false, detectorControlSerial=0;
+  let selectedMode, latestDraftToken, coachService, coachStorageAsked=false, detectorControlSerial=0, methodControlSerial=0;
+  const methodFields=new WeakMap();
   const detectorPreferences=new Map();
   function detectorPreference(scope){
     if(!scope)return 'swift';
@@ -1950,42 +1945,33 @@
     action.setAttribute('aria-label', name + '練習控制');
     const button = document.createElement('button');
     button.type = 'button'; button.className = 'scale-practice-button';
-    const choice = document.createElement('div');
-    choice.className = 'scale-practice-choice';
-    const choiceLabel = document.createElement('span');
-    choiceLabel.className = 'scale-practice-choice-label';
-    choiceLabel.setAttribute('aria-hidden', 'true');
-    const selector = document.createElement('select');
-    selector.className = 'scale-practice-mode';
-    selector.setAttribute('aria-label', name + '練習方式');
-    for (const [mode,label] of practiceModes) {
-      const option = document.createElement('option');
-      option.value = mode;
-      option.textContent = label;
-      selector.append(option);
+    const choice=document.createElement('fieldset');
+    choice.className='scale-practice-choice launch-mode';
+    choice.setAttribute('aria-label',name+'練習方式');
+    const methodGroup='scale-practice-method-'+(++methodControlSerial), methodInputs=[];
+    function showChoice(mode){methodInputs.forEach(input=>input.checked=input.value===mode);}
+    methodFields.set(choice,showChoice);
+    for(const [value,word] of practiceModes){
+      const segment=document.createElement('label'),input=document.createElement('input'),caption=document.createElement('span');
+      input.type='radio';input.name=methodGroup;input.value=value;caption.textContent=word;
+      input.addEventListener('change',()=>{
+        if(choice.disabled||!input.checked)return;
+        const next=setPreference(value);
+        showChoice(next);
+        for(const peer of document.querySelectorAll?.('.scale-practice-choice')||[]){
+          if(!peer.disabled)methodFields.get(peer)?.(next);
+        }
+      });
+      methodInputs.push(input);
+      segment.append(input,caption);choice.append(segment);
     }
-    function showChoice(mode) {
-      selector.value = mode;
-      choiceLabel.textContent = modeName(mode) + ' ▾';
-    }
-    selector.addEventListener('change', () => {
-      if (selector.disabled) return;
-      const mode = setPreference(selector.value);
-      showChoice(mode);
-      // Only mounted controls are touched; a running exercise's setting is frozen.
-      for (const peer of document.querySelectorAll('.scale-practice-choice')) {
-        const select = peer.querySelector('select');
-        if (!select || select.disabled) continue;
-        select.value = mode;
-        peer.querySelector('.scale-practice-choice-label').textContent = modeName(mode) + ' ▾';
-      }
-    });
-    choice.append(choiceLabel, selector);
     action.append(button,choice);
     let detector, detectorValue = 'existing';
     const detectorInputs=[];
-    if (kind === 'scale') {
-      detectorValue = detectorPreference(scope);
+    if (kind === 'scale' || kind === 'arpeggio') {
+      // Keep the existing scale storage key; arpeggio has its own explicit scope.
+      const detectorScope=kind==='arpeggio'&&scope?'arpeggio:'+scope:scope;
+      detectorValue = detectorPreference(detectorScope);
       detector = document.createElement('fieldset');
       detector.className = 'scale-practice-detector launch-mode';
       detector.setAttribute('aria-label','音高偵測模式');
@@ -2000,7 +1986,7 @@
         input.addEventListener('change',()=>{
           if(detector.disabled||!input.checked)return;
           detectorValue=value;
-          saveDetectorPreference(scope,value);
+          saveDetectorPreference(detectorScope,value);
         });
         detectorInputs.push(input);
         segment.append(input,caption);
@@ -2202,7 +2188,7 @@
         if(Number.isFinite(answer.first)) times.push('首段運算 '+seconds(answer.first));
         if(Number.isFinite(answer.generation)) times.push('建議完成 '+seconds(answer.generation));
         coachTip.textContent=choice.observation+' '+choice.action+' '+choice.retest+
-          (attempt.detector&&Number.isFinite(attempt.reference) ? ' 比較時請沿用 '+(kind==='scale'?(attempt.detector==='SwiftF0'?'智慧':'傳統'):attempt.detector)+'、A4 '+attempt.reference+' Hz。' : ' 這份舊圖未記錄偵測方式和 A4；比較時請沿用你原本使用的設定。');
+          (attempt.detector&&Number.isFinite(attempt.reference) ? ' 比較時請沿用 '+(attempt.detector==='SwiftF0'?'智慧':'傳統')+'、A4 '+attempt.reference+' Hz。' : ' 這份舊圖未記錄偵測方式和 A4；比較時請沿用你原本使用的設定。');
         times.push('按下到顯示 '+seconds(globalThis.performance.now()-clicked));
         coachStatus.textContent=(answer.choice?(thinking?'Qwen3 思考選出的練習。':'Qwen3 快速選出的練習。'):
           (reason||'模型未回覆有效選項。')+'以下是規則建議，不是 AI 結果。'+
@@ -2238,13 +2224,12 @@
         const stopHint=next==='listening'?'連續 2 分鐘未對上下一個譜音會自動停止。':'';
         button.title=stopHint;
         button.setAttribute('aria-description',stopHint);
-        selector.disabled = next !== 'idle';
+        choice.disabled = next !== 'idle';
         if (detector){
-          detector.disabled=selector.disabled;
+          detector.disabled=choice.disabled;
           detectorInputs.forEach(input=>input.checked=input.value===detectorValue);
         }
-        choice.dataset.locked = String(selector.disabled);
-        showChoice(selector.disabled ? mode : preference());
+        showChoice(choice.disabled ? mode : preference());
         latest.textContent = '';
       }
       let text;

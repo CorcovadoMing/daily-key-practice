@@ -14,3 +14,9 @@ test('dark completion row is transparent and retains visible progress text',()=>
  a.match(css,/\[data-appearance=dark\] \.result-summary \.summary-top\{color:var\(--ink\)\}/);
  a.match(html,/<div class="summary-top"><span>練習完成進度<\/span><strong id="progress-text">0／4/);
 });
+test('dark tuner states and A4/settings read as foreground, not inherited light-only dark green',()=>{
+ const html=fs.readFileSync('index.html','utf8');
+a.match(html,/\[data-appearance=dark\] \.audio-tools\{color:var\(--ink\)/);
+a.match(html,/#tuner-note,#tuner-a,#tuner-detector,\.tuner-detector-control\)\{color:#eef1f5/);
+a.match(html,/#tuner-status,\.audio-scale,\.a4-control span,\.tuner-readout #tuner-cents\)\{color:#b9c3cf/);
+});

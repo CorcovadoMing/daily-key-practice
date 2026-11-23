@@ -63,6 +63,7 @@ const url = process.env.URL || 'http://127.0.0.1:8769/experimental/';
       const local=window.CelloScalePractice;
       local.controller=local.manager(window,{
         capture:{subscribe(listener){capture=listener;queueMicrotask(()=>listener.ready());return ()=>{};}},
+        swiftCapture:{subscribe(listener){capture=listener;queueMicrotask(()=>listener.ready());return ()=>{};}},
         reference:()=>442,
         pitchReading:(midi)=>({midi,cents:midi===40?28:-12}),
         pitchName:midi=>String(midi)
@@ -87,7 +88,7 @@ const url = process.env.URL || 'http://127.0.0.1:8769/experimental/';
     assert.equal(await smart.isChecked(),true);
     await smart.focus();await page.keyboard.press('ArrowLeft');
     assert.equal(await traditional.isChecked(),true);
-    assert.equal(await arp.locator('.scale-practice-detector').count(),0);
+    assert.equal(await arp.locator('.scale-practice-detector').getByRole('radio',{name:'智慧'}).isChecked(),true);
     assert.equal(await scale.getByRole('button',{name:'開始音階練習'}).isVisible(),true);
     const scope=page.locator('.cello-fingerboard').last();
     assert.equal(await scope.locator('.exercise-disclosure').first().getAttribute('open'),null);

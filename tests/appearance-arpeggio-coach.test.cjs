@@ -86,7 +86,7 @@ test('actual arpeggio manager/card reveals its own measured coaching only after 
   const button=panel.find('scale-practice-coach-action');
   await button.handlers.click();
   assert.ok(p.requested.some(x=>x.id==='arpeggio_leap'));
-  assert.match(panel.find('scale-practice-coach-tip').textContent,/琶音從.*C2.*E2.*再拉一輪琶音/);
+  assert.match(panel.find('scale-practice-coach-tip').textContent,/琶音從.*C2.*E2.*再拉一輪琶音.*智慧.*A4 442/);
   const reloaded=app(p.store,'');
   const restored=reloaded.card('arpeggio');
   assert.equal(reloaded.card('scale').element.find('scale-practice-coach').hidden,true);

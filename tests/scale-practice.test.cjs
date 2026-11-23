@@ -424,7 +424,7 @@ test('native practice-mode selection persists and syncs scale/arpeggio without s
   const storage=new Map();
   const localStorage={getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)};
   const document={createElement:tag=>{const el=new Node(tag);mounted.push(el);return el;},
-    querySelectorAll:sel=>mounted.filter(el=>el.className===sel.slice(1))};
+    querySelectorAll:sel=>mounted.filter(el=>el.className?.split(' ').includes(sel.slice(1)))};
   const load=()=>{const box={module:{exports:{}},document,localStorage};
     vm.runInNewContext(html.split('// SCALE_PRACTICE_START')[1].split('// SCALE_PRACTICE_END')[0],box);
     return box.module.exports;};
@@ -437,31 +437,29 @@ test('native practice-mode selection persists and syncs scale/arpeggio without s
   assert.equal(options.attributes['aria-label'],'音高偵測模式');
   assert.equal(options.children[0].children[1].textContent,'傳統');
   assert.equal(options.children[1].children[1].textContent,'智慧');
-  const [label,select]=choice.children, [otherLabel,otherSelect]=otherChoice.children;
+  const [single,loop]=choice.children.map(label=>label.children[0]);
+  const [otherSingle,otherLoop]=otherChoice.children.map(label=>label.children[0]);
   assert.equal(action.attributes.role,'group');
   assert.equal(action.attributes['aria-label'],'音階練習控制');
   assert.equal(otherAction.attributes['aria-label'],'琶音練習控制');
-  assert.equal(label.textContent,'循環 ▾');
-  assert.deepEqual(select.children.map(x=>[x.value,x.textContent]),[['single','單次'],['loop','循環']]);
-  assert.equal(select.attributes['aria-label'],'音階練習方式');
+  assert.equal(choice.tag,'fieldset');
+  assert.equal(choice.attributes['aria-label'],'音階練習方式');
+  assert.deepEqual(choice.children.map(x=>[x.children[0].value,x.children[1].textContent]),[['single','單次'],['loop','循環']]);
+  assert.equal(loop.checked,true);assert.equal(otherLoop.checked,true);
   assert.equal(otherBtn.textContent,'開始練習');
-  select.value='loop';select.handlers.change();
+  loop.handlers.change();
   assert.equal(invoked,0);
   assert.equal(storage.get(key),'loop');
-  assert.equal(select.value,'loop');
-  assert.equal(otherSelect.value,'loop');
-  assert.equal(otherLabel.textContent,'循環 ▾');
   assert.equal(load().card(score,target,()=>{}).mode,'loop');
   button.handlers.click();assert.equal(invoked,1);
   scale.update('pending',null,null,0,442,{mode:'loop'});
-  assert.equal(select.disabled,true);
-  otherSelect.value='single';otherSelect.handlers.change();
-  assert.equal(select.value,'loop');
-  assert.equal(label.textContent,'循環 ▾');
-  assert.equal(otherLabel.textContent,'單次 ▾');
+  assert.equal(choice.disabled,true);
+  otherSingle.checked=true;otherSingle.handlers.change();
+  assert.equal(loop.checked,true);
+  assert.equal(otherSingle.checked,true);assert.equal(otherLoop.checked,false);
   scale.update('idle',null,null);
-  assert.equal(select.disabled,false);
-  assert.equal(select.value,'single');
+  assert.equal(choice.disabled,false);
+  assert.equal(single.checked,true);assert.equal(loop.checked,false);
 });
 
 test('a missed pitch stays blank while subsequent notes light up; it never counts as a single pass',async()=>{
