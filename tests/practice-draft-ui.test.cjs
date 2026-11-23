@@ -22,10 +22,10 @@ function memory(){
   if(this.fail)throw Error('quota');calls.push(key);data.set(key,value);
  }};
 }
-function realm(storage,search=''){
+function realm(storage,search='',pathname='/daily-key-practice/experimental/'){
  const mounted=[];
  const context=vm.createContext({document:{createElement:()=>new Node(),querySelectorAll:()=>mounted},localStorage:storage,URL,URLSearchParams,
-  location:{pathname:'/daily-key-practice/experimental/',search,href:'https://example.test/daily-key-practice/experimental/'+search}});
+  location:{pathname,search,href:'https://example.test'+pathname+search}});
  vm.runInContext(code('PRACTICE_COACH'),context);
  vm.runInContext(storageSource,context);
  context.module={exports:{}};vm.runInContext(code('AUDIO_TOOLS'),context);
@@ -152,8 +152,8 @@ test('retry of a draft that failed to write cannot replace another tab’s newer
  assert.equal(b.history.loadDraft(storage,b.key,target.length).exists,true);
 });
 
-test('coach opt-in and measured chart restore after reload without changing mic or inventing A4 metadata',async()=>{
- const storage=memory(), initial=build(storage,'major-C','scale','single',realm(storage,'?coach=1'));
+test('measured chart and coaching restore after reload without changing mic or inventing A4 metadata',async()=>{
+ const storage=memory(), initial=build(storage,'major-C','scale','single',realm(storage,''));
  assert.equal(initial.view.element.find('scale-practice-coach').hidden,true);
  await initial.start();initial.play(36,8);await initial.stop();
  assert.equal(initial.view.element.find('scale-practice-coach').hidden,false);
@@ -167,6 +167,6 @@ test('coach opt-in and measured chart restore after reload without changing mic 
  assert.equal(restored.history.loadDraft(storage,restored.key,target.length).draft.coach,undefined);
  const old=build(storage,'major-C','scale','single',realm(storage,''));
  assert.equal(old.view.element.find('scale-practice-coach').hidden,false);
- const off=build(storage,'major-C','scale','single',realm(storage,'?coach=0'));
+ const off=build(storage,'major-C','scale','single',realm(storage,'','/daily-key-practice/'));
  assert.equal(off.view.element.find('scale-practice-coach'),undefined);
 });

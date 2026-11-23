@@ -3,16 +3,13 @@ const html=fs.readFileSync('index.html','utf8');
 const code=name=>html.split('// '+name+'_START')[1].split('// '+name+'_END')[0];
 function hooks(name,globals={}){const ctx={module:{exports:{}},...globals};vm.runInNewContext(code(name),ctx);return ctx.module.exports;}
 const api=hooks('PRACTICE_COACH');
-test('only experimental opt-in URL enables coach',()=>{
- const cache=new Map(), localStorage={getItem:key=>cache.get(key),setItem:(key,val)=>cache.set(key,val)};
- const when=(pathname,search)=>api.enabled({URLSearchParams,location:{pathname,search},localStorage});
- assert.equal(when('/daily-key-practice/experimental/',''),false);
- assert.equal(when('/daily-key-practice/experimental/','?coach=1'),true);
- assert.equal(when('/daily-key-practice/experimental/index.html','?coach=1'),true);
- assert.equal(when('/daily-key-practice/experimental/',''),true,'clean reload uses the opted-in browser setting');
- assert.equal(when('/daily-key-practice/experimental/','?coach=0'),false);
- assert.equal(when('/daily-key-practice/experimental/',''),false);
- assert.equal(when('/daily-key-practice/','?coach=1'),false);
+test('experimental coach needs no setting but remains unavailable on stable',()=>{
+ const when=(pathname,search)=>api.enabled({location:{pathname,search}});
+ for(const query of ['', '?coach=1', '?coach=0']){
+   assert.equal(when('/daily-key-practice/experimental/',query),true);
+   assert.equal(when('/daily-key-practice/experimental/index.html',query),true);
+   assert.equal(when('/daily-key-practice/',query),false);
+ }
 });
 test('suggestions ground direction and exercise in actual notes, never infer cause',()=>{
  const target=[{name:'F',octave:2},{name:'G',octave:2},{name:'A',octave:2},{name:'G',octave:2},{name:'F',octave:2}];

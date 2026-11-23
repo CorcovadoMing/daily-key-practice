@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261123-021-experimental">
+  <meta name="site-version" content="20261123-022-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -12,26 +12,37 @@
     (function(env) {
       const store = 'cello-experimental-appearance';
       const normalize = value => ['light','dark','system'].includes(value) ? value : 'light';
-      let appearance = 'light', media;
+      let appearance = 'light', media, toggle, selector;
       try { appearance = normalize(env.localStorage.getItem(store)); } catch {}
       try { media = env.matchMedia('(prefers-color-scheme: dark)'); } catch {}
       function apply() {
         const dark = appearance === 'dark' || (appearance === 'system' && media?.matches);
         env.document.documentElement.dataset.appearance = dark ? 'dark' : 'light';
         env.document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#16191d' : '#f7f6f2');
+        if (toggle) {
+          const label = dark ? '切換淺色模式' : '切換深色模式';
+          toggle.setAttribute('aria-label',label);
+          toggle.setAttribute('title',label);
+        }
+      }
+      function set(value) {
+        appearance = normalize(value);
+        if (selector) selector.value=appearance;
+        apply();
+        try { env.localStorage.setItem(store,appearance); } catch {}
       }
       apply();
       if (media?.addEventListener) media.addEventListener('change', apply);
       else media?.addListener?.(apply);
       env.document.addEventListener('DOMContentLoaded', () => {
-        const selector = env.document.getElementById('appearance-choice');
-        if (!selector) return;
-        selector.value = appearance;
-        selector.addEventListener('change', () => {
-          appearance = normalize(selector.value);
-          apply();
-          try { env.localStorage.setItem(store, appearance); } catch {}
-        });
+        toggle = env.document.getElementById('appearance-toggle');
+        selector = env.document.getElementById('appearance-choice');
+        if(selector){
+          selector.value=appearance;
+          selector.addEventListener('change',()=>set(selector.value));
+        }
+        toggle?.addEventListener('click',()=>set(env.document.documentElement.dataset.appearance==='dark'?'light':'dark'));
+        apply();
       }, {once:true});
     })(globalThis);
     // APPEARANCE_END
@@ -528,8 +539,6 @@
     .scale-practice-coach button{min-height:44px;border:1px solid #8da692;border-radius:999px;padding:4px 12px;background:#edf4ed;color:#31533c;font-weight:700;margin-right:5px}
     .scale-practice-coach p{margin:6px 0 0;font-size:12px;line-height:1.6}
     .scale-practice-coach p:empty{display:none}
-    .practice-coach-opt-in{font-size:12px;color:#496354;line-height:1.6}
-    .practice-coach-opt-in a{color:inherit;font-weight:700}
     .scale-practice-coach-tip{font-weight:650}
     .scale-practice-status{font-size:12px;margin:0;max-width:100%;flex:1 1 230px}
     .scale-practice-latest{font-size:12px;white-space:nowrap}
@@ -629,7 +638,7 @@
       [data-appearance=dark] .cello-fb-svg circle[fill="#f7f9f6"][stroke="#34483a"]{stroke:#b4c1d0}
       [data-appearance=dark] .scale-pitch-slot:nth-child(even) .scale-pitch-track{background:var(--paper)}
       [data-appearance=dark] .scale-pitch-track::before{border-color:#a3b1c3}
-      [data-appearance=dark] :is(.experiment-roadmap,.experiment-roadmap-heading span,.experiment-roadmap-scope,.experiment-roadmap-items small,.intro .eyebrow,h1 em,.classroom-bar p,.room-status,.room-join-form label,.online-count,.code-caption,.section-number,.filter-explain,.filter-status,.filter-subhead,.counter-desc,.control-note,.key-secondary,.key-relative,.signature-label,.history-date,.history-empty,.practice-float-title,.fingering-title,.fingering-remark,.cello-fb-caption,.cello-fb-direction-heading,.cello-legend-note,.teacher-open-label,.teacher-finger-label,.teacher-editor-help,.scale-practice-status,.scale-practice-latest,.practice-coach-opt-in,.scale-pitch-title,.scale-pitch-slot,.scale-pitch-legend,.audio-scale,.a4-control span,.tuner-readout #tuner-cents){color:var(--muted)}
+      [data-appearance=dark] :is(.experiment-roadmap,.experiment-roadmap-heading span,.experiment-roadmap-scope,.experiment-roadmap-items small,.intro .eyebrow,h1 em,.classroom-bar p,.room-status,.room-join-form label,.online-count,.code-caption,.section-number,.filter-explain,.filter-status,.filter-subhead,.counter-desc,.control-note,.key-secondary,.key-relative,.signature-label,.history-date,.history-empty,.practice-float-title,.fingering-title,.fingering-remark,.cello-fb-caption,.cello-fb-direction-heading,.cello-legend-note,.teacher-open-label,.teacher-finger-label,.teacher-editor-help,.scale-practice-status,.scale-practice-latest,.scale-pitch-title,.scale-pitch-slot,.scale-pitch-legend,.audio-scale,.a4-control span,.tuner-readout #tuner-cents){color:var(--muted)}
       [data-appearance=dark] :is(.filter-key.minor,.history-chip.minor){background:var(--minor);color:var(--minor-ink)}
       [data-appearance=dark] :is(.draw-button,.room-action.primary,.filter-key[aria-pressed=true],.preset[aria-pressed=true],.stepper button:hover,.audio-tools button[aria-pressed=true],.scale-practice-button,.scale-practice-merge,.scale-practice-coach-action,.cello-inline-save,.cello-leave-save){background:#445970;color:#eff5fd;border-color:#7d93ad}
       [data-appearance=dark] :is(.key-complete[aria-pressed=true],.check-circle,.progress-fill,.key-dot){background:#6ab68a;color:#11241a}
@@ -742,6 +751,60 @@
       .session-launch,.session-shortcuts,.appearance-disclosure,.exercise-nav,.practice-options{display:none!important}
       .exercise-disclosure[open]>summary{border:0}
     }
+    /* Action group: making a choice never starts practice. */
+    .session-launch{display:block;max-width:720px}
+    .launch-controls{display:grid;grid-template-columns:minmax(0,1fr) auto 44px;gap:6px;align-items:stretch}
+    .launch-controls #draw-button{min-width:0;width:100%;margin:0;padding-inline:10px;min-height:48px}
+    .launch-mode{display:flex;min-width:0;align-items:stretch;margin:0;padding:2px;border:1px solid var(--line);border-radius:10px;background:var(--paper)}
+    .launch-mode label{position:relative;display:grid;place-items:stretch;cursor:pointer}
+    .launch-mode input{position:absolute;margin:0;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+    .launch-mode span{display:grid;place-items:center;min-width:44px;padding:0 7px;font-size:13px;font-weight:750;color:var(--muted);border:1px solid transparent;border-radius:7px;white-space:nowrap}
+    .launch-mode input:checked+span{background:var(--accent);color:var(--accent-ink);border-color:var(--line)}
+    .launch-mode input:focus-visible+span{outline:2px solid #4c81b3;outline-offset:-2px}
+    .launch-options-toggle,.appearance-toggle{display:grid;place-items:center;min-height:44px;min-width:44px;padding:0}
+    #appearance-toggle{background:none;border:0;color:var(--ink);box-shadow:none;flex:none}
+    #appearance-toggle:focus-visible{outline:2px solid #4c81b3;border-radius:8px;outline-offset:-2px}
+    .theme-moon,[data-appearance=dark] .theme-sun{display:none}
+    [data-appearance=dark] .theme-moon{display:block}
+    .launch-options-toggle{background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:9px}
+    .launch-options-toggle[aria-expanded=true]{background:var(--accent);color:var(--accent-ink)}
+    .launch-meta{display:flex;align-items:center;flex-wrap:wrap;gap:2px 9px;margin-top:5px}
+    .launch-meta #session-launch-note{flex-basis:100%}
+    .launch-resume{background:none;text-decoration:underline;text-underline-offset:3px;border:0;color:var(--ink);padding:0 3px;font-size:13px;font-weight:750;min-height:44px}
+    .launch-meta small{color:var(--muted);font-size:11px}
+    .launch-settings{position:fixed;inset:auto;margin:0;left:var(--launch-left,10px);top:var(--launch-top,95px);width:var(--launch-width,min(420px,calc(100vw - 20px)));max-width:none;max-height:var(--launch-height,min(475px,62dvh));overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;z-index:70;padding:9px;box-shadow:0 15px 54px #10192135}
+    .launch-settings[data-side=above]{transform:translateY(-100%)}
+    .launch-settings>.launch-settings-head{position:sticky;top:-9px;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:6px;margin:-9px -9px 7px;padding:2px 7px 2px 13px;background:var(--paper);border-bottom:1px solid var(--line)}
+    .launch-settings-head h2{font-size:15px;margin:0}
+    #close-launch-settings{display:grid;place-items:center;width:44px;height:44px;background:none;color:var(--ink);border:0;border-radius:7px;cursor:pointer}
+    #close-launch-settings:focus-visible{outline:2px solid #4c81b3;outline-offset:-2px}
+    .launch-settings h3{font-size:13px;margin:4px 0}
+    .launch-settings .key-filter{margin:0;padding:7px}
+    .launch-settings .counter-list{gap:4px}
+    .launch-settings .counter-item{min-width:0;padding:5px 7px}
+    .launch-settings .fifths-circle{max-width:min(100%,275px);margin-block:10px}
+    .launch-settings .fifths-pair{width:13%;gap:2px}
+    .launch-settings .fifths-pair .filter-key{min-height:24px;padding:1px}
+    .launch-settings .fifths-pair .filter-key small{font-size:8px}
+    .launch-settings .preset-area{margin:6px 0 0}
+    .launch-settings .filter-status{margin-top:4px}
+    .footer-theme{margin:0}
+    .footer-theme select{min-height:32px}
+    .audio-tool-pair{display:inline-flex;align-items:center;gap:3px}
+    .audio-buttons{gap:8px}
+    .scale-practice>.scale-practice-action{display:flex;flex-wrap:wrap;align-items:flex-start;min-width:0;gap:5px}
+    .scale-practice-action>.scale-practice-choice{border:1px solid var(--line);border-radius:9px;background:var(--paper);min-width:72px}
+    .scale-practice-action .practice-options{border:1px solid var(--line);border-radius:9px;background:var(--paper);color:var(--ink);position:relative}
+    .scale-practice-action .practice-options>summary{display:list-item;cursor:pointer;line-height:42px;padding:0 7px;white-space:nowrap;font-weight:700}
+    .scale-practice-action .practice-options[open]>.scale-practice-detector{display:block}
+    .history-access>.practice-stats{box-shadow:none}
+    @media(max-width:380px){
+      .launch-mode span{padding:0 5px}
+      .audio-buttons{gap:5px}
+    }
+    @media print{
+      .footer-theme,#appearance-toggle,.session-shortcuts,.session-launch{display:none!important}
+    }
   </style>
 </head>
 <body>
@@ -752,27 +815,72 @@
           <h1 id="page-title">弓弦的<em>每日音階練習</em></h1>
           <p class="date-label">今天 <strong id="today-label">—</strong></p>
         </div>
-        <details class="layout-disclosure appearance-disclosure" id="appearance-settings">
-          <summary>外觀</summary>
-          <label class="theme-choice" for="appearance-choice">配色
-            <select id="appearance-choice">
-              <option value="light">淺色</option><option value="dark">深色</option><option value="system">跟隨系統</option>
-            </select>
-          </label>
-        </details>
+        <button type="button" class="appearance-toggle" id="appearance-toggle" aria-label="切換深色模式" title="切換深色模式">
+          <svg class="theme-glyph theme-sun" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4m0-14.2-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>
+          <svg class="theme-glyph theme-moon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 15A8.8 8.8 0 0 1 9 3.5 8.9 8.9 0 1 0 20.5 15Z"/></svg>
+        </button>
       </div>
       <div class="session-launch" id="session-launch">
-        <button type="button" id="resume-practice" class="draw-button" hidden>繼續練習</button>
-        <button type="button" id="draw-button" class="draw-button"><span class="button-icon" aria-hidden="true">✦</span><span id="draw-text">抽取今日練習調性</span><svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
-        <p id="session-launch-note" aria-live="polite"></p>
+        <div class="launch-controls" role="group" aria-label="開始練習">
+          <button type="button" id="draw-button" class="draw-button" aria-describedby="session-launch-note"><span id="draw-text">開始練習</span></button>
+          <fieldset class="launch-mode" aria-label="練習清單順序">
+            <label><input type="radio" name="launch-mode" value="random" checked><span>隨機</span></label>
+            <label><input type="radio" name="launch-mode" value="sequential"><span>循序</span></label>
+          </fieldset>
+          <button type="button" class="launch-options-toggle" id="launch-options-toggle" popovertarget="draw-settings" aria-label="調性與抽籤設定" aria-controls="draw-settings" aria-expanded="false" title="調性與抽籤設定">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m9.5 3-.9 2.8-2.6 1.5-2.9-.6-2 3.5 2 2.2v3l-2 2.2 2 3.5 2.9-.6 2.6 1.5.9 2.8h4l.9-2.8 2.6-1.5 2.9.6 2-3.5-2-2.2v-3l2-2.2-2-3.5-2.9.6-2.6-1.5-.9-2.8z" transform="translate(1 0) scale(.92 .88)"/></svg>
+          </button>
+        </div>
+        <div class="launch-meta">
+          <p id="session-launch-note" aria-live="polite"></p>
+          <button type="button" id="resume-practice" class="launch-resume" hidden>繼續上次</button>
+          <small id="resume-practice-note" hidden></small>
+        </div>
+        <section class="layout-disclosure launch-settings" id="draw-settings" popover role="dialog" aria-labelledby="launch-settings-title" hidden>
+          <div class="launch-settings-head">
+            <h2 id="launch-settings-title" tabindex="-1">調性與抽籤設定</h2>
+            <button type="button" id="close-launch-settings" aria-label="關閉調性與抽籤設定">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg>
+            </button>
+          </div>
+        <section class="key-filter" aria-labelledby="key-filter-title">
+          <div class="filter-heading">
+            <h3 id="key-filter-title">候選調性</h3>
+            <div class="key-pool-actions"><button type="button" id="filter-all" class="filter-all">全部選取</button><button type="button" id="filter-none" class="filter-all">全部取消</button></div>
+          </div>
+          <p class="filter-explain sr-only">預設 24 調全選。按亮的調性會進入抽籤池；灰色代表排除。依五度圈排列，每格上方為大調、下方為小調，可分別選取。F♯ 大調／E♭ 小調保留原本的等音調拼寫。</p>
+          <div id="signature-filters" class="fifths-circle" aria-label="五度圈排列的 24 個候選調性，上方大調、下方小調"></div>
+          <div class="filter-status" role="group" aria-labelledby="filter-status-heading"><h4 class="filter-status-heading" id="filter-status-heading">已選取</h4><span>大調 <b id="major-eligible">12 / 12</b></span><span>古典旋律小調 <b id="minor-eligible">12 / 12</b></span></div>
+          <p id="filter-warning" class="filter-warning" role="status" hidden></p>
+        </section>
+          <section class="launch-count-settings" aria-labelledby="launch-count-title">
+            <h3 id="launch-count-title">隨機抽籤數量</h3>
+        <div class="counter-list">
+          <div class="counter-item">
+            <div><div class="counter-name"><i class="key-dot" aria-hidden="true"></i>大調 <span class="caption">MAJOR</span></div><div class="counter-desc" id="major-available">12 個大調可抽</div></div>
+            <div class="stepper" aria-label="大調抽取數量"><button type="button" id="major-minus" aria-label="減少大調數量">−</button><output class="count-output" id="major-count" aria-live="polite">2</output><button type="button" id="major-plus" aria-label="增加大調數量">+</button></div>
+          </div>
+          <div class="counter-item">
+            <div><div class="counter-name"><i class="key-dot minor" aria-hidden="true"></i>小調 <span class="caption">MINOR</span></div><div class="counter-desc" id="minor-available">12 個古典旋律小調可抽</div></div>
+            <div class="stepper" aria-label="小調抽取數量"><button type="button" id="minor-minus" aria-label="減少小調數量">−</button><output class="count-output" id="minor-count" aria-live="polite">2</output><button type="button" id="minor-plus" aria-label="增加小調數量">+</button></div>
+          </div>
+        </div>
+        <div class="preset-area"><span class="field-label">快速設定</span><div class="presets" id="presets">
+          <button type="button" class="preset" data-major="1" data-minor="1">1 大調 + 1 小調</button>
+          <button type="button" class="preset" data-major="2" data-minor="2">2 大調 + 2 小調</button>
+          <button type="button" class="preset" data-major="3" data-minor="3">3 大調 + 3 小調</button>
+          <button type="button" class="preset" data-major="6" data-minor="6">6 大調 + 6 小調</button>
+        </div></div>
+          </section>
+        </section>
       </div>
       <nav class="session-shortcuts" aria-label="其他練習功能">
-        <a href="#draw-settings">抽籤設定</a><a href="#classroom-settings">課堂同步</a><a href="#history-settings">練習紀錄</a>
+        <a href="#classroom-settings">課堂同步</a><a href="#history-settings">練習紀錄</a>
       </nav>
     </section>
 
     <aside class="audio-tools" aria-label="練習工具">
-      <div class="audio-buttons"><button id="metronome-open" aria-pressed="false" aria-label="啟用節拍器並開始打拍"><svg class="metro-play-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 3v14" fill="none" stroke="currentColor" stroke-width="2.2"/><ellipse cx="11" cy="18" rx="5" ry="3.5" transform="rotate(-20 11 18)" fill="currentColor"/></svg><svg class="metro-stop-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="1.5" fill="currentColor"/></svg></button><button id="metro-settings" aria-expanded="false" aria-controls="metronome-panel" aria-label="展開節拍器設定"><svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button><button id="tuner-open" aria-pressed="false" aria-expanded="false" aria-controls="tuner-panel" aria-label="啟用調音器並開始收音"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M7 3v7a5 5 0 0 0 10 0V3M12 15v7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button><button id="tuner-settings" aria-expanded="false" aria-controls="tuner-preferences" aria-label="開啟調音器設定"><svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button></div>
+      <div class="audio-buttons"><div class="audio-tool-pair" role="group" aria-label="節拍器"><button id="metronome-open" aria-pressed="false" aria-label="啟用節拍器並開始打拍"><svg class="metro-play-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 3v14" fill="none" stroke="currentColor" stroke-width="2.2"/><ellipse cx="11" cy="18" rx="5" ry="3.5" transform="rotate(-20 11 18)" fill="currentColor"/></svg><svg class="metro-stop-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="1.5" fill="currentColor"/></svg></button><button id="metro-settings" aria-expanded="false" aria-controls="metronome-panel" aria-label="展開節拍器設定"><svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button></div><div class="audio-tool-pair" role="group" aria-label="調音器"><button id="tuner-open" aria-pressed="false" aria-expanded="false" aria-controls="tuner-panel" aria-label="啟用調音器並開始收音"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M7 3v7a5 5 0 0 0 10 0V3M12 15v7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button><button id="tuner-settings" aria-expanded="false" aria-controls="tuner-preferences" aria-label="開啟調音器設定"><svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button></div></div>
 <div id="tuner-preferences" class="tuner-preferences" role="dialog" aria-label="調音器設定" hidden><label class="a4-control" for="tuner-a"><span>A4</span><input id="tuner-a" type="number" min="430" max="450" value="442" step="1" inputmode="numeric" aria-label="A4基準頻率，Hz"></label><label class="tuner-detector-control" for="tuner-detector">偵測方式<select id="tuner-detector"><option value="existing">現有偵測</option><option value="swift">SwiftF0</option></select></label></div>
         <section id="metronome-panel" class="audio-panel tuner-preferences" role="dialog" aria-label="節拍器控制" hidden>
           <label for="metro-bpm">BPM</label><input id="metro-bpm" type="number" min="30" max="240" value="80" inputmode="numeric">
@@ -793,13 +901,13 @@
     <div class="workspace">
       <section class="panel result-panel" aria-labelledby="results-title">
         <div class="panel-head">
-          <h2 class="panel-title" id="results-title">今日練習清單</h2>
+          <h2 class="panel-title" id="results-title" tabindex="-1">今日練習清單</h2>
           <span class="section-number" id="result-placeholder-code">02 / PRACTICE</span>
         </div>
         <div class="empty-state" id="empty-state">
           <div class="empty-graphic" aria-hidden="true"><img alt="" width="144" height="144" decoding="async" src="data:image/webp;base64,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"></div>
           <h3>你的今日練習，等著開始。</h3>
-          <p>按上方抽籤即可以上次的設定開始，或先展開選擇調性。</p>
+          <p>選擇隨機或循序，再按上方「開始練習」。</p>
         </div>
         <div class="result-content" id="result-content">
           <div class="result-summary">
@@ -848,67 +956,12 @@
       </details>
       <button type="button" class="room-action" id="room-leave" hidden>離開房間</button>
       </div>
-      <details class="layout-disclosure" id="accumulated-settings">
-        <summary>累積練習與調性筆記</summary>
-        <section class="practice-stats" aria-labelledby="practice-stats-title">
-        <h3 id="practice-stats-title">累積練習</h3>
-        <p>依此瀏覽器保留的個人與課堂紀錄，每個調在每筆紀錄完成算 1 次；刪除紀錄也會扣除。點調性可寫私人筆記，與每日練習卡共用。</p>
-        <div id="practice-stats-grid" class="practice-stats-grid"></div>
-        </section>
-      </details>
-      <details class="layout-disclosure" id="key-pool-settings">
-        <summary>選擇調性 · 五度圈</summary>
-        <section class="key-filter" aria-labelledby="key-filter-title">
-          <div class="filter-heading">
-            <h3 id="key-filter-title">今天要練哪些調？</h3>
-            <div class="key-pool-actions"><button type="button" id="filter-all" class="filter-all">全部選取</button><button type="button" id="filter-none" class="filter-all">全部取消</button></div>
-          </div>
-          <p class="filter-explain sr-only">預設 24 調全選。按亮的調性會進入抽籤池；灰色代表排除。依五度圈排列，每格上方為大調、下方為小調，可分別選取。F♯ 大調／E♭ 小調保留原本的等音調拼寫。</p>
-          <div id="signature-filters" class="fifths-circle" aria-label="五度圈排列的 24 個候選調性，上方大調、下方小調"></div>
-          <div class="filter-status" role="group" aria-labelledby="filter-status-heading"><h4 class="filter-status-heading" id="filter-status-heading">已選取</h4><span>大調 <b id="major-eligible">12 / 12</b></span><span>古典旋律小調 <b id="minor-eligible">12 / 12</b></span></div>
-          <p id="filter-warning" class="filter-warning" role="status" hidden></p>
-        </section>
-      </details>
-      <details class="layout-disclosure" id="draw-settings">
-        <summary>抽籤數量與快速設定</summary>
-        <div class="counter-list">
-          <div class="counter-item">
-            <div><div class="counter-name"><i class="key-dot" aria-hidden="true"></i>大調 <span class="caption">MAJOR</span></div><div class="counter-desc" id="major-available">12 個大調可抽</div></div>
-            <div class="stepper" aria-label="大調抽取數量"><button type="button" id="major-minus" aria-label="減少大調數量">−</button><output class="count-output" id="major-count" aria-live="polite">2</output><button type="button" id="major-plus" aria-label="增加大調數量">+</button></div>
-          </div>
-          <div class="counter-item">
-            <div><div class="counter-name"><i class="key-dot minor" aria-hidden="true"></i>小調 <span class="caption">MINOR</span></div><div class="counter-desc" id="minor-available">12 個古典旋律小調可抽</div></div>
-            <div class="stepper" aria-label="小調抽取數量"><button type="button" id="minor-minus" aria-label="減少小調數量">−</button><output class="count-output" id="minor-count" aria-live="polite">2</output><button type="button" id="minor-plus" aria-label="增加小調數量">+</button></div>
-          </div>
-        </div>
-        <div class="preset-area"><span class="field-label">快速設定</span><div class="presets" id="presets">
-          <button type="button" class="preset" data-major="1" data-minor="1">1 大調 + 1 小調</button>
-          <button type="button" class="preset" data-major="2" data-minor="2">2 大調 + 2 小調</button>
-          <button type="button" class="preset" data-major="3" data-minor="3">3 大調 + 3 小調</button>
-          <button type="button" class="preset" data-major="6" data-minor="6">6 大調 + 6 小調</button>
-        </div></div>
-        <p class="control-note">每種調性最多 12 個；同一組不會抽到重複調性。</p>
-      </details>
-      <details class="layout-disclosure" id="sequential-settings">
-        <summary>循序練習</summary>
-        <div class="ordered-practice" aria-label="循序練習">
-          <div class="ordered-practice-copy">
-            <strong>循序練習 <span>依調號</span></strong>
-            <small>勾選的調性全部練習 · 0 <svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14m-6-6 6 6-6 6"/></svg><span class="sr-only">再到</span> ♯1–6 <svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14m-6-6 6 6-6 6"/></svg><span class="sr-only">再到</span> ♭1–6</small>
-          </div>
-          <button type="button" id="ordered-button" class="ordered-practice-button">開始循序練習</button>
-        </div>
-      </details>
-      <details class="layout-disclosure" id="practice-coach-opt-in" hidden>
-        <summary>AI 練習建議 <small>已啟用</small></summary>
-        <p class="practice-coach-opt-in">停止音階或琶音練習後，再按該項的「練習建議」。 <a id="practice-coach-disable" href="?coach=0">停用練習建議</a></p>
-      </details>
       </div>
 
     </div>
 
     <details class="layout-disclosure history-access" id="history-settings">
-      <summary>最近的練習紀錄</summary>
+      <summary>練習紀錄與累積次數</summary>
       <section class="history-section" aria-labelledby="history-title">
       <div class="history-heading"><h2 id="history-title">最近的練習紀錄</h2><span class="caption">兩種紀錄分開保存於目前瀏覽器</span></div>
       <div class="history-columns">
@@ -922,9 +975,18 @@
         </section>
       </div>
       </section>
+        <section class="practice-stats" aria-labelledby="practice-stats-title">
+        <h3 id="practice-stats-title">累積練習</h3>
+        <p>依此瀏覽器保留的個人與課堂紀錄，每個調在每筆紀錄完成算 1 次；刪除紀錄也會扣除。點調性可寫私人筆記，與每日練習卡共用。</p>
+        <div id="practice-stats-grid" class="practice-stats-grid"></div>
+        </section>
     </details>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261123-021-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><label class="theme-choice footer-theme" for="appearance-choice">外觀
+    <select id="appearance-choice">
+      <option value="light">淺色</option><option value="dark">深色</option><option value="system">跟隨系統</option>
+    </select>
+  </label><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261123-022-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -973,17 +1035,8 @@
   const RUNTIME='https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.86/lib/index.js';
   const INTEGRITY='sha384-HegQbcXEuX71lg9KuPsNblVYf0qx8SYwjMgeIdIaUisFt2g5p4IHo6YtxdUtZP25';
   const MODEL_LIB='https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/5b7251f3bdce957be2a7bf73a6f6c560d9874df4/web-llm-models/v0_2_86/base/Qwen3-0.6B-q4f16_1_cs1k-webgpu.wasm';
-  const OPT_IN='daily-key-practice:experimental:qwen-coach';
   function enabled(env){
-    try {
-      if (!/\/experimental\/?(?:index\.html)?$/.test(env.location.pathname)) return false;
-      const explicit = new env.URLSearchParams(env.location.search).get('coach');
-      if (explicit==='1' || explicit==='0') {
-        try {if(env.localStorage?.getItem(OPT_IN)!==explicit)env.localStorage?.setItem(OPT_IN,explicit);} catch {}
-        return explicit==='1';
-      }
-      return env.localStorage?.getItem(OPT_IN)==='1';
-    } catch {return false;}
+    return /\/experimental\/?(?:index\.html)?$/.test(env.location?.pathname || '');
   }
   function drills(target, values, mode, kind = 'scale') {
     if (!Array.isArray(values)||target.length!==values.length||!values.some(Number.isFinite)) return [];
@@ -1218,13 +1271,6 @@
   const modeName = value => modeValue(value) === 'loop' ? '循環' : '單次';
   let selectedMode, latestDraftToken, coachService, coachStorageAsked=false;
   if (globalThis.CelloPracticeCoach?.enabled(globalThis)) {
-    const badge=globalThis.document?.getElementById?.('practice-coach-opt-in');
-    if(badge){
-      badge.hidden=false;
-      const off=new globalThis.URL(globalThis.location.href);
-      off.searchParams.set('coach','0');
-      globalThis.document.getElementById('practice-coach-disable').href=off.href;
-    }
     globalThis.addEventListener?.('pagehide',()=>coachService?.dispose());
     globalThis.document?.addEventListener?.('visibilitychange',()=>{
       if (globalThis.document.hidden) coachService?.dispose();
@@ -1913,7 +1959,7 @@
       }
     });
     choice.append(choiceLabel, selector);
-    action.append(button);
+    action.append(button,choice);
     let detector;
     if (kind === 'scale') {
       detector = document.createElement('select');
@@ -2306,13 +2352,15 @@
       chart?.update(display?.chartValues ? {...display,values:display.chartValues} : display);
     }};
     button.addEventListener('click', () => toggle(view));
-    const options=document.createElement('details');
-    options.className='layout-disclosure practice-options';
-    const optionsTitle=document.createElement('summary');
-    optionsTitle.textContent='練習設定';
-    options.append(optionsTitle,choice);
-    if (detector) options.append(detector);
-    element.append(action,options,status,latest);
+    if (detector) {
+      const options=document.createElement('details');
+      options.className='practice-options';
+      const optionsTitle=document.createElement('summary');
+      optionsTitle.textContent='偵測設定';
+      options.append(optionsTitle,detector);
+      action.append(options);
+    }
+    element.append(action,status,latest);
     if (historyButtons) element.append(historyButtons);
     if (coachPanel) element.append(coachPanel);
     const restored = ownsDraft() ? restoreGraph(newestDraft) : null;
@@ -2698,6 +2746,7 @@
       persist();renderControls();
     }
     // SESSION_LAUNCH_START
+    let launchMode='random';
     function validUnfinished(record){
       if(!record||!Array.isArray(record.majorIds)||!Array.isArray(record.minorIds))return false;
       const wellFormed=ids=>ids.every(i=>Number.isInteger(i)&&i>=0&&i<12)&&new Set(ids).size===ids.length;
@@ -2714,21 +2763,47 @@
         .sort((a,b)=>(Number(b.drawnAt)||Number(b.createdAt)||0)-(Number(a.drawnAt)||Number(a.createdAt)||0))[0];
       return previous?{record:previous,current:false}:null;
     }
+    function setLaunchMode(mode){
+      launchMode=mode==='sequential'?'sequential':'random';
+      updateSessionLaunch();
+    }
+    function canLaunch(mode,options){
+      return mode==='sequential'?orderedSelections().length>0:(options.majorCount+options.minorCount>0&&
+        options.majorCount<=eligible('major').length&&options.minorCount<=eligible('minor').length);
+    }
     function updateSessionLaunch(){
-      const resume=resumeCandidate(),launch=q('#session-launch');
+      const launch=q('#session-launch');
       if(!launch)return;
+      const resume=resumeCandidate(),options=visiblePreferences();
       const button=q('#resume-practice'),draw=q('#draw-button'),message=q('#session-launch-note');
+      const former=q('#resume-practice-note');
       button.hidden=!resume;
-      launch.dataset.resume=String(Boolean(resume));
+      former.hidden=!resume;
       if(resume){
         const {count,total}=historyProgress(resume.record);
-        message.textContent=(resume.current?'目前清單':'最近未完成的個人紀錄')+' · 已完成 '+count+' / '+total+' 個調性';
-      }else if(draw.disabled){
-        message.textContent='先在「選擇調性」或「抽籤數量」調整候選。';
-      }else {
-        const options=visiblePreferences();
-        message.textContent=(sharedRoom?'課堂同步':'依上次設定')+' · '+options.majorCount+' 個大調、'+options.minorCount+' 個小調';
+        former.textContent=(resume.current?'目前清單':'最近未完成的個人紀錄')+' · '+count+' / '+total;
       }
+      draw.disabled=!canLaunch(launchMode,options);
+      launch.dataset.mode=launchMode;
+      if(draw.disabled){
+        message.textContent=launchMode==='sequential'?'先用齒輪選擇要練的調性。':'先用齒輪調整調性或抽籤數量。';
+      }else if(launchMode==='sequential'){
+        message.textContent='依調號練習全部已選調性 · '+orderedSelections().length+' 個';
+      }else {
+        message.textContent='從已選調性抽取 · '+options.majorCount+' 個大調、'+options.minorCount+' 個小調';
+      }
+    }
+    function startPractice(mode=launchMode,historyHandled=false){
+      refreshDate();
+      if(!canLaunch(mode,visiblePreferences())){updateSessionLaunch();return;}
+      requestCardAction(()=>{
+        const source=[...cardInstances.values()].find(item=>item.opened);
+        if(!historyHandled&&source&&unsavedPracticeIn(source.card).length){
+          withPracticeSaveChoice(source,()=>startPractice(mode,true));return;
+        }
+        if(mode==='sequential')void practiceInSignatureOrder();
+        else void drawToday();
+      });
     }
     function resumePractice(){
       refreshDate();
@@ -2748,11 +2823,8 @@
       q('#major-plus').disabled=majorCount===12;
       q('#minor-minus').disabled=minorCount===0;
       q('#minor-plus').disabled=minorCount===12;
-      q('#draw-button').disabled=majorCount+minorCount===0 || majorCount>eligible('major').length || minorCount>eligible('minor').length;
-      q('#ordered-button').disabled=orderedSelections().length===0;
       renderKeyFilters();
       updateSessionLaunch();
-      q('#draw-text').textContent=currentSession()?(sharedRoom?'重新抽選課堂調性':'重新抽選今日調性'):(sharedRoom?'抽取課堂練習調性':'抽取今日練習調性');
       document.querySelectorAll('.preset').forEach(el=>{
         const active=Number(el.dataset.major)===majorCount && Number(el.dataset.minor)===minorCount;
         el.classList.toggle('active',active);
@@ -2795,6 +2867,12 @@
       return previous&&previous.date===currentDate?
         requestDrawAction():Promise.resolve('new');
     }
+    function showStartedList(){
+      showLaunchOptions(false);
+      const title=q('#results-title');
+      title.focus({preventScroll:true});
+      title.scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'});
+    }
     async function drawToday(){
       refreshDate();
       const {majorCount,minorCount}=visiblePreferences();
@@ -2811,7 +2889,7 @@
       }
       replaySession=null;state.continuedSession=null;
       storePersonalSession(session,action);
-      render();showToast('新的練習清單已準備好！');
+      render();showStartedList();showToast('新的練習清單已準備好！');
     }
     async function practiceInSignatureOrder(){
       refreshDate();
@@ -2831,7 +2909,7 @@
       session.sequenceMode='signature'; // local-only; Firebase room schema unchanged
       replaySession=null;state.continuedSession=null;
       storePersonalSession(session,action);
-      render();showToast('已依調號排好全部選取的調性！');
+      render();showStartedList();showToast('已依調號排好全部選取的調性！');
     }
 // Student notes stay on this browser, separate from shared classroom state.
 const studentNoteKey=id=>'daily-key-practice:experimental:key-note:'+id;
@@ -3437,8 +3515,88 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     if(/^#room=(?:[0-9]{6}|[a-f0-9]{32})$/.test(window.location.hash)){
       q('#classroom-settings').open=true;
     }
-    q('#draw-button').addEventListener('click',drawToday);
-    q('#ordered-button').addEventListener('click',practiceInSignatureOrder);
+    const launchOptions=q('#draw-settings'),launchGear=q('#launch-options-toggle');
+    const nativeLaunchPopover=typeof launchOptions.showPopover==='function';
+    // LAUNCH_POPOVER_START
+    function launchPlacement(anchor,viewport){
+      const margin=8,gap=6;
+      const leftEdge=viewport.left+margin,rightEdge=viewport.left+viewport.width-margin;
+      const topEdge=viewport.top+margin,bottomEdge=viewport.top+viewport.height-margin;
+      const width=Math.min(420,Math.max(0,rightEdge-leftEdge));
+      const left=Math.max(leftEdge,Math.min(anchor.right-width,rightEdge-width));
+      const clampY=y=>Math.max(topEdge,Math.min(bottomEdge,y));
+      const down=clampY(anchor.bottom+gap),up=clampY(anchor.top-gap);
+      const below=Math.max(0,bottomEdge-down),above=Math.max(0,up-topEdge);
+      if(below>=140 || below>=above){
+        return {left,width,top:down,height:Math.min(475,below),side:'below'};
+      }
+      return {left,width,top:up,height:Math.min(475,above),side:'above'};
+    }
+    // LAUNCH_POPOVER_END
+    function placeLaunchOptions(){
+      const viewport=window.visualViewport;
+      const box=launchPlacement(launchGear.getBoundingClientRect(),{
+        left:viewport?.offsetLeft||0,top:viewport?.offsetTop||0,
+        width:viewport?.width||window.innerWidth,height:viewport?.height||window.innerHeight
+      });
+      for(const value of ['left','width','top','height'])launchOptions.style.setProperty('--launch-'+value,box[value]+'px');
+      launchOptions.dataset.side=box.side;
+    }
+    function launchOptionsOpen(){
+      return nativeLaunchPopover?launchOptions.matches(':popover-open'):!launchOptions.hidden;
+    }
+    function showLaunchOptions(open,returnFocus=false){
+      if(open!==launchOptionsOpen()){
+        if(open)placeLaunchOptions();
+        if(nativeLaunchPopover){if(open)launchOptions.showPopover();else launchOptions.hidePopover();}
+        else launchOptions.hidden=!open;
+      }
+      launchGear.setAttribute('aria-expanded',String(open));
+      if(returnFocus)launchGear.focus();
+    }
+    if(nativeLaunchPopover){
+      launchOptions.hidden=false; // native popover controls visibility from here
+      launchOptions.addEventListener('beforetoggle',event=>{if(event.newState==='open')placeLaunchOptions();});
+      launchOptions.addEventListener('toggle',event=>launchGear.setAttribute('aria-expanded',String(event.newState==='open')));
+    }else {
+      launchGear.addEventListener('click',()=>{
+        const open=!launchOptionsOpen();
+        showLaunchOptions(open);
+        if(open)q('#launch-settings-title').focus({preventScroll:true});
+      });
+      document.addEventListener('pointerdown',event=>{
+        if(launchOptionsOpen()&&!launchOptions.contains(event.target)&&!launchGear.contains(event.target)){
+          showLaunchOptions(false,launchOptions.contains(document.activeElement));
+        }
+      });
+    }
+    q('#close-launch-settings').addEventListener('click',()=>showLaunchOptions(false,true));
+    // Escape is explicit for browsers without Popover; also covers Escape from
+    // the invoker when the keyboard didn't move to the panel.
+    for(const node of [launchOptions,launchGear])node.addEventListener('keydown',event=>{
+      if(event.key==='Escape'&&launchOptionsOpen()){
+        event.preventDefault();event.stopPropagation();showLaunchOptions(false,true);
+      }
+    });
+    const syncLaunchPlacement=()=>{
+      if(!launchOptionsOpen())return;
+      const box=launchGear.getBoundingClientRect(),viewport=window.visualViewport;
+      const top=viewport?.offsetTop||0,left=viewport?.offsetLeft||0;
+      if(box.bottom<=top||box.right<=left||box.top>=top+(viewport?.height||window.innerHeight)||
+        box.left>=left+(viewport?.width||window.innerWidth)){
+        showLaunchOptions(false);return;
+      }
+      placeLaunchOptions();
+    };
+    window.addEventListener('resize',syncLaunchPlacement,{passive:true});
+    window.addEventListener('scroll',syncLaunchPlacement,{passive:true});
+    window.visualViewport?.addEventListener('resize',syncLaunchPlacement,{passive:true});
+    window.visualViewport?.addEventListener('scroll',syncLaunchPlacement,{passive:true});
+    document.querySelectorAll('input[name="launch-mode"]').forEach(radio=>radio.addEventListener('change',()=>{
+      if(radio.checked)setLaunchMode(radio.value);
+    }));
+    launchMode=q('input[name="launch-mode"]:checked')?.value==='sequential'?'sequential':'random';
+    q('#draw-button').addEventListener('click',()=>startPractice());
     q('#history-unavailable-dismiss').addEventListener('click',()=>q('#history-unavailable-dialog').close());
     q('#filter-all').addEventListener('click',()=>updateExclusions([]));
     q('#filter-none').addEventListener('click',()=>updateExclusions([...MAJOR_KEYS.map((_,i)=>selectedId('major',i)),...MINOR_KEYS.map((_,i)=>selectedId('minor',i))]));

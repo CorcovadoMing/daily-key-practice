@@ -16,20 +16,21 @@ class Node {
 }
 const memory=()=>{const m=new Map();return {getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,v)};};
 function appearance(store, matches) {
-  const root=new Node(), themeMeta=new Node(), select=new Node();
+  const root=new Node(), themeMeta=new Node(), select=new Node(), toggle=new Node();
   const media={matches, addListener(fn){this.changed=fn;}};
   const events={};
-  const document={documentElement:root,querySelector:()=>themeMeta,getElementById:()=>select,
+  const document={documentElement:root,querySelector:()=>themeMeta,getElementById:id=>id==='appearance-toggle'?toggle:select,
     addEventListener(k,fn){events[k]=fn;}};
   vm.runInNewContext(code('APPEARANCE'), {document,localStorage:store,matchMedia:()=>media});
   events.DOMContentLoaded();
-  return {root,themeMeta,select,media,choice(val){select.value=val;select.handlers.change();}};
+  return {root,themeMeta,select,media,toggle,choice(val){select.value=val;select.handlers.change();}};
 }
 test('appearance keeps light default, persists manual choice, follows system only when selected, and works with denied storage',()=>{
   const store=memory(), page=appearance(store,true);
   assert.equal(page.root.dataset.appearance,'light');
-  page.choice('dark');
+  page.toggle.handlers.click();
   assert.equal(page.root.dataset.appearance,'dark');
+  assert.equal(page.toggle.attrs['aria-label'],'切換淺色模式');
   assert.equal(appearance(store,false).select.value,'dark');
   assert.equal(appearance(store,false).themeMeta.attrs.content,'#16191d');
   page.choice('system');
@@ -43,7 +44,7 @@ test('appearance keeps light default, persists manual choice, follows system onl
   assert.match(html,/@media screen\{\s*:root\[data-appearance=dark\]/);
 });
 
-function app(store=memory(), search='?coach=1') {
+function app(store=memory(), search='') {
   const document={hidden:false,createElement:()=>new Node(),querySelectorAll:()=>[],addEventListener(){}};
   const window={};
   const env=vm.createContext({document,window,performance,setInterval,clearInterval,localStorage:store,URLSearchParams,location:{pathname:'/experimental/',search}});
@@ -98,10 +99,10 @@ test('actual arpeggio manager/card reveals its own measured coaching only after 
   assert.match(arp.element.find('scale-practice-status').textContent,/上次|未辨識/);
 });
 
-test('default experimental page does not advertise or run optional coach',()=>{
+test('experimental page has no coach setting and does not run it before an explicit ask',()=>{
   const p=app(memory(),'');
-  assert.equal(p.card('arpeggio').element.find('scale-practice-coach'),undefined);
-  assert.equal(p.card('scale').element.find('scale-practice-coach'),undefined);
+  assert.equal(p.card('arpeggio').element.find('scale-practice-coach').hidden,true);
+  assert.equal(p.card('scale').element.find('scale-practice-coach').hidden,true);
   assert.equal(p.requested,undefined);
-  assert.doesNotMatch(html,/id="practice-coach-enable"/);
+  assert.doesNotMatch(html,/id="practice-coach-(?:enable|disable|opt-in)"/);
 });
