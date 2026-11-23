@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261123-030-experimental">
+  <meta name="site-version" content="20261123-031-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -1055,7 +1055,7 @@
     <select id="appearance-choice">
       <option value="light">淺色</option><option value="dark">深色</option><option value="system">跟隨系統</option>
     </select>
-  </label><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261123-030-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  </label><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261123-031-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -1106,6 +1106,18 @@
   const MODEL_LIB='https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/5b7251f3bdce957be2a7bf73a6f6c560d9874df4/web-llm-models/v0_2_86/base/Qwen3-0.6B-q4f16_1_cs1k-webgpu.wasm';
   function enabled(env){
     return /\/experimental\/?(?:index\.html)?$/.test(env.location?.pathname || '');
+  }
+  function noMeasurementDrills(kind = 'scale') {
+    const exercise=kind==='arpeggio'?'琶音':'音階';
+    const observation='這次沒有辨識到可用音符，無法判斷音準。';
+    return [
+      {id:'steady_first_note',fact:'no measurements; try one slow sustained first score note',
+        observation,action:'先只拉'+exercise+'的第一個譜音，拉約兩秒，停一下再重拉。',
+        retest:'等音準圖出現一個點，再把第二音加進來。'},
+      {id:'check_live_tuner',fact:'no measurements; check live pitch response with tuner before retrying',
+        observation,action:'先開調音器，只拉第一個譜音，確認畫面有出現音名。',
+        retest:'再回到'+exercise+'練習，先拉同一個音，確認音準圖有出現一個點。'}
+    ];
   }
   function drills(target, values, mode, kind = 'scale') {
     if (!Array.isArray(values)||target.length!==values.length||!values.some(Number.isFinite)) return [];
@@ -1174,6 +1186,11 @@
         action:'把這個音拉成三個獨立長音，每次約兩秒；音與音之間停一下。',
         retest:mode==='loop'?'用相同偵測方式與 A4 再練，看看同一譜位的各輪點是否集中。':'用相同偵測方式與 A4 再拉一輪'+exercise+'，看看這格的實心點是否仍靠近原值。'});
     }
+    if(options.length===1 && measured.length===1) options.push({
+      id:'hold_center',fact:'hold@'+(latest.i+1)+':'+Math.round(latest.c),
+      observation:'這次只量到 '+named(latest)+' 的 '+signed(latest.c)+'，不足以判斷穩定度。',
+      action:'只練這一個長音，維持約四拍，注意音高有沒有從前半到後半改變。',
+      retest:'用相同偵測方式和 A4 再拉一次，看看收尾有沒有更接近 0¢。'});
     return options.slice(0,3);
   }
   function finalDigit(text) {
@@ -1189,7 +1206,7 @@
   }
   function invalidAnswer(text, finishReason, thinking, sawReasoning) {
     const rendered=String(text ?? '').trim();
-    if(finishReason==='length') return 'budget';
+    if(finishReason==='length') return 'context';
     if(thinking && ((!rendered && sawReasoning) ||
       (rendered.includes('<think>') && !rendered.includes('</think>')) ||
       (rendered.includes('</think>') && !rendered.slice(rendered.lastIndexOf('</think>')+8).trim()))) return 'thinking_only';
@@ -1208,7 +1225,15 @@
     }
     return null;
   }
-  async function workerMain(pins, parse, progressStage, classify) {
+  function completionRequest(options, direct, noMeasurement) {
+    const context=noMeasurement ? 'No notes were measured. Do not judge intonation or guess why. Choose a helpful next check.' :
+      'Choose one cello drill from the measured notes. Do not assume unmeasured notes were played.';
+    const request={messages:[{role:'user',content:context+' Return exactly one listed digit. '+options.join(' / ')}],
+      extra_body:{enable_thinking:!direct},stream:true,temperature:0};
+    if(direct) request.response_format={type:'grammar',grammar:'root ::= '+options.map((_,i)=>JSON.stringify(String(i+1))).join(' | ')};
+    return request;
+  }
+  async function workerMain(pins, parse, progressStage, classify, makeRequest) {
     let engine, activeId=null, queued=null;
     async function run(data) {
       activeId=data.id;
@@ -1226,7 +1251,7 @@
           let library;
           try {library=await import(url);} finally {URL.revokeObjectURL(url);}
           const appConfig={cacheBackend:'cache',model_list:[{model:pins.weights,model_id:pins.model,model_lib:pins.lib,
-            required_features:['shader-f16'],overrides:{context_window_size:512}}]};
+            required_features:['shader-f16'],overrides:{context_window_size:4096}}]};
           post('progress',{step:'checking'});
           let cached=false;
           try {cached=await library.hasModelInCache(pins.model,appConfig);} catch {}
@@ -1240,10 +1265,7 @@
         }
         const load=cold ? performance.now()-started : 0, start=performance.now();
         post('ready',{load,cold});
-        const stream=await engine.chat.completions.create({
-          messages:[{role:'user',content:'Choose one cello drill from the measured notes. Do not assume unmeasured notes were played. End with exactly one listed digit, no explanation. '+data.options.join(' / ')}],
-          extra_body:{enable_thinking:true},stream:true,temperature:0,max_tokens:data.retry?368:320
-        });
+        const stream=await engine.chat.completions.create(makeRequest(data.options,data.direct,data.noMeasurement));
         let output='',first=null,finishReason=null,sawReasoning=false;
         for await (const chunk of stream) {
           const choice=chunk.choices?.[0];
@@ -1256,10 +1278,10 @@
         }
         // Never send reasoning or unvalidated model text outside this worker.
         const digit=parse(output);
-        const reason=digit===null ? classify(output,finishReason,true,sawReasoning) :
+        const reason=digit===null ? classify(output,finishReason,!data.direct,sawReasoning) :
           digit>data.options.length ? 'invalid' : undefined;
         post('answer',{digit,reason,first,generation:performance.now()-start});
-      } catch {post('error');}
+      } catch {post('error',{stage:engine?'inference':'initialization'});}
       finally {
         activeId=null;
         if(queued){const next=queued;queued=null;void run(next);}
@@ -1292,26 +1314,21 @@
       task.resolve(result);
     }
     function interrupt(task) {try{worker?.postMessage({kind:'interrupt',id:task.id});}catch{}}
-    function arm(ms,reason) {
-      env.clearTimeout(active.timer);
-      const task=active;
+    function armColdLoad(task) {
       task.timer=env.setTimeout(()=>{
-        if(active!==task)return;
-        const keep=reason==='slow' && task.ready;
-        if(keep)interrupt(task);
-        resolve({reason,...task.timing},!keep);
-      },ms);
+        if(active===task)resolve({reason:'load_timeout'},true);
+      },180000);
     }
-    function run(options,report=()=>{},retry=false) {
+    function run(options,report=()=>{},{direct=false,noMeasurement=false}={}) {
       cancel();
       if (!options.length || !env.navigator?.gpu || !env.Worker) return Promise.resolve({reason:'unsupported'});
       const id=++sequence;
       return new Promise(done=>{
-        active={id,resolve:done,report,timing:{},wasWarm:warm,ready:false};
+        active={id,resolve:done,report,timing:{},ready:false};
         try {
           if (!worker) {
             const pins={model:MODEL,weights:WEIGHTS,runtime:RUNTIME,integrity:INTEGRITY,lib:MODEL_LIB};
-            const code='('+workerMain.toString()+')('+JSON.stringify(pins)+','+finalDigit.toString()+','+weightStage.toString()+','+invalidAnswer.toString()+');';
+            const code='('+workerMain.toString()+')('+JSON.stringify(pins)+','+finalDigit.toString()+','+weightStage.toString()+','+invalidAnswer.toString()+','+completionRequest.toString()+');';
             workerURL=env.URL.createObjectURL(new env.Blob([code],{type:'text/javascript'}));
             worker=new env.Worker(workerURL,{type:'module'});
             const owner=worker;
@@ -1322,24 +1339,24 @@
               else if(data.phase==='ready') {
                 active.timing={load:data.load,cold:data.cold};
                 warm=true;active.ready=true;
-                if(!active.wasWarm)arm(30000,'slow');
+                env.clearTimeout(active.timer);
                 active.report('working');
               } else if(data.phase==='answer') resolve({...active.timing,reason:data.reason,choice:Number.isInteger(data.digit)&&data.digit>=1&&data.digit<=3 ? active.options[data.digit-1] || null : null,first:data.first,generation:data.generation});
               else if(data.phase==='unavailable') resolve({reason:'unsupported'},true);
-              else if(data.phase==='error') resolve({reason:'error',...active.timing},true);
+              else if(data.phase==='error') resolve({reason:data.stage==='initialization'?'model_load_error':'error',...active.timing},true);
             };
             worker.onerror=()=>{if(worker===owner)resolve({reason:'error',...active?.timing},true);};
           }
           active.options=options;
-          arm(active.wasWarm?30000:180000,active.wasWarm?'slow':'load_timeout');
-          report(active.wasWarm?'working':'device');
-          worker.postMessage({id,retry,options:options.map((o,i)=>(i+1)+' '+o.id+' '+o.fact)});
+          if(!warm)armColdLoad(active);
+          report(warm?'working':'device');
+          worker.postMessage({id,direct,noMeasurement,options:options.map((o,i)=>(i+1)+' '+o.id+' '+o.fact)});
         } catch {resolve({reason:'error'},true);}
       });
     }
     function cancel() {
       if(!active)return;
-      const keep=active.ready;
+      const keep=active.ready || warm;
       if(keep)interrupt(active);
       resolve({reason:'cancelled'},!keep);
     }
@@ -1347,7 +1364,7 @@
     function isBusy(){return Boolean(active);}
     return {run,cancel,dispose,isBusy};
   }
-  return {enabled,drills,pick,service,finalDigit,invalidAnswer,weightStage,workerMain};
+  return {enabled,drills,noMeasurementDrills,pick,service,finalDigit,invalidAnswer,weightStage,workerMain,completionRequest};
 });
 // PRACTICE_COACH_END
 
@@ -2208,7 +2225,7 @@
     }
     const coachAPI = globalThis.CelloPracticeCoach;
     const coachVisible = coachAPI?.enabled(globalThis);
-    let coachPanel, coachAction, coachTyping, coachStatus, coachTime, coachTip, coachNotice, coachAttempt, coachBusy=false, coachRetry=false, coachTicket=0;
+    let coachPanel, coachAction, coachTyping, coachStatus, coachTime, coachTip, coachNotice, coachAttempt, coachBusy=false, coachTicket=0;
     if (coachVisible) {
       const mk=(tag,klass,text)=>{
         const el=document.createElement(tag);el.className=klass;if(text)el.textContent=text;return el;
@@ -2232,7 +2249,7 @@
       coachPanel.append(coachAction,coachNotice,coachStatus,coachTyping,coachTime,coachTip);
       function setCoachBusy(busy) {
         coachBusy=busy;
-        coachAction.textContent=busy?'取消建議':'練習建議';
+        coachAction.textContent=busy?'中斷':'練習建議';
         if(!busy)coachTyping.hidden=true;
       }
       async function runCoach() {
@@ -2255,35 +2272,40 @@
           preparing:'準備權重，會沿用已下載的片段…',weights:'正在準備模型權重',
           'gpu-load':'正在從本機載入權重到 GPU',compile:'正在初始化 GPU…',
           working:'Qwen3 正在思考並挑選練習…'};
-        let answer;
+        let answer, usedDirect=false;
+        const report=(phase,pct)=>{
+          if(ticket!==coachTicket) return;
+          coachTyping.hidden=phase!=='working';
+          coachStatus.className='scale-practice-coach-status'+(phase==='working' && !usedDirect?' sr-only':'');
+          const phrase=phase==='working' && usedDirect ? 'Qwen3 正在用簡短模式再試一次…' : phrases[phase]||phrases.device;
+          const spoken=Number.isFinite(pct)?phrase+' '+pct+'%':phrase;
+          if(coachStatus.textContent!==spoken)coachStatus.textContent=spoken;
+        };
         try {
-          answer=await local.run(attempt.options,(phase,pct)=>{
-            if(ticket!==coachTicket) return;
-            coachTyping.hidden=phase!=='working';
-            coachStatus.className='scale-practice-coach-status'+(phase==='working'?' sr-only':'');
-            const phrase=phrases[phase]||phrases.device;
-            const spoken=Number.isFinite(pct)?phrase+' '+pct+'%':phrase;
-            if(coachStatus.textContent!==spoken)coachStatus.textContent=spoken;
-          },coachRetry);
+          answer=await local.run(attempt.options,report,{noMeasurement:attempt.noMeasurement});
+          if(ticket===coachTicket && !answer.choice && ['context','empty','invalid','thinking_only'].includes(answer.reason)){
+            const previous=answer;
+            usedDirect=true;
+            const direct=await local.run(attempt.options,report,{direct:true,noMeasurement:attempt.noMeasurement});
+            answer=previous.cold ? {...direct,cold:true,load:previous.load} : direct;
+          }
         } catch {answer={reason:'error'};}
         finally {globalThis.clearInterval(ticker);}
         if(ticket!==coachTicket) return;
         setCoachBusy(false);coachStatus.className='scale-practice-coach-status';coachTime.textContent='';
-        if(answer.reason==='cancelled'){coachStatus.textContent='已取消，不影響練習。';return;}
+        if(answer.reason==='cancelled'){coachStatus.textContent='已中斷，不影響練習。';return;}
         const reason=({unsupported:'本瀏覽器無法使用 WebGPU／半精度模型。',
-          slow:'Qwen3 在 30 秒內沒有完成。',
           load_timeout:'模型下載或初始化逾時。',error:'Qwen3 無法執行。',
-          budget:'模型用完輸出額度，還沒給出選項。',
+          model_load_error:globalThis.navigator?.onLine===false?'目前離線，模型無法載入。':'Qwen3 模型無法下載或初始化。',
+          context:'模型到達語境上限，仍未選出練習。',
           thinking_only:'模型只完成思考，沒有給出選項。',
           invalid:'模型回覆不是可用的選項。',empty:'模型沒有回傳內容。'})[answer.reason];
         if(!answer.choice){
-          coachRetry=true;
           coachStatus.textContent=(reason || '模型未回覆有效選項。')+
             (answer.reason==='unsupported'?'請改用支援 WebGPU 的瀏覽器或裝置。':
               '可再按「練習建議」重試。');
           return;
         }
-        coachRetry=false;
         const choice=answer.choice;
         const times=[];
         const seconds=ms=>(ms/1000).toFixed(1)+' 秒';
@@ -2292,9 +2314,9 @@
         if(Number.isFinite(answer.first)) times.push('首段運算 '+seconds(answer.first));
         if(Number.isFinite(answer.generation)) times.push('建議完成 '+seconds(answer.generation));
         coachTip.textContent=choice.observation+' '+choice.action+' '+choice.retest+
-          (attempt.detector&&Number.isFinite(attempt.reference) ? ' 比較時請沿用 '+(attempt.detector==='SwiftF0'?'智慧':'傳統')+'、A4 '+attempt.reference+' Hz。' : ' 這份舊圖未記錄偵測方式和 A4；比較時請沿用你原本使用的設定。');
+          (attempt.noMeasurement?'':attempt.detector&&Number.isFinite(attempt.reference) ? ' 比較時請沿用 '+(attempt.detector==='SwiftF0'?'智慧':'傳統')+'、A4 '+attempt.reference+' Hz。' : ' 這份舊圖未記錄偵測方式和 A4；比較時請沿用你原本使用的設定。');
         times.push('按下到顯示 '+seconds(globalThis.performance.now()-clicked));
-        coachStatus.textContent='Qwen3 思考選出的練習。'+(times.length?'（'+times.join('；')+'）':'');
+        coachStatus.textContent=(usedDirect?'Qwen3 以簡短模式選出的練習。':'Qwen3 思考選出的練習。')+(times.length?'（'+times.join('；')+'）':'');
       }
       coachAction.addEventListener('click',()=>coachBusy?coachService?.cancel():runCoach());
     }
@@ -2416,17 +2438,18 @@
       if (coachPanel) {
         if(next==='pending') {
           coachTicket++;coachAttempt=null;coachPanel.hidden=true;
-          coachRetry=false;coachBusy=false;coachAction.textContent='練習建議';coachTyping.hidden=true;
+          coachBusy=false;coachAction.textContent='練習建議';coachTyping.hidden=true;
           coachStatus.className='scale-practice-coach-status';
           coachStatus.textContent=coachTip.textContent=coachTime.textContent='';
         } else if(next==='idle' && (display?.coachResult || display?.coachNoEvidence)) {
-          const options=display.coachResult ? coachAPI.drills(target,display.values,display.mode,kind) : [];
-          coachAttempt=options.length?{options,detector:display.coachResult.engine,reference:display.coachResult.reference}:null;
+          const noMeasurement=Boolean(display.coachNoEvidence);
+          const options=noMeasurement ? coachAPI.noMeasurementDrills(kind) : coachAPI.drills(target,display.values,display.mode,kind);
+          coachAttempt=options.length?{options,noMeasurement,detector:display.coachResult?.engine,reference:display.coachResult?.reference}:null;
           coachPanel.hidden=false;
           coachAction.hidden=!coachAttempt;
           coachNotice.hidden=!coachAttempt;
           coachStatus.textContent=display.coachNoEvidence
-            ? (coachAttempt?'這次沒有辨識到可用音符；可以用上次保留的音準圖取得建議。':'這次沒有辨識到可用音符。請從第一個譜音拉約兩秒，等音準圖顯示一個點後，再停止並看結果。') : '';
+            ? '這次沒有辨識到可用音符。仍可按「練習建議」，請 Qwen3 選一個下一步。' : '';
         }
       }
       if (status.textContent !== text) status.textContent = text;

@@ -38,25 +38,25 @@ function sandbox(){
  const options=[{id:'center_one',fact:'offset@3:35'}, {id:'slow_pair',fact:'gap@2'}];
  return {scope,options,jobs,workers,service:api.service(scope)};
 }
-test('thinking timeout leaves warm engine for a retry with the same bound',async()=>{
+test('only cold initialization is bounded; model generation is cancellable without dropping the warm worker',async()=>{
  const f=sandbox(), updates=[];
  const pending=f.service.run(f.options,(...x)=>updates.push(x));
- const w=f.workers[0];assert.equal(w.opts.type,'module');assert.equal(w.msg.retry,false);
+ const w=f.workers[0];assert.equal(w.opts.type,'module');
  assert.deepEqual(Array.from(w.msg.options),['1 center_one offset@3:35','2 slow_pair gap@2']);
  assert.equal([...f.jobs.values()][0].ms,180000);
  w.emit('progress',{step:'cached'});w.emit('progress',{step:'gpu-load',percent:33});
- w.emit('ready',{cold:true,load:1500});assert.equal([...f.jobs.values()][0].ms,30000);
+ w.emit('ready',{cold:true,load:1500});assert.equal(f.jobs.size,0);
  w.emit('answer',{digit:2,first:121,generation:200});
  const r=await pending;
  assert.equal(r.choice.id,'slow_pair');assert.equal(r.load,1500);assert.equal(r.first,121);assert.equal(r.generation,200);
  assert.deepEqual(updates,[['device'],['cached',undefined],['gpu-load',33],['working']]);
  const warm=f.service.run(f.options);assert.equal(f.workers.length,1);
- assert.equal([...f.jobs.values()][0].ms,30000);
- w.emit('ready',{cold:false,load:0});[...f.jobs.values()][0].fn();
- assert.equal((await warm).reason,'slow');assert.equal(w.dead,undefined);assert.equal(w.interrupt.kind,'interrupt');
- const retry=f.service.run(f.options,()=>{},true);assert.equal(f.workers.length,1);assert.equal(w.msg.retry,true);
- assert.equal([...f.jobs.values()][0].ms,30000);
- w.emit('ready',{cold:false,load:0}); w.emit('answer',{digit:1,generation:20});
+ assert.equal(f.jobs.size,0);
+ f.service.cancel();
+ assert.equal((await warm).reason,'cancelled');assert.equal(w.dead,undefined);assert.equal(w.interrupt.kind,'interrupt');
+ const retry=f.service.run(f.options,()=>{});assert.equal(f.workers.length,1);
+ assert.equal(f.jobs.size,0);
+ w.emit('ready',{cold:false,load:0});w.emit('answer',{digit:1,generation:200000});
  assert.equal((await retry).choice.id,'center_one');
 });
 test('reasoning only admits a finished validated choice; actual shard progress is never invented',()=>{
@@ -88,7 +88,7 @@ test('partial coaching never treats an unplayed position as a problem',()=>{
  const target=[{name:'F',octave:2},{name:'G',octave:2},{name:'A',octave:2},{name:'G',octave:2},{name:'F',octave:2}];
  for(const kind of ['scale','arpeggio']){
   const one=api.drills(target,[4,null,null,null,null],'single',kind);
-  assert.deepEqual(Array.from(one,o=>o.id),['repeat_one']);
+  assert.deepEqual(Array.from(one,o=>o.id),['repeat_one','hold_center']);
   const split=api.drills(target,[4,null,31,null,null],'single',kind);
   assert.ok(split.every(o=>['repeat_one','center_one'].includes(o.id)));
   const adjacent=api.drills(target,[4,8,null,null,null],'single',kind);
@@ -96,10 +96,31 @@ test('partial coaching never treats an unplayed position as a problem',()=>{
  }
 });
 test('distinguishes output budget, reasoning-only, malformed and empty endings without exposing them',()=>{
- assert.equal(api.invalidAnswer('<think>partial 1','length',true,true),'budget');
+ assert.equal(api.invalidAnswer('<think>partial 1','length',true,true),'context');
  assert.equal(api.invalidAnswer('<think>1</think>', 'stop', true, false),'thinking_only');
  assert.equal(api.invalidAnswer('', 'stop', true, true),'thinking_only');
  assert.equal(api.invalidAnswer('pick 4','stop',true,true),'invalid');
  assert.equal(api.invalidAnswer('','stop',true,false),'empty');
  assert.equal(api.finalDigit('<think>private 3</think>1。'),1);
+});
+
+test('same model direct retry constrains exactly the offered answer IDs and suppresses thinking', async()=>{
+ const rows=['1 first','2 verify'];
+ const initial=api.completionRequest(rows,false,true);
+ assert.equal(initial.extra_body.enable_thinking,true);
+ assert.match(initial.messages[0].content,/No notes were measured.*Do not judge intonation/);
+ assert.equal(initial.response_format,undefined);
+ const direct=api.completionRequest(rows,true,true);
+ assert.equal(direct.extra_body.enable_thinking,false);
+ assert.equal(direct.max_tokens,undefined);
+ assert.equal(initial.max_tokens,undefined);
+ assert.equal(direct.response_format.type,'grammar');
+ assert.equal(direct.response_format.grammar,'root ::= "1" | "2"');
+ const f=sandbox();
+ const first=f.service.run(f.options);const w=f.workers[0];
+ w.emit('ready',{cold:true});w.emit('answer',{reason:'context',digit:null});await first;
+ const retry=f.service.run(f.options,()=>{},{direct:true,noMeasurement:true});
+ assert.equal(f.workers.length,1);assert.equal(w.msg.direct,true);assert.equal(w.msg.noMeasurement,true);
+ assert.equal(f.jobs.size,0);
+ w.emit('answer',{digit:2});assert.equal((await retry).choice,f.options[1]);
 });

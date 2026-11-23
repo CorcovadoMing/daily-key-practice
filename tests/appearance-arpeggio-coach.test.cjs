@@ -61,8 +61,8 @@ function app(store=memory(), search='', response) {
     pitchReading:midi=>({midi,cents:midi===40?28:-12}),
     pitchName:String
   });
-  coach.service=()=>({isBusy:()=>false,cancel(){},dispose(){},async run(options,progress,retry){
-    requested=options;return response ? response(options,retry,progress) : {choice:options.find(x=>x.id==='arpeggio_leap')};
+  coach.service=()=>({isBusy:()=>false,cancel(){},dispose(){},async run(options,progress,config){
+    requested=options;return response ? response(options,progress,config) : {choice:options.find(x=>x.id==='arpeggio_leap')};
   }});
   function card(kind){
     const notes=window.CelloFingerboard.scoreNotes('major',key,kind==='arpeggio');
@@ -108,27 +108,29 @@ test('experimental page has no coach setting and does not run it before an expli
   assert.doesNotMatch(html,/id="practice-coach-(?:enable|disable|opt-in)"/);
 });
 
-test('one reliable note exposes one AI action and uses that same control for retry, not fallback',async()=>{
+test('the model retries once under the same action after the natural context boundary', async()=>{
  for(const kind of ['scale','arpeggio']){
-  const p=app(memory(),'',(options,retry)=>!retry?{reason:'budget'}:{choice:options[0]});
+  const calls=[];
+  const p=app(memory(),'',(options,_progress,config)=>{
+   calls.push(config);return config.direct?{choice:options[0]}:{reason:'context'};
+  });
   const view=p.card(kind),panel=view.element.find('scale-practice-coach');
   await p.start(view);p.play(36);await p.stop(view);
-  const action=panel.find('scale-practice-coach-action');
-  await action.handlers.click();
-  assert.ok(p.requested.length>0 && p.requested.every(x=>['center_one','repeat_one'].includes(x.id)));
-  assert.match(panel.find('scale-practice-coach-status').textContent,/用完輸出額度.*練習建議.*重試/);
-  assert.equal(panel.find('scale-practice-coach-tip').textContent,'');
+  const action=panel.find('scale-practice-coach-action');await action.handlers.click();
+  assert.ok(p.requested.every(x=>['center_one','repeat_one','hold_center'].includes(x.id)));
+  assert.equal(calls.length,2);
+  assert.equal(calls[0].direct,undefined);
+  assert.equal(calls[1].direct,true);
   assert.equal(panel.find('scale-practice-coach-quick'),undefined);
   assert.equal(action.textContent,'練習建議');
-  await action.handlers.click();
-  assert.match(panel.find('scale-practice-coach-status').textContent,/Qwen3 思考選出/);
+  assert.match(panel.find('scale-practice-coach-status').textContent,/Qwen3 以簡短模式選出/);
   assert.match(panel.find('scale-practice-coach-tip').textContent,/C2/);
   assert.doesNotMatch(panel.find('scale-practice-coach-tip').textContent,/D2|E2|未對上/);
  }
 });
 test('typing bubble reflects inference rather than downloads and is removed on an error',async()=>{
  let report, done;
- const p=app(memory(),'',(_options,_retry,progress)=>{
+ const p=app(memory(),'',(_options,progress)=>{
   report=progress;
   return new Promise(resolve=>{done=resolve;});
  });
@@ -136,7 +138,7 @@ test('typing bubble reflects inference rather than downloads and is removed on a
  await p.start(view);p.play(36);await p.stop(view);
  const action=panel.find('scale-practice-coach-action'), bubble=panel.find('scale-practice-coach-typing');
  const result=action.handlers.click();
- assert.equal(action.textContent,'取消建議');
+ assert.equal(action.textContent,'中斷');
  report('weights',15);
  assert.equal(bubble.hidden,true);
  assert.match(panel.find('scale-practice-coach-status').textContent,/15%/);
@@ -145,20 +147,35 @@ test('typing bubble reflects inference rather than downloads and is removed on a
  assert.equal(bubble.children.length,3);
  assert.equal(bubble.attrs['aria-hidden'],'true');
  assert.match(panel.children.find(n=>n.className.includes('sr-only')).textContent,/正在思考/);
- done({reason:'invalid'});await result;
+ done({reason:'error'});await result;
  assert.equal(bubble.hidden,true);
  assert.equal(action.textContent,'練習建議');
- assert.match(panel.find('scale-practice-coach-status').textContent,/不是可用的選項/);
+ assert.match(panel.find('scale-practice-coach-status').textContent,/無法執行.*重試/);
  assert.match(html,/@media\(prefers-reduced-motion:reduce\)\{\.scale-practice-coach-typing span\{animation:none\}/);
 });
 
-test('stopping without evidence gives useful instructions but never runs the model',async()=>{
- const p=app(),view=p.card('scale'),panel=view.element.find('scale-practice-coach');
- await p.start(view);p.play(99);await p.stop(view);
- assert.equal(panel.hidden,false);
- assert.equal(panel.find('scale-practice-coach-action').hidden,true);
- assert.equal(panel.find('scale-practice-coach-quick'),undefined);
- assert.match(panel.find('scale-practice-coach-status').textContent,/沒有辨識到可用音符.*第一個譜音/);
- assert.equal(panel.find('scale-practice-coach-tip').textContent||'','');
- assert.equal(p.requested,undefined);
+test('after recording nothing, the only coach action sends synthetic facts and needs a model selection',async()=>{
+ for(const kind of ['scale','arpeggio']){
+  let selected=true;
+  const p=app(memory(),'',(options,_progress,config)=>{
+   assert.equal(config.noMeasurement,true);
+   assert.equal(options.length,2);
+   assert.ok(options.every(x=>x.fact.startsWith('no measurements')));
+   return selected ? {choice:options[1]} : {reason:'unsupported'};
+  });
+  const view=p.card(kind),panel=view.element.find('scale-practice-coach');
+  assert.equal(panel.hidden,true);
+  await p.start(view);p.play(99);await p.stop(view);
+  assert.equal(panel.hidden,false);
+  const action=panel.find('scale-practice-coach-action');
+  assert.equal(action.hidden,false);
+  assert.match(panel.find('scale-practice-coach-status').textContent,/沒有辨識到可用音符.*練習建議/);
+  assert.equal(p.requested,undefined);
+  await action.handlers.click();
+  assert.match(panel.find('scale-practice-coach-tip').textContent,/無法判斷音準.*先開調音器/);
+  assert.doesNotMatch(panel.find('scale-practice-coach-tip').textContent,/442|A4|音分/);
+  selected=false;await action.handlers.click();
+  assert.equal(panel.find('scale-practice-coach-tip').textContent,'');
+  assert.match(panel.find('scale-practice-coach-status').textContent,/WebGPU/);
+ }
 });
