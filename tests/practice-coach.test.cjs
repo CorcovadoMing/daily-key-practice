@@ -16,11 +16,11 @@ const advice={steps:['停弓一拍，先放好下一音的手指。','把這兩�
 test('facts use only scored anchors, preserve exercise, direction, signed difference, and known detection settings',()=>{
  const f=api.evidence(target,[0,null,35,-18,null],'single','arpeggio',{reference:442,detector:'SwiftF0'});
  assert.equal(f.measured,3);assert.equal(f.total,5);assert.equal(f.exercise,'琶音');
- assert.match(f.summary,/A2.*上行.*\+35¢.*G2.*下行.*−18¢/);
+ assert.match(f.report,/A2.*上行.*\+35¢[\s\S]*G2.*下行.*−18¢/);
  assert.equal(f.detector,'智慧');assert.equal(f.reference,442);
  const empty=api.evidence(target,null,'loop');
- assert.equal(empty.measured,0);assert.equal(empty.detector,null);assert.match(empty.summary,/無法判斷音準/);
- assert.doesNotMatch(api.evidence(target,[4,null,31,null,null],'single').summary,/G2/);
+ assert.equal(empty.measured,0);assert.equal(empty.detector,null);assert.match(empty.report,/無法判斷音準/);
+ assert.doesNotMatch(api.evidence(target,[4,null,31,null,null],'single').report,/G2/);
 });
 test('structured advice strips hidden reasoning and rejects HTML, guessed results, pain encouragement and malformed answers',()=>{
  const lines='練法：'+advice.steps[0]+'\n練法：'+advice.steps[1]+'\n重測：'+advice.check;
@@ -48,7 +48,8 @@ test('only cold initialization is bounded; model generation is cancellable witho
  const f=sandbox(), updates=[];
  const pending=f.service.run(f.options,(...x)=>updates.push(x));
  const w=f.workers[0];assert.equal(w.opts.type,'module');
- assert.equal(w.msg.facts,f.options);assert.equal(w.msg.options,undefined);
+ assert.deepEqual(Object.keys(w.msg.facts).sort(),['adjacent','measured','report']);
+ assert.equal(w.msg.facts.report,f.options.report);assert.equal(w.msg.options,undefined);
  assert.equal([...f.jobs.values()][0].ms,180000);
  w.emit('progress',{step:'cached'});w.emit('progress',{step:'gpu-load',percent:33});
  w.emit('ready',{cold:true,load:1500});assert.equal(f.jobs.size,0);
@@ -99,7 +100,7 @@ test('same model direct retry requests JSON, suppresses thinking, and never impo
  const empty=api.evidence(target,null,'single');
  const initial=api.completionRequest(empty,false),direct=api.completionRequest(empty,true);
  assert.equal(initial.extra_body.enable_thinking,true);
- assert.match(initial.messages[0].content,/沒有量到音，不評音準.*不要猜測手指、弦、姿勢或原因/);
+ assert.match(initial.messages[0].content,/沒有量到音，不評音準.*不可推斷節奏、弓法或動作原因/);
  assert.equal(initial.response_format,undefined);
  assert.equal(direct.extra_body.enable_thinking,false);
  assert.equal(direct.max_tokens,undefined);assert.equal(initial.max_tokens,undefined);
@@ -110,7 +111,7 @@ test('same model direct retry requests JSON, suppresses thinking, and never impo
  const first=f.service.run(empty);const w=f.workers[0];
  w.emit('ready',{cold:true});w.emit('answer',{reason:'context'});await first;
  const retry=f.service.run(empty,()=>{},{direct:true});
- assert.equal(f.workers.length,1);assert.equal(w.msg.direct,true);assert.equal(w.msg.facts.measured,0);
+ assert.equal(f.workers.length,1);assert.equal(w.msg.direct,true);assert.equal(w.msg.facts.measured,false);
  assert.equal(f.jobs.size,0);
  w.emit('answer',{advice});assert.equal((await retry).advice,advice);
 });
@@ -152,12 +153,51 @@ test('normalizes a JSON lesson header leak but only when its separate retest is 
 });
 test('prompt gives different concrete examples for measured pair, single and no evidence',()=>{
  const f=api.evidence(target,[null,20,35,null,null],'single');
- assert.deepEqual(Array.from(f.offsets),[20,35]);assert.equal(f.adjacent,true);
+ assert.equal(f.adjacent,true);assert.match(f.report,/G2.*\+20¢.*黃[\s\S]*A2.*\+35¢.*紅/);
  const pair=api.completionRequest(f,false).messages[0].content;
  assert.match(pair,/相鄰.*分弓.*第二音準備好再出弓.*聽換音.*靠近零線/);
- assert.match(pair,/"signedCents":\[20,35\]/);assert.doesNotMatch(pair,/拍數或次數/);
+ assert.ok(pair.endsWith(f.report));assert.doesNotMatch(pair,/signedCents|拍數或次數/);
  const one=api.completionRequest(api.evidence(target,[null,null,35,null,null],'single'),false).messages[0].content;
  assert.match(one,/一個指定譜位.*不加未辨識.*長音.*零線/);
  const none=api.completionRequest(api.evidence(target,null,'single'),false).messages[0].content;
- assert.match(none,/沒有量到音，不評音準.*先開調音器/);assert.doesNotMatch(none,/signedCents/);
+ assert.match(none,/沒有量到音，不評音準.*先開調音器/);assert.doesNotMatch(none,/signedCents|¢/);
+});
+
+test('worker request reads exactly one human-readable joined report in either mode, with trustworthy chart bands',()=>{
+ const f=api.evidence(target,[null,10.001,20.001,null,null],'single','scale',{restored:true});
+ assert.equal(f.rows.length,2);
+ assert.match(f.coverage,/^上次保留的音準圖.*2／5.*空白不代表拉錯/);
+ assert.match(f.rows[0],/G2.*黃・略偏/);
+ assert.match(f.rows[1],/A2.*紅・偏差較大/);
+ for(const direct of [false,true]){
+  const request=api.completionRequest(f,direct);
+  const report=request.messages[0].content.split('網站已整理的練習重點：\n')[1].split('\nJSON 的')[0];
+  assert.equal(report,f.report);
+  assert.doesNotMatch(report,/[{}]|signedCents|\bslot\b|\btiming\b/);
+ }
+});
+
+test('actual streamed worker shares final text, never the thought stream, and preserves partial errors',async()=>{
+ const examples=[
+  {chunks:[{delta:{content:'<th'}},{delta:{content:'ink>HIDDEN'}},{delta:{content:'</think>\n  不合格式 <img src=x>  '}},{finish_reason:'stop',delta:{reasoning_content:'PRIVATE'}}],raw:'\n  不合格式 <img src=x>  ',partial:false},
+  {chunks:[{delta:{content:'<think>HIDDEN'}},{finish_reason:'length',delta:{reasoning_content:'PRIVATE'}}],raw:'',partial:true},
+  {chunks:[{delta:{reasoning_content:'PRIVATE'}},{delta:{content:'可見的未完'}}],raw:'可見的未完',partial:true,throws:true},
+  {chunks:[{delta:{content:'prefix only without opening tag</think>\n練法：拉弓'}},{finish_reason:'length'}],raw:'\n練法：拉弓',partial:true}
+ ];
+ for(const item of examples){
+  const outbound=[];
+  const injected=api.workerMain.toString().replace('let engine,','let engine = mockEngine,');
+  const ctx=vm.createContext({performance, self:{postMessage:msg=>outbound.push(msg)},
+   mockEngine:{chat:{completions:{async create(){return (async function*(){
+    for(const part of item.chunks)yield {choices:[part]};
+    if(item.throws)throw Error('mock GPU lost');
+   })();}}}}});
+  vm.runInContext('('+injected+')({},'+api.parseAdvice.toString()+','+api.weightStage.toString()+','+
+    api.invalidAnswer.toString()+','+api.completionRequest.toString()+','+api.finalAnswerText.toString()+')',ctx);
+  ctx.self.onmessage({data:{id:1,facts:{report:'本次練習',measured:true},direct:false}});
+  await new Promise(setImmediate);
+  const answer=outbound.find(x=>x.phase==='answer');
+  assert.equal(answer.raw,item.raw);assert.equal(answer.partial,item.partial);
+  assert.doesNotMatch(JSON.stringify(outbound),/HIDDEN|PRIVATE|prefix only/);
+ }
 });

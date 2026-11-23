@@ -263,9 +263,9 @@ for (const mode of ['single','loop']) {
    const ctx={module:{exports:{}}};
    vm.runInNewContext(html.split('// PRACTICE_COACH_START')[1].split('// PRACTICE_COACH_END')[0],ctx);
    const facts=ctx.module.exports.evidence(seq,display.values,mode);
-   if(extras.length)assert.match(facts.summary,/G3.*上行第 6/);
+   if(extras.length)assert.match(facts.report,/G3.*上行第 6/);
    else assert.equal(facts.measured,5);
-   assert.doesNotMatch(facts.summary,/下行第 24/);
+   assert.doesNotMatch(facts.report,/下行第 24/);
   }
  });
 }

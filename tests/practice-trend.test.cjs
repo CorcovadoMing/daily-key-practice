@@ -48,12 +48,14 @@ test('sustained observations distinguish repeated settlement from persistent off
  }
  a.equal(practice.pitchTrendSummary(split.snapshot()).pattern,'held');
  const slots=[{midi:41,name:'F',octave:2},{midi:43,name:'G',octave:2}];
+ const close=coach.evidence(slots,[10.1,-20.1],'single','scale',{visual:practice.chartPoint});
+ a.match(close.rows[0],/F2.*\+10\.1¢.*黃・略偏/);
+ a.match(close.rows[1],/G2.*−20\.1¢.*紅・偏差較大/);
  const facts=coach.evidence(slots,[8,null],'single','scale',{trend:settling,reference:442,detector:'SwiftF0'});
- a.match(facts.timing.pattern,/多次辨識片段.*後段靠近/);
- a.equal(facts.timing.firstCents,27);a.equal(facts.timing.lastCents,5);
+ a.match(facts.rows[0],/F2.*前段 \+27¢、後段 \+5¢.*多輪由偏離回到較接近中心/);
  a.doesNotMatch(JSON.stringify(facts),/segment|audioTime|trajectory|"data":/);
- a.equal(coach.evidence(slots,[null,8],'single','scale',{trend:settling}).timing,undefined);
- a.equal(coach.evidence(slots,null,'single','scale',{trend:settling}).timing,undefined);
+ a.doesNotMatch(coach.evidence(slots,[null,8],'single','scale',{trend:settling}).report,/前段|多輪/);
+ a.doesNotMatch(coach.evidence(slots,null,'single','scale',{trend:settling}).report,/前段|多輪/);
  const prompt=coach.completionRequest(facts,false).messages[0].content;
  a.match(prompt,/^你是虛擬大提琴老師。你的工作是給正在學習大提琴的學生具體、有建設性、能馬上練習的建議。/);
  a.match(prompt,/不可推斷節奏、弓法或動作原因/);
@@ -106,4 +108,16 @@ test('native disclosure lazily renders labelled real-time axes and separately br
  a.ok(svg.children.some(x=>x.attrs.class==='trend-zero'));
  a.ok(svg.children.some(x=>x.textContent==='F2'));
  a.match(html,/\.scale-pitch-trend-scroll\{overflow:auto;max-width:100%\}/);
+});
+
+test('a prior draft or sparse current take keeps the disclosure without drawing invented times',()=>{
+ const make=tag=>({tag,children:[],append(...x){this.children.push(...x);},addEventListener(_,cb){this.toggle=cb;}});
+ const core=section('SCALE_PRACTICE',{document:{createElement:make}});
+ for(const restored of [false,true]){
+  const node=core.pitchTrendChart(undefined,[],'琶音',restored);
+  a.equal(node.children[0].textContent,'音準走勢');
+  node.open=true;node.toggle();
+  a.equal(node.children.length,2);
+  a.match(node.children[1].textContent,restored?/上次保留.*當次頁面/:/沒有足夠.*樣本/);
+ }
 });

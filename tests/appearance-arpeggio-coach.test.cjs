@@ -45,15 +45,16 @@ test('appearance keeps light default, persists manual choice, follows system onl
 });
 
 function app(store=memory(), search='', response) {
-  const document={hidden:false,createElement:()=>new Node(),querySelectorAll:()=>[],addEventListener(){}};
+  const events={},docEvents={};
+  const document={hidden:false,createElement:()=>new Node(),querySelectorAll:()=>[],addEventListener(name,run){docEvents[name]=run;}};
   const window={};
-  const env=vm.createContext({document,window,performance,setInterval,clearInterval,localStorage:store,URLSearchParams,location:{pathname:'/experimental/',search}});
+  const env=vm.createContext({document,window,addEventListener(name,run){events[name]=run;},performance,setInterval,clearInterval,localStorage:store,URLSearchParams,location:{pathname:'/experimental/',search}});
   vm.runInContext(fingerboard,env);
   vm.runInContext(code('PRACTICE_COACH'),env);
   vm.runInContext(code('SCALE_PRACTICE'),env);
   const hooks=env.CelloScalePractice, coach=env.CelloPracticeCoach;
   const key=['C',0,'C D E F G A B'];
-  let callbacks, now=10, listens=0, requested;
+  let callbacks, now=10, listens=0, requested, disposals=0, cancellations=0;
   const capture={subscribe(listener){listens++;callbacks=listener;return ()=>{};}};
   const manager=hooks.manager({performance:{now:()=>now}},{
     capture,swiftCapture:capture,
@@ -61,7 +62,7 @@ function app(store=memory(), search='', response) {
     pitchReading:midi=>({midi,cents:midi===40?28:-12}),
     pitchName:String
   });
-  coach.service=()=>({isBusy:()=>false,cancel(){},dispose(){},async run(options,progress,config={}){
+  coach.service=()=>({isBusy:()=>false,cancel(){cancellations++;},dispose(){disposals++;},async run(options,progress,config={}){
     requested=options;return response ? response(options,progress,config) : {advice:{steps:['停弓一拍，把下一音的手指先放好。','把這兩音接起來，連做三次。'],check:'再連拉一次，聽第二音起音是否平順。'}};
   }});
   function card(kind){
@@ -69,7 +70,8 @@ function app(store=memory(), search='', response) {
     const target=notes.map(n=>({...n,octave:Math.floor(n.midi/12)-1}));
     return hooks.card({querySelectorAll:()=>target.map(()=>new Node())},target,v=>manager.toggle(v),kind,'scope');
   }
-  return {store,card,start:async view=>{await manager.toggle(view);callbacks.ready();},
+  return {store,card,visibility(hidden){document.hidden=hidden;docEvents.visibilitychange?.();},
+    pagehide(persisted){events.pagehide?.({persisted});},get disposals(){return disposals;},get cancellations(){return cancellations;},start:async view=>{await manager.toggle(view);callbacks.ready();},
     stop:view=>manager.toggle(view),play(midi){for(let i=0;i<5;i++)callbacks.frame({now:now+=25,frequency:midi,muted:false});},
     get listens(){return listens;},get requested(){return requested;}};
 }
@@ -87,8 +89,13 @@ test('actual arpeggio manager/card reveals its own measured coaching only after 
   const button=panel.find('scale-practice-coach-action');
   await button.handlers.click();
   assert.equal(p.requested.exercise,'琶音');
+  assert.match(p.requested.coverage,/本次練習.*4／13.*空白不代表拉錯/);
+  assert.match(p.requested.report,/C2.*−12¢.*黃[\s\S]*E2.*\+28¢.*紅/);
+  assert.equal(p.requested.rows.length,2);
+  assert.match(coachOutput(panel),/空白不代表拉錯/);
+
   assert.match(coachOutput(panel),/C2.*E2.*停弓一拍.*起音是否平順.*智慧.*A4 442/);
-  assert.equal(panel.find('scale-practice-coach-tip').children[3].children.length,2);
+  assert.equal(panel.find('scale-practice-coach-steps').children.length,2);
   const reloaded=app(p.store,'');
   const restored=reloaded.card('arpeggio');
   assert.equal(reloaded.card('scale').element.find('scale-practice-coach').hidden,true);
@@ -172,7 +179,7 @@ test('after recording nothing, the only coach action sends synthetic facts and n
   let selected=true;
   const p=app(memory(),'',(options,_progress,config)=>{
    assert.equal(options.measured,0);
-   assert.match(options.focus,/第一個譜音/);
+   assert.match(options.report,/沒有辨識到可用音符/);
    return selected ? {advice:{steps:['先開調音器，拉第一個譜音兩秒。'],check:'確認畫面出現音名，再回到練習。'}} : {reason:'unsupported'};
   });
   const view=p.card(kind),panel=view.element.find('scale-practice-coach');
@@ -190,4 +197,43 @@ test('after recording nothing, the only coach action sends synthetic facts and n
   assert.equal(coachOutput(panel),'');
   assert.match(panel.find('scale-practice-coach-status').textContent,/WebGPU/);
  }
+});
+
+test('both real off-format examples and a truncated response stay literal and never auto-retry',async()=>{
+ const raws=[
+  '練法：拍數或次數：5次，左右手交替拍，注意音連\n練法：拍數或次數：6次，左右手配合拍，注意音連\n重測：拍數或次數：5次，左右手交替拍，注意音連',
+  JSON.stringify({steps:['練法：分開拉弓，停住弓再準備手指，把音連起來','重測：用耳朵或音準圖檢查'],check:'用耳朵或音準圖檢查'}),
+  '  這段沒完\n<img src=x onerror="boom">  <a href="https://example.com/">link</a>  '
+ ];
+ for(const [i,raw] of raws.entries()){
+  let calls=0;
+  const p=app(memory(),'',()=>{calls++;return {raw,reason:i===2?'context':'invalid',partial:i===2};});
+  const view=p.card('scale'),panel=view.element.find('scale-practice-coach');
+  await p.start(view);p.play(36);await p.stop(view);
+  await panel.find('scale-practice-coach-action').handlers.click();
+  assert.equal(calls,1);
+  const literal=panel.find('scale-practice-coach-literal');
+  assert.equal(literal.textContent,raw);
+  assert.deepEqual(literal.children,[]);
+  assert.match(panel.find('scale-practice-coach-status').textContent,i===2?/尚未寫完/:/未整理/);
+  assert.match(panel.find('scale-practice-coach-elapsed').textContent,/耗時/);
+ }
+});
+test('pending coach survives app hide/show and cached pagehide, but not a real page exit',async()=>{
+ let finish;
+ const raw='練法：先分弓把兩音拉清楚。\n重測：聽音與音交接有沒有變順。';
+ const p=app(memory(),'',()=>new Promise(resolve=>{finish=resolve;}));
+ const view=p.card('scale'),panel=view.element.find('scale-practice-coach');
+ await p.start(view);p.play(36);await p.stop(view);
+ const answer=panel.find('scale-practice-coach-action').handlers.click();
+ p.visibility(true);p.pagehide(true);p.visibility(false);
+ assert.equal(p.disposals,0);assert.equal(p.cancellations,0);
+ finish({advice:{steps:['先分弓把兩音拉清楚。'],check:'聽音與音交接有沒有變順。'},raw});
+ await answer;
+ assert.match(coachOutput(panel),/可以這樣練.*分弓/);
+ const disclosure=panel.find('scale-practice-coach-raw-details');
+ assert.equal(disclosure.open,undefined);
+ assert.equal(disclosure.children[0].textContent,'原始回覆');
+ assert.equal(disclosure.find('scale-practice-coach-literal').textContent,raw);
+ p.pagehide(false);assert.equal(p.disposals,1);
 });

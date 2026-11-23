@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261123-036-experimental">
+  <meta name="site-version" content="20261123-037-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -529,6 +529,9 @@
     @keyframes coach-dot{0%,60%,100%{transform:translateY(0);opacity:.66}30%{transform:translateY(-3px);opacity:1}}
     @media(prefers-reduced-motion:reduce){.scale-practice-coach-typing span{animation:none}}
     @media screen{[data-appearance=dark] .scale-practice-coach-typing{--typing-fill:#344d62;--typing-dot:#c0d9ef}}
+    .scale-practice-coach-raw:empty{display:none}
+    .scale-practice-coach-raw summary{min-height:44px;display:list-item;line-height:44px;cursor:pointer}
+    .scale-practice-coach-raw pre{white-space:pre-wrap;overflow-wrap:anywhere;overflow:auto;max-height:16rem;margin:4px 0 0;padding:8px 10px;background:var(--soft);color:var(--ink);border-radius:8px;font:inherit;line-height:1.55}
     .scale-practice-coach-tip h4{font-size:1rem;margin:.85rem 0 .2rem;line-height:1.35}
     .scale-practice-coach-steps{font-size:.9375rem;line-height:1.55;margin:.25rem 0;padding-inline-start:1.5rem}
     .scale-practice-coach-tip .scale-practice-coach-context{color:var(--muted)}
@@ -1081,7 +1084,7 @@
     <select id="appearance-choice">
       <option value="light">淺色</option><option value="dark">深色</option><option value="system">跟隨系統</option>
     </select>
-  </label><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261123-036-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  </label><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261123-037-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -1136,36 +1139,46 @@
   function evidence(target, values, mode, kind='scale', metadata={}) {
     const exercise=kind==='arpeggio'?'琶音':'音階';
     const slots=Array.isArray(target)?target:[];
+    const finite=value=>Number.isFinite(value)&&Math.abs(value)<=50+1e-7;
+    const cents=value=>{const n=Math.round(value);return (n>0?'+':n<0?'−':'')+Math.abs(n)+'¢';};
     const positions=slots.map((n,i)=>({
       i,name:/^[A-G][♯♭#b]?$/.test(n?.name||'') && Number.isInteger(n?.octave) && n.octave>=0 && n.octave<=9 ? n.name+n.octave : '',
-      direction:i <= (slots.length-1)/2 ? '上行' : '下行',
-      cents:Number.isFinite(values?.[i]) && Math.abs(values[i])<=50+1e-7 ? Math.max(-50,Math.min(50,Math.round(values[i]))) : null
+      direction:i<=(slots.length-1)/2?'上行':'下行',cents:finite(values?.[i])?values[i]:null
     }));
     const named=p=>[p.name,p.direction+'第 '+(p.i+1)+' 個譜位'].filter(Boolean).join('，');
-    const cents=n=>(n>0?'+':n<0?'−':'')+Math.abs(n)+'¢';
     const measured=positions.filter(p=>p.cents!==null);
+    const trace=metadata.trend, timed=positions[trace?.slot];
+    const qualified=timed?.cents!=null && Number.isFinite(trace?.duration) && trace.duration>=340 &&
+      trace.duration<=120000 && finite(trace.lead) && finite(trace.tail);
+    const repeated=qualified && ['settles','persists'].includes(trace.pattern) && Number.isInteger(trace.repeats) && trace.repeats>=2;
     const worst=measured.reduce((a,b)=>!a||Math.abs(b.cents)>Math.abs(a.cents)?b:a,null);
-    const earlier=worst&&positions[worst.i-1],later=worst&&positions[worst.i+1];
-    const neighbor=[earlier,later].filter(p=>p&&p.cents!==null).sort((a,b)=>Math.abs(b.cents)-Math.abs(a.cents))[0];
-    const anchors=worst?[worst,...(neighbor?[neighbor]:[])].sort((a,b)=>a.i-b.i):[];
-    const summary=anchors.length?anchors.map(p=>named(p)+'：'+cents(p.cents)).join('；')+'。': '這次沒有辨識到可用音符，無法判斷音準。';
+    const focal=repeated?timed:worst;
+    const neighbor=focal&&[positions[focal.i-1],positions[focal.i+1]].filter(p=>p?.cents!=null)
+      .sort((a,b)=>Math.abs(b.cents)-Math.abs(a.cents))[0];
+    const anchors=focal?[focal,...(neighbor?[neighbor]:[])].sort((a,b)=>a.i-b.i):[];
+    const bandText={center:'綠・接近中心',near:'黃・略偏',outside:'紅・偏差較大'};
+    const rows=anchors.map(p=>{
+      const visual=metadata.visual?.(p.cents);
+      const magnitude=Math.abs(p.cents);
+      const band=visual?.band ?? (magnitude<=10+1e-7?'center':magnitude<=20+1e-7?'near':'outside');
+      let row=named(p)+'：'+(visual?.text ?? cents(p.cents))+'（'+bandText[band]+'）';
+      if(qualified && p===timed){
+        const scope=trace.recent===true?'保留的末段，':'';
+        const duration=Math.round(trace.duration/50)/20;
+        const pattern=repeated?(trace.pattern==='settles'?'多輪由偏離回到較接近中心':'多輪前後都朝同一側偏離'):'只見一段，不代表每次如此';
+        row+='；'+scope+'已辨識片段約 '+duration+' 秒，前段 '+cents(trace.lead)+'、後段 '+cents(trace.tail)+'，'+pattern;
+      }
+      return row+'。';
+    });
+    const restored=metadata.restored===true;
+    const source=restored?'上次保留的音準圖':'本次練習';
+    const coverage=measured.length?source+'：'+exercise+'，辨識到 '+measured.length+'／'+slots.length+' 個譜位；空白不代表拉錯。':
+      source+'：'+exercise+'，沒有辨識到可用音符，無法判斷音準。';
     const reference=Number.isFinite(metadata.reference)&&metadata.reference>=430&&metadata.reference<=450?metadata.reference:null;
     const detector=metadata.detector==='SwiftF0'?'智慧':metadata.detector==='現有偵測'?'傳統':null;
-    const trace=metadata.trend;
-    let timing=null;
-    const qualifiedSpan=measured.length&&trace&&Number.isInteger(trace.slot)&&
-      Number.isFinite(trace.duration)&&trace.duration>=340&&trace.duration<=120000&&
-      [trace.lead,trace.tail].every(v=>Number.isFinite(v)&&Math.abs(v)<=50+1e-7)&&
-      Number.isFinite(positions[trace.slot]?.cents);
-    if(qualifiedSpan){
-      const repeated=['settles','persists'].includes(trace.pattern)&&Number.isInteger(trace.repeats)&&trace.repeats>=2;
-      timing={slot:named(positions[trace.slot]),durationMs:Math.round(trace.duration/50)*50,
-        firstCents:Math.round(trace.lead),lastCents:Math.round(trace.tail),
-        pattern:repeated ? trace.pattern==='settles'?'多次辨識片段的前段偏離、後段靠近':'多次辨識片段的前後段同方向偏離' : '一段辨識片段，不能推論重現',
-        repeats:repeated?Math.min(9,trace.repeats):1,scope:trace.recent===true?'本次練習保留的末段':'本次練習'};
-    }
-    return {exercise,mode:mode==='loop'?'循環':'單次',measured:measured.length,total:slots.length,
-      focus:anchors.length?anchors.map(named).join(' → '):'第一個譜音',adjacent:anchors.length===2,offsets:anchors.map(p=>p.cents),summary,reference,detector,...(timing?{timing}:{})};
+    return {exercise,measured:measured.length,total:slots.length,adjacent:anchors.length===2,restored,
+      coverage,rows,
+      report:[coverage,...rows].join('\n'),reference,detector};
   }
   function parseAdvice(text,facts) {
     let final=String(text??'').trim();
@@ -1224,7 +1237,7 @@
     const normalized=all.map(normalize);
     if(normalized.some((line,i)=>normalized.slice(0,i).some(previous=>closeText(line,previous))))return null;
     const checksSomething=/(?:聽|听|看|確認|确认|檢查|检查|留意|比較|比较|有沒有|有没有|能不能|是否)/u.test(check);
-    if(facts?.measured===0){
+    if(facts?.measured===0||facts?.measured===false){
       if(!/(?:調音器|调音器|第一個譜音|第一个谱音|第一個音|第一个音|第一音|起始音|首音|麥克風|麦克风)/u.test(steps.join(' ')))return null;
       if(!checksSomething||!/(?:音名|音準圖|音准图|出現.{0,8}(?:點|点|音)|辨識|识别|收到聲音|收到声音)/u.test(check))return null;
     }
@@ -1233,6 +1246,14 @@
       if(!checksSomething||!/(?:零線|零线|中線|中线|靠近零|實心點|实心点|音準圖.{0,10}(?:點|点|位置|靠近)|音准图.{0,10}(?:点|位置|靠近)|起音|音頭|音头|收尾|音高|交接|接起來|接起来|連接|连接|換音|换音|飄|飘|抖|平順|平顺|雜音|杂音)/u.test(check))return null;
     }
     return {steps,check};
+  }
+  function finalAnswerText(content) {
+    if(typeof content!=='string')return '';
+    // Never append or render the separately streamed reasoning fields.
+    const closing=[...content.matchAll(/<\/think\s*>/gi)].at(-1);
+    const final=closing?content.slice(closing.index+closing[0].length):content;
+    if(/<\/?think\b/i.test(final) || /<\/?th(?:i(?:n(?:k)?)?)?$/i.test(final.trimEnd()))return '';
+    return final.trim()?final:'';
   }
   function invalidAnswer(text, finishReason, thinking, sawReasoning) {
     const rendered=String(text ?? '').trim();
@@ -1261,16 +1282,11 @@
       : facts.adjacent
         ? '只用這兩個相鄰的已辨識譜位。例：先分弓慢拉兩音，第二音準備好再出弓；接著慢慢連起來。重測：原設定重拉，聽換音更順不順，或看兩格是否更靠近零線。'
         : '只有一個指定譜位，不加未辨識的音。例：保持這音的左手設定不變，右手慢慢拉一弓長音。重測：原設定重拉，看音準圖是否更靠近零線。';
-    const temporal=facts.timing
-      ? '有時間摘要時可用它設計練法；只比較已辨識前段和後段。不可推斷節奏、弓法或動作原因。'
-      : '';
-    // Summary is for the visible UI. Avoid duplicating the same findings in
-    // the prompt or asking the model to repeat the measured observation.
-    const context=JSON.stringify({exercise:facts.exercise,focus:facts.focus,measured:facts.measured,...(facts.measured?{signedCents:facts.offsets}:{}),...(facts.timing?{timing:facts.timing}:{})});
+    const context=facts.report;
     const format=direct?'只回一個具體步驟與一個不同的重測方法，依 JSON 結構。':
       '只寫「練法：」與「重測：」各一行；若有必要，可多一行「練法：」。';
-    const request={messages:[{role:'user',content:'你是虛擬大提琴老師。你的工作是給正在學習大提琴的學生具體、有建設性、能馬上練習的建議。用繁體中文。'+task+temporal+
-      '例子供參考，不照抄。寫一個能在琴上做的動作；不要叫左右手拍打，也不要猜測手指、弦、姿勢或原因。重測要說聽什麼或看哪個變化，不可重複練法。動作保持舒服，疼痛即停止。'+format+' 練習資料：'+context}],
+    const request={messages:[{role:'user',content:'你是虛擬大提琴老師。你的工作是給正在學習大提琴的學生具體、有建設性、能馬上練習的建議。用繁體中文。'+task+
+      '網站已完成比對。只把下列練習重點變成練法，不重做配對或評分。例子供參考，不照抄。不可推斷節奏、弓法或動作原因，也不要猜測手指、弦或姿勢。重測要說聽什麼或看哪個變化，不可重複練法。動作保持舒服，疼痛即停止。'+format+'\n網站已整理的練習重點：\n'+context}],
       extra_body:{enable_thinking:!direct},stream:true,temperature:0.2};
     if(direct){
       request.messages[0].content += '\nJSON 的 steps 只含一個步驟字串，check 是重測字串。';
@@ -1278,11 +1294,12 @@
     }
     return request;
   }
-  async function workerMain(pins, parse, progressStage, classify, makeRequest) {
+  async function workerMain(pins, parse, progressStage, classify, makeRequest, takeFinal) {
     let engine, activeId=null, queued=null;
     async function run(data) {
       activeId=data.id;
       const post=(phase,rest={})=>self.postMessage({phase,id:data.id,...rest});
+      let output='',first=null,finishReason=null,sawReasoning=false, start;
       try {
         const started=performance.now(), cold=!engine;
         if (cold) {
@@ -1308,10 +1325,10 @@
             }
           });
         }
-        const load=cold ? performance.now()-started : 0, start=performance.now();
+        const load=cold ? performance.now()-started : 0;
+        start=performance.now();
         post('ready',{load,cold});
         const stream=await engine.chat.completions.create(makeRequest(data.facts,data.direct));
-        let output='',first=null,finishReason=null,sawReasoning=false;
         for await (const chunk of stream) {
           const choice=chunk.choices?.[0];
           finishReason=choice?.finish_reason || finishReason;
@@ -1321,11 +1338,16 @@
           if (first===null) first=performance.now()-start;
           output+=part;
         }
-        // Never send reasoning or unvalidated model text outside this worker.
-        const advice=finishReason==='length' ? null : parse(output,data.facts);
+        const raw=takeFinal(output);
+        const partial=finishReason==='length'||finishReason==='abort';
+        const advice=raw&&!partial ? parse(raw,data.facts) : null;
         const reason=advice ? undefined : classify(output,finishReason,!data.direct,sawReasoning);
-        post('answer',{advice,reason,first,generation:performance.now()-start});
-      } catch {post('error',{stage:engine?'inference':'initialization'});}
+        post('answer',{advice,reason,raw,partial,first,generation:performance.now()-start});
+      } catch {
+        const raw=takeFinal(output);
+        if(raw)post('answer',{advice:null,reason:'error',raw,partial:true,first,generation:performance.now()-start});
+        else post('error',{stage:engine?'inference':'initialization'});
+      }
       finally {
         activeId=null;
         if(queued){const next=queued;queued=null;void run(next);}
@@ -1372,7 +1394,7 @@
         try {
           if (!worker) {
             const pins={model:MODEL,weights:WEIGHTS,runtime:RUNTIME,integrity:INTEGRITY,lib:MODEL_LIB};
-            const code='('+workerMain.toString()+')('+JSON.stringify(pins)+','+parseAdvice.toString()+','+weightStage.toString()+','+invalidAnswer.toString()+','+completionRequest.toString()+');';
+            const code='('+workerMain.toString()+')('+JSON.stringify(pins)+','+parseAdvice.toString()+','+weightStage.toString()+','+invalidAnswer.toString()+','+completionRequest.toString()+','+finalAnswerText.toString()+');';
             workerURL=env.URL.createObjectURL(new env.Blob([code],{type:'text/javascript'}));
             worker=new env.Worker(workerURL,{type:'module'});
             const owner=worker;
@@ -1385,7 +1407,7 @@
                 warm=true;active.ready=true;
                 env.clearTimeout(active.timer);
                 active.report('working');
-              } else if(data.phase==='answer') resolve({...active.timing,reason:data.reason,advice:data.advice||null,first:data.first,generation:data.generation});
+              } else if(data.phase==='answer') resolve({...active.timing,reason:data.reason,advice:data.advice||null,raw:typeof data.raw==='string'?data.raw:'',partial:data.partial===true,first:data.first,generation:data.generation});
               else if(data.phase==='unavailable') resolve({reason:'unsupported'},true);
               else if(data.phase==='error') resolve({reason:data.stage==='initialization'?'model_load_error':'error',...active.timing},true);
             };
@@ -1393,7 +1415,7 @@
           }
           if(!warm)armColdLoad(active);
           report(warm?'working':'device');
-          worker.postMessage({id,direct,facts});
+          worker.postMessage({id,direct,facts:{report:facts.report,measured:Boolean(facts.measured),adjacent:facts.adjacent===true}});
         } catch {resolve({reason:'error'},true);}
       });
     }
@@ -1407,7 +1429,7 @@
     function isBusy(){return Boolean(active);}
     return {run,cancel,dispose,isBusy};
   }
-  return {enabled,evidence,parseAdvice,service,invalidAnswer,weightStage,workerMain,completionRequest};
+  return {enabled,evidence,parseAdvice,finalAnswerText,service,invalidAnswer,weightStage,workerMain,completionRequest};
 });
 // PRACTICE_COACH_END
 
@@ -1444,9 +1466,10 @@
     try{globalThis.localStorage?.setItem('daily-key-practice:experimental:scale-detector:'+scope,value);}catch{}
   }
   if (globalThis.CelloPracticeCoach?.enabled(globalThis)) {
-    globalThis.addEventListener?.('pagehide',()=>coachService?.dispose());
-    globalThis.document?.addEventListener?.('visibilitychange',()=>{
-      if (globalThis.document.hidden) coachService?.dispose();
+    // Backgrounding may suspend Safari's renderer, but does not cancel
+    // the coach. A page retained by the back-forward cache is not an exit.
+    globalThis.addEventListener?.('pagehide',event=>{
+      if(event?.persisted!==true)coachService?.dispose();
     });
   }
   function preference() {
@@ -1904,7 +1927,7 @@
     return best?{...best,pattern:'held',repeats:1,recent}:null;
   }
 
-  function pitchTrendChart(trace,target,name) {
+  function pitchTrendChart(trace,target,name,restored=false) {
     const details=document.createElement('details');
     details.className='scale-pitch-trend';
     const summary=document.createElement('summary');summary.textContent='音準走勢';
@@ -1915,6 +1938,12 @@
       drawn=true;
       const seconds=ms=>Math.round(ms/100)/10+' 秒';
       const info=document.createElement('p');
+      if(!trace?.data?.length){
+        info.textContent=restored?'上次保留的是譜位音準圖；時間走勢只在當次頁面上保留。':
+          '本次已辨識到譜音，但沒有足夠的連續音高樣本可畫時間走勢。可把第一個音多拉一會兒再試。';
+        details.append(info);
+        return;
+      }
       info.textContent='依實際練習時間排列，只畫對到譜音且在 ±50¢ 內的樣本。空白可能是停頓或未辨識；線段不代表完整起音或運弓。'+
         (Number.isFinite(trace.reference)?' A4 '+trace.reference+' Hz。':'')+
         (trace.start>0?' 顯示最後 '+seconds(trace.end-trace.start)+'。':'');
@@ -2415,7 +2444,7 @@
     }
     const coachAPI = globalThis.CelloPracticeCoach;
     const coachVisible = coachAPI?.enabled(globalThis);
-    let coachPanel, coachAction, coachTyping, coachStatus, coachTime, coachTip, coachNotice, coachAttempt, coachBusy=false, coachTicket=0;
+    let coachPanel, coachAction, coachTyping, coachStatus, coachTime, coachTip, coachRaw, coachNotice, coachAttempt, coachBusy=false, coachTicket=0;
     if (coachVisible) {
       const mk=(tag,klass,text)=>{
         const el=document.createElement(tag);el.className=klass;if(text)el.textContent=text;return el;
@@ -2431,12 +2460,13 @@
       coachTime.setAttribute('aria-live','off');
       coachTip=mk('div','scale-practice-coach-tip');
       coachTip.setAttribute('role','status');
+      coachRaw=mk('div','scale-practice-coach-raw');
       coachNotice=mk('p','scale-practice-coach-notice','首次使用需下載約 350 MB。');
       coachTyping=mk('div','scale-practice-coach-typing');
       coachTyping.hidden=true;
       coachTyping.setAttribute('aria-hidden','true');
       coachTyping.append(mk('span'),mk('span'),mk('span'));
-      coachPanel.append(coachAction,coachNotice,coachStatus,coachTyping,coachTip,coachTime);
+      coachPanel.append(coachAction,coachNotice,coachStatus,coachTyping,coachTip,coachRaw,coachTime);
       function setCoachBusy(busy) {
         coachBusy=busy;
         coachAction.textContent=busy?'中斷':'練習建議';
@@ -2451,7 +2481,7 @@
           coachStorageAsked=true;
           try {void globalThis.navigator.storage?.persist?.()?.catch(()=>{});} catch {}
         }
-        setCoachBusy(true);coachTip.textContent='';
+        setCoachBusy(true);coachTip.textContent=coachRaw.textContent='';
         const heartbeat=()=>{
           if(ticket===coachTicket)coachTime.textContent='已等待 '+Math.floor((globalThis.performance.now()-clicked)/1000)+' 秒';
         };
@@ -2467,13 +2497,13 @@
           if(ticket!==coachTicket) return;
           coachTyping.hidden=phase!=='working';
           coachStatus.className='scale-practice-coach-status'+(phase==='working' && !usedDirect?' sr-only':'');
-          const phrase=phase==='working' && usedDirect ? '正在用簡短模式再試一次…' : phrases[phase]||phrases.device;
+          const phrase=phase==='working' && usedDirect ? '正在重試…' : phrases[phase]||phrases.device;
           const spoken=Number.isFinite(pct)?phrase+' '+pct+'%':phrase;
           if(coachStatus.textContent!==spoken)coachStatus.textContent=spoken;
         };
         try {
           answer=await local.run(attempt.facts,report);
-          if(ticket===coachTicket && !answer.advice && ['context','empty','invalid','thinking_only'].includes(answer.reason)){
+          if(ticket===coachTicket && !answer.advice && !answer.raw?.trim() && ['context','empty','invalid','thinking_only'].includes(answer.reason)){
             const previous=answer;
             usedDirect=true;
             const direct=await local.run(attempt.facts,report,{direct:true});
@@ -2484,6 +2514,21 @@
         if(ticket!==coachTicket) return;
         setCoachBusy(false);coachStatus.className='scale-practice-coach-status';coachTime.textContent='';
         if(answer.reason==='cancelled'){coachStatus.textContent='已中斷，不影響練習。';return;}
+        const raw=typeof answer.raw==='string'&&answer.raw.trim()?answer.raw:'';
+        const took=()=>{coachTime.textContent='耗時 '+((globalThis.performance.now()-clicked)/1000).toFixed(1)+' 秒';};
+        if(raw){
+          const literal=mk('pre','scale-practice-coach-literal',raw);
+          if(answer.advice && !answer.partial){
+            const disclosure=mk('details','scale-practice-coach-raw-details');
+            disclosure.append(mk('summary','','原始回覆'),literal);
+            coachRaw.append(disclosure);
+          } else {
+            coachRaw.append(mk('h4','',answer.partial?'原始回覆（未完）':'原始回覆（未整理）'),literal);
+            coachStatus.textContent=answer.partial?'這段回覆尚未寫完，以下保留模型實際輸出的內容。':'以下是模型原文，未整理為練習步驟。';
+            took();
+            return;
+          }
+        }
         const reason=({unsupported:'本瀏覽器無法使用 WebGPU／半精度模型。',
           load_timeout:'模型下載或初始化逾時。',error:'模型無法執行。',
           model_load_error:globalThis.navigator?.onLine===false?'目前離線，模型無法載入。':'模型無法下載或初始化。',
@@ -2498,17 +2543,17 @@
         }
         const advice=answer.advice;
         const facts=attempt.facts;
-        const observed=(attempt.restored?'以下來自上次保留的音準圖。':facts.measured>0&&facts.measured<facts.total?'本次只依已辨識的譜位。':'')+facts.summary;
+        const details=[facts.coverage,...facts.rows];
         const list=mk('ol','scale-practice-coach-steps');
         advice.steps.forEach(step=>list.append(mk('li','',step)));
         const context=(facts.reference&&facts.detector)
           ? '比較時請沿用 '+facts.detector+'、A4 '+facts.reference+' Hz。'
           : '比較時請沿用相同偵測方式與 A4。';
-        coachTip.append(mk('h4','',attempt.restored?'上次量到什麼':'這次量到什麼'),mk('p','',observed),
+        coachTip.append(mk('h4','',facts.restored?'上次量到什麼':'這次量到什麼'),...details.map(line=>mk('p','',line)),
           mk('h4','','可以這樣練'),list,mk('h4','','再拉一次'),mk('p','',advice.check));
         if(facts.measured)coachTip.append(mk('p','scale-practice-coach-context',context));
         coachStatus.textContent='';
-        coachTime.textContent='耗時 '+((globalThis.performance.now()-clicked)/1000).toFixed(1)+' 秒';
+        took();
       }
       coachAction.addEventListener('click',()=>coachBusy?coachService?.cancel():runCoach());
     }
@@ -2635,10 +2680,17 @@
           coachTicket++;coachAttempt=null;coachPanel.hidden=true;
           coachBusy=false;coachAction.textContent='練習建議';coachTyping.hidden=true;
           coachStatus.className='scale-practice-coach-status';
-          coachStatus.textContent=coachTip.textContent=coachTime.textContent='';
+          coachStatus.textContent=coachTip.textContent=coachRaw.textContent=coachTime.textContent='';
         } else if(next==='idle' && (display?.coachResult || display?.coachNoEvidence)) {
           const noMeasurement=Boolean(display.coachNoEvidence);
-          coachAttempt={restored:Boolean(display.restored&&!noMeasurement),facts:coachAPI.evidence(target,noMeasurement?null:display.values,display.mode,kind,{detector:display.coachResult?.engine,reference:display.coachResult?.reference,trend:noMeasurement?null:pitchTrendSummary(display.trend)})};
+          // Use what the user can see, masked to the accepted scoring slots.
+          // A separate annotation must not become coach evidence.
+          const visibleValues=noMeasurement?null:display.values?.map((value,i)=>
+            Number.isFinite(value)?(display.chartValues ?? display.values)[i]:null);
+          coachAttempt={facts:coachAPI.evidence(target,visibleValues,display.mode,kind,{
+            detector:display.coachResult?.engine,reference:display.coachResult?.reference,
+            trend:noMeasurement?null:pitchTrendSummary(display.trend),restored:Boolean(display.restored&&!noMeasurement),
+            visual:chartPoint})};
           coachPanel.hidden=false;
           coachAction.hidden=!coachAttempt;
           coachNotice.hidden=!coachAttempt;
@@ -2706,8 +2758,8 @@
       }
       if (chart && (next !== 'idle' || display?.final)) chart.element.hidden = false;
       chart?.update(display?.chartValues ? {...display,values:display.chartValues} : display);
-      if (next==='idle' && display?.trend?.data.length && !trendDisclosure) {
-        trendDisclosure=pitchTrendChart(display.trend,target,name);
+      if (next==='idle' && display?.final && (display.trend?.data.length || display.values?.some(Number.isFinite)) && !trendDisclosure) {
+        trendDisclosure=pitchTrendChart(display.trend,target,name,display.restored);
         const afterTrend=historyButtons || coachPanel || savedChart?.element;
         if(afterTrend) element.insertBefore(trendDisclosure,afterTrend);
         else element.append(trendDisclosure);
