@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261120-014-experimental">
+  <meta name="site-version" content="20261123-015-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -428,6 +428,9 @@
     .filter-key{background:#e8eddf;border-color:#d2dcc6;color:#354f38}
     .filter-key.minor{background:#eeebf0;border-color:#dcd6e1;color:#594e61}
     .draw-button{background:#42533e}.draw-button:hover:not(:disabled){background:#52664c}
+    #tuner-preferences{flex-wrap:wrap}
+    .tuner-detector-control{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;white-space:nowrap}
+    #tuner-detector{font:inherit;min-height:36px;max-width:100%;border:1px solid #ccd8c9;border-radius:8px;background:var(--paper);color:inherit}
     .audio-tools,.tuner-preferences{background:var(--paper)}
     .intro .eyebrow{color:#697b5e}h1 em{color:#718067}
     #metronome-open,#tuner-open{width:60px;min-width:60px}
@@ -570,7 +573,7 @@
 
     <aside class="audio-tools" aria-label="練習工具">
       <div class="audio-buttons"><button id="metronome-open" aria-pressed="false" aria-label="啟用節拍器並開始打拍"><svg class="metro-play-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 3v14" fill="none" stroke="currentColor" stroke-width="2.2"/><ellipse cx="11" cy="18" rx="5" ry="3.5" transform="rotate(-20 11 18)" fill="currentColor"/></svg><svg class="metro-stop-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="1.5" fill="currentColor"/></svg></button><button id="metro-settings" aria-expanded="false" aria-controls="metronome-panel" aria-label="展開節拍器設定"><svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button><button id="tuner-open" aria-pressed="false" aria-expanded="false" aria-controls="tuner-panel" aria-label="啟用調音器並開始收音"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M7 3v7a5 5 0 0 0 10 0V3M12 15v7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button><button id="tuner-settings" aria-expanded="false" aria-controls="tuner-preferences" aria-label="開啟調音器設定"><svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button></div>
-<div id="tuner-preferences" class="tuner-preferences" role="dialog" aria-label="調音器設定" hidden><label class="a4-control" for="tuner-a"><span>A4</span><input id="tuner-a" type="number" min="430" max="450" value="442" step="1" inputmode="numeric" aria-label="A4基準頻率，Hz"></label></div>
+<div id="tuner-preferences" class="tuner-preferences" role="dialog" aria-label="調音器設定" hidden><label class="a4-control" for="tuner-a"><span>A4</span><input id="tuner-a" type="number" min="430" max="450" value="442" step="1" inputmode="numeric" aria-label="A4基準頻率，Hz"></label><label class="tuner-detector-control" for="tuner-detector">偵測方式<select id="tuner-detector"><option value="existing">現有偵測</option><option value="swift">SwiftF0</option></select></label></div>
         <section id="metronome-panel" class="audio-panel tuner-preferences" role="dialog" aria-label="節拍器控制" hidden>
           <label for="metro-bpm">BPM</label><input id="metro-bpm" type="number" min="30" max="240" value="80" inputmode="numeric">
           <input id="metro-slider" aria-label="節拍器速度 BPM" type="range" min="30" max="240" step="1" value="80" style="grid-column:1 / -1;width:100%"><label for="metro-volume" style="grid-column:1 / -1">音量</label><input id="metro-volume" type="range" min="0" max="100" step="1" value="100" style="grid-column:1 / -1;width:100%"><label for="metro-beats">每小節</label><select id="metro-beats"><option value="1">1 拍</option><option value="2">2 拍</option><option value="3">3 拍</option><option value="4" selected>4 拍</option><option value="6">6 拍</option></select>
@@ -704,7 +707,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261120-014-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261123-015-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -932,6 +935,7 @@
       env.clearTimeout(s.resumeTimeout);
       if (s.source) { s.source.disconnect(); s.source = null; }
       if (s.analyser) { s.analyser.disconnect(); s.analyser = null; }
+      if (s.swiftAnalyser) { s.swiftAnalyser.disconnect(); s.swiftAnalyser = null; }
       if (s.stream) {
         s.stream.getTracks().forEach(track => { track.onended = null; track.stop(); });
         s.stream = null;
@@ -998,6 +1002,22 @@
             for (let i=0;i<bytes.length;i++) samples[i]=(bytes[i]-128)/128;
           };
         const recent = samples.subarray(Math.max(0,samples.length-Math.round(context.sampleRate*0.053)));
+        function releaseSwift() {
+          if (!s.swiftAnalyser) return;
+          source.disconnect(s.swiftAnalyser);
+          s.swiftAnalyser.disconnect();
+          s.swiftAnalyser = s.swiftSamples = null;
+        }
+        function readSwift() {
+          if (!s.swiftAnalyser) {
+            s.swiftAnalyser = context.createAnalyser();
+            s.swiftAnalyser.fftSize = 32768;
+            s.swiftSamples = new Float32Array(s.swiftAnalyser.fftSize);
+            source.connect(s.swiftAnalyser);
+          }
+          s.swiftAnalyser.getFloatTimeDomainData(s.swiftSamples);
+          return s.swiftSamples;
+        }
         let paused = null;
         s.phase = 'ready';
         [...s.listeners].forEach(listener => ready(s,listener));
@@ -1005,6 +1025,7 @@
         s.timer = env.setInterval(() => {
           if (session !== s) return;
           const now = env.performance.now();
+          if (s.swiftAnalyser && ![...s.listeners].some(listener => listener.raw?.())) releaseSwift();
           let frequency = null, fastFrequency = null, rms = 0, muted = tracks.some(t => t.muted);
           if (context.state !== 'running') {
             paused ??= now;
@@ -1019,7 +1040,7 @@
                 for (const value of samples) energy += value * value;
                 rms = Math.sqrt(energy / samples.length);
                 const listeners = [...s.listeners];
-                if (!detectFast || listeners.some(listener => !listener.fast)) {
+                if (listeners.some(listener => !listener.raw?.() && (!detectFast || !listener.fast))) {
                   const measured = detect(samples,context.sampleRate,floor);
                   frequency = suppress(measured,now) ? null : measured || null;
                 }
@@ -1035,7 +1056,9 @@
           if (muted) { suppress(null,now); if (detectFast) suppressFast(null,now); }
           const frame = {now, frequency, rms, muted};
           [...s.listeners].forEach(listener => {
-            if (session === s && listener.started && s.listeners.has(listener)) listener.frame(detectFast && listener.fast ? {...frame,frequency:fastFrequency} : frame);
+            if (session !== s || !listener.started || !s.listeners.has(listener)) return;
+            if (listener.raw?.()) listener.frame({...frame,frequency:null,rate:context.sampleRate,readSwift:muted?null:readSwift});
+            else listener.frame(detectFast && listener.fast ? {...frame,frequency:fastFrequency} : frame);
           });
         },27);
       } catch (error) {
@@ -2810,6 +2833,96 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       position: 50 + Math.max(-50, Math.min(50, cents)),
       segment: band === 'green' ? 'center' : (cents < 0 ? 'low-' : 'high-') + band, band, valid: true };
   }
+  // SwiftF0 0.3 model (MIT), exact upstream training checkpoint. Audio is
+  // resampled and inferred inside the browser; network requests are assets only.
+  const swiftRuntime = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.26.0/dist/';
+  const swiftModel = 'https://cdn.jsdelivr.net/gh/lars76/swift-f0-training@a3095d23d79097ed7f5fad59d1cb2e2a826501a8/runs/seed1/model.onnx';
+  const swiftSamples = 6144, swiftFrame = 13;
+  function swiftInput(samples, rate) {
+    if (!samples?.length || !Number.isFinite(rate) || rate <= 0) return null;
+    const ratio = rate / 16000, start = samples.length - swiftSamples * ratio;
+    if (start < 0) return null;
+    const signal = new Float32Array(swiftSamples);
+    // Area resampling includes low-pass averaging for the usual 44.1/48 kHz inputs.
+    for (let i=0;i<signal.length;i++) {
+      const lo = start + i * ratio, hi = lo + ratio;
+      let sum = 0;
+      for (let j=Math.floor(lo);j<hi && j<samples.length;j++) {
+        sum += samples[j] * (Math.min(hi,j+1)-Math.max(lo,j));
+      }
+      signal[i] = sum / ratio;
+    }
+    let peak = 0;
+    for (let i=swiftFrame*256;i<(swiftFrame+1)*256;i++) peak = Math.max(peak,Math.abs(signal[i]));
+    return peak >= 0.001 ? signal : null;
+  }
+  function createSwiftF0(env) {
+    let loading = null, busy = false;
+    function load() {
+      if (loading) return loading;
+      loading = (async () => {
+        if (!env.ort) await new Promise((resolve,reject) => {
+          const script = env.document.createElement('script');
+          script.src = swiftRuntime + 'ort.wasm.min.js';
+          script.crossOrigin = 'anonymous';
+          script.integrity = 'sha384-4ggJ54ZPWrzCDCSqmu8RUaH2O3910gr75Cc0Csktz64iLB3sk9/eG2esUmVD8qTr';
+          const timer = env.setTimeout(() => {script.remove();reject(new Error('SwiftF0 runtime timeout'));},12000);
+          script.onload = () => {env.clearTimeout(timer);resolve();};
+          script.onerror = () => {env.clearTimeout(timer);script.remove();reject(new Error('SwiftF0 runtime unavailable'));};
+          env.document.head.append(script);
+        });
+        const ort = env.ort;
+        if (!ort?.InferenceSession || !ort?.Tensor) throw new Error('SwiftF0 runtime unavailable');
+        ort.env.wasm.numThreads = 1;
+        ort.env.wasm.proxy = false;
+        ort.env.wasm.wasmPaths = swiftRuntime;
+        const abort = new env.AbortController();
+        const timer = env.setTimeout(() => abort.abort(),12000);
+        let bytes;
+        try {
+          const response = await env.fetch(swiftModel,{signal:abort.signal,credentials:'omit',
+            integrity:'sha256-Y4XowuvDhy6Cyf9ZRiKN5EzTvnenUOpTaYt9v+lLCiI='});
+          if (!response.ok) throw new Error('SwiftF0 model unavailable');
+          bytes = await response.arrayBuffer();
+        } finally { env.clearTimeout(timer); }
+        let sessionTimer, expired = false;
+        const init = ort.InferenceSession.create(bytes,{executionProviders:['wasm']}).then(result => {
+          if (expired) void result.release?.();
+          return result;
+        });
+        try {
+          const session = await Promise.race([init,new Promise((_,reject) => {
+            sessionTimer = env.setTimeout(() => {expired = true; reject(new Error('SwiftF0 WASM timeout'));},15000);
+          })]);
+          return {session,Tensor:ort.Tensor};
+        } finally { env.clearTimeout(sessionTimer); }
+      })().catch(error => { loading = null; throw error; });
+      return loading;
+    }
+    async function measure(samples, rate) {
+      const signal = swiftInput(samples,rate);
+      if (!signal) return null;
+      const {session,Tensor} = await load();
+      if (busy) return null;
+      busy = true;
+      const feeds = {
+        audio:new Tensor('float32',signal,[1,signal.length]),
+        fmin:new Tensor('float32',Float32Array.of(46.875),[]),
+        fmax:new Tensor('float32',Float32Array.of(2093.75),[])
+      };
+      let output;
+      try {
+        output = await session.run(feeds);
+        const hz = output.pitch.data[swiftFrame], confidence = output.confidence.data[swiftFrame];
+        return confidence >= .5 && Number.isFinite(hz) && hz >= 46.875 && hz <= 2093.75 ? hz : null;
+      } finally {
+        busy = false;
+        Object.values(feeds).forEach(t => t.dispose?.());
+        if (output) Object.values(output).forEach(t => t.dispose?.());
+      }
+    }
+    return {load,measure};
+  }
   function pitchReading(frequency, reference = 440) {
     const position = 69 + 12 * Math.log2(frequency / reference), midi = Math.round(position);
     return { midi, cents: (position - midi) * 100, frequency,
@@ -2825,7 +2938,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       return 2 ** (this.values.reduce((a, b) => a + b, 0) / this.values.length);
     }
   }
-  if (typeof module !== 'undefined' && module.exports) { module.exports = { detectPitch, pitchReading, PitchWindow, pitchBand, tunerVisual, pitchInputFloor }; return; }
+  if (typeof module !== 'undefined' && module.exports) { module.exports = { detectPitch, pitchReading, PitchWindow, pitchBand, tunerVisual, pitchInputFloor, createSwiftF0, swiftInput }; return; }
   const $ = id => document.getElementById(id);
   let lastTunerReading = null;
   function renderTuner(reading = null, hold = false) {
@@ -2976,6 +3089,32 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   $('metro-volume').addEventListener('input', () => configureWorklet());
 
   let tunerRelease, tunerRunning = false, pending = false, tunerGeneration = 0;
+  let tunerDetector = 'existing', detectorRevision = 0, swiftReady = false, swiftFailed = false, swiftBusy = false;
+  const swift = createSwiftF0(window);
+  const swiftClick = window.CelloScalePractice.metronomeClickGate();
+  function prepareSwift() {
+    const revision = detectorRevision;
+    swiftReady = swiftFailed = false;
+    $('tuner-status').textContent = 'SwiftF0 載入中…';
+    swift.load().then(() => {
+      if (revision !== detectorRevision || tunerDetector !== 'swift') return;
+      swiftReady = true;
+      $('tuner-status').textContent = '';
+    }, () => {
+      if (revision !== detectorRevision || tunerDetector !== 'swift') return;
+      swiftFailed = true;
+      $('tuner-status').textContent = 'SwiftF0 無法載入，可切回現有偵測。';
+    });
+  }
+  const detectorSelect = $('tuner-detector');
+  if (detectorSelect) detectorSelect.onchange = () => {
+    tunerDetector = detectorSelect.value === 'swift' ? 'swift' : 'existing';
+    detectorRevision++;
+    swiftReady = swiftFailed = false;
+    smooth.reset(); renderTuner(); swiftClick(null,performance.now(),false);
+    if (tunerRunning && tunerDetector === 'swift') prepareSwift();
+    else if (tunerRunning) $('tuner-status').textContent = '';
+  };
   const smooth = new PitchWindow(); let lastSignal = 0;
   const tunerInputFloor = pitchInputFloor(navigator);
   const a4Reference = () => Math.max(430, Math.min(450, Number($('tuner-a').value) || 442));
@@ -2998,7 +3137,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     if(pending)$('tuner-status').textContent='等待麥克風授權';
   }
   function stopTuner(message = '麥克風已關閉') {
-    tunerGeneration++; pending = tunerRunning = false;
+    tunerGeneration++; detectorRevision++; pending = tunerRunning = false;
     tunerRelease?.(); tunerRelease = null;
     smooth.reset(); renderTuner();
     $('tuner-status').textContent = message; tunerUI();
@@ -3006,29 +3145,57 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   function startTuner() {
     if (pending || tunerRunning) { stopTuner(); return; }
     const generation = ++tunerGeneration; pending = true; tunerUI();
-    let lastInput = 0, nextRead = null;
+    let lastInput = 0, nextRead = null, readRevision = detectorRevision;
+    function displayFrame(now,frequency,rms,muted) {
+      if (rms > .0001) lastInput = now;
+      const status = muted ? '麥克風被系統暫停。'
+        : now - lastInput > 2500 ? '已允許麥克風，但未收到聲音。'
+        : rms > 0.0001 && rms < tunerInputFloor && !frequency ? '收到聲音，但音量太小。'
+        : !frequency && rms >= tunerInputFloor ? '收到聲音，但未辨識到穩定音高。' : '';
+      const statusElement = $('tuner-status');
+      if (statusElement.textContent !== status) statusElement.textContent = status;
+      if (!frequency) {
+        if (now - lastSignal > 500) smooth.reset(); renderTuner(null, true); return;
+      }
+      lastSignal = now;
+      renderTuner(pitchReading(smooth.push(frequency),a4Reference()));
+    }
     tunerRelease = capture.subscribe({
+      raw:()=>tunerDetector === 'swift',
       ready() {
         if (generation !== tunerGeneration) return;
         smooth.reset(); lastSignal = lastInput = performance.now();
         pending = false; tunerRunning = true; tunerUI(); $('tuner-status').textContent = '';
+        if (tunerDetector === 'swift') prepareSwift();
       },
-      frame({now,frequency,rms,muted}) {
+      frame({now,frequency,rms,muted,rate,readSwift}) {
         if (generation !== tunerGeneration || !tunerRunning) return;
-        if (nextRead !== null && now < nextRead) return;
-        nextRead = nextRead === null || now-nextRead >= 40 ? now+40 : nextRead+40;
-        if (rms > .0001) lastInput = now;
-        const status = muted ? '麥克風被系統暫停。'
-          : now - lastInput > 2500 ? '已允許麥克風，但未收到聲音。'
-          : rms > 0.0001 && rms < tunerInputFloor && !frequency ? '收到聲音，但音量太小。'
-          : !frequency && rms >= tunerInputFloor ? '收到聲音，但未辨識到穩定音高。' : '';
-        const statusElement = $('tuner-status');
-        if (statusElement.textContent !== status) statusElement.textContent = status;
-        if (!frequency) {
-          if (now - lastSignal > 500) smooth.reset(); renderTuner(null, true); return;
+        if (readRevision !== detectorRevision) {
+          readRevision = detectorRevision; nextRead = null; lastInput = lastSignal = now;
         }
-        lastSignal = now;
-        renderTuner(pitchReading(smooth.push(frequency),a4Reference()));
+        if (nextRead !== null && now < nextRead) return;
+        if (tunerDetector !== 'swift') {
+          nextRead = nextRead === null || now-nextRead >= 40 ? now+40 : nextRead+40;
+          displayFrame(now,frequency,rms,muted);
+          return;
+        }
+        if (!swiftReady || swiftFailed || swiftBusy) return;
+        nextRead = now+75;
+        if (muted || !readSwift) {displayFrame(now,null,rms,muted);return;}
+        const revision = detectorRevision;
+        const stale = () => revision !== detectorRevision || generation !== tunerGeneration || !tunerRunning;
+        swiftBusy = true;
+        Promise.resolve().then(() => {
+          if (stale()) return null;
+          return swift.measure(readSwift(),rate);
+        }).then(hz => {
+          if (!stale()) displayFrame(now,swiftClick(hz,now,clickIsAudible()) ? null : hz,rms,muted);
+        }).catch(() => {
+          if (stale()) return;
+          swiftFailed = true;
+          smooth.reset(); renderTuner();
+          $('tuner-status').textContent = 'SwiftF0 無法分析，可切回現有偵測。';
+        }).finally(() => {swiftBusy = false;});
       },
       error(message) { if (generation === tunerGeneration) stopTuner(message); }
     });
