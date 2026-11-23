@@ -108,3 +108,7 @@ The experimental site applies web adaptations of the [Apple Human Interface Guid
 ### Experimental practice advice wording
 
 After an explicit request, the local coach writes one or two short Traditional Chinese cello drills and a retest, using only the exercise type, the observed score slots, and available method/A4 metadata. The site renders the measured observation separately. Suggestions about the bow and coordination are practice options, not diagnoses from audio. There is no template-choice fallback; the same model can attempt the structured response once more without thinking.
+
+### Latest pitch trend on reload (experimental)
+
+A finished, scored practice can save its latest pitch timeline in the existing single local draft. The timeline is kept with that exact draft and capped at 120 seconds and 2,564 numeric timeline samples; audio and advice replies are not stored. It is not part of the per-exercise aggregate history. Older drafts, damaged segments or storage quota limits can leave only the original score-position chart. Starting or stopping a new take without any measured pitch does not label the previous timeline as a new recording.

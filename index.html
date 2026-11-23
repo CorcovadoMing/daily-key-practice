@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261123-037-experimental">
+  <meta name="site-version" content="20261123-038-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -1084,7 +1084,7 @@
     <select id="appearance-choice">
       <option value="light">淺色</option><option value="dark">深色</option><option value="system">跟隨系統</option>
     </select>
-  </label><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261123-037-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  </label><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261123-038-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -1145,7 +1145,7 @@
       i,name:/^[A-G][♯♭#b]?$/.test(n?.name||'') && Number.isInteger(n?.octave) && n.octave>=0 && n.octave<=9 ? n.name+n.octave : '',
       direction:i<=(slots.length-1)/2?'上行':'下行',cents:finite(values?.[i])?values[i]:null
     }));
-    const named=p=>[p.name,p.direction+'第 '+(p.i+1)+' 個譜位'].filter(Boolean).join('，');
+    const named=p=>[p.name,'譜位 '+(p.i+1)+'（'+p.direction+'）'].filter(Boolean).join('，');
     const measured=positions.filter(p=>p.cents!==null);
     const trace=metadata.trend, timed=positions[trace?.slot];
     const qualified=timed?.cents!=null && Number.isFinite(trace?.duration) && trace.duration>=340 &&
@@ -1927,10 +1927,10 @@
     return best?{...best,pattern:'held',repeats:1,recent}:null;
   }
 
-  function pitchTrendChart(trace,target,name,restored=false) {
+  function pitchTrendChart(trace,target,name,restored=false,isCurrent) {
     const details=document.createElement('details');
     details.className='scale-pitch-trend';
-    const summary=document.createElement('summary');summary.textContent='音準走勢';
+    const summary=document.createElement('summary');summary.textContent=restored?'上次音準走勢':'音準走勢';
     details.append(summary);
     let drawn=false;
     details.addEventListener('toggle',()=>{
@@ -1938,13 +1938,18 @@
       drawn=true;
       const seconds=ms=>Math.round(ms/100)/10+' 秒';
       const info=document.createElement('p');
+      if(restored && trace && isCurrent && !isCurrent()){
+        info.textContent='這份音準走勢已被另一筆練習取代。';
+        details.append(info);
+        return;
+      }
       if(!trace?.data?.length){
-        info.textContent=restored?'上次保留的是譜位音準圖；時間走勢只在當次頁面上保留。':
+        info.textContent=restored?'上次只保留了譜位音準圖，沒有可用的時間走勢。':
           '本次已辨識到譜音，但沒有足夠的連續音高樣本可畫時間走勢。可把第一個音多拉一會兒再試。';
         details.append(info);
         return;
       }
-      info.textContent='依實際練習時間排列，只畫對到譜音且在 ±50¢ 內的樣本。空白可能是停頓或未辨識；線段不代表完整起音或運弓。'+
+      info.textContent=(restored?'上次保留的練習。':'')+'依實際練習時間排列，只畫對到譜音且在 ±50¢ 內的樣本。空白可能是停頓或未辨識；線段不代表完整起音或運弓。'+
         (Number.isFinite(trace.reference)?' A4 '+trace.reference+' Hz。':'')+
         (trace.start>0?' 顯示最後 '+seconds(trace.end-trace.start)+'。':'');
       const scroll=document.createElement('div');scroll.className='scale-pitch-trend-scroll';
@@ -2335,11 +2340,16 @@
     const historyKey = historyApi?.keyFor(scope,kind,target);
     let historyButtons = null, savedChart = null, canSave = null, hasSaved = false;
     let merge, look, historyStatus, refreshHistoryActions, announceHistoryPending;
-    let newestDraft = null, draftId = null, draftDurable = true, observedValues = null, observedHistory = null, retryDraftFrom;
+    let newestDraft = null, draftId = null, draftDurable = true, observedValues = null, observedHistory = null, retryDraftFrom, expectedAttemptOwner, staleAttempt=false;
     const ownsDraft = () => Boolean(newestDraft && latestDraftToken === newestDraft.id);
-    const restoreGraph = draft => draft && {values:draft.values,chartValues:draft.values,history:draft.history,
+    const restoredTrendIsCurrent = id => {
+      const latest=historyApi?.loadDraft?.(storage,historyKey,target.length);
+      return Boolean(latest?.ok && latest.exists && latest.draft.id===id && latest.draft.trend);
+    };
+    const restoreGraph = (draft,withTrend=true) => draft && {values:draft.values,chartValues:draft.values,history:draft.history,
       mode:draft.mode,laps:draft.laps,passed:draft.passed,progress:draft.progress,final:true,restored:true,
       coachResult:draft.values.some(Number.isFinite)?(draft.coach||{}):null,
+      trend:withTrend?draft.trend:undefined,restoredDraftId:draft.id,
       attemptHistory:draft.pending ? draft.attemptHistory : undefined};
     let storage;
     if (historyKey) {
@@ -2475,6 +2485,7 @@
       async function runCoach() {
         const attempt=coachAttempt;
         if(!attempt||coachBusy) return;
+        const facts=attempt.restoredTrendId && !restoredTrendIsCurrent(attempt.restoredTrendId) ? attempt.factsWithoutTrend : attempt.facts;
         const ticket=++coachTicket, clicked=globalThis.performance.now();
         const local=coachService ||= coachAPI.service(globalThis);
         if(!coachStorageAsked){
@@ -2502,11 +2513,11 @@
           if(coachStatus.textContent!==spoken)coachStatus.textContent=spoken;
         };
         try {
-          answer=await local.run(attempt.facts,report);
+          answer=await local.run(facts,report);
           if(ticket===coachTicket && !answer.advice && !answer.raw?.trim() && ['context','empty','invalid','thinking_only'].includes(answer.reason)){
             const previous=answer;
             usedDirect=true;
-            const direct=await local.run(attempt.facts,report,{direct:true});
+            const direct=await local.run(facts,report,{direct:true});
             answer=previous.cold ? {...direct,cold:true,load:previous.load} : direct;
           }
         } catch {answer={reason:'error'};}
@@ -2542,7 +2553,6 @@
           return;
         }
         const advice=answer.advice;
-        const facts=attempt.facts;
         const details=[facts.coverage,...facts.rows];
         const list=mk('ol','scale-practice-coach-steps');
         advice.steps.forEach(step=>list.append(mk('li','',step)));
@@ -2565,7 +2575,8 @@
       if (historyButtons && next === 'idle' && !display?.restored && !display?.attemptHistory &&
           (!result || !display?.values?.some(Number.isFinite)) && ownsDraft()) {
         const noEvidence=display?.coachNoEvidence;
-        display = restoreGraph(newestDraft);
+        display = restoreGraph(newestDraft,false);
+        display.trendSuppressed=true;
         if(noEvidence) display.coachNoEvidence=true;
         if (result && !result.pairs.length) result = null;
         message ||= '顯示上次保留的音準圖。';
@@ -2623,15 +2634,18 @@
       if (historyButtons) {
         if (next === 'pending') {
           draftId = historyApi.newDraftId?.();
+          const current=historyApi.currentDraftId?.(storage);
+          expectedAttemptOwner=current?.ok?current.id:undefined;
+          staleAttempt=false;
           observedValues = observedHistory = null;
           if (canSave || !merge.hidden) {
             canSave = null; merge.hidden = true; historyStatus.textContent = '';
             announceHistoryPending();
           }
         }
-        let supersededAtStop = false;
+        let supersededAtStop = staleAttempt;
         const liveCheckpoint = next === 'listening' && display && (display.values !== observedValues || display.history !== observedHistory);
-        if (!display?.restored && draftId && (liveCheckpoint || display?.attemptHistory)) {
+        if (!staleAttempt && !display?.restored && draftId && (liveCheckpoint || display?.attemptHistory)) {
           observedValues = display.values; observedHistory = display.history;
           const onlySharedTonic = liveCheckpoint && laps && display.progress <= 1;
           const values = onlySharedTonic ? display.lastValues : display.values;
@@ -2641,23 +2655,23 @@
             const previousDraft = newestDraft;
             newestDraft = {id:draftId,values,history:onlySharedTonic ? display.beforeLastHistory : display.history,
               attemptHistory:attempts,pending:true,mode,laps,passed:display.passed || 0,progress:display.progress || 0,
-              coach:display.coachResult||display.coachSource};
+              coach:display.coachResult||display.coachSource,trend:next==='idle'?display.trend:undefined};
             const changedOwner = latestDraftToken !== draftId;
             latestDraftToken = draftId;
             const durable = draftDurable;
             const prior = historyApi.currentDraftId?.(storage);
             let writeGuard;
-            if (!liveCheckpoint && previousDraft?.id === draftId) {
-              if (durable) writeGuard = {ifCurrent:true};
-              else if (retryDraftFrom !== undefined) writeGuard = {expectedId:retryDraftFrom};
-            }
+            if (previousDraft?.id === draftId && durable) writeGuard={ifCurrent:true};
+            else if (expectedAttemptOwner!==undefined) writeGuard={expectedId:expectedAttemptOwner};
             const wrote = historyApi.saveDraft?.(storage,historyKey,newestDraft,writeGuard);
             supersededAtStop = wrote?.reason === 'stale-draft';
             if (supersededAtStop) {
+              staleAttempt=true;
               latestDraftToken = prior?.id;
               newestDraft = null;
               historyStatus.textContent = '這份暫存已被新的練習取代。';
             }
+            if(wrote?.trendSaved===false) delete newestDraft.trend;
             draftDurable = supersededAtStop || Boolean(wrote?.ok);
             retryDraftFrom = draftDurable ? undefined : prior?.ok ? prior.id : undefined;
             if (changedOwner) {
@@ -2687,10 +2701,14 @@
           // A separate annotation must not become coach evidence.
           const visibleValues=noMeasurement?null:display.values?.map((value,i)=>
             Number.isFinite(value)?(display.chartValues ?? display.values)[i]:null);
-          coachAttempt={facts:coachAPI.evidence(target,visibleValues,display.mode,kind,{
-            detector:display.coachResult?.engine,reference:display.coachResult?.reference,
-            trend:noMeasurement?null:pitchTrendSummary(display.trend),restored:Boolean(display.restored&&!noMeasurement),
-            visual:chartPoint})};
+          const metadata={detector:display.coachResult?.engine,reference:display.coachResult?.reference,
+            restored:Boolean(display.restored&&!noMeasurement),visual:chartPoint};
+          const trend=noMeasurement?null:pitchTrendSummary(display.trend);
+          coachAttempt={facts:coachAPI.evidence(target,visibleValues,display.mode,kind,{...metadata,trend})};
+          if(trend && display.restoredDraftId){
+            coachAttempt.restoredTrendId=display.restoredDraftId;
+            coachAttempt.factsWithoutTrend=coachAPI.evidence(target,visibleValues,display.mode,kind,metadata);
+          }
           coachPanel.hidden=false;
           coachAction.hidden=!coachAttempt;
           coachNotice.hidden=!coachAttempt;
@@ -2758,8 +2776,8 @@
       }
       if (chart && (next !== 'idle' || display?.final)) chart.element.hidden = false;
       chart?.update(display?.chartValues ? {...display,values:display.chartValues} : display);
-      if (next==='idle' && display?.final && (display.trend?.data.length || display.values?.some(Number.isFinite)) && !trendDisclosure) {
-        trendDisclosure=pitchTrendChart(display.trend,target,name,display.restored);
+      if (next==='idle' && display?.final && !display.trendSuppressed && (display.trend?.data.length || display.values?.some(Number.isFinite)) && !trendDisclosure) {
+        trendDisclosure=pitchTrendChart(display.trend,target,name,display.restored,()=>restoredTrendIsCurrent(display.restoredDraftId));
         const afterTrend=historyButtons || coachPanel || savedChart?.element;
         if(afterTrend) element.insertBefore(trendDisclosure,afterTrend);
         else element.append(trendDisclosure);
@@ -2778,7 +2796,7 @@
 });
 // SCALE_PRACTICE_END
   </script>
-  <script src="fingerboard.js?v=20261123-024"></script>
+  <script src="fingerboard.js?v=20261123-038"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.

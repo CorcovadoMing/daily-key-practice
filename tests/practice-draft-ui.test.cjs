@@ -24,7 +24,7 @@ function memory(){
 }
 function realm(storage,search='',pathname='/daily-key-practice/experimental/'){
  const mounted=[];
- const context=vm.createContext({document:{createElement:()=>new Node(),querySelectorAll:()=>mounted},localStorage:storage,URL,URLSearchParams,
+ const context=vm.createContext({document:{createElement:()=>new Node(),createElementNS:()=>new Node(),querySelectorAll:()=>mounted},localStorage:storage,URL,URLSearchParams,
   location:{pathname,search,href:'https://example.test'+pathname+search}});
  vm.runInContext(code('PRACTICE_COACH'),context);
  vm.runInContext(storageSource,context);
@@ -170,4 +170,107 @@ test('measured chart and coaching restore after reload without changing mic or i
  assert.equal(old.view.element.find('scale-practice-coach').hidden,false);
  const off=build(storage,'major-C','scale','single',realm(storage,'','/daily-key-practice/'));
  assert.equal(off.view.element.find('scale-practice-coach'),undefined);
+});
+
+test('a finished measured trace reopens collapsed as the exact previous attempt and never revives after an empty successor',async()=>{
+ const store=memory(), first=build(store,'major-C','scale','single');
+ await first.start();first.play(36,21,32);first.play(null,0,5);first.play(38,-14,32);
+ const checkpoint=first.history.loadDraft(store,first.key,target.length).draft;
+ assert.equal(checkpoint.trend,undefined,'live draft checkpoints never store frames');
+ const writes=store.calls.length;
+ await first.stop();assert.equal(store.calls.length,writes+1);
+ const finished=first.history.loadDraft(store,first.key,target.length).draft;
+ assert.equal(finished.id,checkpoint.id);
+ assert.equal(finished.trend.reference,442);
+ assert.ok(finished.trend.data.length>=8);
+ assert.equal(store.data.size,1,'no per-key/trace store');
+ const fresh=build(store,'major-C','scale','single');
+ const details=fresh.view.element.find('scale-pitch-trend');
+ assert.equal(fresh.prompts,0);assert.ok(details);assert.ok(!details.open);
+ assert.equal(details.children[0].textContent,'上次音準走勢');
+ details.open=true;details.handlers.toggle();
+ assert.match(details.children[1].textContent,/上次保留.*A4 442 Hz/);
+ assert.ok(details.find('scale-pitch-trend-scroll'));
+ assert.equal(build(store,'major-C','arpeggio').view.element.find('scale-pitch-trend'),undefined);
+ await fresh.start();fresh.play(null,0,10);await fresh.stop();
+ assert.equal(fresh.view.element.children.filter(e=>e.className==='scale-pitch-trend'&&!e.hidden).length,0);
+ assert.equal(first.history.loadDraft(store,first.key,target.length).draft.id,finished.id);
+});
+
+test('corrupt trace provenance is ignored, preserving the dot draft and leaving an honest missing-trace placeholder',async()=>{
+ const store=memory(), first=build(store);
+ await first.start();first.play(36,21,30);await first.stop();
+ const slot=[...store.data.keys()][0], valid=store.data.get(slot);
+ for(const corrupt of [raw=>{raw.trend.draftId='different';},raw=>{raw.trend.mode='single';},
+  raw=>{raw.trend.reference=440;},raw=>{raw.trend.points[0][2]=999;}]){
+  const raw=JSON.parse(valid);assert.ok(raw.trend);corrupt(raw);store.data.set(slot,JSON.stringify(raw));
+  const next=build(store);
+  const draft=next.history.loadDraft(store,next.key,target.length).draft;
+  assert.equal(draft.trend,undefined);assert.equal(next.nodes[0].dataset.practice,'matched');
+  const details=next.view.element.find('scale-pitch-trend');
+  details.open=true;details.handlers.toggle();
+  assert.match(details.children[1].textContent,/沒有可用的時間走勢/);
+ }
+});
+
+test('a stale tab cannot overwrite the newer draft during subsequent live frames or final trace write',async()=>{
+ const store=memory(), a=build(store,'major-C'), b=build(store,'major-F');
+ await a.start();a.play(36,12,24);
+ await b.start();b.play(36,-16,26);await b.stop();
+ const recent=b.history.loadDraft(store,b.key,target.length).draft;
+ assert.ok(recent.trend.data.length>0);
+ a.play(38,9,20);await a.stop();
+ assert.equal(a.history.loadDraft(store,a.key,target.length).exists,false);
+ assert.equal(b.history.loadDraft(store,b.key,target.length).draft.id,recent.id);
+ assert.deepEqual(b.history.loadDraft(store,b.key,target.length).draft.trend,recent.trend);
+ assert.equal(a.state.hasUnsaved(),false);
+});
+
+test('trace quota pressure still updates the currently owned dot draft and never leaves invalid tuples',async()=>{
+ const store=memory(), a=build(store,'major-C','scale','single');
+ const set=store.setItem;
+ store.setItem=function(k,v){if(JSON.parse(v).trend)throw Error('trace quota');return set.call(this,k,v);};
+ await a.start();a.play(36,14,30);await a.stop();
+ const draft=a.history.loadDraft(store,a.key,target.length).draft;
+ assert.equal(draft.trend,undefined);
+ assert.ok(Number.isFinite(draft.values[0]));
+ assert.equal(a.state.needsExitWarning(),false);
+ assert.equal(store.data.size,1);
+});
+
+test('merging dots does not remove trace and old tabs cannot reopen a superseded trace',async()=>{
+ const store=memory(), first=build(store,'major-C','scale','single');
+ await first.start();first.play(36,18,30);await first.stop();
+ const draft=first.history.loadDraft(store,first.key,target.length).draft;
+ assert.ok(draft.trend);
+ assert.equal(first.state.save(),true);
+ const merged=first.history.loadDraft(store,first.key,target.length).draft;
+ assert.equal(merged.id,draft.id);
+ assert.equal(merged.pending,false);
+ assert.deepEqual(merged.trend,draft.trend);
+ const stale=build(store,'major-C','scale','loop');
+ const detail=stale.view.element.find('scale-pitch-trend');
+ const newer=build(store,'major-C','scale','loop');
+ await newer.start();newer.play(36,-14,28);await newer.stop();
+ detail.open=true;detail.handlers.toggle();
+ assert.match(detail.children[1].textContent,/已被另一筆練習取代/);
+ assert.equal(detail.find('scale-pitch-trend-scroll'),undefined);
+});
+
+test('coach uses qualified temporal facts only while the displayed restored nonce still owns the local draft',async()=>{
+ const store=memory(), first=build(store,'major-C','scale','single');
+ await first.start();first.play(36,18,32);await first.stop();
+ const watched=realm(store), calls=[];
+ Object.assign(watched.context,{performance,setInterval,clearInterval,navigator:{}});
+ watched.context.CelloPracticeCoach.service=()=>({async run(facts){calls.push(facts);return {reason:'unsupported'};}});
+ const before=build(store,'major-C','scale','loop',watched);
+ const button=before.view.element.find('scale-practice-coach-action');
+ await button.handlers.click();
+ assert.match(calls[0].coverage,/上次/);
+ assert.match(calls[0].rows.join(' '),/前段.*後段/);
+ const later=build(store,'major-C','scale','loop');
+ await later.start();later.play(36,-17,30);await later.stop();
+ await button.handlers.click();
+ assert.match(calls[1].coverage,/上次/);
+ assert.doesNotMatch(calls[1].rows.join(' '),/前段.*後段/);
 });

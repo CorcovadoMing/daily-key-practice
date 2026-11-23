@@ -1156,6 +1156,33 @@
     return result;
   }
 
+  // Optional finalized trace is part of the single draft, never a separate
+  // storage key. Tuples store time/cents/score slot/lap/segment, not audio.
+  const TREND_MS = 120000, TREND_CAP = 2564;
+  function normalizeTrend(raw,draft,count,encoded=false) {
+    if(!raw || !draft.coach || !draft.values.some(Number.isFinite) ||
+      raw.reference!==draft.coach.reference || (encoded && (raw.draftId!==draft.id ||
+        raw.mode!==draft.mode || raw.engine!==draft.coach.engine))) return;
+    const {start,end}=raw, points=encoded?raw.points:raw.data;
+    if(!Number.isFinite(start)||!Number.isFinite(end)||start<0||end<start||
+      end-start>TREND_MS+1e-7||!Array.isArray(points)||!points.length||points.length>TREND_CAP) return;
+    const data=[];
+    let before=null;
+    for(const p of points){
+      if(encoded ? !Array.isArray(p)||p.length!==5 : !p) return;
+      const [ms,cents,slot,lap,segment]=encoded?p:[p.ms,p.cents,p.slot,p.lap,p.segment];
+      if(!Number.isFinite(ms)||ms<start||ms>end || !Number.isFinite(cents)||Math.abs(cents)>50+1e-7 ||
+        !nonnegative(slot)||slot>=count||!nonnegative(lap)||lap<1||lap-1>draft.laps||!nonnegative(segment)||!segment ||
+        (before&&(ms<=before.ms||lap<before.lap||segment<before.segment||
+          (segment===before.segment&&(lap!==before.lap||slot!==before.slot)))))return;
+      const point={ms,cents,slot,lap,segment};
+      data.push(point);before=point;
+    }
+    if(encoded)return {start,end,reference:raw.reference,data};
+    return {draftId:draft.id,mode:draft.mode,engine:draft.coach.engine,reference:raw.reference,start,end,
+      points:data.map(p=>[p.ms,p.cents,p.slot,p.lap,p.segment])};
+  }
+
   function currentDraftId(storage) {
     const item = read(storage, DRAFT_KEY);
     if (!item.ok) return item;
@@ -1176,6 +1203,8 @@
     let snapshot;
     try {
       snapshot = normalizeDraft(draft, count);
+      const trend=normalizeTrend(draft.trend,snapshot,count);
+      if(trend)snapshot.trend=trend;
       for (const name of ['history', 'attemptHistory']) {
         if (draft[name] == null) continue;
         const bins = fresh(count);
@@ -1195,7 +1224,15 @@
       if (!latest.ok) return latest;
       if (!latest.exists || latest.draft.id !== snapshot.id) return {ok: false, reason: 'stale-draft'};
     }
-    return write(storage, DRAFT_KEY, {v: 1, scope: key, ...snapshot});
+    let saved=write(storage, DRAFT_KEY, {v: 1, scope: key, ...snapshot});
+    // If trace size exhausts local quota, keep the original dot-chart backup.
+    // A failed trace write must not block the existing draft behavior.
+    if(!saved.ok && snapshot.trend){
+      delete snapshot.trend;
+      saved=write(storage, DRAFT_KEY, {v: 1, scope: key, ...snapshot});
+      if(saved.ok)return {...saved,trendSaved:false};
+    }
+    return snapshot.trend&&saved.ok?{...saved,trendSaved:true}:saved;
   }
 
   function loadDraft(storage, key, count) {
@@ -1208,6 +1245,8 @@
       if (snapshot.v !== 1 || !validKey(snapshot.scope, snapshot.values?.length)) throw new Error();
       if (snapshot.scope !== key) return {ok: true, exists: false};
       const draft = normalizeDraft(snapshot, count);
+      const trend=normalizeTrend(snapshot.trend,draft,count,true);
+      if(trend)draft.trend=trend;
       for (const name of ['history', 'attemptHistory']) {
         if (snapshot[name] !== undefined) draft[name] = decodeSlots(snapshot[name], count);
       }

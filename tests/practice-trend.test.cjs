@@ -115,9 +115,9 @@ test('a prior draft or sparse current take keeps the disclosure without drawing 
  const core=section('SCALE_PRACTICE',{document:{createElement:make}});
  for(const restored of [false,true]){
   const node=core.pitchTrendChart(undefined,[],'琶音',restored);
-  a.equal(node.children[0].textContent,'音準走勢');
+  a.equal(node.children[0].textContent,restored?'上次音準走勢':'音準走勢');
   node.open=true;node.toggle();
   a.equal(node.children.length,2);
-  a.match(node.children[1].textContent,restored?/上次保留.*當次頁面/:/沒有足夠.*樣本/);
+  a.match(node.children[1].textContent,restored?/上次只保留.*沒有可用/:/沒有足夠.*樣本/);
  }
 });
