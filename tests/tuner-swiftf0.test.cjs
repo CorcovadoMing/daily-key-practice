@@ -124,3 +124,77 @@ test('tuner and shared practice inference apply the same acoustic safeguard, onl
  confidence=.3;
  assert.deepEqual(Array.from(await swift.infer(render(16000,true,7168),[11,13])),[null,null]);
 });
+
+function sharedTunerFixture(saved) {
+ const code=html.split('// AUDIO_TOOLS_START')[1].split('// AUDIO_TOOLS_END')[0];
+ const lib=section('AUDIO_TOOLS'),practice=section('SCALE_PRACTICE');
+ const subscribers=new Set(),renders=[],nodes=new Map();
+ let stored=saved,now=0,runs=0,initialized=0,legacyReads=0,reads=0;
+ const radio=value=>({value,checked:false,addEventListener(_,fn){this.change=fn;}});
+ const radios=[radio('existing'),radio('swift')];
+ const $=id=>{
+  if(!nodes.has(id))nodes.set(id,{value:id==='tuner-a'?'444':'0',textContent:'',setAttribute(){},querySelectorAll:()=>radios});
+  return nodes.get(id);
+ };
+ const capture={subscribe(listener){subscribers.add(listener);return ()=>subscribers.delete(listener);}};
+ const detector={load:async()=>{initialized++;},infer:async(_,hops)=>{runs++;return hops.map(()=>444);}};
+ const clock={};
+ const window={
+  performance:{now:()=>now},
+  localStorage:{getItem(k){assert.match(k,/experimental:tuner-detector$/);return stored;},setItem(_,v){stored=v;}},
+  CelloScalePractice:{...practice,micCapture:()=>capture}
+ };
+ const env={...lib,window,navigator:{},performance:window.performance,$,
+  createSwiftF0:()=>detector,renderTuner:(pitch,hold)=>renders.push({pitch,hold}),metroRunning:false};
+ vm.runInNewContext(code.slice(code.indexOf('  let tunerRelease'),code.indexOf('  function closeTool(name)'))+
+   '\nglobalThis.control={startTuner,stopTuner}',env);
+ function choose(index){
+  radios.forEach((input,i)=>input.checked=i===index);radios[index].change();
+ }
+ function ready(){for(const s of subscribers)s.ready();}
+ async function frame() {
+  now+=90;
+  const raw={now,audioTime:now/1000,rate:48000,clock,frequency:null,rms:.04,muted:false,
+    readSwift(){reads++;return new Float32Array(32768).fill(.1);}};
+  for(const s of subscribers){
+   if(!s.raw?.()){legacyReads++;s.frame({...raw,frequency:220});}
+   else s.frame(raw);
+  }
+  await tick();
+ }
+ return {radios,choose,ready,frame,control:env.control,renders,controller:window.CelloScalePractice.controller,
+  get stored(){return stored;},get runs(){return runs;},get reads(){return reads;},get legacyReads(){return legacyReads;},
+  get subscribers(){return subscribers.size;},get initialized(){return initialized;}};
+}
+test('actual settings radios default Smart, remember an explicit choice and switch without reopening the mic', async()=>{
+ const f=sharedTunerFixture(), [traditional,smart]=f.radios;
+ assert.match(html,/<fieldset id="tuner-detector"[^>]*>.*value="existing"><span>傳統<\/span>.*value="swift" checked><span>智慧/);
+ assert.equal(smart.checked,true);assert.equal(f.initialized,0);
+ f.control.startTuner();f.ready();await tick();await f.frame();
+ assert.equal(f.renders.at(-1).pitch.midi,69,'shared A4 444, not default A4');
+ assert.equal(f.runs,1);assert.equal(f.subscribers,1);assert.equal(f.legacyReads,0);
+ f.choose(0);await f.frame();
+ assert.equal(traditional.checked,true);assert.equal(f.stored,'existing');
+ assert.equal(f.renders.at(-1).pitch.midi,57);assert.equal(f.runs,1);
+ assert.equal(f.subscribers,1);
+ assert.equal(sharedTunerFixture(f.stored).radios[0].checked,true);
+ f.choose(1);await tick();await f.frame();
+ assert.equal(f.renders.at(-1).pitch.midi,69);assert.equal(f.subscribers,1);
+ assert.equal(f.stored,'swift');
+ f.control.stopTuner();assert.equal(f.subscribers,0);
+});
+test('actual tuner and both exercise routes share each Swift batch while keeping score logic', async()=>{
+ for(const kind of ['scale','arpeggio']){
+  const f=sharedTunerFixture(), updates=[];
+  const view={kind,target:[{midi:69}],mode:'single',detector:'swift',update(...args){updates.push(args);}};
+  f.control.startTuner();await f.controller.toggle(view);f.ready();await tick();
+  assert.equal(f.subscribers,2);
+  await f.frame();await f.frame();await f.frame();await f.frame();await f.frame();
+  assert.equal(f.runs,f.reads,'exactly one PCM read and model invocation per eligible batch shared by both subscribers');
+  assert.ok(f.runs>=3);
+  assert.equal(f.legacyReads,0);
+  assert.equal(f.renders.at(-1).pitch.midi,69);
+  assert.ok(updates.some(x=>x[2]?.complete),'the same A reaches the actual practice aligner');
+  f.control.stopTuner();
+ }
+});

@@ -20,3 +20,9 @@ a.match(html,/\[data-appearance=dark\] \.audio-tools\{color:var\(--ink\)/);
 a.match(html,/#tuner-note,#tuner-a,#tuner-detector,\.tuner-detector-control\)\{color:#eef1f5/);
 a.match(html,/#tuner-status,\.audio-scale,\.a4-control span,\.tuner-readout #tuner-cents\)\{color:#b9c3cf/);
 });
+
+test('dark classroom row removes only the shared backdrop, not buttons or join dialog',()=>{
+ a.match(html,/\[data-appearance=dark\] #classroom-settings\.classroom-bar\{background:transparent\}/);
+ a.match(html,/<section class="classroom-bar" id="classroom-settings"/);
+ a.match(html,/\.room-join-dialog\{[^{}]*background:var\(--paper\)/);
+});

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261123-032-experimental">
+  <meta name="site-version" content="20261123-033-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -457,8 +457,8 @@
     .filter-key.minor{background:#eeebf0;border-color:#dcd6e1;color:#594e61}
     .draw-button{background:#42533e}.draw-button:hover:not(:disabled){background:#52664c}
     #tuner-preferences{flex-wrap:wrap}
-    .tuner-detector-control{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;white-space:nowrap}
-    #tuner-detector{font:inherit;min-height:36px;max-width:100%;border:1px solid #ccd8c9;border-radius:8px;background:var(--paper);color:inherit}
+    .tuner-detector-control{flex:none}
+    #tuner-detector input{min-height:0;padding:0}
     .audio-tools,.tuner-preferences{background:var(--paper)}
     .intro .eyebrow{color:#697b5e}h1 em{color:#718067}
     #metronome-open,#tuner-open{width:60px;min-width:60px}
@@ -636,6 +636,7 @@
       [data-appearance=dark] :is(.music-section-title,.history-panel-heading:not(.classroom),.history-chip:not(.minor):not(.done),.filter-heading h3,.launch-settings h2){color:var(--ink)}
       [data-appearance=dark] :is(.fifths-signature,.filter-count,.filter-status,.caption,.room-join-label,.room-join-status,.scale-notes,.history-choice-dialog p){color:var(--muted)}
       [data-appearance=dark] .key-card.done .key-primary{color:var(--theme-green)}
+      [data-appearance=dark] #classroom-settings.classroom-bar{background:transparent}
       [data-appearance=dark] .result-panel .result-summary{background:transparent}
       [data-appearance=dark] .result-summary .summary-top{color:var(--ink)}
       /* Quiet decorative rims on the dark audio dock; keep pressed and focus cues separate. */
@@ -1000,7 +1001,7 @@
 
     <aside class="audio-tools" aria-label="練習工具">
       <div class="audio-buttons"><div class="audio-tool-pair" role="group" aria-label="節拍器"><button id="metronome-open" aria-pressed="false" aria-label="啟用節拍器並開始打拍"><svg class="metro-play-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 3v14" fill="none" stroke="currentColor" stroke-width="2.2"/><ellipse cx="11" cy="18" rx="5" ry="3.5" transform="rotate(-20 11 18)" fill="currentColor"/></svg><svg class="metro-stop-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="1.5" fill="currentColor"/></svg></button><button id="metro-settings" aria-expanded="false" aria-controls="metronome-panel" aria-label="展開節拍器設定"><svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button></div><div class="audio-tool-pair" role="group" aria-label="調音器"><button id="tuner-open" aria-pressed="false" aria-expanded="false" aria-controls="tuner-panel" aria-label="啟用調音器並開始收音"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M7 3v7a5 5 0 0 0 10 0V3M12 15v7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button><button id="tuner-settings" aria-expanded="false" aria-controls="tuner-preferences" aria-label="開啟調音器設定"><svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button></div></div>
-<div id="tuner-preferences" class="tuner-preferences" role="dialog" aria-label="調音器設定" hidden><label class="a4-control" for="tuner-a"><span>A4</span><input id="tuner-a" type="number" min="430" max="450" value="442" step="1" inputmode="numeric" aria-label="A4基準頻率，Hz"></label><label class="tuner-detector-control" for="tuner-detector">偵測方式<select id="tuner-detector"><option value="existing">現有偵測</option><option value="swift">SwiftF0</option></select></label></div>
+<div id="tuner-preferences" class="tuner-preferences" role="dialog" aria-label="調音器設定" hidden><label class="a4-control" for="tuner-a"><span>A4</span><input id="tuner-a" type="number" min="430" max="450" value="442" step="1" inputmode="numeric" aria-label="A4基準頻率，Hz"></label><fieldset id="tuner-detector" class="tuner-detector-control launch-mode" aria-label="調音器音高偵測模式"><label><input type="radio" name="tuner-detector" value="existing"><span>傳統</span></label><label><input type="radio" name="tuner-detector" value="swift" checked><span>智慧</span></label></fieldset></div>
         <section id="metronome-panel" class="audio-panel tuner-preferences" role="dialog" aria-label="節拍器控制" hidden>
           <label for="metro-bpm">BPM</label><input id="metro-bpm" type="number" min="30" max="240" value="80" inputmode="numeric">
           <input id="metro-slider" aria-label="節拍器速度 BPM" type="range" min="30" max="240" step="1" value="80" style="grid-column:1 / -1;width:100%"><label for="metro-volume" style="grid-column:1 / -1">音量</label><input id="metro-volume" type="range" min="0" max="100" step="1" value="100" style="grid-column:1 / -1;width:100%"><label for="metro-beats">每小節</label><select id="metro-beats"><option value="1">1 拍</option><option value="2">2 拍</option><option value="3">3 拍</option><option value="4" selected>4 拍</option><option value="6">6 拍</option></select>
@@ -1065,7 +1066,7 @@
     <select id="appearance-choice">
       <option value="light">淺色</option><option value="dark">深色</option><option value="system">跟隨系統</option>
     </select>
-  </label><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261123-032-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  </label><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261123-033-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -4229,7 +4230,9 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   $('metro-volume').addEventListener('input', () => configureWorklet());
 
   let tunerRelease, tunerRunning = false, pending = false, tunerGeneration = 0;
-  let tunerDetector = 'existing', detectorRevision = 0, swiftReady = false, swiftFailed = false;
+  const tunerDetectorKey = 'daily-key-practice:experimental:tuner-detector';
+  let tunerDetector = 'swift', detectorRevision = 0, swiftReady = false, swiftFailed = false;
+  try { if(window.localStorage.getItem(tunerDetectorKey)==='existing') tunerDetector='existing'; } catch {}
   const swift = createSwiftF0(window);
   const swiftBatches = createSwiftBatches(swift);
   const practiceSwiftClick = window.CelloScalePractice.metronomeClickGate();
@@ -4237,7 +4240,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   function prepareSwift() {
     const revision = detectorRevision;
     swiftReady = swiftFailed = false;
-    $('tuner-status').textContent = 'SwiftF0 載入中…';
+    $('tuner-status').textContent = '智慧偵測載入中…';
     swift.load().then(() => {
       if (revision !== detectorRevision || tunerDetector !== 'swift') return;
       swiftReady = true;
@@ -4245,18 +4248,23 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     }, () => {
       if (revision !== detectorRevision || tunerDetector !== 'swift') return;
       swiftFailed = true;
-      $('tuner-status').textContent = 'SwiftF0 無法載入，可切回現有偵測。';
+      $('tuner-status').textContent = '智慧偵測無法載入，可切回傳統。';
     });
   }
-  const detectorSelect = $('tuner-detector');
-  if (detectorSelect) detectorSelect.onchange = () => {
-    tunerDetector = detectorSelect.value === 'swift' ? 'swift' : 'existing';
-    detectorRevision++;
-    swiftReady = swiftFailed = false;
-    smooth.reset(); renderTuner(); swiftClick(null,performance.now(),false);
-    if (tunerRunning && tunerDetector === 'swift') prepareSwift();
-    else if (tunerRunning) $('tuner-status').textContent = '';
-  };
+  const tunerDetectorInputs = [...$('tuner-detector').querySelectorAll('input[type=radio]')];
+  for (const input of tunerDetectorInputs) {
+    input.checked = tunerDetector === input.value;
+    input.addEventListener('change', () => {
+      if(!input.checked || input.value === tunerDetector) return;
+      tunerDetector = input.value === 'existing' ? 'existing' : 'swift';
+      try {window.localStorage.setItem(tunerDetectorKey,tunerDetector);} catch {}
+      detectorRevision++;
+      swiftReady = swiftFailed = false;
+      smooth.reset(); renderTuner(); swiftClick(null,performance.now(),false);
+      if (tunerRunning && tunerDetector === 'swift') prepareSwift();
+      else if (tunerRunning) $('tuner-status').textContent = '';
+    });
+  }
   const smooth = new PitchWindow(); let lastSignal = 0;
   const tunerInputFloor = pitchInputFloor(navigator);
   const a4Reference = () => Math.max(430, Math.min(450, Number($('tuner-a').value) || 442));
@@ -4336,7 +4344,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
           if (stale()) return;
           swiftFailed = true;
           smooth.reset(); renderTuner();
-          $('tuner-status').textContent = 'SwiftF0 無法分析，可切回現有偵測。';
+          $('tuner-status').textContent = '智慧偵測無法分析，可切回傳統。';
         });
       },
       error(message) { if (generation === tunerGeneration) stopTuner(message); }
