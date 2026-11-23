@@ -33,11 +33,11 @@
     // Major scales have one shared route. Keep archived downMap untouched,
     // but never offer edits to a direction that the practice view hides.
     if(mode==='major')lockedDirection='up';
-    let direction=lockedDirection==='down'?'down':'up',octaves=2,maxFret=14,selected=0;
+    const octaves=2;
+    let direction=lockedDirection==='down'?'down':'up',maxFret=14,selected=0;
     const root=el('div','teacher-fingerboard');
     const toolbar=el('div','teacher-tools');
     const directionGroup=el('div','cello-fb-group');
-    const octaveGroup=el('div','cello-fb-group');
     const rangeGroup=el('div','cello-fb-group');
     const noteStrip=el('div','teacher-note-strip');
     const help='先點選上方的音符，再點指板上亮起的同音高位置；也可以直接拖動音符到其他弦位。';
@@ -59,14 +59,12 @@
     const downButton=button(directionGroup,'下行',()=>{direction='down';selected=0;render();});
     upButton.insertAdjacentHTML('afterbegin','<svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 19V5m-6 6 6-6 6 6"/></svg> ');
     downButton.insertAdjacentHTML('afterbegin','<svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14m-6-6 6 6 6-6"/></svg> ');
-    const oneButton=button(octaveGroup,'1 八度',()=>{octaves=1;selected=0;render();});
-    const twoButton=button(octaveGroup,'2 八度',()=>{octaves=2;selected=0;render();});
     const rangeButton=button(rangeGroup,'顯示更高把位',()=>{
       maxFret=maxFret===14?24:14;
       render();
     });
     if(!lockedDirection)toolbar.append(directionGroup);
-    toolbar.append(octaveGroup,rangeGroup);
+    toolbar.append(rangeGroup);
     let legend=fb.makeLegend();
     root.append(toolbar,noteStrip,stage,legend,info,fingers,reset);
 
@@ -230,8 +228,6 @@
         upButton.setAttribute('aria-pressed',String(direction==='up'));
         downButton.setAttribute('aria-pressed',String(direction==='down'));
       }
-      oneButton.setAttribute('aria-pressed',String(octaves===1));
-      twoButton.setAttribute('aria-pressed',String(octaves===2));
       rangeButton.setAttribute('aria-pressed',String(maxFret===24));
       rangeButton.textContent=maxFret===24?'只顯示低把位':'顯示更高把位';
       noteStrip.replaceChildren();

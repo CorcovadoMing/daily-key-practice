@@ -19,7 +19,7 @@
     melodic:[0,2,3,5,7,9,11],
     natural:[0,2,3,5,7,8,10]
   };
-  const choices=new Map();
+  const PRACTICE_OCTAVES=2;
   let stringOrder='CGDA';
 
   function pitchClass(name){
@@ -239,7 +239,7 @@
       viewBox:'0 0 370 '+height,
       role:'img',
       'aria-label':key[0]+(mode==='major'?'大調':'古典旋律小調')+
-        (arpeggio?'琶音':'音階')+(direction==='up'?'上行':'下行')+octaves+'個八度大提琴指板音位圖',
+        (arpeggio?'琶音':'音階')+(direction==='up'?'上行':'下行')+'大提琴指板音位圖',
       class:'cello-fb-svg'
     });
     svg.append(svgNode('title',{},key[0]+' '+(direction==='up'?'上行':'下行')+'指板音位'));
@@ -403,7 +403,7 @@
     return svg;
   }
 
-  // Fixed two-octave scale, independent of the fingerboard octave toggle.
+  // User practice always uses the complete two-octave route.
   // Key signatures apply globally; explicit accidentals carry per written octave
   // across this unbarred exercise, including melodic-minor descent cancellations. Sixteenth-note groups use four-note beams, without asserting a time signature.
   function staffStep(note){
@@ -424,8 +424,8 @@
     });
   }
   function scoreNotes(mode,key,arpeggio=false){
-    const up=arpeggio?arpeggioNotes(mode,key,'up'):scaleNotes(mode,key,'up',2);
-    const down=arpeggio?arpeggioNotes(mode,key,'down'):scaleNotes(mode,key,'down',2);
+    const up=arpeggio?arpeggioNotes(mode,key,'up'):scaleNotes(mode,key,'up',PRACTICE_OCTAVES);
+    const down=arpeggio?arpeggioNotes(mode,key,'down'):scaleNotes(mode,key,'down',PRACTICE_OCTAVES);
     return [...up,...down.slice(1)];
   }
   function makeScore(mode,key,arpeggio=false,sequence=scoreNotes(mode,key,arpeggio)){
@@ -433,9 +433,9 @@
     const spacing=arpeggio?64:29;
     const signature=key[1],startX=70+Math.abs(signature)*8,width=928+Math.abs(signature)*8;
     const accidentals=scoreAccidentals(sequence,signature);
-    const wrap=element('div',{class:'cello-scale-score',tabindex:'0','aria-label':(arpeggio?'琶音':'音階')+'兩個八度上下行五線譜，可左右捲動'});
-    const svg=svgNode('svg',{viewBox:`0 0 ${width} 185`,width,height:185,role:'img','aria-label':key[0]+(mode==='major'?'大調':'旋律小調')+(arpeggio?'琶音':'音階')+(arpeggio?'，低音譜號，兩個八度上下行，全部四分音符':'，低音譜號，兩個八度上下行十六分音符，末音四分音符')});
-    svg.append(svgNode('title',{},'兩個八度上行與下行，調號與必要臨時記號；窄螢幕可左右捲動'));
+    const wrap=element('div',{class:'cello-scale-score',tabindex:'0','aria-label':(arpeggio?'琶音':'音階')+'上下行五線譜，可左右捲動'});
+    const svg=svgNode('svg',{viewBox:`0 0 ${width} 185`,width,height:185,role:'img','aria-label':key[0]+(mode==='major'?'大調':'旋律小調')+(arpeggio?'琶音':'音階')+(arpeggio?'，低音譜號，上下行，全部四分音符':'，低音譜號，上下行十六分音符，末音四分音符')});
+    svg.append(svgNode('title',{},'調號與必要臨時記號'));
     for(let i=0;i<5;i++)svg.append(svgNode('line',{x1:14,x2:width-15,y1:110-i*10,y2:110-i*10,stroke:'#777','stroke-width':0.8}));
     // Bass-clef curve and dots anchor the F3 line, avoiding music-font dependency.
     const clef=svgNode('g',{transform:'translate(4 16) scale(.8)'});
@@ -515,7 +515,6 @@
     const sourceDir=dir=>dir==='arpeggio'?'up':dir;
     const root=element('div',{class:'cello-fingerboard'});
     const toolbar=element('div',{class:'cello-fb-toolbar'});
-    const octaveGroup=element('div',{class:'cello-fb-group','aria-label':'音階八度數'});
     const boards=element('div',{class:'cello-fb-two-up'});
     const panels={};
     let remoteDrafts=[],remoteArpeggioDrafts=[];
@@ -529,7 +528,7 @@
       return JSON.stringify(Object.entries(map).sort(([a],[b])=>Number(a)-Number(b)));
     }
     function isDirty(){return edit.dir!==null&&signature(edit.original)!==signature(edit.pending);}
-    function notes(dir){return dir==='arpeggio'?arpeggioNotes(mode,key,'up'):scaleNotes(mode,key,dir,choices.get(id)||2);}
+    function notes(dir){return dir==='arpeggio'?arpeggioNotes(mode,key,'up'):scaleNotes(mode,key,dir,PRACTICE_OCTAVES);}
     function defaultPosition(dir,midi){
       const ref=(window.CelloFingeringOptimizer||window.CelloFingeringPresets)?.get(mode,key,sourceDir(dir),notes(dir),dir==='arpeggio')||{};
       return notePlacement(midi,{},ref);
@@ -795,7 +794,7 @@
     function appendPlayableScore(parent, arpeggio=false){
       const sequence=scoreNotes(mode,key,arpeggio);
       const score=makeScore(mode,key,arpeggio,sequence);
-      parent.append(element('h3',{class:'music-section-title exercise-score-title'},(arpeggio?'琶音':'音階')+' · 兩個八度'),score);
+      parent.append(element('h3',{class:'music-section-title exercise-score-title'},(arpeggio?'琶音':'音階')),score);
       if(window.CelloScalePractice){
         const expected=sequence.map(note=>({...note,octave:Math.floor(staffStep(note)/7)}));
         const practice=window.CelloScalePractice.card(score,expected,
@@ -867,7 +866,7 @@
       pane.memo.textContent=memo||'';pane.memo.hidden=!memo;
       const value=editing?(Object.keys(edit.pending).length?JSON.stringify(edit.pending):''):
         mapFor(dir);
-      pane.viewport.replaceChildren(chartSVG(mode,key,sourceDir(dir),isArpeggio?2:choices.get(id)||2,
+      pane.viewport.replaceChildren(chartSVG(mode,key,sourceDir(dir),PRACTICE_OCTAVES,
         isArpeggio?{upMap:value}:{...annotations,[dir+'Map']:value},
         typeof saveFor(dir)==='function'&&!(asymmetric&&dir==='down')?{
           selectedMidi:editing?edit.midi:null,
@@ -930,26 +929,10 @@
       }
     }
     function render(){
-      const count=choices.get(id)||2;
-      one.setAttribute('aria-pressed',String(count===1));
-      two.setAttribute('aria-pressed',String(count===2));
       standardOrder.setAttribute('aria-pressed',String(stringOrder!=='ADGC'));
       reverseOrder.setAttribute('aria-pressed',String(stringOrder==='ADGC'));
       renderDirection('up');renderDirection('down');renderDirection('arpeggio');
     }
-    function addButton(label,count){
-      const btn=element('button',{type:'button',class:'cello-fb-button'},label);
-      btn.addEventListener('click',()=>{
-        // Switching octaves retains the current pending multi-note transaction.
-        choices.set(id,count);
-        if(edit.dir!==null&&edit.midi!==null&&!notes(edit.dir).some(n=>n.midi===edit.midi)){
-          edit.midi=null;
-        }
-        render();
-      });
-      octaveGroup.append(btn);return btn;
-    }
-    const one=addButton('1 八度',1),two=addButton('2 八度',2);
     const orderGroup=element('div',{class:'cello-fb-group','aria-label':'指板弦排列，由左至右'});
     function addOrder(order){
       const button=element('button',{type:'button',class:'cello-fb-button','aria-label':'弦排列由左至右 '+order},order);
@@ -960,8 +943,7 @@
       orderGroup.append(button);return button;
     }
     const standardOrder=addOrder('CGDA'),reverseOrder=addOrder('ADGC');
-    toolbar.append(octaveGroup,orderGroup);
-    if(!choices.has(id))choices.set(id,2);
+    toolbar.append(orderGroup);
     root.refreshStringOrder=()=>render();
     root.isEditing=()=>edit.dir!==null;
     root.requestLeave=next=>exitEditor(next);

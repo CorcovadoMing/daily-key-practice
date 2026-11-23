@@ -25,14 +25,14 @@ test('resume chooses validated unfinished work, otherwise reuse prior draw optio
   const {env,nodes,calls,setPool}=scope();
   env.updateSessionLaunch();
   assert.equal(nodes['#resume-practice'].hidden,true);
-  assert.match(nodes['#session-launch-note'].textContent,/2 個大調、2 個小調/);
+  assert.match(nodes['#session-launch-note'].textContent,/已選 3 個大調、3 個小調（用齒輪調整）/);
   setPool([0]);
   env.updateSessionLaunch();
   assert.equal(nodes['#draw-button'].disabled,true);
-  assert.match(nodes['#session-launch-note'].textContent,/齒輪.*調性/);
+  assert.match(nodes['#session-launch-note'].textContent,/已選 1 個大調、1 個小調（用齒輪調整）/);
   env.setLaunchMode('sequential');
   assert.equal(nodes['#draw-button'].disabled,false);
-  assert.match(nodes['#session-launch-note'].textContent,/已選調性 · 1 個/);
+  assert.match(nodes['#session-launch-note'].textContent,/已選 1 個大調、1 個小調（用齒輪調整）/);
   assert.deepEqual(calls,[],'choosing a mode is never a start');
   env.startPractice();
   assert.deepEqual(calls,['sequential']);
@@ -68,7 +68,7 @@ test('classroom actions are directly available and other advanced controls retai
   assert.match(html,/<section[^>]+id="classroom-settings"[^>]*>[\s\S]*id="room-open-join"[\s\S]*id="room-create"[\s\S]*id="room-leave" hidden/);
   assert.match(html,/<details[^>]+id="history-settings"[^>]*>\s*<summary>/);
   assert.match(html,/<button[^>]+id="launch-options-toggle"[^>]+aria-controls="draw-settings"/);
-  assert.match(html,/<section[^>]+id="draw-settings"[^>]+hidden>[\s\S]+id="signature-filters"[\s\S]+id="presets"/);
+  assert.match(html,/<section[^>]+id="draw-settings"[^>]+hidden>[\s\S]+id="signature-filters"[\s\S]+id="launch-count-settings"/);
 });
 
 test('start with a pending chart passes through the existing save choice instead of launching twice',()=>{
@@ -99,4 +99,15 @@ test('popover placement fits a 320px screen by its anchor and prefers above a lo
   assert.ok(scrolled.top+scrolled.height<=272);
   assert.match(html,/\.launch-settings\{position:fixed/);
   assert.match(html,/popovertarget="draw-settings"/);
+});
+
+test('launch is Start, gear, direct order chooser; gear has one count sentence and no presets',()=>{
+  assert.match(html,/id="classroom-settings"[\s\S]*id="room-open-join"[\s\S]*id="session-launch"/);
+  assert.match(html,/\.launch-controls #draw-button\{[^}]*min-height:54px/);
+  assert.match(html,/<div class="launch-controls"[\s\S]+?id="draw-button"[\s\S]+?id="launch-options-toggle"[\s\S]+?<fieldset class="launch-mode"/);
+  assert.doesNotMatch(html,/id="presets"|大調練幾個|小調練幾個/);
+  assert.match(html,/id="key-filter-title">已選調性/);
+  assert.doesNotMatch(html,/<nav class="session-shortcuts"|id="resume-practice-note"/);
+  const panel=html.slice(html.indexOf('class="launch-count-sentence"'),html.indexOf('class="audio-tools"'));
+  assert.match(panel,/抽取[\s\S]+id="major-minus"[\s\S]+id="major-count"[\s\S]+id="major-plus"[\s\S]+個大調、[\s\S]+id="minor-minus"[\s\S]+id="minor-count"[\s\S]+id="minor-plus"[\s\S]+個小調/);
 });

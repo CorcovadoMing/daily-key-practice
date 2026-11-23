@@ -9,8 +9,8 @@ test('fixed practice rail remains content-sized with bounded scrolling',()=>{
 });
 test('selection summary has labeled heading and separate grid rows',()=>{
  const html=fs.readFileSync('index.html','utf8');
- assert.match(html,/class="filter-status" role="group" aria-labelledby="filter-status-heading"/);
- assert.match(html,/id="filter-status-heading">已選取<\/h4>/);
+ assert.match(html,/class="filter-status sr-only" role="group" aria-labelledby="key-filter-title"/);
+ assert.match(html,/id="key-filter-title">已選調性<\/h3>/);
  assert.match(html,/\.filter-status\{[^}]*display:grid;gap:6px;margin-top:26px/);
  assert.match(html,/<span>大調 <b id="major-eligible">12 \/ 12<\/b><\/span><span>古典旋律小調 <b id="minor-eligible">12 \/ 12<\/b><\/span>/);
 });
