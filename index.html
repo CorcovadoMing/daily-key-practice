@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261123-017-experimental">
+  <meta name="site-version" content="20261123-018-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -495,6 +495,11 @@
     .scale-practice-history-actions[hidden],.scale-practice-saved-history[hidden]{display:none!important}
     .scale-practice-detector{font:inherit;font-size:12px;font-weight:700;min-height:44px;max-width:100%;padding:0 5px;color:#31533c;border:1px solid #8da692;border-radius:999px;background:#edf4ed}
     .scale-practice-detector:focus-visible{outline:3px solid #4c81b3;outline-offset:2px}
+    .scale-practice-coach{flex:0 1 100%;border:1px solid #dce5d9;border-radius:12px;background:#f9fbf7;padding:9px 12px}
+    .scale-practice-coach button{min-height:44px;border:1px solid #8da692;border-radius:999px;padding:4px 12px;background:#edf4ed;color:#31533c;font-weight:700;margin-right:5px}
+    .scale-practice-coach p{margin:6px 0 0;font-size:12px;line-height:1.6}
+    .scale-practice-coach p:empty{display:none}
+    .scale-practice-coach-tip{font-weight:650}
     .scale-practice-status{font-size:12px;margin:0;max-width:100%;flex:1 1 230px}
     .scale-practice-latest{font-size:12px;white-space:nowrap}
     .scale-practice-latest:empty{display:none}
@@ -709,7 +714,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261123-017-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261123-018-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -746,6 +751,174 @@
 
   <script src="fingering-presets.js?v=20261118-011"></script>
   <script>
+// PRACTICE_COACH_START
+(function(root,factory){
+  const api=factory();
+  if(typeof module!=='undefined' && module.exports) module.exports=api;
+  else root.CelloPracticeCoach=api;
+})(globalThis,function(){
+  'use strict';
+  const MODEL='Qwen3-0.6B-q4f16_1-MLC';
+  const WEIGHTS='https://huggingface.co/mlc-ai/Qwen3-0.6B-q4f16_1-MLC/resolve/8c14ce481d4c692769976ad52afea453a102df19/';
+  const RUNTIME='https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.86/lib/index.js';
+  const INTEGRITY='sha384-HegQbcXEuX71lg9KuPsNblVYf0qx8SYwjMgeIdIaUisFt2g5p4IHo6YtxdUtZP25';
+  const MODEL_LIB='https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/5b7251f3bdce957be2a7bf73a6f6c560d9874df4/web-llm-models/v0_2_86/base/Qwen3-0.6B-q4f16_1_cs1k-webgpu.wasm';
+  function enabled(env){
+    try {return new env.URLSearchParams(env.location.search).get('coach') === '1' &&
+      /\/experimental\/?(?:index\.html)?$/.test(env.location.pathname);}
+    catch {return false;}
+  }
+  function drills(target, values, mode) {
+    if (!Array.isArray(values)||target.length!==values.length||!values.some(Number.isFinite)) return [];
+    const options=[];
+    const positions = target.map((n,i)=>({i,c:Number.isFinite(values[i]) ? Math.max(-50,Math.min(50,values[i])) : null,
+      name: typeof n.name==='string' && /^[A-G][♯♭#b]?$/.test(n.name) && Number.isInteger(n.octave) ? n.name+n.octave : '第 '+(i+1)+' 音',
+      direction:i <= (target.length-1)/2 ? '上行' : '下行'}));
+    const named = n => n.name + '（' + n.direction + '第 '+(n.i+1)+' 音）';
+    const signed = n => {const rounded=Math.round(n);return (rounded>0?'+':rounded<0?'−':'')+Math.abs(rounded)+'¢';};
+    const missing = positions.find(n => n.c === null && (positions[n.i-1]?.c!=null || positions[n.i+1]?.c!=null));
+    if (missing) {
+      const other = positions[missing.i-1]?.c!=null ? positions[missing.i-1] : positions[missing.i+1];
+      const a = missing.i < other.i ? missing : other, b = missing.i < other.i ? other : missing;
+      options.push({id:'slow_pair',fact:'gap@'+(missing.i+1),
+        observation:named(missing)+'在這張音準圖未對上，不能判斷是漏拉還是未辨識。',
+        action:'把 '+named(a)+' → '+named(b)+' 每音拉兩拍，連做三次。',
+        retest:'再拉一輪，查看原本空白的譜位是否出現實心點。'});
+    }
+    const latest = positions.filter(n=>n.c!==null).sort((a,b)=>Math.abs(b.c)-Math.abs(a.c))[0];
+    if (Math.abs(latest.c)>10) options.push({id:'center_one',fact:'offset@'+(latest.i+1)+':'+Math.round(latest.c),
+      observation:named(latest)+'這次測到 '+signed(latest.c)+'。',
+      action:'慢拉 '+named(latest)+' 三次，每次約兩秒；試著讓最後一秒的音高靠近 0¢。',
+      retest:'用相同偵測方式和 A4 再拉一輪，看這一格是否比 '+signed(latest.c)+' 更接近 0¢。'});
+    let pair=null;
+    positions.slice(1).forEach((n,i)=>{
+      const before=positions[i];
+      if (before.c!==null && n.c!==null && before.c*n.c<0 && Math.abs(before.c-n.c)>=24 &&
+          (!pair || Math.abs(before.c-n.c)>pair.diff)) pair={before,n,diff:Math.abs(before.c-n.c)};
+    });
+    if (pair) options.push({id:'bridge_pair',fact:'swing@'+(pair.before.i+1)+':'+Math.round(pair.diff),
+      observation:named(pair.before)+' 到 '+named(pair.n)+' 的兩格分別是 '+signed(pair.before.c)+'、'+signed(pair.n.c)+'。',
+      action:'把這兩音分開各拉兩拍，停一拍再換音，連做三次。',
+      retest:'再不停止地連拉一次，查看兩格是否都更接近 0¢。'});
+    if (options.length<2) {
+      const n=positions.find(p => p.i>0 && p.c!==null) || latest;
+      options.push({id:'repeat_one',fact:'repeat@'+(n.i+1),
+        observation:'這張圖在 '+named(n)+' 有一筆 '+signed(n.c)+'；一筆不足以判斷穩定度。',
+        action:'把這個音拉成三個獨立長音，每次約兩秒；音與音之間停一下。',
+        retest:mode==='loop'?'用相同偵測方式與 A4 再練，看看同一譜位的各輪點是否集中。':'用相同偵測方式與 A4 再拉一輪，看看這格的實心點是否仍靠近原值。'});
+    }
+    return options.slice(0,3);
+  }
+  function pick(text, options) {
+    const answer=String(text??'').trim().replace(/^<think>\s*<\/think>\s*/,'').match(/^([1-3])$/);
+    return answer ? options[Number(answer[1])-1] || null : null;
+  }
+  async function workerMain(pins) {
+    let engine;
+    self.onmessage=async ({data})=>{
+      try {
+        const started=performance.now(), cold=!engine;
+        if (cold) {
+          const adapter=await navigator.gpu?.requestAdapter();
+          if (!adapter?.features?.has('shader-f16')) {
+            self.postMessage({phase:'unavailable',id:data.id}); return;
+          }
+          const asset=await fetch(pins.runtime,{integrity:pins.integrity,credentials:'omit'});
+          if (!asset.ok) throw Error('runtime unavailable');
+          const url=URL.createObjectURL(new Blob([await asset.arrayBuffer()],{type:'text/javascript'}));
+          let library;
+          try {library=await import(url);} finally {URL.revokeObjectURL(url);}
+          engine=await library.CreateMLCEngine(pins.model,{
+            appConfig:{model_list:[{model:pins.weights,model_id:pins.model,model_lib:pins.lib,
+              required_features:['shader-f16'],overrides:{context_window_size:512}}]},
+            initProgressCallback:r=>self.postMessage({phase:'progress',id:data.id,percent:Math.min(99,Math.max(0,Math.round(100*r.progress)))})
+          });
+        }
+        const load=cold ? performance.now()-started : 0, start=performance.now();
+        self.postMessage({phase:'ready',id:data.id,load,cold});
+        const stream=await engine.chat.completions.create({
+          messages:[{role:'user',content:'Pick the best next cello drill from these measured results. Output one listed digit, nothing else. '+data.options.join(' / ')}],
+          extra_body:{enable_thinking:false},stream:true,temperature:0,max_tokens:4
+        });
+        let output='',first=null;
+        for await (const chunk of stream) {
+          const part=chunk.choices?.[0]?.delta?.content || '';
+          if (part && first===null) first=performance.now()-start;
+          output+=part;
+        }
+        self.postMessage({phase:'answer',id:data.id,output,first,generation:performance.now()-start});
+      } catch {
+        self.postMessage({phase:'error',id:data.id});
+      }
+    };
+  }
+  function service(env) {
+    let worker=null, workerURL=null, active=null, sequence=0, warm=false;
+    function revokeWorkerURL() {
+      if (workerURL) env.URL.revokeObjectURL(workerURL);
+      workerURL=null;
+    }
+    function terminate() {
+      worker?.terminate();worker=null;warm=false;revokeWorkerURL();
+    }
+    function resolve(result,reset=false) {
+      if (!active)return;
+      const task=active;active=null;
+      env.clearTimeout(task.timer);
+      if(reset)terminate();
+      task.resolve(result);
+    }
+    function arm(ms,reason) {
+      env.clearTimeout(active.timer);
+      const task=active;
+      task.timer=env.setTimeout(()=>{if(active===task)resolve({reason,...task.timing},true);},ms);
+    }
+    function run(options,report=()=>{}) {
+      cancel();
+      if (!options.length || !env.navigator?.gpu || !env.Worker) return Promise.resolve({reason:'unsupported'});
+      const id=++sequence;
+      return new Promise(done=>{
+        active={id,resolve:done,report,timing:{},wasWarm:warm};
+        try {
+          if (!worker) {
+            const pins={model:MODEL,weights:WEIGHTS,runtime:RUNTIME,integrity:INTEGRITY,lib:MODEL_LIB};
+            const code='('+workerMain.toString()+')('+JSON.stringify(pins)+');';
+            workerURL=env.URL.createObjectURL(new env.Blob([code],{type:'text/javascript'}));
+            worker=new env.Worker(workerURL,{type:'module'});
+            const owner=worker;
+            worker.onmessage=({data})=>{
+              if (worker!==owner || !active || data.id!==active.id) return;
+              revokeWorkerURL();
+              if(data.phase==='progress') active.report('loading',data.percent);
+              else if(data.phase==='ready') {
+                active.timing={load:data.load,cold:data.cold};
+                warm=true;
+                if(!active.wasWarm)arm(10000,'slow');
+                active.report('working');
+              } else if(data.phase==='answer') resolve({...active.timing,choice:pick(data.output,active.options),first:data.first,generation:data.generation});
+              else if(data.phase==='unavailable') resolve({reason:'unsupported'},true);
+              else if(data.phase==='error') resolve({reason:'error',...active.timing},true);
+            };
+            worker.onerror=()=>{if(worker===owner)resolve({reason:'error',...active?.timing},true);};
+          }
+          active.options=options;
+          arm(active.wasWarm?10000:180000,active.wasWarm?'slow':'load_timeout');
+          report(active.wasWarm?'working':'loading');
+          worker.postMessage({id,options:options.map((o,i)=>(i+1)+' '+o.id+' '+o.fact)});
+        } catch {resolve({reason:'error'},true);}
+      });
+    }
+    function cancel() {resolve({reason:'cancelled'},true);}
+    function dispose() {cancel();terminate();}
+    function isBusy(){return Boolean(active);}
+    return {run,cancel,dispose,isBusy};
+  }
+  return {enabled,drills,pick,service};
+});
+// PRACTICE_COACH_END
+
+</script>
+<script>
 // SCALE_PRACTICE_START
 /* Experimental, single-voice scale practice. Audio never leaves the browser. */
 (function (root, factory) {
@@ -760,7 +933,13 @@
   const practiceModes = [['single','單次'],['loop','循環']];
   const modeValue = value => value === 'single' ? 'single' : 'loop';
   const modeName = value => modeValue(value) === 'loop' ? '循環' : '單次';
-  let selectedMode, latestDraftToken;
+  let selectedMode, latestDraftToken, coachService;
+  if (globalThis.CelloPracticeCoach?.enabled(globalThis)) {
+    globalThis.addEventListener?.('pagehide',()=>coachService?.dispose());
+    globalThis.document?.addEventListener?.('visibilitychange',()=>{
+      if (globalThis.document.hidden) coachService?.dispose();
+    });
+  }
   function preference() {
     if (selectedMode === undefined) {
       try { selectedMode = modeValue(globalThis.localStorage?.getItem(modeKey)); }
@@ -1162,7 +1341,8 @@
         const base = history || emptyHistory(view.target.length);
         attemptHistory = result?.pairs.length ? addHistory(base,values) : base;
       }
-      const display = result || laps ? {values, chartValues:values, attemptHistory,
+      const coachResult = grade && values?.some(Number.isFinite) ? {engine:session.engine, reference:session.reference} : null;
+      const display = result || laps ? {values, chartValues:values, attemptHistory, coachResult,
         history:result ? history : session.beforeLastHistory, mode, laps, passed, final:true} : undefined;
       view.update('idle', message, result, 0, session.reference, display);
     }
@@ -1187,7 +1367,8 @@
       const mode = modeValue(view.mode);
       const swiftSelected = view.detector === 'swift';
       const route = swiftSelected ? hooks.swiftCapture : hooks.capture;
-      const session = {view, stage:'pending', heard:[], heardCount:0, mode, laps:0, passed:0,
+      if (coachService?.isBusy()) coachService.cancel();
+      const session = {view, engine:swiftSelected?'SwiftF0':'現有偵測', stage:'pending', heard:[], heardCount:0, mode, laps:0, passed:0,
         history:mode === 'loop' ? emptyHistory(view.target.length) : undefined};
       active = session;
       view.update('pending', swiftSelected ? '正在準備 SwiftF0 和麥克風…' : null, null, 0, undefined, {mode});
@@ -1568,6 +1749,61 @@
       merge.addEventListener('click',savePending);
       historyButtons.append(merge,look,historyStatus);
     }
+    const coachAPI = globalThis.CelloPracticeCoach;
+    const coachVisible = coachAPI?.enabled(globalThis);
+    let coachPanel, coachAction, coachCancel, coachStatus, coachTip, coachAttempt, coachTicket=0;
+    if (coachVisible) {
+      const mk=(tag,klass,text)=>{
+        const el=document.createElement(tag);el.className=klass;if(text)el.textContent=text;return el;
+      };
+      coachPanel=mk('section','scale-practice-coach');
+      coachPanel.hidden=true;
+      coachPanel.setAttribute('aria-label',name+'練習建議');
+      coachAction=mk('button','scale-practice-coach-action','練習建議');
+      coachAction.type='button';
+      coachCancel=mk('button','scale-practice-coach-cancel','取消');
+      coachCancel.type='button'; coachCancel.hidden=true;
+      coachStatus=mk('p','scale-practice-coach-status');
+      coachStatus.setAttribute('role','status');
+      coachTip=mk('p','scale-practice-coach-tip');
+      coachPanel.append(coachAction,coachCancel,
+        mk('p','scale-practice-coach-notice','Qwen3 在瀏覽器內分析本次的音準摘要，不會上傳音訊或摘要。第一次可能下載約 350 MB。'),
+        coachStatus,coachTip);
+      coachCancel.addEventListener('click',()=>{
+        if (coachCancel.hidden) return;
+        coachService?.cancel();
+      });
+      coachAction.addEventListener('click',async ()=>{
+        const attempt=coachAttempt;
+        if(!attempt||coachAction.disabled) return;
+        const ticket=++coachTicket;
+        const clicked=globalThis.performance.now();
+        const local=coachService ||= coachAPI.service(globalThis);
+        coachAction.disabled=true;coachCancel.hidden=false;coachTip.textContent='';
+        const answer=await local.run(attempt.options,(phase,pct)=>{
+          if(ticket!==coachTicket) return;
+          coachStatus.textContent=phase==='loading'
+            ? '正在下載或初始化 Qwen3…'+(Number.isFinite(pct)?' '+pct+'%':'')
+            : '模型已就緒，正在挑選練習…';
+        });
+        if(ticket!==coachTicket) return;
+        coachAction.disabled=false;coachCancel.hidden=true;
+        if(answer.reason==='cancelled'){coachStatus.textContent='已取消，不影響練習。';return;}
+        const choice=answer.choice || attempt.options[0];
+        const reason=({unsupported:'本瀏覽器無法使用 WebGPU／半精度模型。',slow:'模型就緒後 10 秒內未完成。',load_timeout:'首次下載或初始化逾時。',error:'Qwen3 無法執行。'})[answer.reason];
+        const times=[];
+        const seconds=ms=>(ms/1000).toFixed(1)+' 秒';
+        if(answer.cold&&Number.isFinite(answer.load)) times.push('載入 '+seconds(answer.load));
+        else if(answer.cold===false) times.push('模型已載入');
+        if(Number.isFinite(answer.first)) times.push('首段 '+seconds(answer.first));
+        if(Number.isFinite(answer.generation)) times.push('建議完成 '+seconds(answer.generation));
+        coachTip.textContent=choice.observation+' '+choice.action+' '+choice.retest+
+          ' 比較時請沿用 '+attempt.detector+'、A4 '+attempt.reference+' Hz。';
+        times.push('按下到顯示 '+seconds(globalThis.performance.now()-clicked));
+        coachStatus.textContent=(answer.choice?'Qwen3 選出的練習。':(reason||'模型未回覆有效選項。')+'以下是規則建議，不是 AI 結果。')+
+          (times.length?'（'+times.join('；')+'）':'');
+      });
+    }
     const noteHeads = [...score.querySelectorAll('[data-midi]')];
     let chart = null, phase = null, previous = 0, previousLap = 0, currentNote = null, awaiting = null, scoreFollow = null;
     const label = (note, index) => note.name + note.octave + (index <= (target.length - 1) / 2 ? '↑' : '↓');
@@ -1676,6 +1912,17 @@
         }
         refreshHistoryActions();
       }
+      if (coachPanel) {
+        if(next==='pending') {
+          coachTicket++;coachAttempt=null;coachPanel.hidden=true;
+          coachAction.disabled=false;coachCancel.hidden=true;
+          coachStatus.textContent=coachTip.textContent='';
+        } else if(next==='idle' && display?.coachResult) {
+          const options=coachAPI.drills(target,display.values,display.mode);
+          coachAttempt=options.length?{options,detector:display.coachResult.engine,reference:display.coachResult.reference}:null;
+          coachPanel.hidden=!coachAttempt;
+        }
+      }
       if (status.textContent !== text) status.textContent = text;
       if (result || display?.final) {
         noteHeads.forEach((head, i) => {
@@ -1741,6 +1988,7 @@
     if (detector) element.append(detector);
     element.append(status,latest);
     if (historyButtons) element.append(historyButtons);
+    if (coachPanel) element.append(coachPanel);
     const restored = ownsDraft() ? restoreGraph(newestDraft) : null;
     view.update('idle', restored ? '已保留上次的音準圖。' : undefined,null,0,442,restored);
     return view;
