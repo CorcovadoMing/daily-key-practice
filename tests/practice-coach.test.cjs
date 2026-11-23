@@ -13,14 +13,14 @@ test('experimental coach needs no setting but remains unavailable on stable',()=
 });
 const target=[{name:'F',octave:2},{name:'G',octave:2},{name:'A',octave:2},{name:'G',octave:2},{name:'F',octave:2}];
 const advice={steps:['停弓一拍，先放好下一音的手指。','把這兩音連起來，做三次。'],check:'再連拉一次，聽兩個起音是否平順。'};
-test('facts use only scored anchors, preserve exercise, direction, signed difference, and known detection settings',()=>{
+test('facts list every ordered score slot, preserve exercise, direction, signed difference, and known detection settings',()=>{
  const f=api.evidence(target,[0,null,35,-18,null],'single','arpeggio',{reference:442,detector:'SwiftF0'});
  assert.equal(f.measured,3);assert.equal(f.total,5);assert.equal(f.exercise,'琶音');
  assert.match(f.report,/A2.*上行.*\+35¢[\s\S]*G2.*下行.*−18¢/);
  assert.equal(f.detector,'智慧');assert.equal(f.reference,442);
  const empty=api.evidence(target,null,'loop');
  assert.equal(empty.measured,0);assert.equal(empty.detector,null);assert.match(empty.report,/無法判斷音準/);
- assert.doesNotMatch(api.evidence(target,[4,null,31,null,null],'single').report,/G2/);
+ assert.match(api.evidence(target,[4,null,31,null,null],'single').report,/G2.*未辨識/);
 });
 test('structured advice strips hidden reasoning and rejects HTML, guessed results, pain encouragement and malformed answers',()=>{
  const lines='練法：'+advice.steps[0]+'\n練法：'+advice.steps[1]+'\n重測：'+advice.check;
@@ -48,7 +48,7 @@ test('only cold initialization is bounded; model generation is cancellable witho
  const f=sandbox(), updates=[];
  const pending=f.service.run(f.options,(...x)=>updates.push(x));
  const w=f.workers[0];assert.equal(w.opts.type,'module');
- assert.deepEqual(Object.keys(w.msg.facts).sort(),['adjacent','measured','report']);
+ assert.deepEqual(Object.keys(w.msg.facts).sort(),['adjacent','measured','report','trace']);
  assert.equal(w.msg.facts.report,f.options.report);assert.equal(w.msg.options,undefined);
  assert.equal([...f.jobs.values()][0].ms,180000);
  w.emit('progress',{step:'cached'});w.emit('progress',{step:'gpu-load',percent:33});
@@ -100,7 +100,7 @@ test('same model direct retry requests JSON, suppresses thinking, and never impo
  const empty=api.evidence(target,null,'single');
  const initial=api.completionRequest(empty,false),direct=api.completionRequest(empty,true);
  assert.equal(initial.extra_body.enable_thinking,true);
- assert.match(initial.messages[0].content,/沒有量到音，不評音準.*不可推斷節奏、弓法或動作原因/);
+ assert.match(initial.messages[0].content,/沒有量到音，不評音準.*不要推斷節奏、弓法/);
  assert.equal(initial.response_format,undefined);
  assert.equal(direct.extra_body.enable_thinking,false);
  assert.equal(direct.max_tokens,undefined);assert.equal(initial.max_tokens,undefined);
@@ -108,10 +108,10 @@ test('same model direct retry requests JSON, suppresses thinking, and never impo
  assert.deepEqual(Array.from(JSON.parse(direct.response_format.schema).required),['steps','check']);
  assert.equal(JSON.parse(direct.response_format.schema).properties.steps.maxItems,1);
  const f=sandbox();
- const first=f.service.run(empty);const w=f.workers[0];
+ const first=f.service.run(empty);const w=f.workers[0],reviewId=w.msg.reviewId;
  w.emit('ready',{cold:true});w.emit('answer',{reason:'context'});await first;
  const retry=f.service.run(empty,()=>{},{direct:true});
- assert.equal(f.workers.length,1);assert.equal(w.msg.direct,true);assert.equal(w.msg.facts.measured,false);
+ assert.equal(f.workers.length,1);assert.equal(w.msg.direct,true);assert.equal(w.msg.facts.measured,false);assert.equal(w.msg.reviewId,reviewId);
  assert.equal(f.jobs.size,0);
  w.emit('answer',{advice});assert.equal((await retry).advice,advice);
 });
@@ -155,23 +155,23 @@ test('prompt gives different concrete examples for measured pair, single and no 
  const f=api.evidence(target,[null,20,35,null,null],'single');
  assert.equal(f.adjacent,true);assert.match(f.report,/G2.*\+20¢.*黃[\s\S]*A2.*\+35¢.*紅/);
  const pair=api.completionRequest(f,false).messages[0].content;
- assert.match(pair,/相鄰.*分弓.*第二音準備好再出弓.*聽換音.*靠近零線/);
- assert.ok(pair.endsWith(f.report));assert.doesNotMatch(pair,/signedCents|拍數或次數/);
+ assert.match(pair,/閱讀所有已辨識譜位.*未辨識不等於拉錯/);
+ assert.ok(pair.includes(f.report));assert.doesNotMatch(pair,/signedCents|拍數或次數/);
  const one=api.completionRequest(api.evidence(target,[null,null,35,null,null],'single'),false).messages[0].content;
- assert.match(one,/一個指定譜位.*不加未辨識.*長音.*零線/);
+ assert.match(one,/閱讀所有已辨識譜位.*未辨識不等於拉錯/);
  const none=api.completionRequest(api.evidence(target,null,'single'),false).messages[0].content;
  assert.match(none,/沒有量到音，不評音準.*先開調音器/);assert.doesNotMatch(none,/signedCents|¢/);
 });
 
 test('worker request reads exactly one human-readable joined report in either mode, with trustworthy chart bands',()=>{
  const f=api.evidence(target,[null,10.001,20.001,null,null],'single','scale',{restored:true});
- assert.equal(f.rows.length,2);
+ assert.equal(f.rows.length,5);
  assert.match(f.coverage,/^上次保留的音準圖.*2／5.*空白不代表拉錯/);
- assert.match(f.rows[0],/G2.*黃・略偏/);
- assert.match(f.rows[1],/A2.*紅・偏差較大/);
+ assert.match(f.rows[1],/G2.*黃・略偏/);
+ assert.match(f.rows[2],/A2.*紅・偏差較大/);
  for(const direct of [false,true]){
   const request=api.completionRequest(f,direct);
-  const report=request.messages[0].content.split('網站已整理的練習重點：\n')[1].split('\nJSON 的')[0];
+  const report=request.messages[0].content.split('全部譜位：\n')[1].split('\n沒有可用時間走勢。')[0];
   assert.equal(report,f.report);
   assert.doesNotMatch(report,/[{}]|signedCents|\bslot\b|\btiming\b/);
  }
@@ -187,17 +187,91 @@ test('actual streamed worker shares final text, never the thought stream, and pr
  for(const item of examples){
   const outbound=[];
   const injected=api.workerMain.toString().replace('let engine,','let engine = mockEngine,');
-  const ctx=vm.createContext({performance, self:{postMessage:msg=>outbound.push(msg)},
-   mockEngine:{chat:{completions:{async create(){return (async function*(){
+  const ctx=vm.createContext({performance,TextEncoder, self:{postMessage:msg=>outbound.push(msg)},
+   mockEngine:{resetChat(){},chat:{completions:{async create(){return (async function*(){
     for(const part of item.chunks)yield {choices:[part]};
     if(item.throws)throw Error('mock GPU lost');
    })();}}}}});
   vm.runInContext('('+injected+')({},'+api.parseAdvice.toString()+','+api.weightStage.toString()+','+
-    api.invalidAnswer.toString()+','+api.completionRequest.toString()+','+api.finalAnswerText.toString()+')',ctx);
+    api.invalidAnswer.toString()+','+api.completionRequest.toString()+','+api.finalAnswerText.toString()+','+
+    api.packFullTrace.toString()+','+api.traceMemoRequest.toString()+','+api.runFullCoach.toString()+')',ctx);
   ctx.self.onmessage({data:{id:1,facts:{report:'本次練習',measured:true},direct:false}});
   await new Promise(setImmediate);
   const answer=outbound.find(x=>x.phase==='answer');
   assert.equal(answer.raw,item.raw);assert.equal(answer.partial,item.partial);
   assert.doesNotMatch(JSON.stringify(outbound),/HIDDEN|PRIVATE|prefix only/);
  }
+});
+
+test('local coach pins only the official Qwen3.5 0.8B q4f16 artifact and leaves older cache alone',async()=>{
+ const f=sandbox();
+ let source;
+ f.scope.Blob=class {constructor(parts){source=parts.join('');}};
+ const pending=f.service.run(f.options);
+ assert.match(source,/"model":"Qwen3\.5-0\.8B-q4f16_1-MLC"/);
+ assert.match(source,/https:\/\/huggingface\.co\/mlc-ai\/Qwen3\.5-0\.8B-q4f16_1-MLC\/resolve\/0ec138972555613c1d7812a821778ad0398c8790\//);
+ assert.match(source,/00fe7a40e57e5e8eb9fef87526a4bf28ad5846c0\/web-llm-models\/v0_2_86\/base\/Qwen3\.5-0\.8B-q4f16_1_cs1k-webgpu\.wasm/);
+ assert.match(source,/@mlc-ai\/web-llm@0\.2\.86\/lib\/index\.js/);
+ assert.match(source,/cacheBackend:'cache'/);
+ assert.match(source,/required_features:\['shader-f16'\],overrides:\{context_window_size:4096,max_history_size:1\}/);
+ assert.doesNotMatch(source,/Qwen3-0\.6B|deleteModelAllInfoInCache|deleteTensorCache|caches\.delete/);
+ f.service.cancel();assert.equal((await pending).reason,'cancelled');
+ assert.match(html,/首次使用需下載約 447 MB。/);
+});
+
+test('full timeline enters actual model calls losslessly and in order, with no final after a failed or cancelled segment',async()=>{
+ const baseline=[...Array(29)].map((_,i)=>({name:'F',octave:2+i%3}));
+ const trace={start:0,end:120000,reference:442,data:Array.from({length:2564},(_,i)=>({
+  ms:i*45.11,cents:i===0?-0:Math.sin(i)*36.9754321,slot:Math.floor(i/3)%29,lap:1+Math.floor(i/100),segment:Math.floor(i/3)+1
+ }))};
+ const facts=api.evidence(baseline,baseline.map((_,i)=>i%3===0?null:i-15),'loop','scale',{trace});
+ assert.equal(facts.rows.length,29);
+ assert.match(facts.rows[0],/未辨識/);
+ function read(text){
+  let h;
+  return text.split('\n').slice(2).flatMap(line=>{
+    if(line[0]==='@'){h=line.slice(1).split(',').map(Number);return [];}
+    const [ms,cents]=line.split(',').map(Number);
+    return [{ms,cents,slot:h[1]-1,lap:h[0],segment:h[2]}];
+  });
+ }
+ const env={TextEncoder};
+ const run=vm.runInNewContext('('+api.runFullCoach.toString()+')',env);
+ const pack=vm.runInNewContext('('+api.packFullTrace.toString()+')',env);
+ for(const fail of ['none','partial','cancel']){
+  const requests=[],steps=[],finished=[];let stop=false,memo;
+  const engine={resetChat(){},loadedModelIdToPipeline:new Map([['q',{tokenizer:{encode:s=>({length:Math.ceil(Buffer.byteLength(s)/2)})}}]]),
+   chat:{completions:{async create(request){requests.push(request);return (async function*(){
+    yield {choices:[{delta:{content:'這是本段保留的量測筆記。'}}]};
+    if(fail==='cancel'&&requests.length===2)stop=true;
+    yield {choices:[{finish_reason:fail==='partial'&&requests.length===2?'length':'stop'}]};
+   })();}}}};
+  const answer=await run(engine,facts,false,'q',{pack,makeRequest:api.completionRequest,makeMemo:api.traceMemoRequest,takeFinal:api.finalAnswerText,
+   report:(...args)=>steps.push(args),cancelled:()=>stop,saveMemo:x=>{memo=x;},onFinal:async request=>{finished.push(request);return {success:true};}});
+  if(fail==='none'){
+   assert.equal(answer.success,true);assert.equal(finished.length,1);
+   assert.ok(requests.length>1);
+   assert.deepEqual(requests.flatMap(x=>read(x.messages[0].content.split('本段全部原始資料：\n')[1])),trace.data);
+   assert.ok(requests.every(x=>x.messages[0].content.includes(facts.coverage)));
+   assert.ok(finished[0].messages[0].content.includes(facts.report));
+   assert.match(finished[0].messages[0].content,/你逐段讀過原始時間走勢後留下的筆記/);
+   assert.deepEqual(steps.at(-2),['trace',requests.length,requests.length]);
+   const completed=requests.length;
+   await run(engine,facts,true,'q',{pack,makeRequest:api.completionRequest,makeMemo:api.traceMemoRequest,takeFinal:api.finalAnswerText,
+    completedMemo:memo,report(){},cancelled:()=>false,onFinal:request=>{finished.push(request);}});
+   assert.equal(requests.length,completed,'retry uses completed same-review memo rather than replaying all chunks');
+   assert.equal(finished[1].extra_body.enable_thinking,false);
+  }else{
+   assert.equal(finished.length,0);
+   assert.equal(answer.reason,fail==='cancel'?'cancelled':'trace_incomplete');
+   assert.deepEqual(steps.at(-1),['trace',1,steps[0][2]]);
+  }
+ }
+ const small={...facts,trace:{...trace,data:trace.data.slice(0,6)}};
+ const engine={};
+ let final;
+ await run(engine,small,false,'q',{pack,makeRequest:api.completionRequest,makeMemo:api.traceMemoRequest,takeFinal:api.finalAnswerText,
+  report(){assert.fail('short input should be one model call');},cancelled:()=>false,onFinal:request=>{final=request;}});
+ assert.ok(final.messages[0].content.includes(small.report));
+ assert.deepEqual(read(final.messages[0].content.split('時間走勢原始資料：\n')[1]),trace.data.slice(0,6));
 });

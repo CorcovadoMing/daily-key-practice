@@ -35,7 +35,7 @@
 - **課堂房間（實驗）**：未加入時只顯示「加入房間」與「建立房間」。加入時在六格對話框輸入或貼上房號，失敗可以保留號碼重試；加入後只顯示房號和「退出房間」，點房號複製邀請連結。舊邀請連結仍可開啟。頁首不顯示日期，清單以「練習完成進度 1／4」一列顯示，歷史紀錄日期保留。
 - **練習優先版面（實驗）**：首頁用同一個「開始練習」，先直選隨機或循序。相鄰的齒輪會開啟浮層，可即時選調性與調整隨機練習數量，不需另按儲存；未完成清單可按「繼續上次」。練習紀錄與累積次數放在一起，課堂同步仍獨立。打開調性後，音階和琶音各保留原本操作；上方可跳到兩張譜、停止現有收音，指板與練習設定可單獨展開。
 - **外觀**：頁首的日月圖示可切換淺色與深色；頁尾可選跟隨系統，本瀏覽器會記住偏好。列印沿用原本淺色譜面。
-- **Qwen3 練習建議（實驗）**：音階或琶音收音結束後可按「練習建議」；沒有辨識音時只請模型挑選檢查步驟，不評音準。透過 WebGPU 在本機以 Qwen3 思考挑選下一個練習（等待時間不硬限，可取消，不顯示思考內容）。思考沒能完成選擇時，會用同一個模型做一次簡短的選擇；仍失敗才顯示原因並由同一按鈕重試，不顯示替代建議。首次按下才會下載約 350 MB；重新整理會初始化，但已保留的同版本權重不須重下。音訊與摘要不上傳。
+- **本機練習建議（實驗）**：音階或琶音停止收音後可按「練習建議」。WebLLM 0.2.86 在本機透過 WebGPU 執行 [Qwen3.5 0.8B 的官方 MLC 量化模型](https://huggingface.co/mlc-ai/Qwen3.5-0.8B-q4f16_1-MLC/tree/0ec138972555613c1d7812a821778ad0398c8790)；首次按下才會下載約 447 MB，與舊版權重分開保留，不會主動刪除舊快取或改用雲端。建議可中斷，等待時間不硬限；同一模型可再嘗試一次結構化輸出，失敗不會偷偷換模型。音訊與摘要不上傳。
 - **譜面與指板**：音階和琶音固定兩個八度；指板保留弦序、把位、指法編輯，既有指法不變。介面只在頁尾說明收音與音準留在本機。
 - **音準歷史**：結束有辨識到音符的練習後，可以自行選「併入歷史」；「查看歷史」開另一張圖，僅顯示同一調性、同一練習種類（音階或琶音）的累積紀錄。資料只存在本瀏覽器，不保留錄音、不上傳；完成練習時不會彈窗；若當前調性有未儲存的結果，切換調性或標記完成前會顯示這個調性的確認，讓你選擇儲存、略過或留在原處。此瀏覽器只暫存整個網站最近一次有辨識資料的音準圖，重整後仍可查看，不會自動再開麥克風，也不會自動併入歷史。若本機暫存失敗，在支援的瀏覽器上離開或重整時才會收到原生提示。
 - 驗證：`node --test tests/*.test.cjs`；合成 C2–A5 音訊與瀏覽器模擬通過不等於實際大提琴／手機麥克風驗收。節拍聲、泛音、環境噪音與手機低音收音須實機試用。
@@ -112,3 +112,7 @@ After an explicit request, the local coach writes one or two short Traditional C
 ### Latest pitch trend on reload (experimental)
 
 A finished, scored practice can save its latest pitch timeline in the existing single local draft. The timeline is kept with that exact draft and capped at 120 seconds and 2,564 numeric timeline samples; audio and advice replies are not stored. It is not part of the per-exercise aggregate history. Older drafts, damaged segments or storage quota limits can leave only the original score-position chart. Starting or stopping a new take without any measured pitch does not label the previous timeline as a new recording.
+
+### Full measurement input (experimental)
+
+The local coach receives every score position, including those explicitly marked unrecognized, and every point in the existing pitch timeline with its original precision and segment boundaries. The folded “提供給 AI 的資料” section shows that chart data and the timeline, not model prompts or notes. If it fits, the model reads the data in one request; otherwise the same model reads lossless chronological slices, writes its own rolling notes, and synthesizes the final advice only after all slices succeed. If a slice fails, the application reports partial progress and does not present it as a complete review. The existing chart retention window still applies, and no audio or practice data are uploaded.

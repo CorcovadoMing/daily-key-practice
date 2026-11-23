@@ -91,10 +91,14 @@ test('actual arpeggio manager/card reveals its own measured coaching only after 
   assert.equal(p.requested.exercise,'琶音');
   assert.match(p.requested.coverage,/本次練習.*4／13.*空白不代表拉錯/);
   assert.match(p.requested.report,/C2.*−12¢.*黃[\s\S]*E2.*\+28¢.*紅/);
-  assert.equal(p.requested.rows.length,2);
+  assert.equal(p.requested.rows.length,13);
+  const proof=panel.find('scale-practice-coach-raw-details');
+  proof.open=true;proof.handlers.toggle();
+  assert.match(proof.children.at(-1).textContent,/時間走勢：[0-9]+ 個保留資料點/);
+  assert.ok(proof.children.at(-1).textContent.startsWith(p.requested.report));
   assert.match(coachOutput(panel),/空白不代表拉錯/);
 
-  assert.match(coachOutput(panel),/C2.*E2.*停弓一拍.*起音是否平順.*智慧.*A4 442/);
+  assert.match(coachOutput(panel),/停弓一拍.*起音是否平順.*智慧.*A4 442/);
   assert.equal(panel.find('scale-practice-coach-steps').children.length,2);
   const reloaded=app(p.store,'');
   const restored=reloaded.card('arpeggio');
@@ -144,7 +148,7 @@ test('the model retries once under the same action after the natural context bou
   assert.equal(panel.find('scale-practice-coach-status').textContent,'');
   assert.match(panel.find('scale-practice-coach-elapsed').textContent,/^耗時 [0-9.]+ 秒$/);
   assert.doesNotMatch(coachOutput(panel),/Qwen3/);
-  assert.match(coachOutput(panel),/C2/);
+  assert.match(p.requested.report,/C2.*[¢]/);
   assert.doesNotMatch(coachOutput(panel),/D2|E2|未對上/);
  }
 });

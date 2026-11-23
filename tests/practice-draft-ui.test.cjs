@@ -267,10 +267,10 @@ test('coach uses qualified temporal facts only while the displayed restored nonc
  const button=before.view.element.find('scale-practice-coach-action');
  await button.handlers.click();
  assert.match(calls[0].coverage,/上次/);
- assert.match(calls[0].rows.join(' '),/前段.*後段/);
+ assert.ok(calls[0].trace.data.length>=8);
  const later=build(store,'major-C','scale','loop');
  await later.start();later.play(36,-17,30);await later.stop();
  await button.handlers.click();
  assert.match(calls[1].coverage,/上次/);
- assert.doesNotMatch(calls[1].rows.join(' '),/前段.*後段/);
+ assert.equal(calls[1].trace,null);
 });

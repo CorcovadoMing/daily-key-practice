@@ -51,14 +51,15 @@ test('sustained observations distinguish repeated settlement from persistent off
  const close=coach.evidence(slots,[10.1,-20.1],'single','scale',{visual:practice.chartPoint});
  a.match(close.rows[0],/F2.*\+10\.1¢.*黃・略偏/);
  a.match(close.rows[1],/G2.*−20\.1¢.*紅・偏差較大/);
- const facts=coach.evidence(slots,[8,null],'single','scale',{trend:settling,reference:442,detector:'SwiftF0'});
- a.match(facts.rows[0],/F2.*前段 \+27¢、後段 \+5¢.*多輪由偏離回到較接近中心/);
- a.doesNotMatch(JSON.stringify(facts),/segment|audioTime|trajectory|"data":/);
- a.doesNotMatch(coach.evidence(slots,[null,8],'single','scale',{trend:settling}).report,/前段|多輪/);
- a.doesNotMatch(coach.evidence(slots,null,'single','scale',{trend:settling}).report,/前段|多輪/);
- const prompt=coach.completionRequest(facts,false).messages[0].content;
- a.match(prompt,/^你是虛擬大提琴老師。你的工作是給正在學習大提琴的學生具體、有建設性、能馬上練習的建議。/);
- a.match(prompt,/不可推斷節奏、弓法或動作原因/);
+ const trace=split.snapshot();
+ const facts=coach.evidence(slots,[8,null],'single','scale',{trace,reference:442,detector:'SwiftF0'});
+ a.match(facts.rows[0],/F2.*\+8¢/);a.match(facts.rows[1],/G2.*未辨識/);
+ a.deepEqual(facts.trace,trace);
+ a.doesNotMatch(facts.report,/前段|多輪/);
+ const prompt=coach.completionRequest(facts,false,coach.packFullTrace(trace,{unbounded:true})[0].text).messages[0].content;
+ a.match(prompt,/^你是虛擬大提琴老師。/);
+ a.match(prompt,/不要推斷節奏、弓法/);
+ a.match(prompt,/時間走勢原始資料：[\s\S]*線段間沒有連線/);
 });
 test('actual manager only records fresh, positively attributed pitch on either practice and graphs the final accepted point',async()=>{
  for(const kind of ['scale','arpeggio']){

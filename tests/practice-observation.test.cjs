@@ -265,7 +265,7 @@ for (const mode of ['single','loop']) {
    const facts=ctx.module.exports.evidence(seq,display.values,mode);
    if(extras.length)assert.match(facts.report,/G3.*譜位 6（上行）/);
    else assert.equal(facts.measured,5);
-   assert.doesNotMatch(facts.report,/譜位 24（下行）/);
+   assert.match(facts.report,/譜位 24（下行）：未辨識/);
   }
  });
 }

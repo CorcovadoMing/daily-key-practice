@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261123-038-experimental">
+  <meta name="site-version" content="20261123-039-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -1084,7 +1084,7 @@
     <select id="appearance-choice">
       <option value="light">淺色</option><option value="dark">深色</option><option value="system">跟隨系統</option>
     </select>
-  </label><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261123-038-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  </label><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261123-039-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -1128,11 +1128,11 @@
   else root.CelloPracticeCoach=api;
 })(globalThis,function(){
   'use strict';
-  const MODEL='Qwen3-0.6B-q4f16_1-MLC';
-  const WEIGHTS='https://huggingface.co/mlc-ai/Qwen3-0.6B-q4f16_1-MLC/resolve/8c14ce481d4c692769976ad52afea453a102df19/';
+  const MODEL='Qwen3.5-0.8B-q4f16_1-MLC';
+  const WEIGHTS='https://huggingface.co/mlc-ai/Qwen3.5-0.8B-q4f16_1-MLC/resolve/0ec138972555613c1d7812a821778ad0398c8790/';
   const RUNTIME='https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.86/lib/index.js';
   const INTEGRITY='sha384-HegQbcXEuX71lg9KuPsNblVYf0qx8SYwjMgeIdIaUisFt2g5p4IHo6YtxdUtZP25';
-  const MODEL_LIB='https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/5b7251f3bdce957be2a7bf73a6f6c560d9874df4/web-llm-models/v0_2_86/base/Qwen3-0.6B-q4f16_1_cs1k-webgpu.wasm';
+  const MODEL_LIB='https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/00fe7a40e57e5e8eb9fef87526a4bf28ad5846c0/web-llm-models/v0_2_86/base/Qwen3.5-0.8B-q4f16_1_cs1k-webgpu.wasm';
   function enabled(env){
     return /\/experimental\/?(?:index\.html)?$/.test(env.location?.pathname || '');
   }
@@ -1147,28 +1147,12 @@
     }));
     const named=p=>[p.name,'譜位 '+(p.i+1)+'（'+p.direction+'）'].filter(Boolean).join('，');
     const measured=positions.filter(p=>p.cents!==null);
-    const trace=metadata.trend, timed=positions[trace?.slot];
-    const qualified=timed?.cents!=null && Number.isFinite(trace?.duration) && trace.duration>=340 &&
-      trace.duration<=120000 && finite(trace.lead) && finite(trace.tail);
-    const repeated=qualified && ['settles','persists'].includes(trace.pattern) && Number.isInteger(trace.repeats) && trace.repeats>=2;
-    const worst=measured.reduce((a,b)=>!a||Math.abs(b.cents)>Math.abs(a.cents)?b:a,null);
-    const focal=repeated?timed:worst;
-    const neighbor=focal&&[positions[focal.i-1],positions[focal.i+1]].filter(p=>p?.cents!=null)
-      .sort((a,b)=>Math.abs(b.cents)-Math.abs(a.cents))[0];
-    const anchors=focal?[focal,...(neighbor?[neighbor]:[])].sort((a,b)=>a.i-b.i):[];
     const bandText={center:'綠・接近中心',near:'黃・略偏',outside:'紅・偏差較大'};
-    const rows=anchors.map(p=>{
-      const visual=metadata.visual?.(p.cents);
-      const magnitude=Math.abs(p.cents);
+    const rows=positions.map(p=>{
+      if(p.cents===null)return named(p)+'：未辨識。';
+      const visual=metadata.visual?.(p.cents),magnitude=Math.abs(p.cents);
       const band=visual?.band ?? (magnitude<=10+1e-7?'center':magnitude<=20+1e-7?'near':'outside');
-      let row=named(p)+'：'+(visual?.text ?? cents(p.cents))+'（'+bandText[band]+'）';
-      if(qualified && p===timed){
-        const scope=trace.recent===true?'保留的末段，':'';
-        const duration=Math.round(trace.duration/50)/20;
-        const pattern=repeated?(trace.pattern==='settles'?'多輪由偏離回到較接近中心':'多輪前後都朝同一側偏離'):'只見一段，不代表每次如此';
-        row+='；'+scope+'已辨識片段約 '+duration+' 秒，前段 '+cents(trace.lead)+'、後段 '+cents(trace.tail)+'，'+pattern;
-      }
-      return row+'。';
+      return named(p)+'：'+(visual?.text ?? cents(p.cents))+'（'+bandText[band]+'）。';
     });
     const restored=metadata.restored===true;
     const source=restored?'上次保留的音準圖':'本次練習';
@@ -1176,9 +1160,9 @@
       source+'：'+exercise+'，沒有辨識到可用音符，無法判斷音準。';
     const reference=Number.isFinite(metadata.reference)&&metadata.reference>=430&&metadata.reference<=450?metadata.reference:null;
     const detector=metadata.detector==='SwiftF0'?'智慧':metadata.detector==='現有偵測'?'傳統':null;
-    return {exercise,measured:measured.length,total:slots.length,adjacent:anchors.length===2,restored,
-      coverage,rows,
-      report:[coverage,...rows].join('\n'),reference,detector};
+    return {exercise,measured:measured.length,total:slots.length,adjacent:positions.some((p,i)=>p.cents!==null&&i>0&&positions[i-1].cents!==null),restored,
+      coverage,rows,trace:metadata.trace??null,
+      report:[coverage,'方式：'+(mode==='loop'?'循環':'單次')+(detector?'；偵測：'+detector:'')+(reference!==null?'；A4 '+reference+' Hz':''),...rows].join('\n'),reference,detector};
   }
   function parseAdvice(text,facts) {
     let final=String(text??'').trim();
@@ -1276,17 +1260,53 @@
     }
     return null;
   }
-  function completionRequest(facts,direct) {
+function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=false}={}) {
+  const points=trace?.data ?? [];
+  if(!Array.isArray(points) || !Number.isInteger(budget)||budget<1) throw new TypeError('Invalid timeline/budget');
+  if (!points.length) return [];
+  const fmt = n=>Object.is(n,-0)?'-0':String(n);
+  const rows=points.map(p=>{
+    if(!p || !['ms','cents','slot','lap','segment'].every(key=>Number.isFinite(p[key]))) throw new TypeError('Invalid timeline point');
+    return {group:'@'+[p.lap,p.slot+1,p.segment].map(fmt).join(','),pair:[p.ms,p.cents].map(fmt).join(',')};
+  });
+  const meta='範圍 '+fmt(trace.start)+'–'+fmt(trace.end)+' ms（從練習開始計）；@輪,譜位,線段；每行＝毫秒,音分。線段間沒有連線，缺口不補值。';
+  function serialize(first,last){
+    const lines=[meta,'資料點 '+(first+1)+'–'+last+'／'+rows.length];
+    let group;
+    for(let i=first;i<last;i++){
+      const row=rows[i];
+      if(group!==row.group) {group=row.group; lines.push(group);}
+      lines.push(row.pair);
+    }
+    return lines.join('\n');
+  }
+  if(unbounded)return [{from:0,to:rows.length,text:serialize(0,rows.length)}];
+  const count=countPrompt??(s=>(encoder??new TextEncoder()).encode(s).length);
+  const slices=[];
+  for(let from=0;from<rows.length;){
+    let lo=from+1,hi=rows.length, accepted;
+    while(lo<=hi){
+      const to=Math.floor((lo+hi)/2);
+      const text=serialize(from,to), size=count(text);
+      if(!Number.isFinite(size) || size<0) throw new TypeError('Invalid token count');
+      if(size<=budget){accepted={from,to,text,size};lo=to+1;}
+      else hi=to-1;
+    }
+    if(!accepted) throw new RangeError('Cannot fit one measured point in context.');
+    slices.push(accepted);
+    from=accepted.to;
+  }
+  return slices;
+}
+  function completionRequest(facts,direct,raw='',memo='') {
     const task=!facts.measured
-      ? '沒有量到音，不評音準。例：先開調音器，慢拉第一個譜音，確認有音名。重測：回到練習拉同一音，看音準圖是否出現一點。'
-      : facts.adjacent
-        ? '只用這兩個相鄰的已辨識譜位。例：先分弓慢拉兩音，第二音準備好再出弓；接著慢慢連起來。重測：原設定重拉，聽換音更順不順，或看兩格是否更靠近零線。'
-        : '只有一個指定譜位，不加未辨識的音。例：保持這音的左手設定不變，右手慢慢拉一弓長音。重測：原設定重拉，看音準圖是否更靠近零線。';
-    const context=facts.report;
+      ? '沒有量到音，不評音準。先開調音器慢拉第一個譜音，確認有音名；重測可看同一音是否出現音準點。'
+      : '閱讀所有已辨識譜位和提供的時間資料，挑選一個或兩個有根據的練習重點。未辨識不等於拉錯。';
     const format=direct?'只回一個具體步驟與一個不同的重測方法，依 JSON 結構。':
       '只寫「練法：」與「重測：」各一行；若有必要，可多一行「練法：」。';
-    const request={messages:[{role:'user',content:'你是虛擬大提琴老師。你的工作是給正在學習大提琴的學生具體、有建設性、能馬上練習的建議。用繁體中文。'+task+
-      '網站已完成比對。只把下列練習重點變成練法，不重做配對或評分。例子供參考，不照抄。不可推斷節奏、弓法或動作原因，也不要猜測手指、弦或姿勢。重測要說聽什麼或看哪個變化，不可重複練法。動作保持舒服，疼痛即停止。'+format+'\n網站已整理的練習重點：\n'+context}],
+    const trace=raw?'\n時間走勢原始資料：\n'+raw:memo?'\n你逐段讀過原始時間走勢後留下的筆記：\n'+memo:'\n沒有可用時間走勢。';
+    const request={messages:[{role:'user',content:'你是虛擬大提琴老師。用繁體中文給學生可以馬上做的練法。'+task+
+      '不重做配對或評分。不要推斷節奏、弓法、手指、弦、姿勢或原因；運弓及雙手配合只可作為練習建議。動作保持舒服，疼痛即停止。重測要說聽什麼或看哪個變化。'+format+'\n全部譜位：\n'+facts.report+trace}],
       extra_body:{enable_thinking:!direct},stream:true,temperature:0.2};
     if(direct){
       request.messages[0].content += '\nJSON 的 steps 只含一個步驟字串，check 是重測字串。';
@@ -1294,10 +1314,67 @@
     }
     return request;
   }
-  async function workerMain(pins, parse, progressStage, classify, makeRequest, takeFinal) {
-    let engine, activeId=null, queued=null;
+  function traceMemoRequest(facts,raw,memo='') {
+    return {messages:[{role:'user',content:'大提琴音準時間資料。把前段筆記和這一段原始資料合併成新的累積筆記，供稍後老師使用。用繁體中文，最多約120字。標明具體譜位與前後音分；沒有證據就別推論姿勢、弓法、節奏或原因。不要把線段間空白補成音。只寫筆記。譜位是整份譜的順序。\n本次資料背景：\n'+facts.report.split('\n').slice(0,2).join('\n')+'\n前段筆記：'+(memo||'（無）')+'\n本段全部原始資料：\n'+raw}],extra_body:{enable_thinking:false},stream:true,temperature:0.1};
+  }
+  async function runFullCoach(engine,facts,direct,model,helpers) {
+    const {pack,makeRequest,makeMemo,takeFinal,report,cancelled,onFinal,completedMemo,saveMemo}=helpers;
+    const encoder=new TextEncoder(), tokenizer=engine.loadedModelIdToPipeline?.get(model)?.tokenizer;
+    const count=text=>{
+      if(tokenizer?.encode)try{return tokenizer.encode(text).length;}catch{}
+      return encoder.encode(text).length;
+    };
+    const size=request=>count(request.messages[0].content)+128;
+    if(cancelled())return {reason:'cancelled'};
+    if(completedMemo?.memo){
+      report('trace',completedMemo.total,completedMemo.total);
+      report('working');
+      const final=makeRequest(facts,direct,'',completedMemo.memo);
+      return size(final)<=3712?onFinal(final):{reason:'context'};
+    }
+    const single=pack(facts.trace,{unbounded:true})[0]?.text||'';
+    const full=makeRequest(facts,direct,single);
+    if(size(full)<=3000)return onFinal(full);
+    if(!single)return size(full)<=3712?onFinal(full):{reason:'context'};
+    // Reserve 512 tokens/bytes for the previous model-authored memo, and 128
+    // for the fixed conversation template and special tokens.
+    let chunks;
+    try{chunks=pack(facts.trace,{budget:2860,countPrompt:text=>size(makeMemo(facts,text))});}
+    catch{return {reason:'context'};}
+    let memo='',done=0;
+    report('trace',0,chunks.length);
+    for(const chunk of chunks){
+      if(cancelled())return {reason:'cancelled'};
+      const request=makeMemo(facts,chunk.text,memo);
+      if(size(request)>3420)return {reason:'trace_incomplete',seen:done,total:chunks.length};
+      let output='',ending;
+      try{
+        await engine.resetChat(false,model);
+        if(cancelled())return {reason:'cancelled'};
+        const stream=await engine.chat.completions.create(request);
+        for await(const packet of stream){
+          if(cancelled())return {reason:'cancelled'};
+          const choice=packet.choices?.[0];
+          ending=choice?.finish_reason||ending;
+          output+=choice?.delta?.content||'';
+        }
+      }catch{return {reason:cancelled()?'cancelled':'trace_incomplete',seen:done,total:chunks.length};}
+      const note=takeFinal(output);
+      if(!note||ending!=='stop'||count(note)>512)return {reason:'trace_incomplete',seen:done,total:chunks.length};
+      memo=note;done++;
+      report('trace',done,chunks.length);
+    }
+    if(cancelled())return {reason:'cancelled'};
+    saveMemo?.({memo,total:chunks.length});
+    report('working');
+    const final=makeRequest(facts,direct,'',memo);
+    return size(final)<=3712?onFinal(final):{reason:'context'};
+  }
+  async function workerMain(pins, parse, progressStage, classify, makeRequest, takeFinal, pack, makeMemo, runFull) {
+    let engine, activeId=null, queued=null, interrupted=false, lastReview=null, completedMemo=null;
     async function run(data) {
-      activeId=data.id;
+      activeId=data.id;interrupted=false;
+      if(data.reviewId!==lastReview){lastReview=data.reviewId;completedMemo=null;}
       const post=(phase,rest={})=>self.postMessage({phase,id:data.id,...rest});
       let output='',first=null,finishReason=null,sawReasoning=false, start;
       try {
@@ -1313,7 +1390,7 @@
           let library;
           try {library=await import(url);} finally {URL.revokeObjectURL(url);}
           const appConfig={cacheBackend:'cache',model_list:[{model:pins.weights,model_id:pins.model,model_lib:pins.lib,
-            required_features:['shader-f16'],overrides:{context_window_size:4096}}]};
+            required_features:['shader-f16'],overrides:{context_window_size:4096,max_history_size:1}}]};
           post('progress',{step:'checking'});
           let cached=false;
           try {cached=await library.hasModelInCache(pins.model,appConfig);} catch {}
@@ -1328,16 +1405,24 @@
         const load=cold ? performance.now()-started : 0;
         start=performance.now();
         post('ready',{load,cold});
-        const stream=await engine.chat.completions.create(makeRequest(data.facts,data.direct));
-        for await (const chunk of stream) {
-          const choice=chunk.choices?.[0];
-          finishReason=choice?.finish_reason || finishReason;
-          if(choice?.delta?.reasoning_content) sawReasoning=true;
-          const part=choice?.delta?.content;
-          if (typeof part!=='string'||!part)continue;
-          if (first===null) first=performance.now()-start;
-          output+=part;
-        }
+        const verdict=await runFull(engine,data.facts,data.direct,pins.model,{pack,makeRequest,makeMemo,takeFinal,
+          report:(step,done,total)=>post('progress',{step,done,total}),
+          completedMemo:data.direct===true?completedMemo:null,saveMemo:memo=>{completedMemo=memo;},
+          cancelled:()=>interrupted,onFinal:async request=>{
+            await engine.resetChat(false,pins.model);
+            if(interrupted)return {reason:'cancelled'};
+            const stream=await engine.chat.completions.create(request);
+            for await (const chunk of stream) {
+              const choice=chunk.choices?.[0];
+              finishReason=choice?.finish_reason || finishReason;
+              if(choice?.delta?.reasoning_content) sawReasoning=true;
+              const part=choice?.delta?.content;
+              if (typeof part!=='string'||!part)continue;
+              if (first===null) first=performance.now()-start;
+              output+=part;
+            }
+          }});
+        if(verdict?.reason){post('answer',verdict);return;}
         const raw=takeFinal(output);
         const partial=finishReason==='length'||finishReason==='abort';
         const advice=raw&&!partial ? parse(raw,data.facts) : null;
@@ -1355,7 +1440,7 @@
     }
     self.onmessage=({data})=>{
       if(data.kind==='interrupt'){
-        if(activeId===data.id)engine?.interruptGenerate();
+        if(activeId===data.id){interrupted=true;engine?.interruptGenerate();}
         if(queued?.id===data.id)queued=null;
         return;
       }
@@ -1365,6 +1450,7 @@
   }
   function service(env) {
     let worker=null, workerURL=null, active=null, sequence=0, warm=false;
+    const reviewIds=new WeakMap();
     function revokeWorkerURL() {
       if (workerURL) env.URL.revokeObjectURL(workerURL);
       workerURL=null;
@@ -1389,25 +1475,27 @@
       cancel();
       if (!facts?.exercise || !env.navigator?.gpu || !env.Worker) return Promise.resolve({reason:'unsupported'});
       const id=++sequence;
+      const reviewId=direct?(reviewIds.get(facts)??id):id;
+      reviewIds.set(facts,reviewId);
       return new Promise(done=>{
         active={id,resolve:done,report,timing:{},ready:false};
         try {
           if (!worker) {
             const pins={model:MODEL,weights:WEIGHTS,runtime:RUNTIME,integrity:INTEGRITY,lib:MODEL_LIB};
-            const code='('+workerMain.toString()+')('+JSON.stringify(pins)+','+parseAdvice.toString()+','+weightStage.toString()+','+invalidAnswer.toString()+','+completionRequest.toString()+','+finalAnswerText.toString()+');';
+            const code='('+workerMain.toString()+')('+JSON.stringify(pins)+','+parseAdvice.toString()+','+weightStage.toString()+','+invalidAnswer.toString()+','+completionRequest.toString()+','+finalAnswerText.toString()+','+packFullTrace.toString()+','+traceMemoRequest.toString()+','+runFullCoach.toString()+');';
             workerURL=env.URL.createObjectURL(new env.Blob([code],{type:'text/javascript'}));
             worker=new env.Worker(workerURL,{type:'module'});
             const owner=worker;
             worker.onmessage=({data})=>{
               if (worker!==owner || !active || data.id!==active.id) return;
               revokeWorkerURL();
-              if(data.phase==='progress') active.report(data.step,data.percent);
+              if(data.phase==='progress') active.report(data.step,data.percent,...(data.step==='trace'?[data.done,data.total]:[]));
               else if(data.phase==='ready') {
                 active.timing={load:data.load,cold:data.cold};
                 warm=true;active.ready=true;
                 env.clearTimeout(active.timer);
                 active.report('working');
-              } else if(data.phase==='answer') resolve({...active.timing,reason:data.reason,advice:data.advice||null,raw:typeof data.raw==='string'?data.raw:'',partial:data.partial===true,first:data.first,generation:data.generation});
+              } else if(data.phase==='answer') resolve({...active.timing,reason:data.reason,advice:data.advice||null,raw:typeof data.raw==='string'?data.raw:'',partial:data.partial===true,seen:data.seen,total:data.total,first:data.first,generation:data.generation});
               else if(data.phase==='unavailable') resolve({reason:'unsupported'},true);
               else if(data.phase==='error') resolve({reason:data.stage==='initialization'?'model_load_error':'error',...active.timing},true);
             };
@@ -1415,7 +1503,7 @@
           }
           if(!warm)armColdLoad(active);
           report(warm?'working':'device');
-          worker.postMessage({id,direct,facts:{report:facts.report,measured:Boolean(facts.measured),adjacent:facts.adjacent===true}});
+          worker.postMessage({id,reviewId,direct,facts:{report:facts.report,measured:Boolean(facts.measured),adjacent:facts.adjacent===true,trace:facts.trace??null}});
         } catch {resolve({reason:'error'},true);}
       });
     }
@@ -1429,7 +1517,7 @@
     function isBusy(){return Boolean(active);}
     return {run,cancel,dispose,isBusy};
   }
-  return {enabled,evidence,parseAdvice,finalAnswerText,service,invalidAnswer,weightStage,workerMain,completionRequest};
+  return {enabled,evidence,parseAdvice,finalAnswerText,service,invalidAnswer,weightStage,workerMain,completionRequest,packFullTrace,traceMemoRequest,runFullCoach};
 });
 // PRACTICE_COACH_END
 
@@ -2454,7 +2542,7 @@
     }
     const coachAPI = globalThis.CelloPracticeCoach;
     const coachVisible = coachAPI?.enabled(globalThis);
-    let coachPanel, coachAction, coachTyping, coachStatus, coachTime, coachTip, coachRaw, coachNotice, coachAttempt, coachBusy=false, coachTicket=0;
+    let coachPanel, coachAction, coachTyping, coachStatus, coachTime, coachTip, coachRaw, coachNotice,coachInput, coachAttempt, coachBusy=false, coachTicket=0;
     if (coachVisible) {
       const mk=(tag,klass,text)=>{
         const el=document.createElement(tag);el.className=klass;if(text)el.textContent=text;return el;
@@ -2471,12 +2559,23 @@
       coachTip=mk('div','scale-practice-coach-tip');
       coachTip.setAttribute('role','status');
       coachRaw=mk('div','scale-practice-coach-raw');
-      coachNotice=mk('p','scale-practice-coach-notice','首次使用需下載約 350 MB。');
+      coachInput=mk('details','scale-practice-coach-raw-details');
+      coachInput.append(mk('summary','','提供給 AI 的資料'));
+      const dataText=mk('pre','scale-practice-coach-literal'),dataProgress=mk('p','scale-practice-coach-input-progress');
+      coachInput.append(mk('p','','下列是原始量測資料，不包含提示或模型筆記。資料較長時會依順序分段給模型，最後由模型整理。'),dataProgress,dataText);
+      function showInput(facts){
+        const raw=coachAPI.packFullTrace(facts.trace,{unbounded:true})[0]?.text;
+        dataText.textContent=facts.report+'\n\n時間走勢：'+(facts.trace?.data?.length||0)+' 個保留資料點'+(raw?'\n'+raw:'；沒有可用的時間走勢。');
+      }
+      coachInput.addEventListener('toggle',()=>{
+        if(coachInput.open&&coachAttempt)showInput(coachAttempt.restoredTrendId&&!restoredTrendIsCurrent(coachAttempt.restoredTrendId)?coachAttempt.factsWithoutTrend:coachAttempt.facts);
+      });
+      coachNotice=mk('p','scale-practice-coach-notice','首次使用需下載約 447 MB。');
       coachTyping=mk('div','scale-practice-coach-typing');
       coachTyping.hidden=true;
       coachTyping.setAttribute('aria-hidden','true');
       coachTyping.append(mk('span'),mk('span'),mk('span'));
-      coachPanel.append(coachAction,coachNotice,coachStatus,coachTyping,coachTip,coachRaw,coachTime);
+      coachPanel.append(coachAction,coachNotice,coachStatus,coachTyping,coachTip,coachRaw,coachInput,coachTime);
       function setCoachBusy(busy) {
         coachBusy=busy;
         coachAction.textContent=busy?'中斷':'練習建議';
@@ -2486,13 +2585,14 @@
         const attempt=coachAttempt;
         if(!attempt||coachBusy) return;
         const facts=attempt.restoredTrendId && !restoredTrendIsCurrent(attempt.restoredTrendId) ? attempt.factsWithoutTrend : attempt.facts;
+        if(coachInput.open)showInput(facts);
         const ticket=++coachTicket, clicked=globalThis.performance.now();
         const local=coachService ||= coachAPI.service(globalThis);
         if(!coachStorageAsked){
           coachStorageAsked=true;
           try {void globalThis.navigator.storage?.persist?.()?.catch(()=>{});} catch {}
         }
-        setCoachBusy(true);coachTip.textContent=coachRaw.textContent='';
+        setCoachBusy(true);coachTip.textContent=coachRaw.textContent=dataProgress.textContent='';
         const heartbeat=()=>{
           if(ticket===coachTicket)coachTime.textContent='已等待 '+Math.floor((globalThis.performance.now()-clicked)/1000)+' 秒';
         };
@@ -2504,11 +2604,12 @@
           'gpu-load':'正在從本機載入權重到 GPU',compile:'正在初始化 GPU…',
           working:'正在撰寫練習建議…'};
         let answer, usedDirect=false;
-        const report=(phase,pct)=>{
+        const report=(phase,pct,done,total)=>{
           if(ticket!==coachTicket) return;
+          if(phase==='trace')dataProgress.textContent='本機模型已讀取 '+done+'／'+total+' 段時間資料。';
           coachTyping.hidden=phase!=='working';
           coachStatus.className='scale-practice-coach-status'+(phase==='working' && !usedDirect?' sr-only':'');
-          const phrase=phase==='working' && usedDirect ? '正在重試…' : phrases[phase]||phrases.device;
+          const phrase=phase==='trace'?'正在讀取時間走勢 '+done+'／'+total+' 段…':phase==='working' && usedDirect ? '正在重試…' : phrases[phase]||phrases.device;
           const spoken=Number.isFinite(pct)?phrase+' '+pct+'%':phrase;
           if(coachStatus.textContent!==spoken)coachStatus.textContent=spoken;
         };
@@ -2544,6 +2645,7 @@
           load_timeout:'模型下載或初始化逾時。',error:'模型無法執行。',
           model_load_error:globalThis.navigator?.onLine===false?'目前離線，模型無法載入。':'模型無法下載或初始化。',
           context:'模型到達語境上限，仍未寫完建議。',
+          trace_incomplete:'這次只完成 '+(answer.seen||0)+'／'+(answer.total||0)+' 段時間資料，未產生完整建議。',
           thinking_only:'模型只完成思考，沒有寫出建議。',
           invalid:'這次沒有得到具體的拉琴練法和重測方法。',empty:'模型沒有回傳內容。'})[answer.reason];
         if(!answer.advice){
@@ -2553,7 +2655,7 @@
           return;
         }
         const advice=answer.advice;
-        const details=[facts.coverage,...facts.rows];
+        const details=[facts.coverage];
         const list=mk('ol','scale-practice-coach-steps');
         advice.steps.forEach(step=>list.append(mk('li','',step)));
         const context=(facts.reference&&facts.detector)
@@ -2691,7 +2793,7 @@
       }
       if (coachPanel) {
         if(next==='pending') {
-          coachTicket++;coachAttempt=null;coachPanel.hidden=true;
+          coachTicket++;coachAttempt=null;coachPanel.hidden=true;coachInput.open=false;
           coachBusy=false;coachAction.textContent='練習建議';coachTyping.hidden=true;
           coachStatus.className='scale-practice-coach-status';
           coachStatus.textContent=coachTip.textContent=coachRaw.textContent=coachTime.textContent='';
@@ -2703,12 +2805,13 @@
             Number.isFinite(value)?(display.chartValues ?? display.values)[i]:null);
           const metadata={detector:display.coachResult?.engine,reference:display.coachResult?.reference,
             restored:Boolean(display.restored&&!noMeasurement),visual:chartPoint};
-          const trend=noMeasurement?null:pitchTrendSummary(display.trend);
-          coachAttempt={facts:coachAPI.evidence(target,visibleValues,display.mode,kind,{...metadata,trend})};
+          const trend=display.trend;
+          coachAttempt={facts:coachAPI.evidence(target,visibleValues,display.mode,kind,{...metadata,trace:trend})};
           if(trend && display.restoredDraftId){
             coachAttempt.restoredTrendId=display.restoredDraftId;
             coachAttempt.factsWithoutTrend=coachAPI.evidence(target,visibleValues,display.mode,kind,metadata);
           }
+          if(coachInput.open)showInput(coachAttempt.facts);
           coachPanel.hidden=false;
           coachAction.hidden=!coachAttempt;
           coachNotice.hidden=!coachAttempt;

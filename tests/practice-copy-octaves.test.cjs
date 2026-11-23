@@ -57,7 +57,7 @@ test('only footer repeats privacy once; microphone failure, active result and lo
   assert.equal((html.match(/不會上傳/g)||[]).length,1);
   assert.match(html,/<footer[\s\S]*class="local-audio-note"[^>]*>聲音與音準分析只在本機處理，不會上傳。/);
   assert.doesNotMatch(html+fingerboard,/兩個八度|\b[12] 八度/);
-  for(const text of ['等待麥克風授權','無法讀取麥克風','收音中 · A4','已自動停止收音','首次使用需下載約 350 MB']){
+  for(const text of ['等待麥克風授權','無法讀取麥克風','收音中 · A4','已自動停止收音','首次使用需下載約 447 MB']){
     assert.ok(html.includes(text),text);
   }
 });
