@@ -83,3 +83,23 @@ test('cancel and stale worker errors cannot leak over to a later request, and no
  const absent=api.service({navigator:{},Worker:f.scope.Worker});
  assert.equal((await absent.run(f.options)).reason,'unsupported');
 });
+
+test('partial coaching never treats an unplayed position as a problem',()=>{
+ const target=[{name:'F',octave:2},{name:'G',octave:2},{name:'A',octave:2},{name:'G',octave:2},{name:'F',octave:2}];
+ for(const kind of ['scale','arpeggio']){
+  const one=api.drills(target,[4,null,null,null,null],'single',kind);
+  assert.deepEqual(Array.from(one,o=>o.id),['repeat_one']);
+  const split=api.drills(target,[4,null,31,null,null],'single',kind);
+  assert.ok(split.every(o=>['repeat_one','center_one'].includes(o.id)));
+  const adjacent=api.drills(target,[4,8,null,null,null],'single',kind);
+  assert.ok(adjacent.some(o=>o.id===(kind==='scale'?'measured_pair':'arpeggio_leap')));
+ }
+});
+test('distinguishes output budget, reasoning-only, malformed and empty endings without exposing them',()=>{
+ assert.equal(api.invalidAnswer('<think>partial 1','length',true,true),'budget');
+ assert.equal(api.invalidAnswer('<think>1</think>', 'stop', true, false),'thinking_only');
+ assert.equal(api.invalidAnswer('', 'stop', true, true),'thinking_only');
+ assert.equal(api.invalidAnswer('pick 4','stop',true,true),'invalid');
+ assert.equal(api.invalidAnswer('','stop',true,false),'empty');
+ assert.equal(api.finalDigit('<think>private 3</think>1。'),1);
+});

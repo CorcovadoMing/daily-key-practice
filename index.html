@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261123-026-experimental">
+  <meta name="site-version" content="20261123-027-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -964,7 +964,7 @@
     <select id="appearance-choice">
       <option value="light">淺色</option><option value="dark">深色</option><option value="system">跟隨系統</option>
     </select>
-  </label><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261123-026-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  </label><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261123-027-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -1026,7 +1026,9 @@
       direction:i <= (target.length-1)/2 ? '上行' : '下行'}));
     const named = n => n.name + '（' + n.direction + '第 '+(n.i+1)+' 音）';
     const signed = n => {const rounded=Math.round(n);return (rounded>0?'+':rounded<0?'−':'')+Math.abs(rounded)+'¢';};
-    const missing = positions.find(n => n.c === null && (positions[n.i-1]?.c!=null || positions[n.i+1]?.c!=null));
+    const measured = positions.filter(n => n.c !== null);
+    const partial = measured.length !== target.length && (measured[0].i !== 0 || measured.at(-1).i !== target.length-1);
+    const missing = !partial && positions.find(n => n.c === null && (positions[n.i-1]?.c!=null || positions[n.i+1]?.c!=null));
     if (missing) {
       const other = positions[missing.i-1]?.c!=null ? positions[missing.i-1] : positions[missing.i+1];
       const a = missing.i < other.i ? missing : other, b = missing.i < other.i ? other : missing;
@@ -1035,7 +1037,7 @@
         action:'把 '+named(a)+' → '+named(b)+' 每音拉兩拍，連做三次。'+(arpeggio?'直接跳到下一個琶音譜位，不加中間音。':''),
         retest:'再拉一輪'+exercise+'，查看原本空白的譜位是否出現實心點。'});
     }
-    const latest = positions.filter(n=>n.c!==null).sort((a,b)=>Math.abs(b.c)-Math.abs(a.c))[0];
+    const latest = measured.slice().sort((a,b)=>Math.abs(b.c)-Math.abs(a.c))[0];
     if (Math.abs(latest.c)>10) options.push({id:'center_one',fact:'offset@'+(latest.i+1)+':'+Math.round(latest.c),
       observation:named(latest)+'這次測到 '+signed(latest.c)+'。',
       action:'慢拉 '+named(latest)+' 三次，每次約兩秒；試著讓最後一秒的音高靠近 0¢。',
@@ -1062,6 +1064,18 @@
       observation:named(pair.before)+' 到 '+named(pair.n)+' 的兩格分別是 '+signed(pair.before.c)+'、'+signed(pair.n.c)+'。',
       action:'把這兩音分開各拉兩拍，停一拍再換音，連做三次。',
       retest:'再不停止地連拉一次，查看兩格是否都更接近 0¢。'});
+    if (partial && !arpeggio && !pair) {
+      const measuredPair = positions.slice(1).map((b,i)=>[positions[i],b])
+        .filter(([a,b])=>a.c!==null && b.c!==null)
+        .sort(([a,b],[c,d])=>Math.abs(c.c)+Math.abs(d.c)-Math.abs(a.c)-Math.abs(b.c))[0];
+      if (measuredPair) {
+        const [a,b]=measuredPair;
+        options.push({id:'measured_pair',fact:'pair@'+(a.i+1)+':'+Math.round(a.c)+':'+Math.round(b.c),
+          observation:'目前只依已辨識的片段：'+named(a)+'、'+named(b)+' 分別測到 '+signed(a.c)+'、'+signed(b.c)+'。',
+          action:'把這兩個音各拉兩拍，再連起來拉，重複三次。',
+          retest:'用相同偵測方式和 A4 重拉這兩個譜位，查看兩格是否都接近 0¢。'});
+      }
+    }
     if (options.length<2) {
       const n=positions.find(p => p.i>0 && p.c!==null) || latest;
       options.push({id:'repeat_one',fact:'repeat@'+(n.i+1),
@@ -1075,11 +1089,20 @@
     let answer=String(text??'').trim();
     const close=answer.lastIndexOf('</think>');
     if (close>=0) answer=answer.slice(close+8).trim();
-    return /^([1-3])$/.test(answer) ? Number(answer) : null;
+    const match=answer.match(/^([1-3])[.。]?$/);
+    return match ? Number(match[1]) : null;
   }
   function pick(text, options) {
     const answer=finalDigit(text);
     return answer===null ? null : options[answer-1] || null;
+  }
+  function invalidAnswer(text, finishReason, thinking, sawReasoning) {
+    const rendered=String(text ?? '').trim();
+    if(finishReason==='length') return 'budget';
+    if(thinking && ((!rendered && sawReasoning) ||
+      (rendered.includes('<think>') && !rendered.includes('</think>')) ||
+      (rendered.includes('</think>') && !rendered.slice(rendered.lastIndexOf('</think>')+8).trim()))) return 'thinking_only';
+    return rendered ? 'invalid' : 'empty';
   }
   function weightStage(report) {
     const type = String(report?.text||'');
@@ -1094,7 +1117,7 @@
     }
     return null;
   }
-  async function workerMain(pins, parse, progressStage) {
+  async function workerMain(pins, parse, progressStage, classify) {
     let engine, activeId=null, queued=null;
     async function run(data) {
       activeId=data.id;
@@ -1127,18 +1150,24 @@
         const load=cold ? performance.now()-started : 0, start=performance.now();
         post('ready',{load,cold});
         const stream=await engine.chat.completions.create({
-          messages:[{role:'user',content:'Pick the best next cello drill from measured results. Think briefly if enabled, then return one listed digit only. '+data.options.join(' / ')}],
-          extra_body:{enable_thinking:thinking},stream:true,temperature:0,max_tokens:thinking?240:4
+          messages:[{role:'user',content:'Choose one cello drill from the measured notes. Do not assume unmeasured notes were played. End with exactly one listed digit, no explanation. '+data.options.join(' / ')}],
+          extra_body:{enable_thinking:thinking},stream:true,temperature:0,max_tokens:thinking?320:8
         });
-        let output='',first=null;
+        let output='',first=null,finishReason=null,sawReasoning=false;
         for await (const chunk of stream) {
-          const part=chunk.choices?.[0]?.delta?.content;
+          const choice=chunk.choices?.[0];
+          finishReason=choice?.finish_reason || finishReason;
+          if(choice?.delta?.reasoning_content) sawReasoning=true;
+          const part=choice?.delta?.content;
           if (typeof part!=='string'||!part)continue;
           if (first===null) first=performance.now()-start;
           output+=part;
         }
         // Never send reasoning or unvalidated model text outside this worker.
-        post('answer',{digit:parse(output),first,generation:performance.now()-start});
+        const digit=parse(output);
+        const reason=digit===null ? classify(output,finishReason,thinking,sawReasoning) :
+          digit>data.options.length ? 'invalid' : undefined;
+        post('answer',{digit,reason,first,generation:performance.now()-start});
       } catch {post('error');}
       finally {
         activeId=null;
@@ -1191,7 +1220,7 @@
         try {
           if (!worker) {
             const pins={model:MODEL,weights:WEIGHTS,runtime:RUNTIME,integrity:INTEGRITY,lib:MODEL_LIB};
-            const code='('+workerMain.toString()+')('+JSON.stringify(pins)+','+finalDigit.toString()+','+weightStage.toString()+');';
+            const code='('+workerMain.toString()+')('+JSON.stringify(pins)+','+finalDigit.toString()+','+weightStage.toString()+','+invalidAnswer.toString()+');';
             workerURL=env.URL.createObjectURL(new env.Blob([code],{type:'text/javascript'}));
             worker=new env.Worker(workerURL,{type:'module'});
             const owner=worker;
@@ -1204,7 +1233,7 @@
                 warm=true;active.ready=true;
                 if(!active.wasWarm)arm(active.thinking?30000:10000,'slow');
                 active.report('working');
-              } else if(data.phase==='answer') resolve({...active.timing,choice:Number.isInteger(data.digit)&&data.digit>=1&&data.digit<=3 ? active.options[data.digit-1] || null : null,first:data.first,generation:data.generation});
+              } else if(data.phase==='answer') resolve({...active.timing,reason:data.reason,choice:Number.isInteger(data.digit)&&data.digit>=1&&data.digit<=3 ? active.options[data.digit-1] || null : null,first:data.first,generation:data.generation});
               else if(data.phase==='unavailable') resolve({reason:'unsupported'},true);
               else if(data.phase==='error') resolve({reason:'error',...active.timing},true);
             };
@@ -1227,7 +1256,7 @@
     function isBusy(){return Boolean(active);}
     return {run,cancel,dispose,isBusy};
   }
-  return {enabled,drills,pick,service,finalDigit,weightStage,workerMain};
+  return {enabled,drills,pick,service,finalDigit,invalidAnswer,weightStage,workerMain};
 });
 // PRACTICE_COACH_END
 
@@ -1671,7 +1700,7 @@
         attemptHistory = result?.pairs.length ? addHistory(base,values) : base;
       }
       const coachResult = grade && values?.some(Number.isFinite) ? {engine:session.engine, reference:session.reference} : null;
-      const display = result || laps ? {values, chartValues:values, attemptHistory, coachResult,
+      const display = result || laps ? {values, chartValues:values, attemptHistory, coachResult, coachNoEvidence:grade && !coachResult,
         history:result ? history : session.beforeLastHistory, mode, laps, passed, final:true} : undefined;
       view.update('idle', message, result, 0, session.reference, display);
     }
@@ -2097,7 +2126,7 @@
     }
     const coachAPI = globalThis.CelloPracticeCoach;
     const coachVisible = coachAPI?.enabled(globalThis);
-    let coachPanel, coachAction, coachQuick, coachCancel, coachStatus, coachTime, coachTip, coachAttempt, coachTicket=0;
+    let coachPanel, coachAction, coachQuick, coachCancel, coachStatus, coachTime, coachTip, coachNotice, coachAttempt, coachTicket=0;
     if (coachVisible) {
       const mk=(tag,klass,text)=>{
         const el=document.createElement(tag);el.className=klass;if(text)el.textContent=text;return el;
@@ -2116,8 +2145,8 @@
       coachTime=mk('p','scale-practice-coach-elapsed');
       coachTime.setAttribute('aria-live','off');
       coachTip=mk('p','scale-practice-coach-tip');
-      coachPanel.append(coachAction,coachQuick,coachCancel,
-        mk('p','scale-practice-coach-notice','首次使用需下載約 350 MB。'),
+      coachNotice=mk('p','scale-practice-coach-notice','首次使用需下載約 350 MB。');
+      coachPanel.append(coachAction,coachQuick,coachCancel,coachNotice,
         coachStatus,coachTime,coachTip);
       coachCancel.addEventListener('click',()=>{
         if (coachCancel.hidden) return;
@@ -2155,14 +2184,17 @@
         if(ticket!==coachTicket) return;
         coachAction.disabled=coachQuick.disabled=false;coachCancel.hidden=true;coachTime.textContent='';
         if(answer.reason==='cancelled'){coachStatus.textContent='已取消，不影響練習。';return;}
-        if(thinking && !answer.choice && (!answer.reason || answer.reason==='slow')){
-          coachStatus.textContent=(answer.reason==='slow'?'思考超過 30 秒。':'思考沒有回傳完整選項。')+
-            '可選「快速建議」再試。';
+        const reason=({unsupported:'本瀏覽器無法使用 WebGPU／半精度模型。',
+          slow:thinking?'思考超過 30 秒。':'快速建議 10 秒內未完成。',
+          load_timeout:'模型下載或初始化逾時。',error:'Qwen3 無法執行。',
+          budget:'模型用完輸出額度，還沒給出選項。',
+          thinking_only:'模型只完成思考，沒有給出選項。',
+          invalid:'模型回覆不是可用的選項。',empty:'模型沒有回傳內容。'})[answer.reason];
+        if(thinking && !answer.choice && !attempt.partial && answer.reason!=='unsupported'){
+          coachStatus.textContent=(reason || '模型未回覆有效選項。')+'可選「快速建議」再試。';
           return;
         }
         const choice=answer.choice || attempt.options[0];
-        const reason=({unsupported:'本瀏覽器無法使用 WebGPU／半精度模型。',slow:'快速建議 10 秒內未完成。',
-          load_timeout:'模型下載或初始化逾時。',error:'Qwen3 無法執行。'})[answer.reason];
         const times=[];
         const seconds=ms=>(ms/1000).toFixed(1)+' 秒';
         if(answer.cold&&Number.isFinite(answer.load)) times.push('載入 '+seconds(answer.load));
@@ -2173,7 +2205,8 @@
           (attempt.detector&&Number.isFinite(attempt.reference) ? ' 比較時請沿用 '+(kind==='scale'?(attempt.detector==='SwiftF0'?'智慧':'傳統'):attempt.detector)+'、A4 '+attempt.reference+' Hz。' : ' 這份舊圖未記錄偵測方式和 A4；比較時請沿用你原本使用的設定。');
         times.push('按下到顯示 '+seconds(globalThis.performance.now()-clicked));
         coachStatus.textContent=(answer.choice?(thinking?'Qwen3 思考選出的練習。':'Qwen3 快速選出的練習。'):
-          (reason||'模型未回覆有效選項。')+'以下是規則建議，不是 AI 結果。')+
+          (reason||'模型未回覆有效選項。')+'以下是規則建議，不是 AI 結果。'+
+          (thinking&&answer.reason!=='unsupported'?'可選「快速建議」再試。':''))+
           (times.length?'（'+times.join('；')+'）':'');
       }
       coachAction.addEventListener('click',()=>runCoach(true));
@@ -2186,7 +2219,9 @@
       update(next, message, result, progress = 0, reference = 442, display) {
       if (historyButtons && next === 'idle' && !display?.restored && !display?.attemptHistory &&
           (!result || !display?.values?.some(Number.isFinite)) && ownsDraft()) {
+        const noEvidence=display?.coachNoEvidence;
         display = restoreGraph(newestDraft);
+        if(noEvidence) display.coachNoEvidence=true;
         if (result && !result.pairs.length) result = null;
         message ||= '顯示上次保留的音準圖。';
       }
@@ -2298,10 +2333,15 @@
           coachTicket++;coachAttempt=null;coachPanel.hidden=true;
           coachAction.disabled=coachQuick.disabled=false;coachCancel.hidden=true;
           coachStatus.textContent=coachTip.textContent=coachTime.textContent='';
-        } else if(next==='idle' && display?.coachResult) {
-          const options=coachAPI.drills(target,display.values,display.mode,kind);
-          coachAttempt=options.length?{options,detector:display.coachResult.engine,reference:display.coachResult.reference}:null;
-          coachPanel.hidden=!coachAttempt;
+        } else if(next==='idle' && (display?.coachResult || display?.coachNoEvidence)) {
+          const options=display.coachResult ? coachAPI.drills(target,display.values,display.mode,kind) : [];
+          coachAttempt=options.length?{options,detector:display.coachResult.engine,reference:display.coachResult.reference,
+            partial:display.values.some(value=>!Number.isFinite(value))}:null;
+          coachPanel.hidden=false;
+          coachAction.hidden=coachQuick.hidden=!coachAttempt;
+          coachNotice.hidden=!coachAttempt;
+          coachStatus.textContent=display.coachNoEvidence
+            ? (coachAttempt?'這次沒有辨識到可用音符；可以用上次保留的音準圖取得建議。':'這次沒有辨識到可用音符。請從第一個譜音拉約兩秒，等音準圖顯示一個點後，再停止並看結果。') : '';
         }
       }
       if (status.textContent !== text) status.textContent = text;
