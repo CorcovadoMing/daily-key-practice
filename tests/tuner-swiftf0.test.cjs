@@ -75,3 +75,52 @@ test('A/B sharing routes Swift snapshots without a single legacy reading in Swif
  assert.deepEqual([longRuns,fastRuns,rawReads,asks],[2,2,1,1]);
  stop();assert.equal(stops,0);endPractice();assert.equal(stops,1);
 });
+
+test('acoustic octave check accepts stable alternating cycles, not a real upper octave',()=>{
+ const {swiftLowerOctave}=section('AUDIO_TOOLS');
+ for(const low of [64.8,73.4,87.4,110.5])for(const phase of [.4,1.8,4.2]){
+  const pcm=fn=>Float32Array.from({length:7168},(_,i)=>fn(2*Math.PI*low*i/16000+phase));
+  const rich=pcm(t=>.020*Math.sin(t)+.20*Math.sin(2*t)+.065*Math.sin(4*t+.31));
+  const upper=pcm(t=>.20*Math.sin(2*t)+.045*Math.sin(4*t+.31)+.07*Math.sin(6*t));
+  for(const hop of [11,13,17])for(const ratio of [.99,1,1.012]){
+   const detected=low*2*ratio;
+   assert.equal(swiftLowerOctave(rich,hop,detected),detected/2);
+   assert.equal(swiftLowerOctave(upper,hop,detected),detected);
+  }
+  assert.equal(swiftLowerOctave(rich,13,low),low,'already correct model output stays put');
+ }
+});
+test('short attack, changing notes and unstructured noise cannot alone double the period',()=>{
+ const {swiftLowerOctave}=section('AUDIO_TOOLS');
+ const f=175, center=13*256+128;
+ let seed=17;
+ const make=fn=>Float32Array.from({length:7168},(_,i)=>fn(i,2*Math.PI*f*i/16000));
+ const cases=[
+  make((i,t)=>(i>=center?.18*Math.sin(t):0)),
+  make((i,t)=>(i>=center?.18*Math.sin(t):.16*Math.sin(.69*t))),
+  make((i,t)=>.18*Math.sin(t)+(i>=center?.02*Math.sin(t/2):0)),
+  make(()=>.2*((seed=(seed*16807)%2147483647)/2147483647-.5)),
+  new Float32Array(7168)
+ ];
+ for(const pcm of cases)assert.equal(swiftLowerOctave(pcm,13,f),f);
+});
+
+test('tuner and shared practice inference apply the same acoustic safeguard, only on voiced output',async()=>{
+ class Tensor {constructor(type,data,dims){this.data=data;this.dims=dims;}}
+ let confidence=.95;
+ const made={AbortController,setTimeout,clearTimeout,fetch:async()=>({ok:true,arrayBuffer:async()=>new ArrayBuffer(8)}),
+  ort:{env:{wasm:{}},Tensor,InferenceSession:{async create(){return {async run({audio}){
+   const n=audio.data.length/256;
+   return {pitch:{data:new Float32Array(n).fill(176)},confidence:{data:new Float32Array(n).fill(confidence)}};
+  }};}}}};
+ const swift=createSwiftF0(made);
+ const render=(rate,realLow,length)=>Float32Array.from({length},(_,i)=>{
+  const t=i*2*Math.PI*88/rate;return (realLow?.022*Math.sin(t+.4):0)+.20*Math.sin(2*t)+.07*Math.sin(4*t);
+ });
+ assert.equal(await swift.measure(render(48000,true,32768),48000),88);
+ assert.equal(await swift.measure(render(48000,false,32768),48000),176);
+ assert.deepEqual(Array.from(await swift.infer(render(16000,true,7168),[11,13,17])),[88,88,88]);
+ assert.deepEqual(Array.from(await swift.infer(render(16000,false,7168),[11,13,17])),[176,176,176]);
+ confidence=.3;
+ assert.deepEqual(Array.from(await swift.infer(render(16000,true,7168),[11,13])),[null,null]);
+});

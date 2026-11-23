@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261123-016-experimental">
+  <meta name="site-version" content="20261123-017-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -709,7 +709,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261123-016-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261123-017-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -2897,6 +2897,48 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     const signal = resampleSwift(samples,rate,swiftSamples);
     return signal && swiftVoiced(signal,swiftFrame) ? signal : null;
   }
+  // Corroborate a lower octave from the waveform, never the score. A genuine
+  // upper note already repeats at T; a lower note with dominant even harmonics
+  // repeats much better at 2T because its alternating half-cycles differ.
+  function swiftLowerOctave(signal, hop, hz) {
+    if (hz < 95 || hz > 440) return hz;
+    const one = 16000 / hz;
+    const half = Math.max(46,Math.round(one * .82));
+    const middle = hop*256+128;
+    if (middle-half*2-one*1.1 < 0 || middle+half*2+one*1.1+2 >= signal.length) return hz;
+    function difference(lag,a,b) {
+      const delta = lag*.5, low = Math.floor(delta), fraction = delta-low;
+      let err=0,power=0;
+      for (let i=a;i<b;i++) {
+        const x = signal[i-low]+fraction*(signal[i-low-1]-signal[i-low]);
+        const y = signal[i+low]+fraction*(signal[i+low+1]-signal[i+low]);
+        const d=x-y;
+        err+=d*d; power+=x*x+y*y;
+      }
+      return power > .00001 ? err/power : Infinity;
+    }
+    function best(nominal) {
+      let value=Infinity, lag=nominal;
+      for (let step=-4;step<=4;step++) {
+        const trial=nominal*(1+.006*step);
+        const loss=difference(trial,middle-half*2,middle+half*2);
+        if (loss<value) {value=loss;lag=trial;}
+      }
+      return {value,lag};
+    }
+    const short=best(one);
+    if (short.value < .010) return hz;
+    const full=best(one*2);
+    if (full.value > .018 || full.value > short.value*.42 ||
+        Math.abs(full.lag/(2*short.lag)-1) > .018) return hz;
+    // Demand the same alternating pattern on both sides of the observation,
+    // so a short attack, glide or noise in one side cannot create an octave.
+    for (const [a,b] of [[middle-half*2,middle],[middle,middle+half*2]]) {
+      const localShort=difference(short.lag,a,b), localFull=difference(full.lag,a,b);
+      if (localShort < .008 || localFull > .025 || localFull > localShort*.56) return hz;
+    }
+    return hz/2;
+  }
   function createSwiftF0(env) {
     let loading = null, busy = false;
     function load() {
@@ -2956,7 +2998,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         output = await session.run(feeds);
         return hops.map((hop,i) => {
           const hz = output.pitch.data[hop], confidence = output.confidence.data[hop];
-          return voiced[i] && confidence >= .5 && Number.isFinite(hz) && hz >= 46.875 && hz <= 2093.75 ? hz : null;
+          return voiced[i] && confidence >= .5 && Number.isFinite(hz) && hz >= 46.875 && hz <= 2093.75 ? swiftLowerOctave(signal,hop,hz) : null;
         });
       } finally {
         busy = false;
@@ -3071,7 +3113,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       return 2 ** (this.values.reduce((a, b) => a + b, 0) / this.values.length);
     }
   }
-  if (typeof module !== 'undefined' && module.exports) { module.exports = { detectPitch, pitchReading, PitchWindow, pitchBand, tunerVisual, pitchInputFloor, createSwiftF0, swiftInput, createSwiftBatches, swiftPracticeCapture }; return; }
+  if (typeof module !== 'undefined' && module.exports) { module.exports = { detectPitch, pitchReading, PitchWindow, pitchBand, tunerVisual, pitchInputFloor, createSwiftF0, swiftInput, swiftLowerOctave, createSwiftBatches, swiftPracticeCapture }; return; }
   const $ = id => document.getElementById(id);
   let lastTunerReading = null;
   function renderTuner(reading = null, hold = false) {
