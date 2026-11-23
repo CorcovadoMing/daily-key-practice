@@ -43,3 +43,10 @@ test('practice completion circles remain hollow and use accessible contrasting s
   assert.ok(Math.max(...values)/Math.min(...values)>=threshold,ink+' against '+paper);
  }
 });
+
+test('metronome and tuner stay in one nonwrapping row, with scroll only if controls exceed dock width',()=>{
+  assert.match(html,/\.audio-buttons\{flex-wrap:nowrap;width:max-content;max-width:100%;min-width:0;overflow-x:auto/);
+  assert.match(html,/\.audio-tool-pair\{flex:none\}/);
+  assert.match(html,/Math\.max\(buttons\.getBoundingClientRect\(\)\.width,buttons\.scrollWidth\)/);
+  assert.match(html,/\.audio-tools:has\(#tuner-panel:not\(\[hidden\]\)\) \.audio-controls\{flex-basis:100%\}/);
+});

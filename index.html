@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261123-031-experimental">
+  <meta name="site-version" content="20261123-032-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -865,7 +865,8 @@
         max-width:calc(100vw - max(12px,env(safe-area-inset-left,0px)) - max(12px,env(safe-area-inset-right,0px)));
         bottom:max(8px,env(safe-area-inset-bottom,0px));font-size:var(--ui-control)
       }
-      .audio-buttons{flex-wrap:wrap;max-width:100%;min-width:0}
+      .audio-buttons{flex-wrap:nowrap;width:max-content;max-width:100%;min-width:0;overflow-x:auto;overscroll-behavior-x:contain}
+      .audio-tool-pair{flex:none}
       .audio-buttons button{width:max(44px,var(--ui-touch));min-width:max(44px,var(--ui-touch));height:max(44px,var(--ui-touch))}
       .tuner-readout :is(#tuner-note,#tuner-cents){font-size:1.125rem;line-height:1.3}
       .tuner-preferences{max-block-size:55dvh;overflow:auto;overscroll-behavior:contain;flex-wrap:wrap}
@@ -897,6 +898,15 @@
         .launch-mode input:focus-visible + span{outline-color:Highlight}
       }
     }
+    @media screen{
+      .practice-action-icon{display:inline-grid;flex:none;width:.9em;height:.9em;place-items:center}
+      .practice-action-icon svg{display:block;width:100%;height:100%;fill:currentColor}
+      .scale-practice-button{display:inline-flex;align-items:center;justify-content:center;gap:.375rem}
+      .scale-practice[data-phase=idle] .practice-stop-icon,
+      .scale-practice:not([data-phase=idle]) .practice-play-icon{display:none}
+      .launch-controls #draw-button{gap:.375rem}
+    }
+    @media print{.practice-action-icon{display:none}}
   </style>
 </head>
 <body>
@@ -942,7 +952,7 @@
       </div>
       <div class="session-launch" id="session-launch">
         <div class="launch-controls" role="group" aria-label="開始練習">
-          <button type="button" id="draw-button" class="draw-button" aria-describedby="session-launch-note"><span id="draw-text">開始練習</span></button>
+          <button type="button" id="draw-button" class="draw-button" aria-describedby="session-launch-note"><span class="practice-action-icon" aria-hidden="true"><svg class="practice-play-icon" aria-hidden="true" focusable="false" viewBox="0 0 16 16"><path d="M4 2.5v11l9-5.5z"/></svg></span><span id="draw-text">開始練習</span></button>
           <button type="button" class="launch-options-toggle" id="launch-options-toggle" popovertarget="draw-settings" aria-label="調性與抽籤設定" aria-controls="draw-settings" aria-expanded="false" title="調性與抽籤設定">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m9.5 3-.9 2.8-2.6 1.5-2.9-.6-2 3.5 2 2.2v3l-2 2.2 2 3.5 2.9-.6 2.6 1.5.9 2.8h4l.9-2.8 2.6-1.5 2.9.6 2-3.5-2-2.2v-3l2-2.2-2-3.5-2.9.6-2.6-1.5-.9-2.8z" transform="translate(1 0) scale(.92 .88)"/></svg>
           </button>
@@ -1055,7 +1065,7 @@
     <select id="appearance-choice">
       <option value="light">淺色</option><option value="dark">深色</option><option value="system">跟隨系統</option>
     </select>
-  </label><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261123-031-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  </label><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261123-032-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -2058,6 +2068,11 @@
     action.setAttribute('aria-label', name + '練習控制');
     const button = document.createElement('button');
     button.type = 'button'; button.className = 'scale-practice-button';
+    const buttonIcon=document.createElement('span'),buttonText=document.createElement('span');
+    buttonIcon.className='practice-action-icon';
+    buttonIcon.setAttribute('aria-hidden','true');
+    buttonIcon.innerHTML='<svg class="practice-play-icon" aria-hidden="true" focusable="false" viewBox="0 0 16 16"><path d="M4 2.5v11l9-5.5z"/></svg><svg class="practice-stop-icon" aria-hidden="true" focusable="false" viewBox="0 0 16 16"><rect x="3.5" y="3.5" width="9" height="9" rx="1"/></svg>';
+    button.append(buttonIcon,buttonText);
     const choice=document.createElement('fieldset');
     choice.className='scale-practice-choice launch-mode';
     choice.setAttribute('aria-label',name+'練習方式');
@@ -2339,7 +2354,7 @@
       if (next !== phase) {
         phase = next;
         element.dataset.phase = next;
-        button.textContent = next === 'idle' ? '開始練習' : next === 'pending' ? '取消收音' : '停止並看結果';
+        buttonText.textContent = next === 'idle' ? '開始練習' : next === 'pending' ? '取消收音' : '停止並看結果';
         button.setAttribute('aria-label', next === 'idle' ? '開始' + name + '練習'
           : next === 'pending' ? '取消' + name + '收音' : '停止' + name + '練習並看結果');
         button.setAttribute('aria-pressed', String(next !== 'idle'));
@@ -4089,7 +4104,8 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     const visible=[...controls.children].filter(e=>!e.hidden&&e.getBoundingClientRect().width>0&&!(e.matches('.audio-status')&&!e.textContent));
     const controlWidth=visible.reduce((n,e)=>n+e.getBoundingClientRect().width,0)+Math.max(0,visible.length-1)*14;
     const style=getComputedStyle(tools),padding=parseFloat(style.paddingLeft)+parseFloat(style.paddingRight)+2;
-    const target=document.querySelector('.audio-buttons').getBoundingClientRect().width+padding+(controlWidth?parseFloat(style.gap)+controlWidth:0);
+    const buttons=document.querySelector('.audio-buttons');
+    const target=Math.max(buttons.getBoundingClientRect().width,buttons.scrollWidth)+padding+(controlWidth?parseFloat(style.gap)+controlWidth:0);
     tools.style.setProperty('--tools-width',Math.ceil((!$('tuner-panel').hidden?innerWidth-24:Math.min(innerWidth-24,target)))+'px');
   }
   const toolResize=new ResizeObserver(()=>requestAnimationFrame(sizeTools));

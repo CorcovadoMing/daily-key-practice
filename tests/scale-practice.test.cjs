@@ -300,8 +300,12 @@ test('arpeggios use distinct kind labels, chart and results without changing but
   const [action,status]=view.element.children;
   const [button]=action.children;
   assert.equal(view.element.dataset.practiceKind,'arpeggio');
-  assert.equal(button.textContent,'開始練習');
+  assert.equal(button.children[1].textContent,'開始練習');
   assert.equal(button.attributes['aria-label'],'開始琶音練習');
+  assert.equal(button.children[0].attributes['aria-hidden'],'true');
+  assert.match(button.children[0].innerHTML, /practice-play-icon.*practice-stop-icon/);
+  assert.match(html, /data-phase=idle\] \.practice-stop-icon/);
+  assert.match(html, /id="draw-button"[^>]+><span class="practice-action-icon" aria-hidden="true"><svg[^>]+practice-play-icon/);
   view.update('pending');
   const chart=view.element.children.at(-1);
   assert.match(chart.attributes['aria-label'],/^琶音音準圖/);
@@ -446,7 +450,7 @@ test('native practice-mode selection persists and syncs scale/arpeggio without s
   assert.equal(choice.attributes['aria-label'],'音階練習方式');
   assert.deepEqual(choice.children.map(x=>[x.children[0].value,x.children[1].textContent]),[['single','單次'],['loop','循環']]);
   assert.equal(loop.checked,true);assert.equal(otherLoop.checked,true);
-  assert.equal(otherBtn.textContent,'開始練習');
+  assert.equal(otherBtn.children[1].textContent,'開始練習');
   loop.handlers.change();
   assert.equal(invoked,0);
   assert.equal(storage.get(key),'loop');
