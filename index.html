@@ -4,9 +4,38 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261123-019-experimental">
+  <meta name="site-version" content="20261123-020-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
+  <script>
+    // APPEARANCE_START
+    (function(env) {
+      const store = 'cello-experimental-appearance';
+      const normalize = value => ['light','dark','system'].includes(value) ? value : 'light';
+      let appearance = 'light', media;
+      try { appearance = normalize(env.localStorage.getItem(store)); } catch {}
+      try { media = env.matchMedia('(prefers-color-scheme: dark)'); } catch {}
+      function apply() {
+        const dark = appearance === 'dark' || (appearance === 'system' && media?.matches);
+        env.document.documentElement.dataset.appearance = dark ? 'dark' : 'light';
+        env.document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#151a18' : '#f7f6f2');
+      }
+      apply();
+      if (media?.addEventListener) media.addEventListener('change', apply);
+      else media?.addListener?.(apply);
+      env.document.addEventListener('DOMContentLoaded', () => {
+        const selector = env.document.getElementById('appearance-choice');
+        if (!selector) return;
+        selector.value = appearance;
+        selector.addEventListener('change', () => {
+          appearance = normalize(selector.value);
+          apply();
+          try { env.localStorage.setItem(store, appearance); } catch {}
+        });
+      }, {once:true});
+    })(globalThis);
+    // APPEARANCE_END
+  </script>
   <style>
     :root {
       color-scheme: light;
@@ -567,18 +596,88 @@
     .student-note-dialog::backdrop{background:#18251b66}.student-note-dialog h2{font-size:20px;margin-top:0}.student-note-dialog label{display:block;font-size:13px;margin-bottom:8px}
     .student-note-dialog textarea{width:100%;box-sizing:border-box;resize:vertical;border:1px solid #bdcbb6;border-radius:10px;padding:12px;font:inherit;line-height:1.7;background:white;color:inherit}
     .student-note-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px}
+    /* Appearance changes are display-only; printed notation uses the original light palette. */
+    .display-settings{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+    .theme-choice{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:12px}
+    .theme-choice select{min-height:40px;padding:4px 8px;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:8px;font:inherit}
+    .theme-choice select:focus-visible{outline:3px solid #5e886f;outline-offset:2px}
+    @media(max-width:810px){.display-settings{flex-direction:row;align-items:center;justify-content:space-between}}
+    @media print{.theme-choice{display:none}}
+    @media screen{
+      :root[data-appearance=dark]{color-scheme:dark;--page:#151a18;--paper:#212a25;--ink:#e7eee8;--muted:#b5c5b9;--line:#485b50;--accent:#344b3d;--accent-ink:#c4ead0;--minor:#443b51;--minor-ink:#e2d1f0;--soft:#29372f;--shadow:none;--theme-high:#2e3e35;--theme-green:#b5e6bd;--theme-blue:#b9dcf7;--theme-gold:#ffe0a3;--theme-red:#ffb9ad}
+      [data-appearance=dark] :is(.experiment-roadmap,.experiment-roadmap-items li,.classroom-bar,.key-filter,.counter-item,.room-code-display,.room-action,.room-join-line input,.practice-stat,.signature-card,.key-card,.key-group,.history-panel,.history-row,.history-choice-dialog,.practice-float,.finger-dialog,.cello-leave-dialog,.cello-scale-score,.cello-fb-direction,.teacher-fingerboard,.scale-practice-coach,.scale-pitch-chart,.student-note-dialog textarea){background:var(--paper);border-color:var(--line);color:var(--ink)}
+      [data-appearance=dark] :is(.key-card.is-expanded,.music-exercise-block,.counter-list,.preset-area,.cello-inline-editor,.cello-fb-viewport,.teacher-fb-scroll,.teacher-memo,.room-join-form,.ordered-practice,.history-chip,.scale-practice-action,.scale-pitch-track){background:var(--soft);border-color:var(--line);color:var(--ink)}
+      [data-appearance=dark] :is(.scale-pitch-slot:nth-child(even) .scale-pitch-track,.scale-pitch-slot:last-child .scale-pitch-track){border-color:var(--line)}
+      [data-appearance=dark] :is(.result-summary,.key-card.done,.cello-fb-group,.cello-fb-legend,.fingering-note,.teacher-note-status,.online-count,.history-empty,.empty-graphic){background:var(--soft);color:var(--ink);border-color:var(--line)}
+      [data-appearance=dark] :is(button,select,input:not([type=range]):not([type=checkbox]),textarea){color:var(--ink);border-color:var(--line)}
+      [data-appearance=dark] :is(.room-action,.icon-button,.preset,.stepper button,.filter-all,.filter-key,.show-scales,.history-replay,.history-delete,.practice-jump,.practice-quick-list button,.cello-fb-button,.cello-inline-editor button,.teacher-tools button,.student-note-button,.scale-practice button,.scale-practice select,.audio-tools button,.audio-tools input,.audio-tools select,.theme-choice select){background:var(--theme-high);border-color:#6b8072;color:var(--ink)}
+      [data-appearance=dark] :is(.filter-key[aria-pressed=false],.fifths-pair .filter-key[aria-pressed=false],.ordered-practice-button,.key-expand,.fingering-edit,.history-choice-actions button,.finger-form-actions button,.teacher-finger-button,.cello-leave-keep,.scale-practice-detector,.scale-practice-choice[data-locked=true]){background:var(--theme-high);color:var(--ink);border-color:#6b8072}
+      [data-appearance=dark] :is(.filter-key[aria-pressed=true],.fifths-pair .filter-key[aria-pressed=true],.preset.active,.key-expand[aria-expanded=true],.cello-fb-button[aria-pressed=true],.cello-inline-choice[aria-pressed=true],.cello-inline-finger[aria-pressed=true],.teacher-note-pill[aria-pressed=true],.teacher-finger-button[aria-pressed=true],.history-choice-actions button.primary,.finger-form-actions button.primary,.practice-jump.is-active){background:#365943;color:#effff3}
+      [data-appearance=dark] .teacher-note-pill[aria-pressed=true]{background:#365943;color:#effff3}
+      [data-appearance=dark] .fifths-pair .filter-key.minor[aria-pressed=true]{background:#604f73;color:#f1e8fa}
+      [data-appearance=dark] :is(.history-chip.done,.practice-jump.is-done){background:#334039;color:var(--muted)}
+      [data-appearance=dark] :is(.history-replay,.cello-inline-undo,.cello-inline-range,.cello-inline-range[aria-pressed=true]){background:#2e4354;color:var(--theme-blue);border-color:#7192aa}
+      [data-appearance=dark] :is(.cello-inline-reset,.cello-inline-restore-selected,.cello-leave-discard,.history-delete:hover){background:#513636;color:var(--theme-red);border-color:#a7655d}
+      [data-appearance=dark] :is(.history-choice-actions button.cancel,.scale-practice-choice:hover,.scale-practice-button:hover,.icon-button:hover,.ordered-practice-button:hover:not(:disabled),.fingering-edit:hover,.practice-jump:hover){background:#415c4a;color:var(--ink)}
+      [data-appearance=dark] .empty-graphic::before,[data-appearance=dark] .empty-graphic::after{background:#708d79}
+      [data-appearance=dark] :is(.cello-legend-title,.cello-inline-status,.cello-inline-label,.cello-inline-open,.cello-inline-hint,.cello-fb-sequence,.cello-leave-dialog p,.finger-form p,.finger-form label,.fingering-pattern,.teacher-memo summary){color:var(--muted)}
+      [data-appearance=dark] :is(.fingering-changed,.cello-fb-changed){color:var(--theme-red)}
+      [data-appearance=dark] :is(.cello-fb-remote-label,.history-panel-heading.classroom){color:var(--theme-blue)}
+      [data-appearance=dark] .room-code-display strong{color:var(--theme-green)}
+      [data-appearance=dark] .room-code-display small{color:var(--muted)}
+      [data-appearance=dark] .cello-legend-dot.open{background:var(--soft)!important;border-color:#afc8b6}
+      [data-appearance=dark] .cello-fb-svg circle[fill="#f7f9f6"][stroke="#34483a"]{stroke:#afc8b6}
+      [data-appearance=dark] .scale-pitch-slot:nth-child(even) .scale-pitch-track{background:var(--paper)}
+      [data-appearance=dark] .scale-pitch-track::before{border-color:#a1b8a9}
+      [data-appearance=dark] :is(.experiment-roadmap,.experiment-roadmap-heading span,.experiment-roadmap-scope,.experiment-roadmap-items small,.intro .eyebrow,h1 em,.classroom-bar p,.room-status,.room-join-form label,.online-count,.code-caption,.section-number,.filter-explain,.filter-status,.filter-subhead,.counter-desc,.control-note,.key-secondary,.key-relative,.signature-label,.history-date,.history-empty,.practice-float-title,.fingering-title,.fingering-remark,.cello-fb-caption,.cello-fb-direction-heading,.cello-legend-note,.teacher-open-label,.teacher-finger-label,.teacher-editor-help,.scale-practice-status,.scale-practice-latest,.practice-coach-opt-in,.scale-pitch-title,.scale-pitch-slot,.scale-pitch-legend,.audio-scale,.a4-control span,.tuner-readout #tuner-cents){color:var(--muted)}
+      [data-appearance=dark] :is(.filter-key.minor,.history-chip.minor){background:var(--minor);color:var(--minor-ink)}
+      [data-appearance=dark] :is(.draw-button,.room-action.primary,.filter-key[aria-pressed=true],.preset[aria-pressed=true],.stepper button:hover,.audio-tools button[aria-pressed=true],.scale-practice-button,.scale-practice-merge,.scale-practice-coach-action,.cello-inline-save,.cello-leave-save){background:#365943;color:#effff3;border-color:#79988a}
+      [data-appearance=dark] :is(.key-complete[aria-pressed=true],.check-circle,.progress-fill,.key-dot){background:#6ab68a;color:#11241a}
+      [data-appearance=dark] :is(.progress-track,.audio-meter){background:#304338}
+      [data-appearance=dark] :is(.filter-warning,.student-note-button.has-note,.teacher-note-pill){background:#493a24;color:var(--theme-gold);border-color:#867044}
+      [data-appearance=dark] :is(#metro-settings,#tuner-settings):hover,[data-appearance=dark] :is(.key-expand,.key-complete,.cello-inline-choices button):hover{background:#415c4a}
+      [data-appearance=dark] :is(button,select,input,textarea,[tabindex]):focus-visible{outline-color:#a0d3f6}
+      [data-appearance=dark] .fifths-circle{background:radial-gradient(circle,transparent 49%,#698474 49.5%,#698474 50%,transparent 50.5%)}
+      [data-appearance=dark] .scale-practice,[data-appearance=dark] .cello-scale-score{--practice-green:#9cdaa8;--practice-yellow:#f4d485;--practice-red:#f4a69c}
+      [data-appearance=dark] .cello-scale-score :is([fill="#222"],[fill="#647461"]){fill:var(--ink)}
+      [data-appearance=dark] .cello-scale-score :is([stroke="#222"],[stroke="#444"],[stroke="#777"],[stroke="#647461"]){stroke:#b9cbc0}
+      [data-appearance=dark] .cello-scale-score [data-practice-band] ellipse{fill:var(--practice-tone)}
+      [data-appearance=dark] .cello-scale-score :is([data-practice-band],[data-practice-current=true]) .scale-stem{stroke:var(--practice-tone)}
+      [data-appearance=dark] .cello-scale-score [data-practice-next=true]:not([data-practice-band]) ellipse{fill:none;stroke:#c7dbcc}
+      [data-appearance=dark] .cello-scale-score [data-practice-next=true]:not([data-practice-band]) .scale-stem{stroke:#c7dbcc}
+      [data-appearance=dark] .cello-fb-svg :is(rect,circle)[fill="#f7f9f6"]{fill:var(--soft)}
+      [data-appearance=dark] .cello-fb-svg :is([stroke="#34483a"],[stroke="#a8b9aa"],[stroke="#e3eae2"]){stroke:#809687}
+      [data-appearance=dark] .cello-fb-svg :is([fill="#273c2e"],[fill="#34483a"],[fill="#34513d"],[fill="#889a8e"]){fill:var(--ink)}
+      [data-appearance=dark] .cello-fb-svg [stroke="#273c2e"]{stroke:var(--ink)}
+      [data-appearance=dark] .scale-pitch-track [data-band=center]{--practice-ink:var(--theme-green)}
+      [data-appearance=dark] .scale-pitch-track [data-band=near]{--practice-ink:var(--theme-gold)}
+      [data-appearance=dark] .scale-pitch-track [data-band=outside]{--practice-ink:var(--theme-red)}
+      [data-appearance=dark] .scale-pitch-current{background:var(--page)}
+      [data-appearance=dark] .scale-pitch-cents[data-band=center]{color:var(--theme-green)}
+      [data-appearance=dark] .scale-pitch-cents[data-band=near]{color:var(--theme-gold)}
+      [data-appearance=dark] :is(.scale-pitch-cents[data-band=outside],.audio-error){color:var(--theme-red)!important}
+      [data-appearance=dark] .audio-needle{background:#f8fffa;box-shadow:0 0 0 1px #263d2f}
+      [data-appearance=dark] .audio-needle:is([data-band=green],[data-band=yellow],[data-band=red]){background:#172018}
+    }
   </style>
 </head>
 <body>
   <main class="container">
-    <p id="practice-coach-opt-in" class="practice-coach-opt-in" hidden>Qwen3 練習建議已啟用。完成一輪收音後再按「練習建議」。 <a id="practice-coach-disable" href="?coach=0">停用練習建議</a></p>
+    <p id="practice-coach-opt-in" class="practice-coach-opt-in" hidden>Qwen3 練習建議已啟用。停止音階或琶音練習後，再按該項的「練習建議」。 <a id="practice-coach-disable" href="?coach=0">停用練習建議</a></p>
     <section class="intro" aria-labelledby="page-title">
       <div>
         <div class="eyebrow">A little surprise in every scale</div>
         <h1 id="page-title">弓弦的<em>每日音階練習</em></h1>
         <p>挑好想練的調性，讓一點隨機帶來每天的新挑戰。<br>12 個大調、12 個古典旋律小調，從音階開始，拉出更好的聲音。</p>
       </div>
-      <div class="date-label">TODAY <strong id="today-label">—</strong></div>
+      <div class="display-settings">
+        <label class="theme-choice" for="appearance-choice">外觀
+          <select id="appearance-choice">
+            <option value="light">淺色</option><option value="dark">深色</option><option value="system">跟隨系統</option>
+          </select>
+        </label>
+        <div class="date-label">TODAY <strong id="today-label">—</strong></div>
+      </div>
     </section>
 
     <aside class="audio-tools" aria-label="練習工具">
@@ -717,7 +816,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261123-019-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261123-020-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -778,9 +877,11 @@
       return env.localStorage?.getItem(OPT_IN)==='1';
     } catch {return false;}
   }
-  function drills(target, values, mode) {
+  function drills(target, values, mode, kind = 'scale') {
     if (!Array.isArray(values)||target.length!==values.length||!values.some(Number.isFinite)) return [];
     const options=[];
+    const arpeggio = kind === 'arpeggio';
+    const exercise = arpeggio ? '琶音' : '音階';
     const positions = target.map((n,i)=>({i,c:Number.isFinite(values[i]) ? Math.max(-50,Math.min(50,values[i])) : null,
       name: typeof n.name==='string' && /^[A-G][♯♭#b]?$/.test(n.name) && Number.isInteger(n.octave) ? n.name+n.octave : '第 '+(i+1)+' 音',
       direction:i <= (target.length-1)/2 ? '上行' : '下行'}));
@@ -792,21 +893,33 @@
       const a = missing.i < other.i ? missing : other, b = missing.i < other.i ? other : missing;
       options.push({id:'slow_pair',fact:'gap@'+(missing.i+1),
         observation:named(missing)+'在這張音準圖未對上，不能判斷是漏拉還是未辨識。',
-        action:'把 '+named(a)+' → '+named(b)+' 每音拉兩拍，連做三次。',
-        retest:'再拉一輪，查看原本空白的譜位是否出現實心點。'});
+        action:'把 '+named(a)+' → '+named(b)+' 每音拉兩拍，連做三次。'+(arpeggio?'直接跳到下一個琶音譜位，不加中間音。':''),
+        retest:'再拉一輪'+exercise+'，查看原本空白的譜位是否出現實心點。'});
     }
     const latest = positions.filter(n=>n.c!==null).sort((a,b)=>Math.abs(b.c)-Math.abs(a.c))[0];
     if (Math.abs(latest.c)>10) options.push({id:'center_one',fact:'offset@'+(latest.i+1)+':'+Math.round(latest.c),
       observation:named(latest)+'這次測到 '+signed(latest.c)+'。',
       action:'慢拉 '+named(latest)+' 三次，每次約兩秒；試著讓最後一秒的音高靠近 0¢。',
-      retest:'用相同偵測方式和 A4 再拉一輪，看這一格是否比 '+signed(latest.c)+' 更接近 0¢。'});
+      retest:'用相同偵測方式和 A4 再拉一輪'+exercise+'，看這一格是否比 '+signed(latest.c)+' 更接近 0¢。'});
+    // An arpeggio consists of leaps between successive score positions.
+    // Prefer the measured leap touching the largest deviation, not an inferred fingering error.
+    if (arpeggio) {
+      const neighbor = positions[latest.i-1]?.c!=null ? positions[latest.i-1] : positions[latest.i+1];
+      if (neighbor?.c!=null) {
+        const [a,b]=[latest,neighbor].sort((first,second)=>first.i-second.i);
+        options.push({id:'arpeggio_leap',fact:'leap@'+(a.i+1)+':'+Math.round(a.c)+':'+Math.round(b.c),
+          observation:'琶音從 '+named(a)+' 跳到 '+named(b)+'；這兩格分別測到 '+signed(a.c)+'、'+signed(b.c)+'。',
+          action:'先把這個跳進拆成兩個慢音，各拉兩拍，確認兩音後再連起來，重複三次。',
+          retest:'用相同偵測方式與 A4 再拉一輪琶音，看看這兩個譜位是否都更靠近 0¢。'});
+      }
+    }
     let pair=null;
     positions.slice(1).forEach((n,i)=>{
       const before=positions[i];
       if (before.c!==null && n.c!==null && before.c*n.c<0 && Math.abs(before.c-n.c)>=24 &&
           (!pair || Math.abs(before.c-n.c)>pair.diff)) pair={before,n,diff:Math.abs(before.c-n.c)};
     });
-    if (pair) options.push({id:'bridge_pair',fact:'swing@'+(pair.before.i+1)+':'+Math.round(pair.diff),
+    if (pair && !arpeggio) options.push({id:'bridge_pair',fact:'swing@'+(pair.before.i+1)+':'+Math.round(pair.diff),
       observation:named(pair.before)+' 到 '+named(pair.n)+' 的兩格分別是 '+signed(pair.before.c)+'、'+signed(pair.n.c)+'。',
       action:'把這兩音分開各拉兩拍，停一拍再換音，連做三次。',
       retest:'再不停止地連拉一次，查看兩格是否都更接近 0¢。'});
@@ -815,7 +928,7 @@
       options.push({id:'repeat_one',fact:'repeat@'+(n.i+1),
         observation:'這張圖在 '+named(n)+' 有一筆 '+signed(n.c)+'；一筆不足以判斷穩定度。',
         action:'把這個音拉成三個獨立長音，每次約兩秒；音與音之間停一下。',
-        retest:mode==='loop'?'用相同偵測方式與 A4 再練，看看同一譜位的各輪點是否集中。':'用相同偵測方式與 A4 再拉一輪，看看這格的實心點是否仍靠近原值。'});
+        retest:mode==='loop'?'用相同偵測方式與 A4 再練，看看同一譜位的各輪點是否集中。':'用相同偵測方式與 A4 再拉一輪'+exercise+'，看看這格的實心點是否仍靠近原值。'});
     }
     return options.slice(0,3);
   }
@@ -2018,7 +2131,7 @@
           coachAction.disabled=coachQuick.disabled=false;coachCancel.hidden=true;
           coachStatus.textContent=coachTip.textContent=coachTime.textContent='';
         } else if(next==='idle' && display?.coachResult) {
-          const options=coachAPI.drills(target,display.values,display.mode);
+          const options=coachAPI.drills(target,display.values,display.mode,kind);
           coachAttempt=options.length?{options,detector:display.coachResult.engine,reference:display.coachResult.reference}:null;
           coachPanel.hidden=!coachAttempt;
         }
