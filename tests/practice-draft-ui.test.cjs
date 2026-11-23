@@ -39,7 +39,8 @@ function build(storage, scope='major-C', kind='scale', mode='loop', shared=realm
  const history=context.CelloPracticeHistory, key=history.keyFor(scope,kind,target);
  const nodes=target.map(()=>new Node());
  let now=0, callbacks, prompts=0;
- const m=manager({performance:{now:()=>now}},{capture:{subscribe(next){prompts++;callbacks=next;return ()=>{};}},
+ const capture={subscribe(next){prompts++;callbacks=next;return ()=>{};}};
+ const m=manager({performance:{now:()=>now}},{capture,swiftCapture:capture,
   pitchReading,pitchName:String,reference:()=>442});
  const view=card({querySelectorAll:()=>nodes},target,v=>m.toggle(v),kind,scope);
  Object.defineProperty(view,'mode',{value:mode});
@@ -158,7 +159,7 @@ test('measured chart and coaching restore after reload without changing mic or i
  await initial.start();initial.play(36,8);await initial.stop();
  assert.equal(initial.view.element.find('scale-practice-coach').hidden,false);
  const draft=initial.history.loadDraft(storage,initial.key,target.length).draft;
- assert.equal(draft.coach.engine,'現有偵測');assert.equal(draft.coach.reference,442);
+ assert.equal(draft.coach.engine,'SwiftF0');assert.equal(draft.coach.reference,442);
  const restored=build(storage,'major-C','scale','single',realm(storage,''));
  assert.equal(restored.prompts,0);
  assert.equal(restored.view.element.find('scale-practice-coach').hidden,false);

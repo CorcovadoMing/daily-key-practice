@@ -41,8 +41,9 @@ async function fixture(sequence=target,mode='loop') {
   const states = [];
   const render = view.update.bind(view);
   view.update = (...state) => { states.push(state); return render(...state); };
+  const capture={ subscribe: hooks => { starts++; listener = hooks; return () => { releases++; }; } };
   const m = manager({ performance: { now: () => now } }, {
-    capture: { subscribe: hooks => { starts++; listener = hooks; return () => { releases++; }; } },
+    capture, swiftCapture:capture,
     reference: () => 442, pitchReading, pitchName: String
   });
   Object.defineProperty(view,'mode',{value:mode});

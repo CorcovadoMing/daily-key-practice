@@ -38,7 +38,7 @@ test('stop grades the last pre-click Swift frames and ignores pre-start and post
  const view={target:[{midi:41},{midi:43}],detector:'swift',mode:'loop',update(...state){last=state;}};
  const hz=midi=>442*2**((midi-69)/12);
  const frames=(midi,...times)=>times.map(now=>({frequency:hz(midi),now,muted:false}));
- await scale.toggle(view);raw.ready();assert.equal(raw.raw(),true);assert.match(last[1],/SwiftF0/);
+ await scale.toggle(view);raw.ready();assert.equal(raw.raw(),true);assert.match(last[1],/智慧偵測/);
  gate.resolve();await tick();
  assert.equal(last[0],'listening');
  latest=frames(41,60,76,92);raw.frame({});await tick();assert.equal(last[3],0);
@@ -58,25 +58,42 @@ test('missing or failed Swift request does not fall back to the original detecto
  const scale=manager(env,{capture:{subscribe(){legacy++;}},swiftCapture,reference:()=>442});
  const view={target:[{midi:41}],detector:'swift',mode:'single',update(...r){last=r;}};
  await scale.toggle(view);listener.ready();gate.reject(Error('network'));await tick();
- assert.match(last[1],/SwiftF0 無法載入/);assert.equal(last[0],'idle');assert.equal(releases,1);assert.equal(legacy,0);
+ assert.match(last[1],/智慧偵測無法載入.*傳統/);assert.equal(last[0],'idle');assert.equal(releases,1);assert.equal(legacy,0);
 });
 class Node{
  constructor(){this.children=[];this.dataset={};this.attributes={};this.handlers={};this.style={setProperty(){}};}
  append(...items){this.children.push(...items);}
  setAttribute(n,v){this.attributes[n]=v;}
  addEventListener(n,f){this.handlers[n]=f;}
- find(name){return this.className===name?this:this.children.map(x=>x.find(name)).find(Boolean);}
+ find(name){return this.className?.split(' ').includes(name)?this:this.children.map(x=>x.find(name)).find(Boolean);}
 }
-test('scale has detector selector default existing and locks it, arpeggio has no new option',()=>{
- const {card}=load('SCALE_PRACTICE',{document:{createElement:()=>new Node()}});
- const scale=card({querySelectorAll:()=>[]},[],()=>{}), arpeggio=card({querySelectorAll:()=>[]},[],()=>{},'arpeggio');
- const select=scale.element.find('scale-practice-detector');
- assert.equal(select.value,'existing');
- assert.deepEqual(select.children.map(option=>option.textContent),['現有偵測','SwiftF0']);
+test('scale detector uses visible native segments and only explicit scope choices are saved',()=>{
+ const saved=new Map(),writes=[];
+ const localStorage={getItem:k=>saved.get(k),setItem(k,v){saved.set(k,v);writes.push(k);}};
+ const fresh=()=>load('SCALE_PRACTICE',{document:{createElement:()=>new Node()},localStorage});
+ const score={querySelectorAll:()=>[]}, {card}=fresh();
+ let starts=0;
+ const scale=card(score,[],()=>starts++,'scale','major-C'), arpeggio=card(score,[],()=>starts++,'arpeggio','major-C');
+ const other=card(score,[],()=>starts++,'scale','minor-C');
+ const segment=scale.element.find('scale-practice-detector');
+ const [trad,smart]=segment.children.map(label=>label.children[0]);
+ assert.deepEqual(segment.children.map(label=>label.children[1].textContent),['傳統','智慧']);
+ assert.equal(trad.type,'radio');assert.equal(smart.checked,true);
+ assert.equal(trad.name,smart.name);
+ assert.notEqual(trad.name,other.element.find('scale-practice-detector').children[0].children[0].name);
+ assert.equal(scale.detector,'swift');assert.equal(arpeggio.detector,'existing');
  assert.equal(arpeggio.element.find('scale-practice-detector'),undefined);
- select.value='swift'; assert.equal(scale.detector,'swift');assert.equal(arpeggio.detector,'existing');
- scale.update('pending','正在準備 SwiftF0…');assert.equal(select.disabled,true);
- scale.update('idle');assert.equal(select.disabled,false);
+ assert.equal(writes.length,0);
+ assert.equal(starts,0);
+ scale.update('pending','正在準備智慧偵測…');assert.equal(segment.disabled,true);
+ trad.checked=true;trad.handlers.change();assert.equal(scale.detector,'swift');assert.equal(writes.length,0);
+ scale.update('idle');assert.equal(segment.disabled,false);
+ assert.equal(trad.checked,false);assert.equal(smart.checked,true);
+ trad.checked=true;smart.checked=false;trad.handlers.change();
+ assert.equal(scale.detector,'existing');assert.equal(starts,0);assert.equal(writes.length,1);
+ const reloaded=fresh().card;
+ assert.equal(reloaded(score,[],()=>{},'scale','major-C').detector,'existing');
+ assert.equal(reloaded(score,[],()=>{},'scale','minor-C').detector,'swift');
 });
 test('lookahead grace admits already-captured exact next notes without making a fuzzy hop renew the clock',async()=>{
  for(const second of [43,45]){

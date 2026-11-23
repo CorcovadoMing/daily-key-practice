@@ -433,9 +433,10 @@ test('native practice-mode selection persists and syncs scale/arpeggio without s
   const scale=api.card(score,target,()=>invoked++), arp=api.card(score,cMajorArpeggio,()=>invoked++,'arpeggio');
   const [action]=scale.element.children, [otherAction]=arp.element.children;
   const [button,choice,options]=action.children, [otherBtn,otherChoice]=otherAction.children;
-  assert.equal(options.tag,'details');
-  assert.equal(options.children[0].textContent,'偵測設定');
-  assert.equal(Boolean(options.open),false);
+  assert.equal(options.tag,'fieldset');
+  assert.equal(options.attributes['aria-label'],'音高偵測模式');
+  assert.equal(options.children[0].children[1].textContent,'傳統');
+  assert.equal(options.children[1].children[1].textContent,'智慧');
   const [label,select]=choice.children, [otherLabel,otherSelect]=otherChoice.children;
   assert.equal(action.attributes.role,'group');
   assert.equal(action.attributes['aria-label'],'音階練習控制');

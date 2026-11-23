@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261123-025-experimental">
+  <meta name="site-version" content="20261123-026-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -214,8 +214,9 @@
     @media(max-width:660px){.key-title{scroll-margin-top:calc(72px + env(safe-area-inset-top,0px))}}
     .key-card:hover{border-color:#c3d3c0;transform:translateY(-1px)}
     .key-card.done{background:#f5f8f2;border-color:#cce0c8}
-    .check-circle{height:20px;width:20px;border:1.7px solid #c8d1ca;border-radius:50%;display:grid;place-items:center;flex:none;margin-top:2px;color:white;font-size:13px;font-weight:800}
-    .key-card.done .check-circle{background:#5c966a;border-color:#5c966a}
+    .check-circle,.practice-jump .quick-check{display:grid;place-items:center;flex:none;border:1.7px solid var(--completion-outline,#66796a);border-radius:50%;line-height:1;background:transparent;color:inherit}
+    .check-circle{height:20px;width:20px;margin-top:2px;font-size:13px;font-weight:800}
+    .key-complete[aria-pressed=true] .check-circle,.practice-jump.is-done .quick-check{border-color:var(--completion-green,#247447);color:var(--completion-green,#247447)}
     .key-card-content{min-width:0;flex:1}
     .key-complete{display:grid;place-items:center;flex:none;min-width:44px;min-height:44px;padding:0;border:0;background:transparent;border-radius:50%;color:inherit}
     .key-complete .check-circle{margin:0}
@@ -351,7 +352,7 @@
     .practice-jump:hover{background:#eef4ef;border-color:#a9c4ae}
     .practice-jump.is-done{background:#eff1ef;border-color:#d9deda;color:#77857b}
     .practice-jump.is-active{border-color:#69a079;background:#e9f3e9;color:#2f6641;box-shadow:0 0 0 1px #a6c7ad}
-    .practice-jump .quick-check{font-size:10px}
+    .practice-jump .quick-check{font-size:9px;font-weight:850;width:13px;height:13px;border-width:1.3px}
     .practice-float{position:fixed;top:50%;right:max(12px,calc((100vw - 1380px)/2 + 12px));transform:translateY(-50%);width:112px;max-height:min(78vh,720px);overflow:auto;z-index:20;padding:10px 7px;background:rgba(255,255,255,.97);border:1px solid #dce6dd;box-shadow:0 12px 40px rgba(39,61,45,.13);border-radius:15px}
     .practice-float-title{display:block;text-align:center;font-size:11px;font-weight:850;color:#3c5f45;margin:3px 0 9px}
     .practice-float-list{display:grid;gap:5px}
@@ -520,8 +521,6 @@
     .scale-practice-history-actions button:disabled{opacity:.65;cursor:default}
     .scale-practice-history-actions small{font-size:12px}
     .scale-practice-history-actions[hidden],.scale-practice-saved-history[hidden]{display:none!important}
-    .scale-practice-detector{font:inherit;font-size:12px;font-weight:700;min-height:44px;max-width:100%;padding:0 5px;color:#31533c;border:1px solid #8da692;border-radius:999px;background:#edf4ed}
-    .scale-practice-detector:focus-visible{outline:3px solid #4c81b3;outline-offset:2px}
     .scale-practice-coach{flex:0 1 100%;border:1px solid #dce5d9;border-radius:12px;background:#f9fbf7;padding:9px 12px}
     .scale-practice-coach button{min-height:44px;border:1px solid #8da692;border-radius:999px;padding:4px 12px;background:#edf4ed;color:#31533c;font-weight:700;margin-right:5px}
     .scale-practice-coach p{margin:6px 0 0;font-size:12px;line-height:1.6}
@@ -607,7 +606,7 @@
       [data-appearance=dark] :is(.result-summary,.key-card.done,.cello-fb-group,.cello-fb-legend,.fingering-note,.teacher-note-status,.online-count,.history-empty,.empty-graphic){background:var(--soft);color:var(--ink);border-color:var(--line)}
       [data-appearance=dark] :is(button,select,input:not([type=range]):not([type=checkbox]),textarea){color:var(--ink);border-color:var(--line)}
       [data-appearance=dark] :is(.room-action,.icon-button,.stepper button,.filter-all,.filter-key,.show-scales,.history-replay,.history-delete,.practice-jump,.practice-quick-list button,.cello-fb-button,.cello-inline-editor button,.teacher-tools button,.student-note-button,.scale-practice button,.scale-practice select,.audio-tools button,.audio-tools input,.audio-tools select,.theme-choice select){background:var(--theme-high);border-color:#6d7a8a;color:var(--ink)}
-      [data-appearance=dark] :is(.filter-key[aria-pressed=false],.fifths-pair .filter-key[aria-pressed=false],.ordered-practice-button,.key-expand,.fingering-edit,.history-choice-actions button,.finger-form-actions button,.teacher-finger-button,.cello-leave-keep,.scale-practice-detector,.scale-practice-choice[data-locked=true]){background:var(--theme-high);color:var(--ink);border-color:#6d7a8a}
+      [data-appearance=dark] :is(.filter-key[aria-pressed=false],.fifths-pair .filter-key[aria-pressed=false],.ordered-practice-button,.key-expand,.fingering-edit,.history-choice-actions button,.finger-form-actions button,.teacher-finger-button,.cello-leave-keep,.scale-practice-choice[data-locked=true]){background:var(--theme-high);color:var(--ink);border-color:#6d7a8a}
       [data-appearance=dark] :is(.filter-key[aria-pressed=true],.fifths-pair .filter-key[aria-pressed=true],.key-expand[aria-expanded=true],.cello-fb-button[aria-pressed=true],.cello-inline-choice[aria-pressed=true],.cello-inline-finger[aria-pressed=true],.teacher-note-pill[aria-pressed=true],.teacher-finger-button[aria-pressed=true],.history-choice-actions button.primary,.finger-form-actions button.primary,.practice-jump.is-active){background:#445970;color:#eff5fd}
       [data-appearance=dark] .teacher-note-pill[aria-pressed=true]{background:#445970;color:#eff5fd}
       [data-appearance=dark] .fifths-pair .filter-key.minor[aria-pressed=true]{background:#4b596b;color:#eaf0f8}
@@ -628,7 +627,12 @@
       [data-appearance=dark] :is(.experiment-roadmap,.experiment-roadmap-heading span,.experiment-roadmap-scope,.experiment-roadmap-items small,.intro .eyebrow,h1 em,.classroom-bar p,.room-status,.room-join-form label,.online-count,.code-caption,.section-number,.filter-explain,.filter-status,.filter-subhead,.counter-desc,.control-note,.key-secondary,.key-relative,.signature-label,.history-date,.history-empty,.practice-float-title,.fingering-title,.fingering-remark,.cello-fb-caption,.cello-fb-direction-heading,.cello-legend-note,.teacher-open-label,.teacher-finger-label,.teacher-editor-help,.scale-practice-status,.scale-practice-latest,.scale-pitch-title,.scale-pitch-slot,.scale-pitch-legend,.audio-scale,.a4-control span,.tuner-readout #tuner-cents){color:var(--muted)}
       [data-appearance=dark] :is(.filter-key.minor,.history-chip.minor){background:var(--minor);color:var(--minor-ink)}
       [data-appearance=dark] :is(.draw-button,.room-action.primary,.filter-key[aria-pressed=true],.stepper button:hover,.audio-tools button[aria-pressed=true],.scale-practice-button,.scale-practice-merge,.scale-practice-coach-action,.cello-inline-save,.cello-leave-save){background:#445970;color:#eff5fd;border-color:#7d93ad}
-      [data-appearance=dark] :is(.key-complete[aria-pressed=true],.check-circle,.progress-fill,.key-dot){background:#6ab68a;color:#11241a}
+      [data-appearance=dark]{--completion-outline:#a8b7c5;--completion-green:#93dca8}
+      [data-appearance=dark] :is(.progress-fill,.key-dot){background:#6ab68a;color:#11241a}
+      [data-appearance=dark] :is(.music-section-title,.history-panel-heading:not(.classroom),.history-chip:not(.minor):not(.done),.filter-heading h3,.launch-settings h2){color:var(--ink)}
+      [data-appearance=dark] :is(.fifths-signature,.filter-count,.filter-status,.caption,.room-join-label,.room-join-status,.scale-practice-choice-label,.scale-notes,.history-choice-dialog p){color:var(--muted)}
+      [data-appearance=dark] .key-card.done .key-primary{color:var(--theme-green)}
+      [data-appearance=dark] .scale-practice-choice:is(:hover,[data-locked=true]) .scale-practice-choice-label{color:var(--ink)}
       [data-appearance=dark] .result-panel .result-summary{background:transparent}
       [data-appearance=dark] .result-summary .summary-top{color:var(--ink)}
       /* Quiet decorative rims on the dark audio dock; keep pressed and focus cues separate. */
@@ -717,7 +721,6 @@
     .practice-options{align-self:flex-start}
     .practice-options>summary{font-size:12px;padding-inline:9px}
     .practice-options .scale-practice-choice{border:1px solid var(--line);border-radius:9px;margin:5px;min-width:72px}
-    .practice-options .scale-practice-detector{margin:5px}
     .scale-practice-status{flex-basis:100%}
     .scale-practice-history-actions{order:3}
     .scale-practice-coach{order:3}
@@ -792,9 +795,9 @@
     .audio-buttons{gap:8px}
     .scale-practice>.scale-practice-action{display:flex;flex-wrap:wrap;align-items:flex-start;min-width:0;gap:5px}
     .scale-practice-action>.scale-practice-choice{border:1px solid var(--line);border-radius:9px;background:var(--paper);min-width:72px}
-    .scale-practice-action .practice-options{border:1px solid var(--line);border-radius:9px;background:var(--paper);color:var(--ink);position:relative}
-    .scale-practice-action .practice-options>summary{display:list-item;cursor:pointer;line-height:42px;padding:0 7px;white-space:nowrap;font-weight:700}
-    .scale-practice-action .practice-options[open]>.scale-practice-detector{display:block}
+    .scale-practice-action>.scale-practice-detector{min-height:44px;margin:0}
+    .scale-practice-detector:disabled{opacity:.64}
+    .scale-practice-detector:disabled label,.scale-practice-detector:disabled input{cursor:default}
     .history-access>.practice-stats{box-shadow:none}
     @media(max-width:380px){
       .launch-mode span{padding:0 5px}
@@ -961,7 +964,7 @@
     <select id="appearance-choice">
       <option value="light">淺色</option><option value="dark">深色</option><option value="system">跟隨系統</option>
     </select>
-  </label><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261123-025-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  </label><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261123-026-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -1244,7 +1247,22 @@
   const practiceModes = [['single','單次'],['loop','循環']];
   const modeValue = value => value === 'single' ? 'single' : 'loop';
   const modeName = value => modeValue(value) === 'loop' ? '循環' : '單次';
-  let selectedMode, latestDraftToken, coachService, coachStorageAsked=false;
+  let selectedMode, latestDraftToken, coachService, coachStorageAsked=false, detectorControlSerial=0;
+  const detectorPreferences=new Map();
+  function detectorPreference(scope){
+    if(!scope)return 'swift';
+    if(detectorPreferences.has(scope))return detectorPreferences.get(scope);
+    try{
+      const value=globalThis.localStorage?.getItem('daily-key-practice:experimental:scale-detector:'+scope);
+      if(value==='existing'||value==='swift')return value;
+    }catch{}
+    return 'swift';
+  }
+  function saveDetectorPreference(scope,value){
+    if(!scope||(value!=='existing'&&value!=='swift'))return;
+    detectorPreferences.set(scope,value);
+    try{globalThis.localStorage?.setItem('daily-key-practice:experimental:scale-detector:'+scope,value);}catch{}
+  }
   if (globalThis.CelloPracticeCoach?.enabled(globalThis)) {
     globalThis.addEventListener?.('pagehide',()=>coachService?.dispose());
     globalThis.document?.addEventListener?.('visibilitychange',()=>{
@@ -1682,9 +1700,9 @@
       const session = {view, engine:swiftSelected?'SwiftF0':'現有偵測', stage:'pending', heard:[], heardCount:0, mode, laps:0, passed:0,
         history:mode === 'loop' ? emptyHistory(view.target.length) : undefined};
       active = session;
-      view.update('pending', swiftSelected ? '正在準備 SwiftF0 和麥克風…' : null, null, 0, undefined, {mode});
+      view.update('pending', swiftSelected ? '正在準備智慧偵測與麥克風…' : null, null, 0, undefined, {mode});
       if (!route) {
-        stop('SwiftF0 無法載入，請切回現有偵測再試。');
+        stop('智慧偵測無法載入，請改用傳統後再試。');
         finish(previous,'已切換到另一項練習。',false);
         return;
       }
@@ -1935,15 +1953,31 @@
     });
     choice.append(choiceLabel, selector);
     action.append(button,choice);
-    let detector;
+    let detector, detectorValue = 'existing';
+    const detectorInputs=[];
     if (kind === 'scale') {
-      detector = document.createElement('select');
-      detector.className = 'scale-practice-detector';
-      detector.setAttribute('aria-label','音階音高偵測方式');
-      for (const [value,label] of [['existing','現有偵測'],['swift','SwiftF0']]) {
-        const option = document.createElement('option'); option.value=value; option.textContent=label; detector.append(option);
+      detectorValue = detectorPreference(scope);
+      detector = document.createElement('fieldset');
+      detector.className = 'scale-practice-detector launch-mode';
+      detector.setAttribute('aria-label','音高偵測模式');
+      const group='scale-practice-detector-'+(++detectorControlSerial);
+      for (const [value,word] of [['existing','傳統'],['swift','智慧']]) {
+        const segment=document.createElement('label'),input=document.createElement('input'),caption=document.createElement('span');
+        input.type='radio';
+        input.name=group;
+        input.value=value;
+        input.checked=detectorValue===value;
+        caption.textContent=word;
+        input.addEventListener('change',()=>{
+          if(detector.disabled||!input.checked)return;
+          detectorValue=value;
+          saveDetectorPreference(scope,value);
+        });
+        detectorInputs.push(input);
+        segment.append(input,caption);
+        detector.append(segment);
       }
-      detector.value = 'existing';
+      action.append(detector);
     }
     const status = document.createElement('p');
     status.className = 'scale-practice-status';
@@ -2136,7 +2170,7 @@
         if(Number.isFinite(answer.first)) times.push('首段運算 '+seconds(answer.first));
         if(Number.isFinite(answer.generation)) times.push('建議完成 '+seconds(answer.generation));
         coachTip.textContent=choice.observation+' '+choice.action+' '+choice.retest+
-          (attempt.detector&&Number.isFinite(attempt.reference) ? ' 比較時請沿用 '+attempt.detector+'、A4 '+attempt.reference+' Hz。' : ' 這份舊圖未記錄偵測方式和 A4；比較時請沿用你原本使用的設定。');
+          (attempt.detector&&Number.isFinite(attempt.reference) ? ' 比較時請沿用 '+(kind==='scale'?(attempt.detector==='SwiftF0'?'智慧':'傳統'):attempt.detector)+'、A4 '+attempt.reference+' Hz。' : ' 這份舊圖未記錄偵測方式和 A4；比較時請沿用你原本使用的設定。');
         times.push('按下到顯示 '+seconds(globalThis.performance.now()-clicked));
         coachStatus.textContent=(answer.choice?(thinking?'Qwen3 思考選出的練習。':'Qwen3 快速選出的練習。'):
           (reason||'模型未回覆有效選項。')+'以下是規則建議，不是 AI 結果。')+
@@ -2148,7 +2182,7 @@
     const noteHeads = [...score.querySelectorAll('[data-midi]')];
     let chart = null, phase = null, previous = 0, previousLap = 0, currentNote = null, awaiting = null, scoreFollow = null;
     const label = (note, index) => note.name + note.octave + (index <= (target.length - 1) / 2 ? '↑' : '↓');
-    const view = {element, target, get mode() { return preference(); }, get detector() { return detector?.value === 'swift' ? 'swift' : 'existing'; },
+    const view = {element, target, get mode() { return preference(); }, get detector() { return detectorValue; },
       update(next, message, result, progress = 0, reference = 442, display) {
       if (historyButtons && next === 'idle' && !display?.restored && !display?.attemptHistory &&
           (!result || !display?.values?.some(Number.isFinite)) && ownsDraft()) {
@@ -2170,7 +2204,10 @@
         button.title=stopHint;
         button.setAttribute('aria-description',stopHint);
         selector.disabled = next !== 'idle';
-        if (detector) detector.disabled = selector.disabled;
+        if (detector){
+          detector.disabled=selector.disabled;
+          detectorInputs.forEach(input=>input.checked=input.value===detectorValue);
+        }
         choice.dataset.locked = String(selector.disabled);
         showChoice(selector.disabled ? mode : preference());
         latest.textContent = '';
@@ -2329,14 +2366,6 @@
       chart?.update(display?.chartValues ? {...display,values:display.chartValues} : display);
     }};
     button.addEventListener('click', () => toggle(view));
-    if (detector) {
-      const options=document.createElement('details');
-      options.className='practice-options';
-      const optionsTitle=document.createElement('summary');
-      optionsTitle.textContent='偵測設定';
-      options.append(optionsTitle,detector);
-      action.append(options);
-    }
     element.append(action,status,latest);
     if (historyButtons) element.append(historyButtons);
     if (coachPanel) element.append(coachPanel);
@@ -3130,7 +3159,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
    button.setAttribute('aria-label','跳轉並展開 '+name+(done.has(id)?'，已完成':'，未完成'));
    if(active===id)button.setAttribute('aria-current','true');
    const mark=document.createElement('span');mark.className='quick-check';
-   mark.textContent=done.has(id)?'✓':'○';mark.setAttribute('aria-hidden','true');
+   mark.textContent=done.has(id)?'✓':'';mark.setAttribute('aria-hidden','true');
    const label=document.createElement('span');label.textContent=name;
    button.append(mark,label);
    button.addEventListener('click',()=>jumpToPractice(id));
@@ -3844,7 +3873,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
           }
           if (muted) {muted=false;audibleSince=raw.now;}
           let pending;
-          try {pending = batches(raw);} catch {fail('SwiftF0 無法分析，請切回現有偵測再試。');return;}
+          try {pending = batches(raw);} catch {fail('智慧偵測無法分析，請改用傳統後再試。');return;}
           pending?.then(frames => {
             if (stopped || muted || !frames) return;
             for (const frame of frames) {
@@ -3853,11 +3882,11 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
               if (drain && frame.now+16 > drain.until) {drain.done();break;}
               listener.frame({...frame,frequency:filter(frame.frequency,frame.now) ? null : frame.frequency});
             }
-          }).catch(()=>fail('SwiftF0 無法分析，請切回現有偵測再試。'));
+          }).catch(()=>fail('智慧偵測無法分析，請改用傳統後再試。'));
         },
         error:fail
       });
-      detector.load().then(()=>{modelReady=true;ready();},()=>fail('SwiftF0 無法載入，請切回現有偵測再試。'));
+      detector.load().then(()=>{modelReady=true;ready();},()=>fail('智慧偵測無法載入，請改用傳統後再試。'));
       const stop = () => {
         if (stopped) return;
         stopped=true; release(); drain?.done();

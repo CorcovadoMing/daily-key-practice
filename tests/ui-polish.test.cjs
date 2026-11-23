@@ -25,3 +25,21 @@ test('UI icons are inline, rounded and native selects are retained',()=>{
  assert.ok(!html.includes("expand.textContent='⌄'"));
  assert.match(html,/#metro-settings,#tuner-settings\{[^}]*border:1px solid #acb9a7/);
 });
+
+test('practice completion circles remain hollow and use accessible contrasting state colors',()=>{
+ assert.match(html,/\.check-circle,\.practice-jump \.quick-check\{[^}]*background:transparent/);
+ assert.match(html,/\.key-complete\[aria-pressed=true\] \.check-circle,\.practice-jump\.is-done \.quick-check\{[^}]*color:var\(--completion-green/);
+ assert.match(html,/mark\.textContent=done\.has\(id\)\?'✓':''/);
+ assert.doesNotMatch(html,/\.check-circle,\.progress-fill/);
+ const lum=hex=>{
+  const [r,g,b]=hex.match(/../g).map(s=>parseInt(s,16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);
+  return .2126*r+.7152*g+.0722*b;
+ };
+ for(const [ink,paper,threshold] of [
+  ['a8b7c5','21252b',3],['93dca8','292e36',4.5],['66796a','fffef9',3],['247447','f5f8f2',4.5],
+  ['eef1f5','21252b',4.5],['b9c3cf','292e36',4.5]
+ ]){
+  const values=[lum(ink)+.05,lum(paper)+.05];
+  assert.ok(Math.max(...values)/Math.min(...values)>=threshold,ink+' against '+paper);
+ }
+});
