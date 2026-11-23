@@ -38,10 +38,10 @@ function sandbox(){
  const options=[{id:'center_one',fact:'offset@3:35'}, {id:'slow_pair',fact:'gap@2'}];
  return {scope,options,jobs,workers,service:api.service(scope)};
 }
-test('thinking is default, timeout leaves warm engine for a separate bounded quick request',async()=>{
+test('thinking timeout leaves warm engine for a retry with the same bound',async()=>{
  const f=sandbox(), updates=[];
  const pending=f.service.run(f.options,(...x)=>updates.push(x));
- const w=f.workers[0];assert.equal(w.opts.type,'module');assert.equal(w.msg.thinking,true);
+ const w=f.workers[0];assert.equal(w.opts.type,'module');assert.equal(w.msg.retry,false);
  assert.deepEqual(Array.from(w.msg.options),['1 center_one offset@3:35','2 slow_pair gap@2']);
  assert.equal([...f.jobs.values()][0].ms,180000);
  w.emit('progress',{step:'cached'});w.emit('progress',{step:'gpu-load',percent:33});
@@ -54,10 +54,10 @@ test('thinking is default, timeout leaves warm engine for a separate bounded qui
  assert.equal([...f.jobs.values()][0].ms,30000);
  w.emit('ready',{cold:false,load:0});[...f.jobs.values()][0].fn();
  assert.equal((await warm).reason,'slow');assert.equal(w.dead,undefined);assert.equal(w.interrupt.kind,'interrupt');
- const quick=f.service.run(f.options,()=>{},false);assert.equal(f.workers.length,1);assert.equal(w.msg.thinking,false);
- assert.equal([...f.jobs.values()][0].ms,10000);
+ const retry=f.service.run(f.options,()=>{},true);assert.equal(f.workers.length,1);assert.equal(w.msg.retry,true);
+ assert.equal([...f.jobs.values()][0].ms,30000);
  w.emit('ready',{cold:false,load:0}); w.emit('answer',{digit:1,generation:20});
- assert.equal((await quick).choice.id,'center_one');
+ assert.equal((await retry).choice.id,'center_one');
 });
 test('reasoning only admits a finished validated choice; actual shard progress is never invented',()=>{
  for(const input of ['<think>3','I guess 3','<think>use option 3</think>','unfinished 3'])assert.equal(api.finalDigit(input),null);

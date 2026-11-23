@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261123-028-experimental">
+  <meta name="site-version" content="20261123-029-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -520,6 +520,15 @@
     .scale-practice-coach button{min-height:44px;border:1px solid #8da692;border-radius:999px;padding:4px 12px;background:#edf4ed;color:#31533c;font-weight:700;margin-right:5px}
     .scale-practice-coach p{margin:6px 0 0;font-size:12px;line-height:1.6}
     .scale-practice-coach p:empty{display:none}
+    .scale-practice-coach-typing{--typing-fill:#d8e7f6;--typing-dot:#486582;position:relative;display:inline-flex;align-items:center;gap:5px;width:max-content;margin:6px 0 3px 4px;padding:11px 13px;border-radius:18px;background:var(--typing-fill)}
+    .scale-practice-coach-typing[hidden]{display:none}
+    .scale-practice-coach-typing::after{content:'';position:absolute;bottom:1px;left:-4px;width:11px;height:9px;border-radius:2px 0 0 8px;background:var(--typing-fill);transform:skewX(-24deg)}
+    .scale-practice-coach-typing span{width:6px;height:6px;border-radius:50%;background:var(--typing-dot);animation:coach-dot 1.25s ease-in-out infinite}
+    .scale-practice-coach-typing span:nth-child(2){animation-delay:.14s}
+    .scale-practice-coach-typing span:nth-child(3){animation-delay:.28s}
+    @keyframes coach-dot{0%,60%,100%{transform:translateY(0);opacity:.66}30%{transform:translateY(-3px);opacity:1}}
+    @media(prefers-reduced-motion:reduce){.scale-practice-coach-typing span{animation:none}}
+    @media screen{[data-appearance=dark] .scale-practice-coach-typing{--typing-fill:#344d62;--typing-dot:#c0d9ef}}
     .scale-practice-coach-tip{font-weight:650}
     .scale-practice-status{font-size:12px;margin:0;max-width:100%;flex:1 1 230px}
     .scale-practice-latest{font-size:12px;white-space:nowrap}
@@ -959,7 +968,7 @@
     <select id="appearance-choice">
       <option value="light">淺色</option><option value="dark">深色</option><option value="system">跟隨系統</option>
     </select>
-  </label><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261123-028-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  </label><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261123-029-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -1118,7 +1127,7 @@
       activeId=data.id;
       const post=(phase,rest={})=>self.postMessage({phase,id:data.id,...rest});
       try {
-        const started=performance.now(), cold=!engine, thinking=data.thinking!==false;
+        const started=performance.now(), cold=!engine;
         if (cold) {
           post('progress',{step:'device'});
           const adapter=await navigator.gpu?.requestAdapter();
@@ -1146,7 +1155,7 @@
         post('ready',{load,cold});
         const stream=await engine.chat.completions.create({
           messages:[{role:'user',content:'Choose one cello drill from the measured notes. Do not assume unmeasured notes were played. End with exactly one listed digit, no explanation. '+data.options.join(' / ')}],
-          extra_body:{enable_thinking:thinking},stream:true,temperature:0,max_tokens:thinking?320:8
+          extra_body:{enable_thinking:true},stream:true,temperature:0,max_tokens:data.retry?368:320
         });
         let output='',first=null,finishReason=null,sawReasoning=false;
         for await (const chunk of stream) {
@@ -1160,7 +1169,7 @@
         }
         // Never send reasoning or unvalidated model text outside this worker.
         const digit=parse(output);
-        const reason=digit===null ? classify(output,finishReason,thinking,sawReasoning) :
+        const reason=digit===null ? classify(output,finishReason,true,sawReasoning) :
           digit>data.options.length ? 'invalid' : undefined;
         post('answer',{digit,reason,first,generation:performance.now()-start});
       } catch {post('error');}
@@ -1201,17 +1210,17 @@
       const task=active;
       task.timer=env.setTimeout(()=>{
         if(active!==task)return;
-        const keep=reason==='slow' && task.ready && task.thinking;
+        const keep=reason==='slow' && task.ready;
         if(keep)interrupt(task);
         resolve({reason,...task.timing},!keep);
       },ms);
     }
-    function run(options,report=()=>{},thinking=true) {
+    function run(options,report=()=>{},retry=false) {
       cancel();
       if (!options.length || !env.navigator?.gpu || !env.Worker) return Promise.resolve({reason:'unsupported'});
       const id=++sequence;
       return new Promise(done=>{
-        active={id,resolve:done,report,timing:{},wasWarm:warm,thinking,ready:false};
+        active={id,resolve:done,report,timing:{},wasWarm:warm,ready:false};
         try {
           if (!worker) {
             const pins={model:MODEL,weights:WEIGHTS,runtime:RUNTIME,integrity:INTEGRITY,lib:MODEL_LIB};
@@ -1226,7 +1235,7 @@
               else if(data.phase==='ready') {
                 active.timing={load:data.load,cold:data.cold};
                 warm=true;active.ready=true;
-                if(!active.wasWarm)arm(active.thinking?30000:10000,'slow');
+                if(!active.wasWarm)arm(30000,'slow');
                 active.report('working');
               } else if(data.phase==='answer') resolve({...active.timing,reason:data.reason,choice:Number.isInteger(data.digit)&&data.digit>=1&&data.digit<=3 ? active.options[data.digit-1] || null : null,first:data.first,generation:data.generation});
               else if(data.phase==='unavailable') resolve({reason:'unsupported'},true);
@@ -1235,9 +1244,9 @@
             worker.onerror=()=>{if(worker===owner)resolve({reason:'error',...active?.timing},true);};
           }
           active.options=options;
-          arm(active.wasWarm?(thinking?30000:10000):180000,active.wasWarm?'slow':'load_timeout');
+          arm(active.wasWarm?30000:180000,active.wasWarm?'slow':'load_timeout');
           report(active.wasWarm?'working':'device');
-          worker.postMessage({id,thinking,options:options.map((o,i)=>(i+1)+' '+o.id+' '+o.fact)});
+          worker.postMessage({id,retry,options:options.map((o,i)=>(i+1)+' '+o.id+' '+o.fact)});
         } catch {resolve({reason:'error'},true);}
       });
     }
@@ -2112,7 +2121,7 @@
     }
     const coachAPI = globalThis.CelloPracticeCoach;
     const coachVisible = coachAPI?.enabled(globalThis);
-    let coachPanel, coachAction, coachQuick, coachCancel, coachStatus, coachTime, coachTip, coachNotice, coachAttempt, coachTicket=0;
+    let coachPanel, coachAction, coachTyping, coachStatus, coachTime, coachTip, coachNotice, coachAttempt, coachBusy=false, coachRetry=false, coachTicket=0;
     if (coachVisible) {
       const mk=(tag,klass,text)=>{
         const el=document.createElement(tag);el.className=klass;if(text)el.textContent=text;return el;
@@ -2122,32 +2131,33 @@
       coachPanel.setAttribute('aria-label',name+'練習建議');
       coachAction=mk('button','scale-practice-coach-action','練習建議');
       coachAction.type='button';
-      coachQuick=mk('button','scale-practice-coach-quick','快速建議');
-      coachQuick.type='button';
-      coachCancel=mk('button','scale-practice-coach-cancel','取消');
-      coachCancel.type='button'; coachCancel.hidden=true;
       coachStatus=mk('p','scale-practice-coach-status');
       coachStatus.setAttribute('role','status');
       coachTime=mk('p','scale-practice-coach-elapsed');
       coachTime.setAttribute('aria-live','off');
       coachTip=mk('p','scale-practice-coach-tip');
+      coachTip.setAttribute('role','status');
       coachNotice=mk('p','scale-practice-coach-notice','首次使用需下載約 350 MB。');
-      coachPanel.append(coachAction,coachQuick,coachCancel,coachNotice,
-        coachStatus,coachTime,coachTip);
-      coachCancel.addEventListener('click',()=>{
-        if (coachCancel.hidden) return;
-        coachService?.cancel();
-      });
-      async function runCoach(thinking) {
+      coachTyping=mk('div','scale-practice-coach-typing');
+      coachTyping.hidden=true;
+      coachTyping.setAttribute('aria-hidden','true');
+      coachTyping.append(mk('span'),mk('span'),mk('span'));
+      coachPanel.append(coachAction,coachNotice,coachStatus,coachTyping,coachTime,coachTip);
+      function setCoachBusy(busy) {
+        coachBusy=busy;
+        coachAction.textContent=busy?'取消建議':'練習建議';
+        if(!busy)coachTyping.hidden=true;
+      }
+      async function runCoach() {
         const attempt=coachAttempt;
-        if(!attempt||coachAction.disabled) return;
+        if(!attempt||coachBusy) return;
         const ticket=++coachTicket, clicked=globalThis.performance.now();
         const local=coachService ||= coachAPI.service(globalThis);
         if(!coachStorageAsked){
           coachStorageAsked=true;
           try {void globalThis.navigator.storage?.persist?.()?.catch(()=>{});} catch {}
         }
-        coachAction.disabled=coachQuick.disabled=true;coachCancel.hidden=false;coachTip.textContent='';
+        setCoachBusy(true);coachTip.textContent='';
         const heartbeat=()=>{
           if(ticket===coachTicket)coachTime.textContent='已等待 '+Math.floor((globalThis.performance.now()-clicked)/1000)+' 秒';
         };
@@ -2157,30 +2167,37 @@
           checking:'正在檢查本機模型快取…',cached:'找到快取權重，正在載入…',
           preparing:'準備權重，會沿用已下載的片段…',weights:'正在準備模型權重',
           'gpu-load':'正在從本機載入權重到 GPU',compile:'正在初始化 GPU…',
-          working:thinking?'Qwen3 正在思考並挑選練習…':'Qwen3 正在快速挑選練習…'};
+          working:'Qwen3 正在思考並挑選練習…'};
         let answer;
         try {
           answer=await local.run(attempt.options,(phase,pct)=>{
             if(ticket!==coachTicket) return;
+            coachTyping.hidden=phase!=='working';
+            coachStatus.className='scale-practice-coach-status'+(phase==='working'?' sr-only':'');
             const phrase=phrases[phase]||phrases.device;
             const spoken=Number.isFinite(pct)?phrase+' '+pct+'%':phrase;
             if(coachStatus.textContent!==spoken)coachStatus.textContent=spoken;
-          },thinking);
-        } finally {globalThis.clearInterval(ticker);}
+          },coachRetry);
+        } catch {answer={reason:'error'};}
+        finally {globalThis.clearInterval(ticker);}
         if(ticket!==coachTicket) return;
-        coachAction.disabled=coachQuick.disabled=false;coachCancel.hidden=true;coachTime.textContent='';
+        setCoachBusy(false);coachStatus.className='scale-practice-coach-status';coachTime.textContent='';
         if(answer.reason==='cancelled'){coachStatus.textContent='已取消，不影響練習。';return;}
         const reason=({unsupported:'本瀏覽器無法使用 WebGPU／半精度模型。',
-          slow:thinking?'思考超過 30 秒。':'快速建議 10 秒內未完成。',
+          slow:'Qwen3 在 30 秒內沒有完成。',
           load_timeout:'模型下載或初始化逾時。',error:'Qwen3 無法執行。',
           budget:'模型用完輸出額度，還沒給出選項。',
           thinking_only:'模型只完成思考，沒有給出選項。',
           invalid:'模型回覆不是可用的選項。',empty:'模型沒有回傳內容。'})[answer.reason];
-        if(thinking && !answer.choice && !attempt.partial && answer.reason!=='unsupported'){
-          coachStatus.textContent=(reason || '模型未回覆有效選項。')+'可選「快速建議」再試。';
+        if(!answer.choice){
+          coachRetry=true;
+          coachStatus.textContent=(reason || '模型未回覆有效選項。')+
+            (answer.reason==='unsupported'?'請改用支援 WebGPU 的瀏覽器或裝置。':
+              '可再按「練習建議」重試。');
           return;
         }
-        const choice=answer.choice || attempt.options[0];
+        coachRetry=false;
+        const choice=answer.choice;
         const times=[];
         const seconds=ms=>(ms/1000).toFixed(1)+' 秒';
         if(answer.cold&&Number.isFinite(answer.load)) times.push('載入 '+seconds(answer.load));
@@ -2190,13 +2207,9 @@
         coachTip.textContent=choice.observation+' '+choice.action+' '+choice.retest+
           (attempt.detector&&Number.isFinite(attempt.reference) ? ' 比較時請沿用 '+(attempt.detector==='SwiftF0'?'智慧':'傳統')+'、A4 '+attempt.reference+' Hz。' : ' 這份舊圖未記錄偵測方式和 A4；比較時請沿用你原本使用的設定。');
         times.push('按下到顯示 '+seconds(globalThis.performance.now()-clicked));
-        coachStatus.textContent=(answer.choice?(thinking?'Qwen3 思考選出的練習。':'Qwen3 快速選出的練習。'):
-          (reason||'模型未回覆有效選項。')+'以下是規則建議，不是 AI 結果。'+
-          (thinking&&answer.reason!=='unsupported'?'可選「快速建議」再試。':''))+
-          (times.length?'（'+times.join('；')+'）':'');
+        coachStatus.textContent='Qwen3 思考選出的練習。'+(times.length?'（'+times.join('；')+'）':'');
       }
-      coachAction.addEventListener('click',()=>runCoach(true));
-      coachQuick.addEventListener('click',()=>runCoach(false));
+      coachAction.addEventListener('click',()=>coachBusy?coachService?.cancel():runCoach());
     }
     const noteHeads = [...score.querySelectorAll('[data-midi]')];
     let chart = null, phase = null, previous = 0, previousLap = 0, currentNote = null, awaiting = null, scoreFollow = null;
@@ -2316,14 +2329,14 @@
       if (coachPanel) {
         if(next==='pending') {
           coachTicket++;coachAttempt=null;coachPanel.hidden=true;
-          coachAction.disabled=coachQuick.disabled=false;coachCancel.hidden=true;
+          coachRetry=false;coachBusy=false;coachAction.textContent='練習建議';coachTyping.hidden=true;
+          coachStatus.className='scale-practice-coach-status';
           coachStatus.textContent=coachTip.textContent=coachTime.textContent='';
         } else if(next==='idle' && (display?.coachResult || display?.coachNoEvidence)) {
           const options=display.coachResult ? coachAPI.drills(target,display.values,display.mode,kind) : [];
-          coachAttempt=options.length?{options,detector:display.coachResult.engine,reference:display.coachResult.reference,
-            partial:display.values.some(value=>!Number.isFinite(value))}:null;
+          coachAttempt=options.length?{options,detector:display.coachResult.engine,reference:display.coachResult.reference}:null;
           coachPanel.hidden=false;
-          coachAction.hidden=coachQuick.hidden=!coachAttempt;
+          coachAction.hidden=!coachAttempt;
           coachNotice.hidden=!coachAttempt;
           coachStatus.textContent=display.coachNoEvidence
             ? (coachAttempt?'這次沒有辨識到可用音符；可以用上次保留的音準圖取得建議。':'這次沒有辨識到可用音符。請從第一個譜音拉約兩秒，等音準圖顯示一個點後，再停止並看結果。') : '';
