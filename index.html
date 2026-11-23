@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261123-029-experimental">
+  <meta name="site-version" content="20261123-030-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -810,6 +810,93 @@
     @media print{
       .footer-theme,#appearance-toggle,.session-shortcuts,.session-launch{display:none!important}
     }
+    /* Screen-only roles shared across the existing interaction groups. */
+    @media screen{
+      :root{
+        --ui-body:1.0625rem;
+        --ui-control:.9375rem;
+        --ui-detail:.875rem;
+        --ui-caption:.8125rem;
+        --ui-touch:2.75rem;
+        --ui-gap:.5rem;
+        --ui-radius:.75rem;
+        --ui-focus:#285e8d;
+        --ui-secondary:#53635a;
+      }
+      [data-appearance=dark]{--ui-focus:#adcdf1;--ui-secondary:#bbc7d4}
+      html{scroll-padding-bottom:calc(12rem + env(safe-area-inset-bottom,0px))}
+      body{
+        font-family:-apple-system,BlinkMacSystemFont,system-ui,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+        font-size:var(--ui-body);line-height:1.5;
+        padding-bottom:calc(12rem + env(safe-area-inset-bottom,0px))
+      }
+      .session-heading h1{font-size:clamp(1.625rem,1.25rem + 2.1vw,2.75rem);line-height:1.2;letter-spacing:-.04em;overflow-wrap:anywhere}
+      :is(.session-intro>.classroom-access,.launch-meta){margin-block-start:.375rem}
+      :is(.room-status,.room-join-status,.local-audio-note,.site-version,.launch-meta small,#tuner-status,.scale-pitch-legend,.scale-practice-history-actions small){font-size:var(--ui-caption);line-height:1.45}
+      :is(.local-audio-note,.site-version,.launch-meta small,.scale-pitch-legend){color:var(--ui-secondary)}
+      :is(.layout-disclosure>summary,.exercise-jump,.room-action,.launch-resume,.scale-practice-button,.scale-practice-history-actions button,.scale-practice-coach button,.theme-choice,.fingering-edit,.history-replay,.history-delete){font-size:var(--ui-control);line-height:1.35}
+      :is(.room-join-label,.room-join-status,.scale-practice-status,.scale-practice-coach p,.filter-status,.scale-pitch-title,.a4-control span,.audio-panel label){font-size:var(--ui-detail);line-height:1.5}
+      :is(.room-join-dialog h2,.launch-settings-head h2,.history-access .history-heading h2){font-size:1.125rem;line-height:1.3}
+      :is(.room-action,.room-dialog-actions button,.layout-disclosure>summary,.exercise-jump,.scale-practice-button,.scale-practice-history-actions button,.scale-practice-coach button,.cello-fb-button,.cello-inline-editor button,.teacher-tools button,.theme-choice select,.history-replay,.history-delete,.key-expand,.key-complete,.filter-all){
+        min-block-size:max(44px,var(--ui-touch))
+      }
+      :is(.key-expand,.key-complete,.history-replay,.history-delete,.launch-options-toggle,.appearance-toggle,#close-launch-settings){min-inline-size:max(44px,var(--ui-touch))}
+      .launch-controls{gap:var(--ui-gap);grid-template-columns:minmax(0,1fr) max(44px,var(--ui-touch)) auto}
+      .launch-controls #draw-button{font-size:var(--ui-body);line-height:1.25;min-block-size:max(54px,3.375rem);white-space:normal;overflow-wrap:anywhere}
+      .launch-mode span{min-inline-size:max(44px,var(--ui-touch));min-block-size:2.5rem;font-size:var(--ui-detail);line-height:1.25}
+      .launch-count-sentence{font-size:var(--ui-detail)}
+      .launch-count-sentence .stepper button{width:max(44px,var(--ui-touch));min-width:max(44px,var(--ui-touch));height:max(44px,var(--ui-touch))}
+      .launch-count-sentence .count-output{font-size:var(--ui-body);font-variant-numeric:tabular-nums}
+      .launch-settings .fifths-pair .filter-key{min-height:26px}
+      .launch-settings .fifths-pair .filter-key small{font-size:.5625rem}
+      .room-join-dialog{max-block-size:min(calc(100% - 1.5rem),calc(100dvh - 1.5rem));overflow:auto;overscroll-behavior:contain}
+      .room-join-dialog .room-digits span{height:max(46px,2.875rem);font-size:1.375rem}
+      .scale-practice>.scale-practice-action,.scale-practice-history-actions{gap:var(--ui-gap)}
+      .scale-practice-action>.scale-practice-button{min-block-size:calc(2.5rem + 6px)}
+      :is(.scale-pitch-chart,.scale-practice-coach){padding:clamp(.625rem,2.8vw,.875rem);border-radius:var(--ui-radius)}
+      .scale-pitch-area{grid-template-columns:2.5rem minmax(0,1fr)}
+      .scale-pitch-axis{font-size:var(--ui-caption)}
+      .scale-pitch-columns{grid-template-columns:repeat(var(--note-count),minmax(2.375rem,1fr))}
+      .scale-pitch-slot{grid-template-rows:76px 1.2rem 1.2rem;line-height:1.2rem}
+      :is(.scale-pitch-name,.scale-pitch-cents){font-size:.75rem}
+      .cello-scale-score,.scale-pitch-scroller{scrollbar-width:auto}
+      .audio-tools{
+        left:max(12px,env(safe-area-inset-left,0px));
+        max-width:calc(100vw - max(12px,env(safe-area-inset-left,0px)) - max(12px,env(safe-area-inset-right,0px)));
+        bottom:max(8px,env(safe-area-inset-bottom,0px));font-size:var(--ui-control)
+      }
+      .audio-buttons{flex-wrap:wrap;max-width:100%;min-width:0}
+      .audio-buttons button{width:max(44px,var(--ui-touch));min-width:max(44px,var(--ui-touch));height:max(44px,var(--ui-touch))}
+      .tuner-readout :is(#tuner-note,#tuner-cents){font-size:1.125rem;line-height:1.3}
+      .tuner-preferences{max-block-size:55dvh;overflow:auto;overscroll-behavior:contain;flex-wrap:wrap}
+      :where(a,button,summary,input,select,textarea,[tabindex]):focus-visible{outline:3px solid var(--ui-focus);outline-offset:2px}
+      .launch-mode input:focus-visible + span{outline:3px solid var(--ui-focus);outline-offset:-3px}
+      :is(button,summary,input,select,textarea,a,[tabindex]):focus-visible{outline-color:var(--ui-focus)}
+      :is(#appearance-toggle,#close-launch-settings,.layout-disclosure>summary,.cello-scale-score,.audio-tools :focus-visible):focus-visible{outline-color:var(--ui-focus)}
+      :is(.draw-button,.room-action,.exercise-jump,.scale-practice-button,.launch-options-toggle,.audio-buttons button):active:not(:disabled){box-shadow:inset 0 0 0 2px currentColor}
+      @media(max-width:20em){
+        .launch-controls{gap:.375rem}
+        .launch-mode span{padding-inline:.375rem}
+        .launch-controls #draw-button{padding-inline:.375rem}
+        .scale-practice>.scale-practice-action{gap:.375rem}
+        .audio-tools:has(#tuner-panel:not([hidden])){flex-wrap:wrap}
+        .audio-tools:has(#tuner-panel:not([hidden])) .audio-controls{flex-basis:100%}
+      }
+      @media(max-width:16em){
+        .launch-controls{grid-template-columns:minmax(0,1fr) max(44px,var(--ui-touch))}
+        .launch-controls>.launch-mode{grid-column:1 / -1;width:max-content;max-width:100%}
+        .audio-tools{flex-wrap:wrap}
+        .audio-controls{flex-basis:100%}
+      }
+      @media(prefers-reduced-motion:reduce){
+        html{scroll-behavior:auto}
+        .key-panel,.audio-tools,.audio-needle,.audio-band{transition:none!important}
+      }
+      @media(forced-colors:active){
+        .launch-mode input:checked + span{border-color:Highlight;color:Highlight}
+        .launch-mode input:focus-visible + span{outline-color:Highlight}
+      }
+    }
   </style>
 </head>
 <body>
@@ -968,7 +1055,7 @@
     <select id="appearance-choice">
       <option value="light">淺色</option><option value="dark">深色</option><option value="system">跟隨系統</option>
     </select>
-  </label><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261123-029-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  </label><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261123-030-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>

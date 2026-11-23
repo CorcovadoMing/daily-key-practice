@@ -98,3 +98,7 @@ The same experimental release modestly increases iOS Safari metronome peak from 
 琶音可像音階一樣點音、移弦、選指、批次確認，並支援撤銷、選取／全部還原及離開時儲存或放棄。上下行共用一份琶音指法；音階一／兩八度切換不影響兩八度琶音。琶音使用獨立的本機儲存欄位，不套用或覆寫既有音階自訂資料。20261118-010 教室琶音同步使用獨立確認與草稿資料：確認後同步保存至各裝置的本機琶音指法，未確認的草稿不保存。音階原有資料不變。配套 Firebase 規則已經使用者確認並部署；琶音與音階使用獨立資料區域。
 
 驗證：`node --test tests/*.test.cjs`；`JSDOM_MODULE=/path/to/jsdom node qa/arpeggio-editor.cjs`。DOM 模擬不代表 iOS 實機觸控驗收。
+
+### Experimental interface polish
+
+The experimental site applies web adaptations of the [Apple Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/): a scalable system-font hierarchy with Traditional Chinese fallbacks, paired radio choices and consistent minimum touch areas for common actions, visible focus and pressed states, and responsive controls that wrap without changing order. The fifths chooser retains its compact circular map rather than overlapping larger tap targets. The screen-only styling leaves printed notation and all practice, classroom, audio, and history behavior unchanged.
