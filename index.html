@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261123-020-experimental">
+  <meta name="site-version" content="20261123-021-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -18,7 +18,7 @@
       function apply() {
         const dark = appearance === 'dark' || (appearance === 'system' && media?.matches);
         env.document.documentElement.dataset.appearance = dark ? 'dark' : 'light';
-        env.document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#151a18' : '#f7f6f2');
+        env.document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#16191d' : '#f7f6f2');
       }
       apply();
       if (media?.addEventListener) media.addEventListener('change', apply);
@@ -604,80 +604,171 @@
     @media(max-width:810px){.display-settings{flex-direction:row;align-items:center;justify-content:space-between}}
     @media print{.theme-choice{display:none}}
     @media screen{
-      :root[data-appearance=dark]{color-scheme:dark;--page:#151a18;--paper:#212a25;--ink:#e7eee8;--muted:#b5c5b9;--line:#485b50;--accent:#344b3d;--accent-ink:#c4ead0;--minor:#443b51;--minor-ink:#e2d1f0;--soft:#29372f;--shadow:none;--theme-high:#2e3e35;--theme-green:#b5e6bd;--theme-blue:#b9dcf7;--theme-gold:#ffe0a3;--theme-red:#ffb9ad}
+      :root[data-appearance=dark]{color-scheme:dark;--page:#16191d;--paper:#21252b;--ink:#eef1f5;--muted:#b9c3cf;--line:#515c69;--accent:#37414d;--accent-ink:#dce7f3;--minor:#3c414a;--minor-ink:#dbe3ed;--soft:#292e36;--shadow:none;--theme-high:#323a43;--theme-green:#b5e6bd;--theme-blue:#b9dcf7;--theme-gold:#ffe0a3;--theme-red:#ffb9ad}
       [data-appearance=dark] :is(.experiment-roadmap,.experiment-roadmap-items li,.classroom-bar,.key-filter,.counter-item,.room-code-display,.room-action,.room-join-line input,.practice-stat,.signature-card,.key-card,.key-group,.history-panel,.history-row,.history-choice-dialog,.practice-float,.finger-dialog,.cello-leave-dialog,.cello-scale-score,.cello-fb-direction,.teacher-fingerboard,.scale-practice-coach,.scale-pitch-chart,.student-note-dialog textarea){background:var(--paper);border-color:var(--line);color:var(--ink)}
       [data-appearance=dark] :is(.key-card.is-expanded,.music-exercise-block,.counter-list,.preset-area,.cello-inline-editor,.cello-fb-viewport,.teacher-fb-scroll,.teacher-memo,.room-join-form,.ordered-practice,.history-chip,.scale-practice-action,.scale-pitch-track){background:var(--soft);border-color:var(--line);color:var(--ink)}
       [data-appearance=dark] :is(.scale-pitch-slot:nth-child(even) .scale-pitch-track,.scale-pitch-slot:last-child .scale-pitch-track){border-color:var(--line)}
       [data-appearance=dark] :is(.result-summary,.key-card.done,.cello-fb-group,.cello-fb-legend,.fingering-note,.teacher-note-status,.online-count,.history-empty,.empty-graphic){background:var(--soft);color:var(--ink);border-color:var(--line)}
       [data-appearance=dark] :is(button,select,input:not([type=range]):not([type=checkbox]),textarea){color:var(--ink);border-color:var(--line)}
-      [data-appearance=dark] :is(.room-action,.icon-button,.preset,.stepper button,.filter-all,.filter-key,.show-scales,.history-replay,.history-delete,.practice-jump,.practice-quick-list button,.cello-fb-button,.cello-inline-editor button,.teacher-tools button,.student-note-button,.scale-practice button,.scale-practice select,.audio-tools button,.audio-tools input,.audio-tools select,.theme-choice select){background:var(--theme-high);border-color:#6b8072;color:var(--ink)}
-      [data-appearance=dark] :is(.filter-key[aria-pressed=false],.fifths-pair .filter-key[aria-pressed=false],.ordered-practice-button,.key-expand,.fingering-edit,.history-choice-actions button,.finger-form-actions button,.teacher-finger-button,.cello-leave-keep,.scale-practice-detector,.scale-practice-choice[data-locked=true]){background:var(--theme-high);color:var(--ink);border-color:#6b8072}
-      [data-appearance=dark] :is(.filter-key[aria-pressed=true],.fifths-pair .filter-key[aria-pressed=true],.preset.active,.key-expand[aria-expanded=true],.cello-fb-button[aria-pressed=true],.cello-inline-choice[aria-pressed=true],.cello-inline-finger[aria-pressed=true],.teacher-note-pill[aria-pressed=true],.teacher-finger-button[aria-pressed=true],.history-choice-actions button.primary,.finger-form-actions button.primary,.practice-jump.is-active){background:#365943;color:#effff3}
-      [data-appearance=dark] .teacher-note-pill[aria-pressed=true]{background:#365943;color:#effff3}
-      [data-appearance=dark] .fifths-pair .filter-key.minor[aria-pressed=true]{background:#604f73;color:#f1e8fa}
-      [data-appearance=dark] :is(.history-chip.done,.practice-jump.is-done){background:#334039;color:var(--muted)}
+      [data-appearance=dark] :is(.room-action,.icon-button,.preset,.stepper button,.filter-all,.filter-key,.show-scales,.history-replay,.history-delete,.practice-jump,.practice-quick-list button,.cello-fb-button,.cello-inline-editor button,.teacher-tools button,.student-note-button,.scale-practice button,.scale-practice select,.audio-tools button,.audio-tools input,.audio-tools select,.theme-choice select){background:var(--theme-high);border-color:#6d7a8a;color:var(--ink)}
+      [data-appearance=dark] :is(.filter-key[aria-pressed=false],.fifths-pair .filter-key[aria-pressed=false],.ordered-practice-button,.key-expand,.fingering-edit,.history-choice-actions button,.finger-form-actions button,.teacher-finger-button,.cello-leave-keep,.scale-practice-detector,.scale-practice-choice[data-locked=true]){background:var(--theme-high);color:var(--ink);border-color:#6d7a8a}
+      [data-appearance=dark] :is(.filter-key[aria-pressed=true],.fifths-pair .filter-key[aria-pressed=true],.preset.active,.key-expand[aria-expanded=true],.cello-fb-button[aria-pressed=true],.cello-inline-choice[aria-pressed=true],.cello-inline-finger[aria-pressed=true],.teacher-note-pill[aria-pressed=true],.teacher-finger-button[aria-pressed=true],.history-choice-actions button.primary,.finger-form-actions button.primary,.practice-jump.is-active){background:#445970;color:#eff5fd}
+      [data-appearance=dark] .teacher-note-pill[aria-pressed=true]{background:#445970;color:#eff5fd}
+      [data-appearance=dark] .fifths-pair .filter-key.minor[aria-pressed=true]{background:#4b596b;color:#eaf0f8}
+      [data-appearance=dark] :is(.history-chip.done,.practice-jump.is-done){background:#363e47;color:var(--muted)}
       [data-appearance=dark] :is(.history-replay,.cello-inline-undo,.cello-inline-range,.cello-inline-range[aria-pressed=true]){background:#2e4354;color:var(--theme-blue);border-color:#7192aa}
       [data-appearance=dark] :is(.cello-inline-reset,.cello-inline-restore-selected,.cello-leave-discard,.history-delete:hover){background:#513636;color:var(--theme-red);border-color:#a7655d}
-      [data-appearance=dark] :is(.history-choice-actions button.cancel,.scale-practice-choice:hover,.scale-practice-button:hover,.icon-button:hover,.ordered-practice-button:hover:not(:disabled),.fingering-edit:hover,.practice-jump:hover){background:#415c4a;color:var(--ink)}
-      [data-appearance=dark] .empty-graphic::before,[data-appearance=dark] .empty-graphic::after{background:#708d79}
+      [data-appearance=dark] :is(.history-choice-actions button.cancel,.scale-practice-choice:hover,.scale-practice-button:hover,.icon-button:hover,.ordered-practice-button:hover:not(:disabled),.fingering-edit:hover,.practice-jump:hover){background:#435268;color:var(--ink)}
+      [data-appearance=dark] .empty-graphic::before,[data-appearance=dark] .empty-graphic::after{background:#75889e}
       [data-appearance=dark] :is(.cello-legend-title,.cello-inline-status,.cello-inline-label,.cello-inline-open,.cello-inline-hint,.cello-fb-sequence,.cello-leave-dialog p,.finger-form p,.finger-form label,.fingering-pattern,.teacher-memo summary){color:var(--muted)}
       [data-appearance=dark] :is(.fingering-changed,.cello-fb-changed){color:var(--theme-red)}
       [data-appearance=dark] :is(.cello-fb-remote-label,.history-panel-heading.classroom){color:var(--theme-blue)}
       [data-appearance=dark] .room-code-display strong{color:var(--theme-green)}
       [data-appearance=dark] .room-code-display small{color:var(--muted)}
-      [data-appearance=dark] .cello-legend-dot.open{background:var(--soft)!important;border-color:#afc8b6}
-      [data-appearance=dark] .cello-fb-svg circle[fill="#f7f9f6"][stroke="#34483a"]{stroke:#afc8b6}
+      [data-appearance=dark] .cello-legend-dot.open{background:var(--soft)!important;border-color:#b4c1d0}
+      [data-appearance=dark] .cello-fb-svg circle[fill="#f7f9f6"][stroke="#34483a"]{stroke:#b4c1d0}
       [data-appearance=dark] .scale-pitch-slot:nth-child(even) .scale-pitch-track{background:var(--paper)}
-      [data-appearance=dark] .scale-pitch-track::before{border-color:#a1b8a9}
+      [data-appearance=dark] .scale-pitch-track::before{border-color:#a3b1c3}
       [data-appearance=dark] :is(.experiment-roadmap,.experiment-roadmap-heading span,.experiment-roadmap-scope,.experiment-roadmap-items small,.intro .eyebrow,h1 em,.classroom-bar p,.room-status,.room-join-form label,.online-count,.code-caption,.section-number,.filter-explain,.filter-status,.filter-subhead,.counter-desc,.control-note,.key-secondary,.key-relative,.signature-label,.history-date,.history-empty,.practice-float-title,.fingering-title,.fingering-remark,.cello-fb-caption,.cello-fb-direction-heading,.cello-legend-note,.teacher-open-label,.teacher-finger-label,.teacher-editor-help,.scale-practice-status,.scale-practice-latest,.practice-coach-opt-in,.scale-pitch-title,.scale-pitch-slot,.scale-pitch-legend,.audio-scale,.a4-control span,.tuner-readout #tuner-cents){color:var(--muted)}
       [data-appearance=dark] :is(.filter-key.minor,.history-chip.minor){background:var(--minor);color:var(--minor-ink)}
-      [data-appearance=dark] :is(.draw-button,.room-action.primary,.filter-key[aria-pressed=true],.preset[aria-pressed=true],.stepper button:hover,.audio-tools button[aria-pressed=true],.scale-practice-button,.scale-practice-merge,.scale-practice-coach-action,.cello-inline-save,.cello-leave-save){background:#365943;color:#effff3;border-color:#79988a}
+      [data-appearance=dark] :is(.draw-button,.room-action.primary,.filter-key[aria-pressed=true],.preset[aria-pressed=true],.stepper button:hover,.audio-tools button[aria-pressed=true],.scale-practice-button,.scale-practice-merge,.scale-practice-coach-action,.cello-inline-save,.cello-leave-save){background:#445970;color:#eff5fd;border-color:#7d93ad}
       [data-appearance=dark] :is(.key-complete[aria-pressed=true],.check-circle,.progress-fill,.key-dot){background:#6ab68a;color:#11241a}
-      [data-appearance=dark] :is(.progress-track,.audio-meter){background:#304338}
+      [data-appearance=dark] :is(.progress-track,.audio-meter){background:#333c47}
       [data-appearance=dark] :is(.filter-warning,.student-note-button.has-note,.teacher-note-pill){background:#493a24;color:var(--theme-gold);border-color:#867044}
-      [data-appearance=dark] :is(#metro-settings,#tuner-settings):hover,[data-appearance=dark] :is(.key-expand,.key-complete,.cello-inline-choices button):hover{background:#415c4a}
+      [data-appearance=dark] :is(#metro-settings,#tuner-settings):hover,[data-appearance=dark] :is(.key-expand,.key-complete,.cello-inline-choices button):hover{background:#435268}
       [data-appearance=dark] :is(button,select,input,textarea,[tabindex]):focus-visible{outline-color:#a0d3f6}
-      [data-appearance=dark] .fifths-circle{background:radial-gradient(circle,transparent 49%,#698474 49.5%,#698474 50%,transparent 50.5%)}
+      [data-appearance=dark] .fifths-circle{background:radial-gradient(circle,transparent 49%,#687b91 49.5%,#687b91 50%,transparent 50.5%)}
       [data-appearance=dark] .scale-practice,[data-appearance=dark] .cello-scale-score{--practice-green:#9cdaa8;--practice-yellow:#f4d485;--practice-red:#f4a69c}
       [data-appearance=dark] .cello-scale-score :is([fill="#222"],[fill="#647461"]){fill:var(--ink)}
-      [data-appearance=dark] .cello-scale-score :is([stroke="#222"],[stroke="#444"],[stroke="#777"],[stroke="#647461"]){stroke:#b9cbc0}
+      [data-appearance=dark] .cello-scale-score :is([stroke="#222"],[stroke="#444"],[stroke="#777"],[stroke="#647461"]){stroke:#b9c8d8}
       [data-appearance=dark] .cello-scale-score [data-practice-band] ellipse{fill:var(--practice-tone)}
       [data-appearance=dark] .cello-scale-score :is([data-practice-band],[data-practice-current=true]) .scale-stem{stroke:var(--practice-tone)}
-      [data-appearance=dark] .cello-scale-score [data-practice-next=true]:not([data-practice-band]) ellipse{fill:none;stroke:#c7dbcc}
-      [data-appearance=dark] .cello-scale-score [data-practice-next=true]:not([data-practice-band]) .scale-stem{stroke:#c7dbcc}
+      [data-appearance=dark] .cello-scale-score [data-practice-next=true]:not([data-practice-band]) ellipse{fill:none;stroke:#cbd7e5}
+      [data-appearance=dark] .cello-scale-score [data-practice-next=true]:not([data-practice-band]) .scale-stem{stroke:#cbd7e5}
       [data-appearance=dark] .cello-fb-svg :is(rect,circle)[fill="#f7f9f6"]{fill:var(--soft)}
-      [data-appearance=dark] .cello-fb-svg :is([stroke="#34483a"],[stroke="#a8b9aa"],[stroke="#e3eae2"]){stroke:#809687}
+      [data-appearance=dark] .cello-fb-svg :is([stroke="#34483a"],[stroke="#a8b9aa"],[stroke="#e3eae2"]){stroke:#8494a8}
       [data-appearance=dark] .cello-fb-svg :is([fill="#273c2e"],[fill="#34483a"],[fill="#34513d"],[fill="#889a8e"]){fill:var(--ink)}
       [data-appearance=dark] .cello-fb-svg [stroke="#273c2e"]{stroke:var(--ink)}
       [data-appearance=dark] .scale-pitch-track [data-band=center]{--practice-ink:var(--theme-green)}
       [data-appearance=dark] .scale-pitch-track [data-band=near]{--practice-ink:var(--theme-gold)}
       [data-appearance=dark] .scale-pitch-track [data-band=outside]{--practice-ink:var(--theme-red)}
       [data-appearance=dark] .scale-pitch-current{background:var(--page)}
+      [data-appearance=dark] .scale-pitch-history-dot[data-band=outside]{--practice-ink:#f29a96}
       [data-appearance=dark] .scale-pitch-cents[data-band=center]{color:var(--theme-green)}
       [data-appearance=dark] .scale-pitch-cents[data-band=near]{color:var(--theme-gold)}
       [data-appearance=dark] :is(.scale-pitch-cents[data-band=outside],.audio-error){color:var(--theme-red)!important}
-      [data-appearance=dark] .audio-needle{background:#f8fffa;box-shadow:0 0 0 1px #263d2f}
-      [data-appearance=dark] .audio-needle:is([data-band=green],[data-band=yellow],[data-band=red]){background:#172018}
+      [data-appearance=dark] .audio-needle{background:#f5f8fc;box-shadow:0 0 0 1px #202835}
+      [data-appearance=dark] .audio-needle:is([data-band=green],[data-band=yellow],[data-band=red]){background:#161c23}
+    }
+    /* Practice-first layout. Secondary panels keep their original live controls. */
+    .session-intro{display:block;padding:24px 0 15px}
+    .session-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+    .session-heading h1{font-size:clamp(27px,5vw,43px);letter-spacing:-.07em;line-height:1.16;margin:0 0 7px}
+    .session-heading .date-label{text-align:left;font-size:11px;line-height:1.3}
+    .session-heading .date-label strong{font-size:12px;display:inline;margin:0 0 0 4px}
+    .session-launch{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin:13px 0 0}
+    .session-launch .draw-button{width:auto;min-height:46px;max-width:100%;margin:0;padding:9px 13px;font-size:14px;gap:8px}
+    .session-launch[data-resume=true] #draw-button{background:var(--paper);color:var(--ink);border:1px solid var(--line);font-size:12px}
+    .session-launch #session-launch-note{flex:1 1 100%;line-height:1.35;font-size:12px;color:var(--muted);margin:0}
+    .session-shortcuts{display:flex;gap:14px;margin-top:5px}
+    .session-shortcuts a{display:inline-flex;align-items:center;min-height:34px;font-size:12px;color:var(--muted);text-underline-offset:3px}
+    .session-shortcuts a:focus-visible{outline:2px solid #4c81b3;outline-offset:2px}
+    .workspace{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-items:start}
+    .workspace .result-panel{min-height:0;padding:14px;margin:0}
+    .workspace .result-panel .panel-head{margin:0 0 8px}
+    .workspace .result-panel .empty-state{min-height:0;padding:6px 0 10px;align-items:flex-start;text-align:left}
+    .workspace .result-panel .empty-state h3{font-size:14px;margin:0 0 4px}
+    .workspace .result-panel .empty-state p{font-size:12px;margin:0}
+    .workspace .empty-graphic{display:none}
+    .workspace .setup-stack{display:grid;grid-template-columns:minmax(0,1fr);gap:7px}
+    .layout-disclosure{min-width:0;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:10px;overflow:clip}
+    .layout-disclosure>summary{min-height:44px;padding:9px 11px;display:list-item;cursor:pointer;font-weight:700;font-size:13px;line-height:24px}
+    .layout-disclosure>summary:focus-visible,.exercise-jump:focus-visible{outline:2px solid #4c81b3;outline-offset:-2px}
+    .layout-disclosure>summary small{margin-left:5px;color:var(--muted);font-size:10px;white-space:nowrap}
+    .layout-disclosure[open]>summary{border-bottom:1px solid var(--line)}
+    .layout-disclosure>:not(summary){margin:8px}
+    .classroom-access{display:flex;align-items:flex-start;min-width:0;gap:7px}
+    .classroom-access>details{flex:1;min-width:0}
+    .classroom-access>#room-leave{min-height:44px}
+    .layout-disclosure>.classroom-bar{flex-wrap:wrap;box-shadow:none;padding:12px;min-width:0}
+    .layout-disclosure .room-actions{min-width:min(100%,245px)}
+    .layout-disclosure>.key-filter{margin:8px;padding:10px}
+    .layout-disclosure>.ordered-practice{margin:8px}
+    .layout-disclosure .filter-heading{flex-wrap:wrap}
+    .appearance-disclosure{flex-shrink:0}
+    .appearance-disclosure>summary{font-size:12px;padding:6px 7px;line-height:30px}
+    .appearance-disclosure .theme-choice{margin:4px 7px}
+    .history-access{margin:16px 0 0}
+    .history-access .history-section{padding:0}
+    .history-access .history-heading{margin:12px 0}
+    .history-access .history-heading h2{font-size:17px}
+    .key-card.is-expanded{overflow:clip}
+    .exercise-nav{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px;background:var(--paper);position:sticky;top:0;z-index:3}
+    .exercise-active-stop{display:none;margin-left:auto}
+    .cello-fingerboard:has(.scale-practice:is([data-phase=listening],[data-phase=pending])) .exercise-active-stop{display:block}
+    .exercise-jump{min-height:44px;min-width:64px;padding:6px 12px;border:1px solid var(--line);border-radius:9px;color:var(--ink);background:var(--paper);font-size:13px;font-weight:750}
+    .music-exercise-block{scroll-margin-top:58px}
+    .exercise-disclosure.fingerboard-section,.exercise-disclosure.arpeggio-fingerboard{padding:0;border:1px solid var(--line);margin:5px 0 0}
+    .exercise-disclosure>summary{margin:0}
+    .scale-practice>.scale-practice-action{border:0;background:none}
+    .scale-practice>.scale-practice-action button{border-radius:9px;padding-inline:12px;background:#edf4ed;border:1px solid #8da692}
+    .scale-practice>.scale-practice-action button:hover{background:#dcebdd}
+    .practice-options{align-self:flex-start}
+    .practice-options>summary{font-size:12px;padding-inline:9px}
+    .practice-options .scale-practice-choice{border:1px solid var(--line);border-radius:9px;margin:5px;min-width:72px}
+    .practice-options .scale-practice-detector{margin:5px}
+    .scale-practice-status{flex-basis:100%}
+    .scale-practice-history-actions{order:3}
+    .scale-practice-coach{order:3}
+    .scale-practice-saved-history{order:4}
+    @media(max-width:390px){
+      .session-heading h1{font-size:25px}
+      .session-launch .draw-button{min-height:44px}
+      .workspace .result-panel{padding:10px}
+    }
+    @media(min-width:920px){
+      .workspace{grid-template-columns:minmax(0,2.35fr) minmax(235px,1fr);gap:14px}
+      .session-intro{padding-top:34px}
+    }
+    @media screen{
+      [data-appearance=dark] :is(.draw-button,.scale-practice>.scale-practice-action button){background:#9db5ce;color:#131c27;border-color:#aabed5}
+      [data-appearance=dark] :is(.draw-button,.scale-practice>.scale-practice-action button):hover:not(:disabled){background:#b6c9dc;color:#131c27}
+      [data-appearance=dark] :is(.scale-practice-coach-action,.scale-practice-merge,.room-action.primary,.cello-inline-save,.cello-leave-save){background:#363d46;color:var(--ink);border-color:#7a8797}
+      [data-appearance=dark] .session-launch[data-resume=true] #draw-button{background:var(--paper);color:var(--ink);border-color:var(--line)}
+      [data-appearance=dark] :is(.layout-disclosure,.exercise-jump){background:var(--paper);color:var(--ink);border-color:var(--line)}
+      [data-appearance=dark] .scale-practice>.scale-practice-action{background:none}
+    }
+    @media print{
+      .session-launch,.session-shortcuts,.appearance-disclosure,.exercise-nav,.practice-options{display:none!important}
+      .exercise-disclosure[open]>summary{border:0}
     }
   </style>
 </head>
 <body>
   <main class="container">
-    <p id="practice-coach-opt-in" class="practice-coach-opt-in" hidden>Qwen3 練習建議已啟用。停止音階或琶音練習後，再按該項的「練習建議」。 <a id="practice-coach-disable" href="?coach=0">停用練習建議</a></p>
-    <section class="intro" aria-labelledby="page-title">
-      <div>
-        <div class="eyebrow">A little surprise in every scale</div>
-        <h1 id="page-title">弓弦的<em>每日音階練習</em></h1>
-        <p>挑好想練的調性，讓一點隨機帶來每天的新挑戰。<br>12 個大調、12 個古典旋律小調，從音階開始，拉出更好的聲音。</p>
+    <section class="intro session-intro" aria-labelledby="page-title">
+      <div class="session-heading">
+        <div>
+          <h1 id="page-title">弓弦的<em>每日音階練習</em></h1>
+          <p class="date-label">今天 <strong id="today-label">—</strong></p>
+        </div>
+        <details class="layout-disclosure appearance-disclosure" id="appearance-settings">
+          <summary>外觀</summary>
+          <label class="theme-choice" for="appearance-choice">配色
+            <select id="appearance-choice">
+              <option value="light">淺色</option><option value="dark">深色</option><option value="system">跟隨系統</option>
+            </select>
+          </label>
+        </details>
       </div>
-      <div class="display-settings">
-        <label class="theme-choice" for="appearance-choice">外觀
-          <select id="appearance-choice">
-            <option value="light">淺色</option><option value="dark">深色</option><option value="system">跟隨系統</option>
-          </select>
-        </label>
-        <div class="date-label">TODAY <strong id="today-label">—</strong></div>
+      <div class="session-launch" id="session-launch">
+        <button type="button" id="resume-practice" class="draw-button" hidden>繼續練習</button>
+        <button type="button" id="draw-button" class="draw-button"><span class="button-icon" aria-hidden="true">✦</span><span id="draw-text">抽取今日練習調性</span><svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
+        <p id="session-launch-note" aria-live="polite"></p>
       </div>
+      <nav class="session-shortcuts" aria-label="其他練習功能">
+        <a href="#draw-settings">抽籤設定</a><a href="#classroom-settings">課堂同步</a><a href="#history-settings">練習紀錄</a>
+      </nav>
     </section>
 
     <aside class="audio-tools" aria-label="練習工具">
@@ -700,9 +791,34 @@
     </aside>
 
     <div class="workspace">
+      <section class="panel result-panel" aria-labelledby="results-title">
+        <div class="panel-head">
+          <h2 class="panel-title" id="results-title">今日練習清單</h2>
+          <span class="section-number" id="result-placeholder-code">02 / PRACTICE</span>
+        </div>
+        <div class="empty-state" id="empty-state">
+          <div class="empty-graphic" aria-hidden="true"><img alt="" width="144" height="144" decoding="async" src="data:image/webp;base64,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"></div>
+          <h3>你的今日練習，等著開始。</h3>
+          <p>按上方抽籤即可以上次的設定開始，或先展開選擇調性。</p>
+        </div>
+        <div class="result-content" id="result-content">
+          <div class="result-summary">
+            <div class="summary-top"><span>今日完成進度</span><strong id="progress-text">0 / 4</strong></div>
+            <div class="progress-track" role="progressbar" id="progress-track" aria-label="今日練習進度" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0"><div class="progress-fill" id="progress-fill"></div></div>
+          </div>
+          <div id="key-groups"></div>
+          <div class="result-bottom">
+            <span class="caption">點圓圈標記完成；點標題或右側箭頭展開／摺疊音階與指板，或點下方調性快速跳轉。</span>
+            <nav class="practice-quick-list" id="bottom-practice-nav" aria-label="快速跳轉練習調性"></nav>
+          </div>
+
+        </div>
+      </section>
       <div class="setup-stack">
-      <div class="setup-sidebar">
-    <section class="classroom-bar" aria-labelledby="classroom-heading">
+      <div class="classroom-access">
+      <details class="layout-disclosure" id="classroom-settings">
+        <summary>課堂同步 <small id="classroom-mode-pill" hidden>連線中</small></summary>
+        <section class="classroom-bar" aria-labelledby="classroom-heading">
       <div>
         <h2 id="classroom-heading">課堂同步模式 · CLASSROOM</h2>
         <p>老師建立房間後告訴學生六位數房號；學生只需輸入數字，即可同步抽籤和練習進度。</p>
@@ -726,19 +842,22 @@
         <div class="room-buttons">
           <button type="button" class="room-action primary" id="room-create">建立同步房間</button>
           <button type="button" class="room-action" id="room-copy" hidden>複製邀請連結（選用）</button>
-          <button type="button" class="room-action" id="room-leave" hidden>離開房間</button>
         </div>
       </div>
-    </section>
-      <section class="practice-stats" aria-labelledby="practice-stats-title">
+        </section>
+      </details>
+      <button type="button" class="room-action" id="room-leave" hidden>離開房間</button>
+      </div>
+      <details class="layout-disclosure" id="accumulated-settings">
+        <summary>累積練習與調性筆記</summary>
+        <section class="practice-stats" aria-labelledby="practice-stats-title">
         <h3 id="practice-stats-title">累積練習</h3>
         <p>依此瀏覽器保留的個人與課堂紀錄，每個調在每筆紀錄完成算 1 次；刪除紀錄也會扣除。點調性可寫私人筆記，與每日練習卡共用。</p>
         <div id="practice-stats-grid" class="practice-stats-grid"></div>
-      </section>
-      </div>
-
-      <section class="panel" aria-labelledby="settings-title">
-        <div class="panel-head"><h2 class="panel-title" id="settings-title">設定抽籤數量</h2><span class="section-number">01 / SETUP</span></div>
+        </section>
+      </details>
+      <details class="layout-disclosure" id="key-pool-settings">
+        <summary>選擇調性 · 五度圈</summary>
         <section class="key-filter" aria-labelledby="key-filter-title">
           <div class="filter-heading">
             <h3 id="key-filter-title">今天要練哪些調？</h3>
@@ -749,6 +868,9 @@
           <div class="filter-status" role="group" aria-labelledby="filter-status-heading"><h4 class="filter-status-heading" id="filter-status-heading">已選取</h4><span>大調 <b id="major-eligible">12 / 12</b></span><span>古典旋律小調 <b id="minor-eligible">12 / 12</b></span></div>
           <p id="filter-warning" class="filter-warning" role="status" hidden></p>
         </section>
+      </details>
+      <details class="layout-disclosure" id="draw-settings">
+        <summary>抽籤數量與快速設定</summary>
         <div class="counter-list">
           <div class="counter-item">
             <div><div class="counter-name"><i class="key-dot" aria-hidden="true"></i>大調 <span class="caption">MAJOR</span></div><div class="counter-desc" id="major-available">12 個大調可抽</div></div>
@@ -765,8 +887,10 @@
           <button type="button" class="preset" data-major="3" data-minor="3">3 大調 + 3 小調</button>
           <button type="button" class="preset" data-major="6" data-minor="6">6 大調 + 6 小調</button>
         </div></div>
-        <button type="button" id="draw-button" class="draw-button"><span class="button-icon" aria-hidden="true">✦</span><span id="draw-text">抽取今日練習調性</span><svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
         <p class="control-note">每種調性最多 12 個；同一組不會抽到重複調性。</p>
+      </details>
+      <details class="layout-disclosure" id="sequential-settings">
+        <summary>循序練習</summary>
         <div class="ordered-practice" aria-label="循序練習">
           <div class="ordered-practice-copy">
             <strong>循序練習 <span>依調號</span></strong>
@@ -774,35 +898,18 @@
           </div>
           <button type="button" id="ordered-button" class="ordered-practice-button">開始循序練習</button>
         </div>
-      </section>
+      </details>
+      <details class="layout-disclosure" id="practice-coach-opt-in" hidden>
+        <summary>AI 練習建議 <small>已啟用</small></summary>
+        <p class="practice-coach-opt-in">停止音階或琶音練習後，再按該項的「練習建議」。 <a id="practice-coach-disable" href="?coach=0">停用練習建議</a></p>
+      </details>
       </div>
 
-      <section class="panel result-panel" aria-labelledby="results-title">
-        <div class="panel-head">
-          <h2 class="panel-title" id="results-title">今日練習清單</h2>
-          <span class="section-number" id="result-placeholder-code">02 / PRACTICE</span>
-        </div>
-        <div class="empty-state" id="empty-state">
-          <div class="empty-graphic" aria-hidden="true"><img alt="" width="144" height="144" decoding="async" src="data:image/webp;base64,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"></div>
-          <h3>你的今日練習，等著開始。</h3>
-          <p>選好大調與小調的數量，按下抽籤，讓今天的音樂有個方向。</p>
-        </div>
-        <div class="result-content" id="result-content">
-          <div class="result-summary">
-            <div class="summary-top"><span>今日完成進度</span><strong id="progress-text">0 / 4</strong></div>
-            <div class="progress-track" role="progressbar" id="progress-track" aria-label="今日練習進度" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0"><div class="progress-fill" id="progress-fill"></div></div>
-          </div>
-          <div id="key-groups"></div>
-          <div class="result-bottom">
-            <span class="caption">點圓圈標記完成；點標題或右側箭頭展開／摺疊音階與指板，或點下方調性快速跳轉。</span>
-            <nav class="practice-quick-list" id="bottom-practice-nav" aria-label="快速跳轉練習調性"></nav>
-          </div>
-
-        </div>
-      </section>
     </div>
 
-    <section class="history-section" aria-labelledby="history-title">
+    <details class="layout-disclosure history-access" id="history-settings">
+      <summary>最近的練習紀錄</summary>
+      <section class="history-section" aria-labelledby="history-title">
       <div class="history-heading"><h2 id="history-title">最近的練習紀錄</h2><span class="caption">兩種紀錄分開保存於目前瀏覽器</span></div>
       <div class="history-columns">
         <section class="history-panel" aria-labelledby="personal-history-title">
@@ -814,9 +921,10 @@
           <div class="history-list" id="classroom-history-list"></div>
         </section>
       </div>
-    </section>
+      </section>
+    </details>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261123-020-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261123-021-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -1805,7 +1913,7 @@
       }
     });
     choice.append(choiceLabel, selector);
-    action.append(button,choice);
+    action.append(button);
     let detector;
     if (kind === 'scale') {
       detector = document.createElement('select');
@@ -2190,16 +2298,21 @@
       // of chart nodes for cards where listening has not been used.
       if (!chart && (next !== 'idle' || display?.final)) {
         chart = pitchChart(target, name);
-        if (savedChart) element.insertBefore(chart.element,savedChart.element);
+        const afterChart=historyButtons || coachPanel || savedChart?.element;
+        if (afterChart) element.insertBefore(chart.element,afterChart);
         else element.append(chart.element);
       }
       if (chart && (next !== 'idle' || display?.final)) chart.element.hidden = false;
       chart?.update(display?.chartValues ? {...display,values:display.chartValues} : display);
     }};
     button.addEventListener('click', () => toggle(view));
-    element.append(action);
-    if (detector) element.append(detector);
-    element.append(status,latest);
+    const options=document.createElement('details');
+    options.className='layout-disclosure practice-options';
+    const optionsTitle=document.createElement('summary');
+    optionsTitle.textContent='練習設定';
+    options.append(optionsTitle,choice);
+    if (detector) options.append(detector);
+    element.append(action,options,status,latest);
     if (historyButtons) element.append(historyButtons);
     if (coachPanel) element.append(coachPanel);
     const restored = ownsDraft() ? restoreGraph(newestDraft) : null;
@@ -2211,7 +2324,7 @@
 });
 // SCALE_PRACTICE_END
   </script>
-  <script src="fingerboard.js?v=20261123-019"></script>
+  <script src="fingerboard.js?v=20261123-021"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
@@ -2531,6 +2644,8 @@
       const historyChanged=id?archiveClassroomSession(id,data):false;
       if(!id){sharedRoom=null;roomEditingPreviews={};roomArpeggioPreviews={};}
       else sharedRoom={id,arpeggioFingerings:data?.arpeggioFingerings||{},majorCount:clamp(data?.majorCount??2),minorCount:clamp(data?.minorCount??2),showScale:Boolean(data?.showScale),excludedKeys:Array.isArray(data?.excludedKeys)?data.excludedKeys:[],fingerings:data?.fingerings&&typeof data.fingerings==='object'?data.fingerings:{},session:data?.session?{...data.session,majorIds:Array.isArray(data.session.majorIds)?data.session.majorIds:[],minorIds:Array.isArray(data.session.minorIds)?data.session.minorIds:[],doneIds:Array.isArray(data.session.doneIds)?data.session.doneIds:[]}:null};
+      q('#classroom-mode-pill').hidden=!sharedRoom;
+      if(id&&previous?.id!==id)q('#classroom-settings').open=true;
       // Room updates must not destroy a teacher's unsaved batch edit. When only
       // confirmed fingerings / checkmarks change, update existing cards in place.
       if(previous&&sharedRoom&&roomLayoutSignature(previous)===roomLayoutSignature(sharedRoom)){
@@ -2582,6 +2697,49 @@
       state.preferences.minorCount=clamp(minor);
       persist();renderControls();
     }
+    // SESSION_LAUNCH_START
+    function validUnfinished(record){
+      if(!record||!Array.isArray(record.majorIds)||!Array.isArray(record.minorIds))return false;
+      const wellFormed=ids=>ids.every(i=>Number.isInteger(i)&&i>=0&&i<12)&&new Set(ids).size===ids.length;
+      if(!wellFormed(record.majorIds)||!wellFormed(record.minorIds))return false;
+      const progress=historyProgress(record);
+      return progress.total>0&&progress.count<progress.total;
+    }
+    function resumeCandidate(){
+      if(sharedRoom||replaySession)return null;
+      const current=currentSession();
+      if(validUnfinished(current))return {record:current,current:true};
+      const previous=state.personalHistory.filter(record=>
+        typeof record?.id==='string'&&validUnfinished(record))
+        .sort((a,b)=>(Number(b.drawnAt)||Number(b.createdAt)||0)-(Number(a.drawnAt)||Number(a.createdAt)||0))[0];
+      return previous?{record:previous,current:false}:null;
+    }
+    function updateSessionLaunch(){
+      const resume=resumeCandidate(),launch=q('#session-launch');
+      if(!launch)return;
+      const button=q('#resume-practice'),draw=q('#draw-button'),message=q('#session-launch-note');
+      button.hidden=!resume;
+      launch.dataset.resume=String(Boolean(resume));
+      if(resume){
+        const {count,total}=historyProgress(resume.record);
+        message.textContent=(resume.current?'目前清單':'最近未完成的個人紀錄')+' · 已完成 '+count+' / '+total+' 個調性';
+      }else if(draw.disabled){
+        message.textContent='先在「選擇調性」或「抽籤數量」調整候選。';
+      }else {
+        const options=visiblePreferences();
+        message.textContent=(sharedRoom?'課堂同步':'依上次設定')+' · '+options.majorCount+' 個大調、'+options.minorCount+' 個小調';
+      }
+    }
+    function resumePractice(){
+      refreshDate();
+      const resume=resumeCandidate();
+      if(!resume){updateSessionLaunch();return;}
+      if(!resume.current){replayHistoricalScale(resume.record,'personal',true);return;}
+      const done=historyProgress(resume.record).done;
+      const next=jumpOrder().find(id=>!done.has(id));
+      if(next)jumpToPractice(next);
+    }
+    // SESSION_LAUNCH_END
     function renderControls(){
       const {majorCount,minorCount}=visiblePreferences();
       q('#major-count').textContent=majorCount;
@@ -2593,6 +2751,7 @@
       q('#draw-button').disabled=majorCount+minorCount===0 || majorCount>eligible('major').length || minorCount>eligible('minor').length;
       q('#ordered-button').disabled=orderedSelections().length===0;
       renderKeyFilters();
+      updateSessionLaunch();
       q('#draw-text').textContent=currentSession()?(sharedRoom?'重新抽選課堂調性':'重新抽選今日調性'):(sharedRoom?'抽取課堂練習調性':'抽取今日練習調性');
       document.querySelectorAll('.preset').forEach(el=>{
         const active=Number(el.dataset.major)===majorCount && Number(el.dataset.minor)===minorCount;
@@ -3017,6 +3176,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     }
     function renderResults(){
       const session=currentSession(),hasSession=Boolean(session);
+      document.querySelector('.workspace')?.classList.toggle('has-session',hasSession);
       q('#empty-state').hidden=hasSession;
       q('#empty-state').style.display=hasSession?'none':'flex';
       q('#result-content').classList.toggle('visible',hasSession);
@@ -3037,6 +3197,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       q('#progress-track').setAttribute('aria-valuemax',String(total));
       q('#progress-track').setAttribute('aria-valuenow',String(count));
       q('#progress-fill').style.width=`${total?100*count/total:0}%`;
+      updateSessionLaunch();
       q('#result-content').classList.remove('show-scales');
       const layoutKey=JSON.stringify([sharedRoom?.id||'personal',session.createdAt,
         session.replayOf||null,session.sequenceMode||'',session.majorIds,session.minorIds]);
@@ -3054,6 +3215,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       const all=[...session.majorIds.map(i=>selectedId('major',i)),...session.minorIds.map(i=>selectedId('minor',i))];
       if(!all.includes(id))return;
       session.doneIds=session.doneIds.includes(id)?session.doneIds.filter(item=>item!==id):[...session.doneIds,id];
+      updateSessionLaunch();
       if(autoAdvanceSession(session))expandedOverride=undefined;
       else if(session.doneIds.includes(expandedOverride))expandedOverride=null;
       if(session===state.continuedSession){
@@ -3113,7 +3275,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       const valid=new Set(ids),done=new Set(storedDone.filter(id=>valid.has(id)));
       return {total:ids.length,count:done.size,done};
     }
-    function replayHistoricalScale(record,kind){
+    function replayHistoricalScale(record,kind,jumpUnfinished=false,historyHandled=false){
       if(!record||!Array.isArray(record.majorIds)||!Array.isArray(record.minorIds))return;
       if(sharedRoom){
         const dialog=q('#history-unavailable-dialog');
@@ -3121,6 +3283,10 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         return;
       }
       requestCardAction(()=>{
+        const source=[...cardInstances.values()].find(item=>item.opened);
+        if(jumpUnfinished&&!historyHandled&&source&&unsavedPracticeIn(source.card).length){
+          withPracticeSaveChoice(source,()=>replayHistoricalScale(record,kind,true,true));return;
+        }
         const progress=historyProgress(record),isComplete=progress.total>0&&progress.count===progress.total;
         const session={date:currentDate,majorIds:[...record.majorIds],minorIds:[...record.minorIds],
           doneIds:isComplete?[]:[...progress.done],createdAt:Date.now(),replayOf:record.id};
@@ -3140,6 +3306,11 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
           replaySession=null;
           persist();renderResults();
           showToast('已接續這次練習，完成進度會更新到原紀錄');
+        }
+        updateSessionLaunch();
+        if(jumpUnfinished&&!isComplete){
+          const next=jumpOrder().find(id=>!progress.done.has(id));
+          if(next){jumpToPractice(next);return;}
         }
         q('.result-panel').scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});
       });
@@ -3241,6 +3412,31 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     q('#minor-minus').addEventListener('click',()=>setCounts(visiblePreferences().majorCount,visiblePreferences().minorCount-1));
     q('#minor-plus').addEventListener('click',()=>setCounts(visiblePreferences().majorCount,visiblePreferences().minorCount+1));
     document.querySelectorAll('.preset').forEach(btn=>btn.addEventListener('click',()=>setCounts(Number(btn.dataset.major),Number(btn.dataset.minor))));
+    q('#resume-practice').addEventListener('click',resumePractice);
+    document.querySelectorAll('.session-shortcuts a').forEach(link=>link.addEventListener('click',event=>{
+      if(event.altKey||event.ctrlKey||event.metaKey||event.shiftKey)return;
+      const panel=q(link.hash);
+      if(!panel)return;
+      event.preventDefault();
+      panel.open=true;
+      panel.querySelector('summary')?.focus({preventScroll:true});
+      panel.scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'});
+    }));
+    let closedForPrint=null;
+    window.addEventListener('beforeprint',()=>{
+      if(closedForPrint)return;
+      closedForPrint=[...document.querySelectorAll('.exercise-disclosure:not([open])')];
+      closedForPrint.forEach(block=>block.open=true);
+    });
+    window.addEventListener('afterprint',()=>{
+      if(!closedForPrint)return;
+      closedForPrint.forEach(block=>block.open=false);
+      closedForPrint=null;
+    });
+    // Invites and active room connections expose the join/status controls immediately.
+    if(/^#room=(?:[0-9]{6}|[a-f0-9]{32})$/.test(window.location.hash)){
+      q('#classroom-settings').open=true;
+    }
     q('#draw-button').addEventListener('click',drawToday);
     q('#ordered-button').addEventListener('click',practiceInSignatureOrder);
     q('#history-unavailable-dismiss').addEventListener('click',()=>q('#history-unavailable-dialog').close());

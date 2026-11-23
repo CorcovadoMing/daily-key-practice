@@ -806,24 +806,47 @@
     const scaleBlock=element('section',{class:'music-exercise-block scale-exercise','aria-label':'音階'});
     const scoreSection=element('div',{class:'score-section'});
     appendPlayableScore(scoreSection);
-    const boardSection=element('div',{class:'fingerboard-section'});
-    boardSection.append(element('h4',{class:'music-section-title'},'指板 · 指法'),
+    const boardSection=element('details',{class:'fingerboard-section layout-disclosure exercise-disclosure'});
+    boardSection.append(element('summary',{},'音階指板與指法'),
       toolbar,boards);
     scaleBlock.append(scoreSection,boardSection);
 
     const arpeggioSection=element('section',{class:'music-exercise-block arpeggio-section','aria-label':'琶音'});
     const arpeggioScore=element('div',{class:'score-section'});
     appendPlayableScore(arpeggioScore,true);
-    const arpeggioBoard=element('div',{class:'arpeggio-fingerboard'});
+    const arpeggioBoard=element('details',{class:'arpeggio-fingerboard layout-disclosure exercise-disclosure'});
     const arpeggioBoards=element('div',{class:'cello-fb-two-up'});
-    arpeggioBoard.append(element('h4',{class:'music-section-title'},'指板 · 指法'),arpeggioBoards);
+    arpeggioBoard.append(element('summary',{},'琶音指板與指法'),arpeggioBoards);
     // Reuse the scale transaction UI, but give arpeggios independent storage.
     arpeggioBoards.append(panels.arpeggio.section);
     if(arpeggioOptions.localOnly)arpeggioBoard.append(
       element('p',{class:'fingering-note'},'琶音修改只儲存在此瀏覽器，不與教室同步。'));
     arpeggioSection.append(arpeggioScore,arpeggioBoard);
 
-    root.append(scaleBlock,arpeggioSection,dialog);
+    // Both sections remain mounted. Moving to the other score does not hide
+    // an active Stop button or discard a graph or a pending fingering edit.
+    const exerciseNav=element('nav',{class:'exercise-nav','aria-label':'切換譜面位置'});
+    const exerciseLinks={};
+    for(const [kind,label,section,score] of [['scale','音階',scaleBlock,scoreSection],['arpeggio','琶音',arpeggioSection,arpeggioScore]]){
+      const jump=element('button',{class:'exercise-jump',type:'button'},label);
+      jump.addEventListener('click',()=>{
+        const target=score.querySelector('.cello-scale-score');
+        target?.focus({preventScroll:true});
+        section.scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'});
+      });
+      exerciseLinks[kind]=jump;
+      exerciseNav.append(jump);
+    }
+    const activeStop=element('button',{class:'exercise-jump exercise-active-stop',type:'button'},'停止目前收音');
+    activeStop.addEventListener('click',()=>{
+      const active=root.querySelector('.scale-practice:is([data-phase="listening"],[data-phase="pending"])');
+      const button=active?.querySelector('.scale-practice-button');
+      if(!button)return;
+      exerciseLinks[active.dataset.practiceKind]?.focus({preventScroll:true});
+      button.click();
+    });
+    exerciseNav.append(activeStop);
+    root.append(exerciseNav,scaleBlock,arpeggioSection,dialog);
 
     function renderDirection(dir){
       const pane=panels[dir],editing=edit.dir===dir,isArpeggio=dir==='arpeggio';

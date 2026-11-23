@@ -31,7 +31,7 @@ test('appearance keeps light default, persists manual choice, follows system onl
   page.choice('dark');
   assert.equal(page.root.dataset.appearance,'dark');
   assert.equal(appearance(store,false).select.value,'dark');
-  assert.equal(appearance(store,false).themeMeta.attrs.content,'#151a18');
+  assert.equal(appearance(store,false).themeMeta.attrs.content,'#16191d');
   page.choice('system');
   assert.equal(page.root.dataset.appearance,'dark');
   page.media.matches=false;page.media.changed();
