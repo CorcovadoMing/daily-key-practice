@@ -99,12 +99,13 @@ test('same model direct retry requests JSON, suppresses thinking, and never impo
  const empty=api.evidence(target,null,'single');
  const initial=api.completionRequest(empty,false),direct=api.completionRequest(empty,true);
  assert.equal(initial.extra_body.enable_thinking,true);
- assert.match(initial.messages[0].content,/未測到任何音.*不要評論音準、姿勢或原因/);
+ assert.match(initial.messages[0].content,/沒有量到音，不評音準.*不要猜測手指、弦、姿勢或原因/);
  assert.equal(initial.response_format,undefined);
  assert.equal(direct.extra_body.enable_thinking,false);
  assert.equal(direct.max_tokens,undefined);assert.equal(initial.max_tokens,undefined);
  assert.equal(direct.response_format.type,'json_object');
  assert.deepEqual(Array.from(JSON.parse(direct.response_format.schema).required),['steps','check']);
+ assert.equal(JSON.parse(direct.response_format.schema).properties.steps.maxItems,1);
  const f=sandbox();
  const first=f.service.run(empty);const w=f.workers[0];
  w.emit('ready',{cold:true});w.emit('answer',{reason:'context'});await first;
@@ -112,4 +113,51 @@ test('same model direct retry requests JSON, suppresses thinking, and never impo
  assert.equal(f.workers.length,1);assert.equal(w.msg.direct,true);assert.equal(w.msg.facts.measured,0);
  assert.equal(f.jobs.size,0);
  w.emit('answer',{advice});assert.equal((await retry).advice,advice);
+});
+
+test('blocks the live generic hand-tapping response and rejects copied or unverifiable retests',()=>{
+ const f=api.evidence(target,[0,null,35,-18,null],'single','arpeggio');
+ const cases=[
+  {steps:['拍數或次數：5次，左右手交替拍，注意音連','拍數或次數：6次，左右手配合拍，注意音連'],check:'拍數或次數：5次，左右手交替拍，注意音連'},
+  {steps:['左右手配合拍，注意換音。'],check:'再拉一次，聽音頭清不清楚。'},
+  {steps:['右手慢拉一弓長音，保持這個譜位。'],check:'右手慢拉一弓長音，保持這個譜位。'},
+  {steps:['右手慢慢拉一弓長音兩次，保持左手不變。','右手慢慢拉一弓長音三次，保持左手不變。'],check:'再拉一次，聽音高是否平穩。'},
+  {steps:['試著讓雙手配合，慢慢練習。'],check:'再拉一次，聽音高是否平穩。'},
+  {steps:['右手先拉一弓長音，左手保持原來的位置。'],check:'用同樣方式多做幾遍。'},
+  {steps:['右手先拉一弓長音，左手保持原來的位置。'],check:'用調音器。'}
+ ];
+ for(const item of cases)assert.equal(api.parseAdvice(JSON.stringify(item),f),null,JSON.stringify(item));
+ assert.ok(api.parseAdvice(JSON.stringify(advice),f));
+ const single=api.evidence(target,[null,null,35,null,null],'single');
+ assert.ok(api.parseAdvice('練法：拉一弓長音，這次只專注讓弓走得平順。\n重測：同樣設定再拉，看看音準圖的點離零線是否更近。',single));
+ assert.ok(api.parseAdvice('練法：先單獨慢拉這個音，用調音器找準手指落點。\n重測：看實心點是否更接近中線。',single));
+ assert.ok(api.parseAdvice('練法：先把手指輕輕放好，弓放在弦上再慢慢拉。\n重測：再試一次，留意第二個音出來時有沒有多一聲雜音。',f));
+ assert.ok(api.parseAdvice('練法：先分弓把兩音拉清楚。\n重測：聽音與音交接有沒有變順。',f));
+ assert.equal(api.parseAdvice('練法：你的右手這次太緊，試試分弓。\n重測：再拉一次，聽音頭是否清楚。',f),null);
+ const zero=api.evidence(target,null,'single');
+ assert.equal(api.parseAdvice('練法：用調音器拉第一個譜音。\n重測：再試一次。',zero),null);
+ assert.ok(api.parseAdvice('練法：先用調音器確認第一個譜音顯示音名。\n重測：回到練習慢拉同一音，看音準圖有沒有出現一點。',zero));
+
+});
+
+test('normalizes a JSON lesson header leak but only when its separate retest is concrete',()=>{
+ const f=api.evidence(target,[null,20,35,null,null],'single');
+ const deployed={steps:['練法：分開拉弓，停住弓再準備手指，把音連起來','重測：用耳朵或音準圖檢查'],check:'用耳朵或音準圖檢查'};
+ assert.equal(api.parseAdvice(JSON.stringify(deployed),f),null);
+ const concrete='原設定再拉一遍，看實心點是否更接近中線。';
+ const repaired={steps:[deployed.steps[0],'重測：'+concrete],check:'重測：'+concrete};
+ const parsed=api.parseAdvice(JSON.stringify(repaired),f);
+ assert.deepEqual(JSON.parse(JSON.stringify(parsed)),{steps:['分開拉弓，停住弓再準備手指，把音連起來'],check:concrete});
+ assert.equal(api.parseAdvice(JSON.stringify({...repaired,check:'重拉一次，聽換音是否更順。'}),f),null);
+});
+test('prompt gives different concrete examples for measured pair, single and no evidence',()=>{
+ const f=api.evidence(target,[null,20,35,null,null],'single');
+ assert.deepEqual(Array.from(f.offsets),[20,35]);assert.equal(f.adjacent,true);
+ const pair=api.completionRequest(f,false).messages[0].content;
+ assert.match(pair,/相鄰.*分弓.*第二音準備好再出弓.*聽換音.*靠近零線/);
+ assert.match(pair,/"signedCents":\[20,35\]/);assert.doesNotMatch(pair,/拍數或次數/);
+ const one=api.completionRequest(api.evidence(target,[null,null,35,null,null],'single'),false).messages[0].content;
+ assert.match(one,/一個指定譜位.*不加未辨識.*長音.*零線/);
+ const none=api.completionRequest(api.evidence(target,null,'single'),false).messages[0].content;
+ assert.match(none,/沒有量到音，不評音準.*先開調音器/);assert.doesNotMatch(none,/signedCents/);
 });

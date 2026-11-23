@@ -246,3 +246,35 @@ test('exact final tonic renews the clock at rollover, while a recovered loop ski
   }
  }
 });
+
+for (const mode of ['single','loop']) {
+ test(mode+' final graph and coach never map a short B-flat ascent to an unplayed descending G3',async()=>{
+  const seq=twoOctaves(46).map(note=>note.midi===55?{...note,name:'G',octave:3}:note);
+  for(const extras of [[],[60,55],[55,55]]){
+   const f=await fixture(seq,mode);
+   [46,48,50,51,53].forEach(midi=>f.play(midi));
+   for(const midi of extras){f.play(null);f.play(midi,-40);}
+   await f.stop();
+   const [, ,final, , ,display]=f.last();
+   assert.deepEqual(Array.from(final.pairs,p=>p.expected+1),extras.length?[1,2,3,4,5,6]:[1,2,3,4,5]);
+   assert.equal(display.values[23],null,'unplayed descent slot cannot receive the earlier G3');
+   if(extras.length)assert.equal(Math.round(display.values[5]),-40,'stable G3 may fill its actual nearby ascending slot');
+   else assert.equal(display.values[5],null);
+   const ctx={module:{exports:{}}};
+   vm.runInNewContext(html.split('// PRACTICE_COACH_START')[1].split('// PRACTICE_COACH_END')[0],ctx);
+   const facts=ctx.module.exports.evidence(seq,display.values,mode);
+   if(extras.length)assert.match(facts.summary,/G3.*上行第 6/);
+   else assert.equal(facts.measured,5);
+   assert.doesNotMatch(facts.summary,/下行第 24/);
+  }
+ });
+}
+test('nearby fuzzy recovery remains allowed; distant unanchored pitches do not establish score position',async()=>{
+ const seq=twoOctaves(46);
+ const f=await fixture(seq);
+ f.play(60,-25);f.play(55,-30);f.play(46);f.play(48);f.play(51,-12); // one skipped note can recover
+ f.play(53);await f.stop();
+ const [, ,final, , ,display]=f.last();
+ assert.deepEqual(Array.from(final.pairs,p=>p.expected+1),[1,2,4,5]);
+ assert.equal(display.values[5],null);assert.equal(display.values[8],null);
+});

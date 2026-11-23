@@ -95,11 +95,20 @@ test('actual arpeggio manager/card reveals its own measured coaching only after 
   assert.equal(restored.element.find('scale-practice-coach').hidden,false,'latest exact arpeggio draft restores advice');
   assert.equal(reloaded.listens,0);
   assert.equal(reloaded.requested,undefined);
+  const restoredPanel=restored.element.find('scale-practice-coach');
+  await restoredPanel.find('scale-practice-coach-action').handlers.click();
+  assert.ok(reloaded.requested.measured>0);
+  assert.match(coachOutput(restoredPanel),/上次量到什麼.*上次保留的音準圖/);
+
   await p.start(arp);
   assert.equal(panel.hidden,true,'new take hides previous advice while listening');
   await p.stop(arp);
   assert.equal(panel.hidden,false,'an empty take restores existing measured draft without replacing it');
   assert.match(arp.element.find('scale-practice-status').textContent,/上次|未辨識/);
+  await button.handlers.click();
+  assert.equal(p.requested.measured,0,'empty current take never sends old measured values');
+  assert.doesNotMatch(coachOutput(panel),/上次保留的音準圖|C2|E2/);
+
 });
 
 test('experimental page has no coach setting and does not run it before an explicit ask',()=>{
