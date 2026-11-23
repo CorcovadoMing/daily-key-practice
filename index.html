@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261123-015-experimental">
+  <meta name="site-version" content="20261123-016-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <style>
@@ -493,6 +493,8 @@
     .scale-practice-history-actions button:disabled{opacity:.65;cursor:default}
     .scale-practice-history-actions small{font-size:12px}
     .scale-practice-history-actions[hidden],.scale-practice-saved-history[hidden]{display:none!important}
+    .scale-practice-detector{font:inherit;font-size:12px;font-weight:700;min-height:44px;max-width:100%;padding:0 5px;color:#31533c;border:1px solid #8da692;border-radius:999px;background:#edf4ed}
+    .scale-practice-detector:focus-visible{outline:3px solid #4c81b3;outline-offset:2px}
     .scale-practice-status{font-size:12px;margin:0;max-width:100%;flex:1 1 230px}
     .scale-practice-latest{font-size:12px;white-space:nowrap}
     .scale-practice-latest:empty{display:none}
@@ -707,7 +709,7 @@
       </div>
     </section>
   </main>
-  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261123-015-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261123-016-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
     <span class="practice-float-title">今日練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -1057,7 +1059,7 @@
           const frame = {now, frequency, rms, muted};
           [...s.listeners].forEach(listener => {
             if (session !== s || !listener.started || !s.listeners.has(listener)) return;
-            if (listener.raw?.()) listener.frame({...frame,frequency:null,rate:context.sampleRate,readSwift:muted?null:readSwift});
+            if (listener.raw?.()) listener.frame({...frame,frequency:null,rate:context.sampleRate,audioTime:context.currentTime,clock:s,readSwift:muted?null:readSwift});
             else listener.frame(detectFast && listener.fast ? {...frame,frequency:fastFrequency} : frame);
           });
         },27);
@@ -1170,13 +1172,30 @@
       finish(session, message, grade);
     }
     async function toggle(view) {
-      if (active?.view === view) { stop(null, active.stage === 'listening'); return; }
+      if (active?.view === view) {
+        const session = active;
+        if (session.finishing) return;
+        if (session.stage === 'listening' && session.release?.flush) {
+          session.finishing = true;
+          session.showFinishing?.();
+          await session.release.flush(env.performance.now());
+          if (active === session) stop(null,true);
+        } else stop(null, session.stage === 'listening');
+        return;
+      }
       const previous = active;
       const mode = modeValue(view.mode);
+      const swiftSelected = view.detector === 'swift';
+      const route = swiftSelected ? hooks.swiftCapture : hooks.capture;
       const session = {view, stage:'pending', heard:[], heardCount:0, mode, laps:0, passed:0,
         history:mode === 'loop' ? emptyHistory(view.target.length) : undefined};
       active = session;
-      view.update('pending', null, null, 0, undefined, {mode});
+      view.update('pending', swiftSelected ? '正在準備 SwiftF0 和麥克風…' : null, null, 0, undefined, {mode});
+      if (!route) {
+        stop('SwiftF0 無法載入，請切回現有偵測再試。');
+        finish(previous,'已切換到另一項練習。',false);
+        return;
+      }
       const track = trackNotes({stableMs:24,minFrames:2,releaseMs:65});
       const monitor = monitorPitch({minFrames:2});
       let reference = 442, progress = 0, lastProgress = 0, held = null;
@@ -1184,14 +1203,17 @@
       let values = Array(view.target.length).fill(null);
       function watchdog() {
         if (active !== session || session.stage !== 'listening') return;
-        const remaining = maxListeningMs - (env.performance.now() - lastProgress);
+        // SwiftF0 uses lookahead. Allow bounded delivery of frames already
+        // captured by the true cutoff; frame() still checks their audio time.
+        const remaining = maxListeningMs + (swiftSelected ? 270 : 0) - (env.performance.now() - lastProgress);
         if (remaining <= 0) stop(idleMessage, true);
         else session.idleTimer = env.setTimeout?.(watchdog, remaining);
       }
       const display = (live = null) => ({values, live, listening:true, progress, mode,
         history:session.history, laps:session.laps, passed:session.passed,
         lastValues:session.lastValues,beforeLastHistory:session.beforeLastHistory});
-      session.release = hooks.capture.subscribe({
+      session.showFinishing = () => view.update('listening','正在分析最後一音…',null,progress,reference,display());
+      session.release = route.subscribe({
         fast:true,
         ready() {
           if (active !== session) return;
@@ -1254,7 +1276,7 @@
             }
             const live = observed ? {...observed, name:hooks.pitchName(observed.midi),
               slot:liveSlot(view.target, progress, observed, held)} : null;
-            view.update('listening', null, null, progress, reference, display(live));
+            view.update('listening', session.finishing ? '正在分析最後一音…' : null, null, progress, reference, display(live));
           } catch {
             stop('無法讀取麥克風，請重新開始。');
           }
@@ -1421,6 +1443,16 @@
     });
     choice.append(choiceLabel, selector);
     action.append(button,choice);
+    let detector;
+    if (kind === 'scale') {
+      detector = document.createElement('select');
+      detector.className = 'scale-practice-detector';
+      detector.setAttribute('aria-label','音階音高偵測方式');
+      for (const [value,label] of [['existing','現有偵測'],['swift','SwiftF0']]) {
+        const option = document.createElement('option'); option.value=value; option.textContent=label; detector.append(option);
+      }
+      detector.value = 'existing';
+    }
     const status = document.createElement('p');
     status.className = 'scale-practice-status';
     status.setAttribute('role', 'status');
@@ -1539,7 +1571,7 @@
     const noteHeads = [...score.querySelectorAll('[data-midi]')];
     let chart = null, phase = null, previous = 0, previousLap = 0, currentNote = null, awaiting = null, scoreFollow = null;
     const label = (note, index) => note.name + note.octave + (index <= (target.length - 1) / 2 ? '↑' : '↓');
-    const view = {element, target, get mode() { return preference(); },
+    const view = {element, target, get mode() { return preference(); }, get detector() { return detector?.value === 'swift' ? 'swift' : 'existing'; },
       update(next, message, result, progress = 0, reference = 442, display) {
       if (historyButtons && next === 'idle' && !display?.restored && !display?.attemptHistory &&
           (!result || !display?.values?.some(Number.isFinite)) && ownsDraft()) {
@@ -1558,6 +1590,7 @@
           : next === 'pending' ? '取消' + name + '收音' : '停止' + name + '練習並看結果');
         button.setAttribute('aria-pressed', String(next !== 'idle'));
         selector.disabled = next !== 'idle';
+        if (detector) detector.disabled = selector.disabled;
         choice.dataset.locked = String(selector.disabled);
         showChoice(selector.disabled ? mode : preference());
         latest.textContent = '';
@@ -1577,14 +1610,14 @@
           '依序對上 ' + (display?.values ? display.values.filter(Number.isFinite).length : progress) + '／' + target.length + ' 音';
         if (target[progress]) text += ' · 下一音 ' + label(target[progress], progress);
         else text += ' · 可停止並看結果';
-        if (message && target[progress]) text += '。' + message;
+        if (message) text += '。' + message;
         text += ' 連續 2 分鐘未對上下一個譜音，會自動停止。';
         const live = display?.live;
         const liveText = live ? '聽到 ' + live.name + ' ' + centsText(live.cents) +
           (live.slot === null ? '（未對到目前譜格）' : !withinCents(live.cents) ? '（尚未對準）' : '') : '';
         if (latest.textContent !== liveText) latest.textContent = liveText;
       } else if (next === 'pending') {
-        text = '等待麥克風授權…';
+        text = message || '等待麥克風授權…';
       } else {
         text = laps ? (message ? message + ' ' : '') + summary
           : message || '照譜拉' + name + '兩個八度上、下行。聲音只在本機分析。';
@@ -1704,7 +1737,9 @@
       chart?.update(display?.chartValues ? {...display,values:display.chartValues} : display);
     }};
     button.addEventListener('click', () => toggle(view));
-    element.append(action, status, latest);
+    element.append(action);
+    if (detector) element.append(detector);
+    element.append(status,latest);
     if (historyButtons) element.append(historyButtons);
     const restored = ownsDraft() ? restoreGraph(newestDraft) : null;
     view.update('idle', restored ? '已保留上次的音準圖。' : undefined,null,0,442,restored);
@@ -2838,11 +2873,11 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   const swiftRuntime = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.26.0/dist/';
   const swiftModel = 'https://cdn.jsdelivr.net/gh/lars76/swift-f0-training@a3095d23d79097ed7f5fad59d1cb2e2a826501a8/runs/seed1/model.onnx';
   const swiftSamples = 6144, swiftFrame = 13;
-  function swiftInput(samples, rate) {
+  function resampleSwift(samples, rate, length, endSkip = 0) {
     if (!samples?.length || !Number.isFinite(rate) || rate <= 0) return null;
-    const ratio = rate / 16000, start = samples.length - swiftSamples * ratio;
+    const ratio = rate / 16000, start = samples.length - endSkip - length * ratio;
     if (start < 0) return null;
-    const signal = new Float32Array(swiftSamples);
+    const signal = new Float32Array(length);
     // Area resampling includes low-pass averaging for the usual 44.1/48 kHz inputs.
     for (let i=0;i<signal.length;i++) {
       const lo = start + i * ratio, hi = lo + ratio;
@@ -2852,9 +2887,15 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       }
       signal[i] = sum / ratio;
     }
-    let peak = 0;
-    for (let i=swiftFrame*256;i<(swiftFrame+1)*256;i++) peak = Math.max(peak,Math.abs(signal[i]));
-    return peak >= 0.001 ? signal : null;
+    return signal;
+  }
+  function swiftVoiced(signal, hop) {
+    for (let i=hop*256;i<(hop+1)*256;i++) if (Math.abs(signal[i]) >= .001) return true;
+    return false;
+  }
+  function swiftInput(samples, rate) {
+    const signal = resampleSwift(samples,rate,swiftSamples);
+    return signal && swiftVoiced(signal,swiftFrame) ? signal : null;
   }
   function createSwiftF0(env) {
     let loading = null, busy = false;
@@ -2899,29 +2940,121 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       })().catch(error => { loading = null; throw error; });
       return loading;
     }
-    async function measure(samples, rate) {
-      const signal = swiftInput(samples,rate);
-      if (!signal) return null;
+    async function infer(signal, hops) {
+      const voiced = hops.map(hop => swiftVoiced(signal,hop));
+      if (!voiced.some(Boolean)) return hops.map(() => null);
       const {session,Tensor} = await load();
       if (busy) return null;
       busy = true;
-      const feeds = {
-        audio:new Tensor('float32',signal,[1,signal.length]),
-        fmin:new Tensor('float32',Float32Array.of(46.875),[]),
-        fmax:new Tensor('float32',Float32Array.of(2093.75),[])
-      };
-      let output;
+      let feeds, output;
       try {
+        feeds = {
+          audio:new Tensor('float32',signal,[1,signal.length]),
+          fmin:new Tensor('float32',Float32Array.of(46.875),[]),
+          fmax:new Tensor('float32',Float32Array.of(2093.75),[])
+        };
         output = await session.run(feeds);
-        const hz = output.pitch.data[swiftFrame], confidence = output.confidence.data[swiftFrame];
-        return confidence >= .5 && Number.isFinite(hz) && hz >= 46.875 && hz <= 2093.75 ? hz : null;
+        return hops.map((hop,i) => {
+          const hz = output.pitch.data[hop], confidence = output.confidence.data[hop];
+          return voiced[i] && confidence >= .5 && Number.isFinite(hz) && hz >= 46.875 && hz <= 2093.75 ? hz : null;
+        });
       } finally {
         busy = false;
-        Object.values(feeds).forEach(t => t.dispose?.());
+        if (feeds) Object.values(feeds).forEach(t => t.dispose?.());
         if (output) Object.values(output).forEach(t => t.dispose?.());
       }
     }
-    return {load,measure};
+    async function measure(samples, rate) {
+      const signal = swiftInput(samples,rate);
+      return signal ? (await infer(signal,[swiftFrame]))?.[0] || null : null;
+    }
+    return {load,measure,infer};
+  }
+
+  // Fixed capture-clock hops; overlapping windows are context, never
+  // additional frames. Both Swift consumers share each model invocation.
+  function createSwiftBatches(detector) {
+    const size = 28, firstLocal = 11, lastLocal = 17;
+    let clock, lastHop = null, tickFrame, tickResult, busy = false, lastRun = -Infinity;
+    return frame => {
+      if (frame === tickFrame || (frame.clock === clock && frame.now === tickFrame?.now)) return tickResult;
+      if (frame.clock !== clock) {clock = frame.clock; lastHop = null; lastRun = -Infinity;}
+      tickFrame = frame; tickResult = null;
+      if (busy || !frame.readSwift || !Number.isFinite(frame.audioTime) || frame.now-lastRun < 45) return null;
+      const complete = Math.floor(frame.audioTime/0.016 + 1e-7);
+      const last = complete-size+lastLocal;
+      const first = Math.max(complete-size+firstLocal,lastHop === null ? last : lastHop+1);
+      if (first > last) return null;
+      const source = frame.readSwift();
+      const skipped = Math.max(0,(frame.audioTime-complete*.016)*frame.rate);
+      const signal = resampleSwift(source,frame.rate,size*256,skipped);
+      if (!signal) return tickResult = Promise.reject(new Error('unsupported input sample rate'));
+      const local = Array.from({length:last-first+1},(_,i)=>first+i-(complete-size));
+      const owner = clock;
+      busy = true; lastRun = frame.now;
+      tickResult = detector.infer(signal,local).then(values => {
+        if (!values || owner !== clock) return null;
+        lastHop = last;
+        return local.map((_,i)=>({
+          now:frame.now+((first+i)*.016-frame.audioTime)*1000,
+          frequency:values[i], muted:false
+        }));
+      }).finally(()=>{busy=false;});
+      return tickResult;
+    };
+  }
+
+  function swiftPracticeCapture(env, capture, detector, batches, filter) {
+    return {subscribe(listener) {
+      let stopped = false, micReady = false, modelReady = false, started = null, drain = null, muted = false, audibleSince = -Infinity;
+      function ready() {
+        if (!stopped && micReady && modelReady && started === null) {
+          started = env.performance.now();
+          listener.ready();
+        }
+      }
+      const fail = message => {if (!stopped) listener.error(message);};
+      const release = capture.subscribe({
+        raw:()=>true,
+        ready(){micReady=true;ready();},
+        frame(raw) {
+          if (stopped || started === null) return;
+          if (raw.muted) {
+            if (!muted) {
+              muted = true;
+              audibleSince = raw.now;
+              filter(null,raw.now);
+              listener.frame({now:raw.now,frequency:null,muted:true});
+            }
+            return;
+          }
+          if (muted) {muted=false;audibleSince=raw.now;}
+          let pending;
+          try {pending = batches(raw);} catch {fail('SwiftF0 無法分析，請切回現有偵測再試。');return;}
+          pending?.then(frames => {
+            if (stopped || muted || !frames) return;
+            for (const frame of frames) {
+              if (stopped) break;
+              if (frame.now < Math.max(started,audibleSince)) continue;
+              if (drain && frame.now+16 > drain.until) {drain.done();break;}
+              listener.frame({...frame,frequency:filter(frame.frequency,frame.now) ? null : frame.frequency});
+            }
+          }).catch(()=>fail('SwiftF0 無法分析，請切回現有偵測再試。'));
+        },
+        error:fail
+      });
+      detector.load().then(()=>{modelReady=true;ready();},()=>fail('SwiftF0 無法載入，請切回現有偵測再試。'));
+      const stop = () => {
+        if (stopped) return;
+        stopped=true; release(); drain?.done();
+      };
+      stop.flush = until => new Promise(resolve => {
+        if (stopped) {resolve();return;}
+        const timer = env.setTimeout(()=>drain.done(),330);
+        drain = {until,done(){env.clearTimeout(timer);resolve();}};
+      });
+      return stop;
+    }};
   }
   function pitchReading(frequency, reference = 440) {
     const position = 69 + 12 * Math.log2(frequency / reference), midi = Math.round(position);
@@ -2938,7 +3071,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       return 2 ** (this.values.reduce((a, b) => a + b, 0) / this.values.length);
     }
   }
-  if (typeof module !== 'undefined' && module.exports) { module.exports = { detectPitch, pitchReading, PitchWindow, pitchBand, tunerVisual, pitchInputFloor, createSwiftF0, swiftInput }; return; }
+  if (typeof module !== 'undefined' && module.exports) { module.exports = { detectPitch, pitchReading, PitchWindow, pitchBand, tunerVisual, pitchInputFloor, createSwiftF0, swiftInput, createSwiftBatches, swiftPracticeCapture }; return; }
   const $ = id => document.getElementById(id);
   let lastTunerReading = null;
   function renderTuner(reading = null, hold = false) {
@@ -3089,8 +3222,10 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   $('metro-volume').addEventListener('input', () => configureWorklet());
 
   let tunerRelease, tunerRunning = false, pending = false, tunerGeneration = 0;
-  let tunerDetector = 'existing', detectorRevision = 0, swiftReady = false, swiftFailed = false, swiftBusy = false;
+  let tunerDetector = 'existing', detectorRevision = 0, swiftReady = false, swiftFailed = false;
   const swift = createSwiftF0(window);
+  const swiftBatches = createSwiftBatches(swift);
+  const practiceSwiftClick = window.CelloScalePractice.metronomeClickGate();
   const swiftClick = window.CelloScalePractice.metronomeClickGate();
   function prepareSwift() {
     const revision = detectorRevision;
@@ -3126,6 +3261,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     (frequency,now) => ignorePracticeClick(frequency,now,clickIsAudible()));
   const scalePractice = window.CelloScalePractice.manager(window, {
     capture,
+    swiftCapture:swiftPracticeCapture(window,capture,swift,swiftBatches,(frequency,now)=>practiceSwiftClick(frequency,now,clickIsAudible())),
     reference: a4Reference,
     pitchReading,
     pitchName: midi => pitchReading(442 * 2 ** ((midi - 69) / 12), 442).name
@@ -3168,7 +3304,8 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         pending = false; tunerRunning = true; tunerUI(); $('tuner-status').textContent = '';
         if (tunerDetector === 'swift') prepareSwift();
       },
-      frame({now,frequency,rms,muted,rate,readSwift}) {
+      frame(raw) {
+        const {now,frequency,rms,muted,readSwift} = raw;
         if (generation !== tunerGeneration || !tunerRunning) return;
         if (readRevision !== detectorRevision) {
           readRevision = detectorRevision; nextRead = null; lastInput = lastSignal = now;
@@ -3179,23 +3316,21 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
           displayFrame(now,frequency,rms,muted);
           return;
         }
-        if (!swiftReady || swiftFailed || swiftBusy) return;
-        nextRead = now+75;
+        if (!swiftReady || swiftFailed) return;
         if (muted || !readSwift) {displayFrame(now,null,rms,muted);return;}
         const revision = detectorRevision;
         const stale = () => revision !== detectorRevision || generation !== tunerGeneration || !tunerRunning;
-        swiftBusy = true;
-        Promise.resolve().then(() => {
-          if (stale()) return null;
-          return swift.measure(readSwift(),rate);
-        }).then(hz => {
-          if (!stale()) displayFrame(now,swiftClick(hz,now,clickIsAudible()) ? null : hz,rms,muted);
+        Promise.resolve().then(() => stale() ? null : swiftBatches(raw)).then(frames => {
+          if (stale() || !frames?.length) return;
+          const latest = frames.at(-1);
+          nextRead = now+75;
+          displayFrame(now,swiftClick(latest.frequency,latest.now,clickIsAudible()) ? null : latest.frequency,rms,muted);
         }).catch(() => {
           if (stale()) return;
           swiftFailed = true;
           smooth.reset(); renderTuner();
           $('tuner-status').textContent = 'SwiftF0 無法分析，可切回現有偵測。';
-        }).finally(() => {swiftBusy = false;});
+        });
       },
       error(message) { if (generation === tunerGeneration) stopTuner(message); }
     });
