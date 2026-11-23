@@ -64,11 +64,9 @@ test('prior resume preserves draft choice before replacing cards and starts firs
   assert.equal(env.state.continuedSession.historyId,'valid');
   assert.deepEqual(calls,['minor-3']);
 });
-test('advanced disclosures retain isolated controls and joined classroom exit is reachable collapsed',()=>{
-  for(const id of ['classroom-settings','history-settings']){
-    assert.match(html,new RegExp('<details[^>]+id="'+id+'"[^>]*>\\s*<summary>'));
-  }
-  assert.match(html,/<\/details>\s*<button[^>]+id="room-leave"/);
+test('classroom actions are directly available and other advanced controls retain their layouts',()=>{
+  assert.match(html,/<section[^>]+id="classroom-settings"[^>]*>[\s\S]*id="room-open-join"[\s\S]*id="room-create"[\s\S]*id="room-leave" hidden/);
+  assert.match(html,/<details[^>]+id="history-settings"[^>]*>\s*<summary>/);
   assert.match(html,/<button[^>]+id="launch-options-toggle"[^>]+aria-controls="draw-settings"/);
   assert.match(html,/<section[^>]+id="draw-settings"[^>]+hidden>[\s\S]+id="signature-filters"[\s\S]+id="presets"/);
 });

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261123-022-experimental">
+  <meta name="site-version" content="20261123-023-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -93,25 +93,23 @@
     h1{font-weight:850;font-size:clamp(36px,5.5vw,64px);line-height:1.22;letter-spacing:-.075em;margin:15px 0 14px}
     h1 em{font-style:normal;color:#738d78}
     .intro p{margin:0;color:var(--muted);line-height:1.9;font-size:15px}
-    .date-label{text-align:right;color:var(--muted);font-size:13px;white-space:nowrap;padding-bottom:5px}
-    .date-label strong{font-size:16px;display:block;color:var(--ink);margin-top:6px;letter-spacing:-.02em}
-    .classroom-bar{display:flex;justify-content:space-between;align-items:center;gap:18px;background:#eaf0e8;border:1px solid #d7e4d6;border-radius:20px;padding:20px 25px;margin:0 0 22px}
-    .practice-stats{min-width:0;width:100%;background:var(--paper);border:1px solid var(--line);border-radius:17px;box-shadow:var(--shadow);padding:16px 18px}.practice-stats>p{font-size:11px;line-height:1.5;color:var(--muted);margin:0}.practice-stats h3{font-size:14px;margin:0 0 6px}.practice-stats-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-top:10px}.practice-stat{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:3px;min-width:0;min-height:40px;padding:4px;border:1px solid #d7e4d6;border-radius:8px;background:#fffffc;color:#304c39;font-size:11px;text-align:left}.practice-stat span{white-space:nowrap}.practice-stat b{white-space:nowrap;font-size:11px;font-variant-numeric:tabular-nums}.practice-stat.has-note .student-note-button{color:#6a5018;background:#fff1c7;border-color:#d9b663}.practice-stat .student-note-button{width:24px;height:24px;border-radius:7px}.practice-stat .ui-icon{width:15px;height:15px}.practice-stats-empty{grid-column:1/-1;margin:0}.practice-stat:focus-visible{outline:2px solid #315f45;outline-offset:2px}
-    .classroom-bar h2{font-size:16px;margin:0 0 7px;letter-spacing:-.035em}
-    .classroom-bar p{font-size:12px;color:#6a796d;line-height:1.7;margin:0}
-    .room-status{font-size:12px;color:#42634b;display:block;margin-top:8px;font-weight:700}
-    .room-actions{display:flex;flex-direction:column;gap:12px;align-items:flex-end;min-width:245px}
-    .room-buttons{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-    .room-join-form{display:grid;gap:6px;width:100%}
-    .room-join-form label{font-size:12px;font-weight:700;color:#3d6247}
-    .room-join-line{display:flex;gap:8px}
-    .room-join-line input{width:142px;min-width:0;border-radius:10px;border:1px solid #b9d0be;padding:11px 12px;background:white;font:750 18px ui-monospace,monospace;letter-spacing:.12em;color:#293c2f}
-    .room-join-line input::placeholder{font-size:13px;letter-spacing:0;font-family:ui-sans-serif,system-ui,sans-serif;font-weight:500;color:#9baba0}
-    .room-code-display{margin-top:15px;background:#fff;border:2px solid #92ba99;border-radius:15px;padding:16px 23px;display:flex;flex-direction:column;gap:6px;width:max-content;max-width:100%;box-shadow:0 8px 22px rgba(43,77,49,.08)}
-    .room-code-display .code-caption{font-size:11px;font-weight:700;color:#52735b}
-    .room-code-display strong{font:850 34px ui-monospace,monospace;letter-spacing:.12em;color:#24472e;font-variant-numeric:tabular-nums}
-    .room-code-display small{color:#7b8980;font-size:11px}
-    @media(max-width:620px){.room-actions{align-items:stretch;min-width:0}.room-join-line input{flex:1;width:auto}.room-join-line button{flex:none}.room-buttons{justify-content:flex-start}}
+    .classroom-bar{display:grid;gap:8px;background:#eaf0e8;border:1px solid #d7e4d6;border-radius:20px;margin:0}
+    .room-status,.room-join-status{font-size:12px;color:var(--muted);font-weight:650;line-height:1.45}
+    .room-status:empty,.room-join-status:empty{display:none}
+    .room-buttons{display:flex;gap:8px;flex-wrap:wrap}
+    .room-buttons button,.room-dialog-actions button{min-height:44px}
+    .room-code-display{display:inline-flex;align-items:center;gap:8px;max-width:100%}
+    .room-code-display strong{font:750 18px ui-monospace,monospace;letter-spacing:.06em;overflow:hidden;text-overflow:ellipsis}
+    .room-join-dialog{box-sizing:border-box;width:min(calc(100% - 24px),330px);max-height:calc(100% - 24px);border:1px solid var(--line);border-radius:23px;padding:22px 18px 16px;background:var(--paper);color:var(--ink);box-shadow:0 18px 60px #0004;text-align:center}
+    .room-join-dialog::backdrop{background:#10182075}
+    .room-join-dialog h2{font-size:19px;letter-spacing:-.025em;margin:0 0 5px}
+    .room-join-label{font-size:13px;color:var(--muted)}
+    .room-digit-entry{position:relative;margin:14px 0 9px}
+    .room-digits{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}
+    .room-digits span{display:grid;place-items:center;height:46px;border:1px solid var(--line);border-radius:9px;background:var(--soft);font:750 24px ui-monospace,monospace;pointer-events:none}
+    .room-digit-entry:focus-within [data-room-current]{outline:2px solid currentColor;outline-offset:-2px}
+    .room-digit-entry input{position:absolute;inset:0;box-sizing:border-box;width:100%;height:100%;border:0;margin:0;padding:0;opacity:0;font:inherit;font-size:16px}
+    .room-dialog-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:15px}
     .room-action{padding:10px 14px;border:1px solid #c5d8c6;border-radius:10px;background:white;font-size:12px;font-weight:750;color:#2d5838;white-space:nowrap}
     .room-action.primary{background:#304c37;color:white;border-color:#304c37}
     .room-action:hover:not(:disabled){filter:brightness(.96)}
@@ -121,12 +119,6 @@
     .setup-stack{display:flex;flex-direction:column;gap:16px;min-width:0}
     .setup-sidebar>.classroom-bar{margin:0;flex-direction:column;align-items:stretch;gap:12px;padding:16px 18px;border-radius:17px}
     .setup-stack .classroom-bar p{font-size:11px;line-height:1.5}
-    .setup-stack .room-actions{align-items:stretch;min-width:0;gap:8px}
-    .setup-stack .room-buttons{justify-content:flex-start}
-    .setup-stack .room-join-form{width:100%}
-    .setup-stack .room-join-line input{flex:1;width:0;min-width:0}
-    .setup-stack .room-code-display{padding:11px 14px;margin-top:8px}
-    .setup-stack .room-code-display strong{font-size:26px}
     .setup-stack>.panel{padding:22px;min-width:0}
     .workspace>.result-panel{min-width:0}
     @media(min-width:811px) and (max-width:1050px){
@@ -207,8 +199,8 @@
     .result-content{display:none}
     .result-content.visible{display:block}
     .result-summary{padding:19px 20px;border-radius:15px;background:#f4f7f2;margin-bottom:25px}
-    .summary-top{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;color:#556a59;font-weight:750}
-    .summary-top strong{font-size:19px;font-weight:850;font-variant-numeric:tabular-nums;color:#34533c}
+    .summary-top{display:flex;justify-content:flex-start;align-items:center;gap:8px;font-size:13px;color:#556a59;font-weight:750}
+    .summary-top strong{font-size:inherit;font-weight:850;font-variant-numeric:tabular-nums;color:inherit}
     .progress-track{margin-top:12px;width:100%;height:7px;border-radius:50px;background:#e0e8dc;overflow:hidden}
     .progress-fill{height:100%;width:0%;background:#73a77d;border-radius:50px;transition:width .25s}
     .key-group{margin-top:23px}
@@ -418,8 +410,8 @@
     .site-version{white-space:nowrap;font-variant-numeric:tabular-nums;font-weight:700;letter-spacing:.02em}
     .toast{position:fixed;left:50%;bottom:25px;transform:translate(-50%,20px);opacity:0;pointer-events:none;border-radius:12px;padding:12px 18px;background:#283a2d;color:white;font-weight:700;font-size:13px;box-shadow:0 15px 40px rgba(0,0,0,.15);transition:opacity .2s,transform .2s;z-index:50}
     .toast.active{opacity:1;transform:translate(-50%,0)}
-    @media(max-width:810px){.intro{padding-top:35px;grid-template-columns:1fr;gap:18px}.date-label{text-align:left}.date-label strong{display:inline;margin-left:10px}.workspace{grid-template-columns:1fr}.result-panel{min-height:0}.history-section{padding-top:31px}}
-    @media(max-width:450px){.container{width:calc(100% - 26px)}.intro{padding-top:28px;padding-bottom:28px}.intro p{font-size:13px}.date-label{font-size:12px}.date-label strong{font-size:13px;margin-left:5px}.panel{padding:20px;border-radius:18px}.counter-item{padding:16px 12px}.counter-name{font-size:13px}.stepper{gap:3px}.stepper button{width:31px;height:31px}.count-output{min-width:26px;font-size:22px}.key-grid{gap:8px}.key-card-main{padding:13px 10px;gap:8px}.fingering-section{padding:10px 8px}.key-primary{font-size:24px}.key-secondary{font-size:10px}.history-row{align-items:start;gap:11px}.history-keys{justify-content:flex-start}footer{flex-direction:column;gap:7px}}
+    @media(max-width:810px){.intro{padding-top:35px;grid-template-columns:1fr;gap:18px}.workspace{grid-template-columns:1fr}.result-panel{min-height:0}.history-section{padding-top:31px}}
+    @media(max-width:450px){.container{width:calc(100% - 26px)}.intro{padding-top:28px;padding-bottom:28px}.intro p{font-size:13px}.panel{padding:20px;border-radius:18px}.counter-item{padding:16px 12px}.counter-name{font-size:13px}.stepper{gap:3px}.stepper button{width:31px;height:31px}.count-output{min-width:26px;font-size:22px}.key-grid{gap:8px}.key-card-main{padding:13px 10px;gap:8px}.fingering-section{padding:10px 8px}.key-primary{font-size:24px}.key-secondary{font-size:10px}.history-row{align-items:start;gap:11px}.history-keys{justify-content:flex-start}footer{flex-direction:column;gap:7px}}
     @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 
     /* Experiments-only practice tools: modeless and local to this device. */
@@ -498,7 +490,7 @@
     .fingerboard-section>.music-section-title,.arpeggio-fingerboard>.music-section-title{margin-bottom:0}
     .cello-scale-score{border:0;border-radius:0;background:transparent;margin:0 0 8px}
     .cello-fb-direction{box-shadow:none;background:transparent;border-color:#edf0ea;border-radius:8px}
-    .result-summary{background:transparent;border-bottom:1px solid var(--line);border-radius:0;padding:0 0 18px}
+    .result-panel .result-summary{background:transparent;border:0;border-radius:0;padding:0;margin:0 0 10px}
 
     /* Wide practice desk: setup above, notation keeps its readable native size. */
     .workspace{grid-template-columns:minmax(0,1fr)}
@@ -673,8 +665,6 @@
     .session-intro{display:block;padding:24px 0 15px}
     .session-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
     .session-heading h1{font-size:clamp(27px,5vw,43px);letter-spacing:-.07em;line-height:1.16;margin:0 0 7px}
-    .session-heading .date-label{text-align:left;font-size:11px;line-height:1.3}
-    .session-heading .date-label strong{font-size:12px;display:inline;margin:0 0 0 4px}
     .session-launch{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin:13px 0 0}
     .session-launch .draw-button{width:auto;min-height:46px;max-width:100%;margin:0;padding:9px 13px;font-size:14px;gap:8px}
     .session-launch[data-resume=true] #draw-button{background:var(--paper);color:var(--ink);border:1px solid var(--line);font-size:12px}
@@ -684,7 +674,6 @@
     .session-shortcuts a:focus-visible{outline:2px solid #4c81b3;outline-offset:2px}
     .workspace{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-items:start}
     .workspace .result-panel{min-height:0;padding:14px;margin:0}
-    .workspace .result-panel .panel-head{margin:0 0 8px}
     .workspace .result-panel .empty-state{min-height:0;padding:6px 0 10px;align-items:flex-start;text-align:left}
     .workspace .result-panel .empty-state h3{font-size:14px;margin:0 0 4px}
     .workspace .result-panel .empty-state p{font-size:12px;margin:0}
@@ -698,9 +687,7 @@
     .layout-disclosure>:not(summary){margin:8px}
     .classroom-access{display:flex;align-items:flex-start;min-width:0;gap:7px}
     .classroom-access>details{flex:1;min-width:0}
-    .classroom-access>#room-leave{min-height:44px}
-    .layout-disclosure>.classroom-bar{flex-wrap:wrap;box-shadow:none;padding:12px;min-width:0}
-    .layout-disclosure .room-actions{min-width:min(100%,245px)}
+    .classroom-access>.classroom-bar{flex:1;box-shadow:none;padding:10px;min-width:0}
     .layout-disclosure>.key-filter{margin:8px;padding:10px}
     .layout-disclosure>.ordered-practice{margin:8px}
     .layout-disclosure .filter-heading{flex-wrap:wrap}
@@ -813,7 +800,6 @@
       <div class="session-heading">
         <div>
           <h1 id="page-title">弓弦的<em>每日音階練習</em></h1>
-          <p class="date-label">今天 <strong id="today-label">—</strong></p>
         </div>
         <button type="button" class="appearance-toggle" id="appearance-toggle" aria-label="切換深色模式" title="切換深色模式">
           <svg class="theme-glyph theme-sun" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4m0-14.2-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>
@@ -900,10 +886,7 @@
 
     <div class="workspace">
       <section class="panel result-panel" aria-labelledby="results-title">
-        <div class="panel-head">
-          <h2 class="panel-title" id="results-title" tabindex="-1">今日練習清單</h2>
-          <span class="section-number" id="result-placeholder-code">02 / PRACTICE</span>
-        </div>
+        <h2 class="sr-only" id="results-title" tabindex="-1">練習清單</h2>
         <div class="empty-state" id="empty-state">
           <div class="empty-graphic" aria-hidden="true"><img alt="" width="144" height="144" decoding="async" src="data:image/webp;base64,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"></div>
           <h3>你的今日練習，等著開始。</h3>
@@ -911,8 +894,8 @@
         </div>
         <div class="result-content" id="result-content">
           <div class="result-summary">
-            <div class="summary-top"><span>今日完成進度</span><strong id="progress-text">0 / 4</strong></div>
-            <div class="progress-track" role="progressbar" id="progress-track" aria-label="今日練習進度" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0"><div class="progress-fill" id="progress-fill"></div></div>
+            <div class="summary-top"><span>練習完成進度</span><strong id="progress-text">0／4</strong></div>
+            <div class="progress-track sr-only" role="progressbar" id="progress-track" aria-label="練習完成進度" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0"><div class="progress-fill" id="progress-fill"></div></div>
           </div>
           <div id="key-groups"></div>
           <div class="result-bottom">
@@ -924,40 +907,35 @@
       </section>
       <div class="setup-stack">
       <div class="classroom-access">
-      <details class="layout-disclosure" id="classroom-settings">
-        <summary>課堂同步 <small id="classroom-mode-pill" hidden>連線中</small></summary>
-        <section class="classroom-bar" aria-labelledby="classroom-heading">
-      <div>
-        <h2 id="classroom-heading">課堂同步模式 · CLASSROOM</h2>
-        <p>老師建立房間後告訴學生六位數房號；學生只需輸入數字，即可同步抽籤和練習進度。</p>
-        <span class="room-status" id="room-status" role="status" aria-live="polite">正在檢查同步設定…</span>
-        <span class="online-count" id="online-count" hidden>目前連線：<strong id="online-number">—</strong><small>每個裝置或瀏覽器分頁計算一次</small></span>
-        <div class="room-code-display" id="room-code-display" hidden>
-          <span class="code-caption">課堂房間號碼</span>
-          <strong id="room-code-number" aria-live="polite">------</strong>
-          <small>直接口頭告訴對方這六個數字 · 有效 24 小時</small>
-          <button type="button" class="room-action" id="room-copy-code">複製六位數房號</button>
-        </div>
-      </div>
-      <div class="room-actions">
-        <form id="room-join-form" class="room-join-form" autocomplete="off">
-          <label for="room-code-input">輸入六位數房號</label>
-          <div class="room-join-line">
-            <input id="room-code-input" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="例如 482731" autocomplete="off" aria-label="六位數課堂房號" required>
+      <section class="classroom-bar" id="classroom-settings" aria-label="課堂同步" tabindex="-1">
+          <div class="room-buttons">
+            <button type="button" class="room-action" id="room-open-join">加入房間</button>
+            <button type="button" class="room-action primary" id="room-create">建立房間</button>
+            <button type="button" class="room-action room-code-display" id="room-copy" hidden><span>房間號碼</span> <strong id="room-code-number"></strong></button>
+            <button type="button" class="room-action" id="room-leave" hidden>退出房間</button>
+          </div>
+          <span class="room-status" id="room-status" role="status"></span>
+        </section>
+      <dialog id="room-join-dialog" class="room-join-dialog" aria-labelledby="room-join-title">
+        <form id="room-join-form" autocomplete="off">
+          <h2 id="room-join-title">加入房間</h2>
+          <label class="room-join-label" for="room-code-input">輸入六位數房號</label>
+          <div class="room-digit-entry">
+            <div class="room-digits" aria-hidden="true">
+              <span data-room-digit></span><span data-room-digit></span><span data-room-digit></span>
+              <span data-room-digit></span><span data-room-digit></span><span data-room-digit></span>
+            </div>
+            <input id="room-code-input" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" aria-describedby="room-join-status" autofocus>
+          </div>
+          <div id="room-join-status" class="room-join-status" role="status"></div>
+          <div class="room-dialog-actions">
+            <button type="button" class="room-action" id="room-join-cancel">取消</button>
             <button type="submit" class="room-action primary" id="room-join">加入房間</button>
           </div>
         </form>
-        <div class="room-buttons">
-          <button type="button" class="room-action primary" id="room-create">建立同步房間</button>
-          <button type="button" class="room-action" id="room-copy" hidden>複製邀請連結（選用）</button>
-        </div>
-      </div>
-        </section>
-      </details>
-      <button type="button" class="room-action" id="room-leave" hidden>離開房間</button>
+      </dialog>
       </div>
       </div>
-
     </div>
 
     <details class="layout-disclosure history-access" id="history-settings">
@@ -986,9 +964,9 @@
     <select id="appearance-choice">
       <option value="light">淺色</option><option value="dark">深色</option><option value="system">跟隨系統</option>
     </select>
-  </label><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261123-022-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
-  <nav id="floating-practice-nav" class="practice-float" aria-label="今日練習清單快速跳轉" hidden>
-    <span class="practice-float-title">今日練習清單</span>
+  </label><span>弓弦的每日音階練習 · 每天一點音階，慢慢累積自己的聲音。</span><span class="site-version" aria-label="網站版本">20261123-023-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
+    <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
   </nav>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -2692,8 +2670,6 @@
       const historyChanged=id?archiveClassroomSession(id,data):false;
       if(!id){sharedRoom=null;roomEditingPreviews={};roomArpeggioPreviews={};}
       else sharedRoom={id,arpeggioFingerings:data?.arpeggioFingerings||{},majorCount:clamp(data?.majorCount??2),minorCount:clamp(data?.minorCount??2),showScale:Boolean(data?.showScale),excludedKeys:Array.isArray(data?.excludedKeys)?data.excludedKeys:[],fingerings:data?.fingerings&&typeof data.fingerings==='object'?data.fingerings:{},session:data?.session?{...data.session,majorIds:Array.isArray(data.session.majorIds)?data.session.majorIds:[],minorIds:Array.isArray(data.session.minorIds)?data.session.minorIds:[],doneIds:Array.isArray(data.session.doneIds)?data.session.doneIds:[]}:null};
-      q('#classroom-mode-pill').hidden=!sharedRoom;
-      if(id&&previous?.id!==id)q('#classroom-settings').open=true;
       // Room updates must not destroy a teacher's unsaved batch edit. When only
       // confirmed fingerings / checkmarks change, update existing cards in place.
       if(previous&&sharedRoom&&roomLayoutSignature(previous)===roomLayoutSignature(sharedRoom)){
@@ -2705,7 +2681,7 @@
         if(session){
           const done=Array.isArray(session.doneIds)?session.doneIds:[];
           const total=session.majorIds.length+session.minorIds.length;
-          q('#progress-text').textContent=done.length+' / '+total;
+          q('#progress-text').textContent=done.length+'／'+total;
           q('#progress-track').setAttribute('aria-valuemax',String(total));
           q('#progress-track').setAttribute('aria-valuenow',String(done.length));
           q('#progress-fill').style.width=(total?100*done.length/total:0)+'%';
@@ -2781,7 +2757,7 @@
       former.hidden=!resume;
       if(resume){
         const {count,total}=historyProgress(resume.record);
-        former.textContent=(resume.current?'目前清單':'最近未完成的個人紀錄')+' · '+count+' / '+total;
+        former.textContent=(resume.current?'目前清單':'最近未完成的個人紀錄')+' · '+count+'／'+total;
       }
       draw.disabled=!canLaunch(launchMode,options);
       launch.dataset.mode=launchMode;
@@ -2871,7 +2847,7 @@
       showLaunchOptions(false);
       const title=q('#results-title');
       title.focus({preventScroll:true});
-      title.scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'});
+      title.closest('.result-panel').scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'});
     }
     async function drawToday(){
       refreshDate();
@@ -3258,7 +3234,6 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       q('#empty-state').hidden=hasSession;
       q('#empty-state').style.display=hasSession?'none':'flex';
       q('#result-content').classList.toggle('visible',hasSession);
-      q('#result-placeholder-code').hidden=hasSession;
       if(!hasSession){
         window.CelloScalePractice?.controller?.stopWithin(q('#key-groups'));
         expandedOverride=undefined;renderedSessionKey=null;
@@ -3271,7 +3246,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       const total=session.majorIds.length+session.minorIds.length;
       session.doneIds=Array.isArray(session.doneIds)?session.doneIds:[];
       const count=session.doneIds.length;
-      q('#progress-text').textContent=`${count} / ${total}`;
+      q('#progress-text').textContent=`${count}／${total}`;
       q('#progress-track').setAttribute('aria-valuemax',String(total));
       q('#progress-track').setAttribute('aria-valuenow',String(count));
       q('#progress-fill').style.width=`${total?100*count/total:0}%`;
@@ -3309,7 +3284,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         persist();renderHistory();
       }
       const count=session.doneIds.length,total=all.length;
-      q('#progress-text').textContent=count+' / '+total;
+      q('#progress-text').textContent=count+'／'+total;
       q('#progress-track').setAttribute('aria-valuenow',String(count));
       q('#progress-fill').style.width=(total?100*count/total:0)+'%';
       syncPracticeCards(session);
@@ -3478,7 +3453,6 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       }
     }
     function render(){
-      q('#today-label').textContent=formatDate(currentDate);
       renderControls();renderResults();renderHistory();
     }
     function refreshDate(){
@@ -3496,8 +3470,9 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       const panel=q(link.hash);
       if(!panel)return;
       event.preventDefault();
-      panel.open=true;
-      panel.querySelector('summary')?.focus({preventScroll:true});
+      const summary=panel.querySelector('summary');
+      if(summary)panel.open=true;
+      (summary||panel).focus({preventScroll:true});
       panel.scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'});
     }));
     let closedForPrint=null;
@@ -3511,10 +3486,6 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       closedForPrint.forEach(block=>block.open=false);
       closedForPrint=null;
     });
-    // Invites and active room connections expose the join/status controls immediately.
-    if(/^#room=(?:[0-9]{6}|[a-f0-9]{32})$/.test(window.location.hash)){
-      q('#classroom-settings').open=true;
-    }
     const launchOptions=q('#draw-settings'),launchGear=q('#launch-options-toggle');
     const nativeLaunchPopover=typeof launchOptions.showPopover==='function';
     // LAUNCH_POPOVER_START
@@ -3614,12 +3585,22 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         state.continuedSession=null;persist();
       }
     }
+    function requestClassroomTransition(action,beforePrompt){
+      const cards=[...cardInstances.values()];
+      const guarded=cards.some(item=>item.guide?.isEditing?.()||unsavedPracticeIn(item.card).length);
+      if(guarded)beforePrompt?.();
+      requestCardAction(()=>{
+        const pending=[...cardInstances.values()].find(item=>unsavedPracticeIn(item.card).length);
+        if(pending)withPracticeSaveChoice(pending,action);
+        else action();
+      });
+    }
     window.DailyKeyPractice={setClassroomRoom,setClassroomDrafts,setClassroomArpeggioDrafts,
-      getPreferences:()=>({...state.preferences}),showToast};
+      getPreferences:()=>({...state.preferences}),showToast,requestClassroomTransition};
     render();
   </script>
   <script src="firebase-config.js?v=20261106-001"></script>
-  <script type="module" src="classroom.js?v=20261118-010"></script>
+  <script type="module" src="classroom.js?v=20261123-023"></script>
 <script>
 // AUDIO_TOOLS_START
 (function () {
