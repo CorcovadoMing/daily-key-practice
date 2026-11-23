@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261123-034-experimental">
+  <meta name="site-version" content="20261123-035-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -552,6 +552,18 @@
       .cello-scale-score [data-midi][data-practice] ellipse,.cello-scale-score [data-midi][data-practice-current] ellipse,.cello-scale-score [data-midi][data-practice-next] ellipse{fill:#222}
       .cello-scale-score [data-midi][data-practice] .scale-stem,.cello-scale-score [data-midi][data-practice-current] .scale-stem,.cello-scale-score [data-midi][data-practice-next] .scale-stem{stroke:#222;stroke-width:1.25}
     }
+    .scale-pitch-trend{flex:0 1 100%;width:100%;min-width:0;border:1px solid var(--line);border-radius:12px;padding:0 10px;background:var(--paper);color:var(--ink)}
+    .scale-pitch-trend summary{padding:10px 0;cursor:pointer;font-size:13px;font-weight:750;line-height:24px}
+    .scale-pitch-trend summary:focus-visible{outline:2px solid #4c81b3;outline-offset:-2px}
+    .scale-pitch-trend p{font-size:12px;margin:0 0 5px;color:var(--muted)}
+    .scale-pitch-trend-scroll{overflow:auto;max-width:100%}
+    .scale-pitch-trend svg{display:block;min-width:100%;height:auto}
+    .scale-pitch-trend text{fill:var(--muted);font:10px ui-sans-serif,system-ui,sans-serif}
+    .scale-pitch-trend .trend-zero{stroke:var(--muted);stroke-width:1;stroke-dasharray:4 3}
+    .scale-pitch-trend .trend-guide{stroke:var(--line)}
+    .scale-pitch-trend .trend-line{fill:none;stroke:#296487;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+    .scale-pitch-trend .trend-dot{fill:#296487}
+    @media screen{[data-appearance=dark] .scale-pitch-trend .trend-line{stroke:#9bd0f5}[data-appearance=dark] .scale-pitch-trend .trend-dot{fill:#9bd0f5}}
     .scale-pitch-chart{flex:0 1 100%;width:100%;min-width:0;border:1px solid #dce5d9;border-radius:12px;padding:10px;background:#fcfdfb}
     .scale-pitch-header{display:flex;flex-wrap:wrap;align-items:baseline;gap:5px 12px;margin:0 0 7px}
     .scale-pitch-title{margin:0;color:#274a35;font-size:13px;font-weight:700}
@@ -1069,7 +1081,7 @@
     <select id="appearance-choice">
       <option value="light">淺色</option><option value="dark">深色</option><option value="system">跟隨系統</option>
     </select>
-  </label><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261123-034-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  </label><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261123-035-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -1139,8 +1151,21 @@
     const summary=anchors.length?anchors.map(p=>named(p)+'：'+cents(p.cents)).join('；')+'。': '這次沒有辨識到可用音符，無法判斷音準。';
     const reference=Number.isFinite(metadata.reference)&&metadata.reference>=430&&metadata.reference<=450?metadata.reference:null;
     const detector=metadata.detector==='SwiftF0'?'智慧':metadata.detector==='現有偵測'?'傳統':null;
+    const trace=metadata.trend;
+    let timing=null;
+    const qualifiedSpan=measured.length&&trace&&Number.isInteger(trace.slot)&&
+      Number.isFinite(trace.duration)&&trace.duration>=340&&trace.duration<=120000&&
+      [trace.lead,trace.tail].every(v=>Number.isFinite(v)&&Math.abs(v)<=50+1e-7)&&
+      Number.isFinite(positions[trace.slot]?.cents);
+    if(qualifiedSpan){
+      const repeated=['settles','persists'].includes(trace.pattern)&&Number.isInteger(trace.repeats)&&trace.repeats>=2;
+      timing={slot:named(positions[trace.slot]),durationMs:Math.round(trace.duration/50)*50,
+        firstCents:Math.round(trace.lead),lastCents:Math.round(trace.tail),
+        pattern:repeated ? trace.pattern==='settles'?'多次辨識片段的前段偏離、後段靠近':'多次辨識片段的前後段同方向偏離' : '一段辨識片段，不能推論重現',
+        repeats:repeated?Math.min(9,trace.repeats):1,scope:trace.recent===true?'本次練習保留的末段':'本次練習'};
+    }
     return {exercise,mode:mode==='loop'?'循環':'單次',measured:measured.length,total:slots.length,
-      focus:anchors.length?anchors.map(named).join(' → '):'第一個譜音',summary,reference,detector};
+      focus:anchors.length?anchors.map(named).join(' → '):'第一個譜音',summary,reference,detector,...(timing?{timing}:{})};
   }
   function parseAdvice(text,facts) {
     let final=String(text??'').trim();
@@ -1196,9 +1221,12 @@
   function completionRequest(facts,direct) {
     const task=facts.measured ? '只針對指定譜位，不評價空白譜位。安排一個可試的運弓或左右手配合動作。'
       : '未測到任何音。建議確認調音器能讀到第一個譜音，或先慢拉第一音約兩秒再試。不要評論音準、姿勢或原因。';
+    const temporal = facts.timing
+      ? '可沿用時間摘要的那個譜位，建議比較同一長音前後、或先分開再連音；有多次才可作為重練線索。不可推斷節奏、弓法或動作原因。'
+      : facts.measured ? '沒有足夠時間資料，不評論起音、節奏或音高如何隨時間改變。':'';
     const context=JSON.stringify(facts);
-    const request={messages:[{role:'user',content:'你是務實的大提琴老師。用繁體中文寫給正在練習的學生。'+task+
-      '用放鬆、舒適的動作；若疼痛就停止。給 1–2 個很短的可做動作（拍數或次數、如何做）和 1 個重測方法。可以建議先分開拉、停住弓再準備手指、再把音連起來。這些是練習方法，不是你觀察到的問題。不要猜測弓向、弦、指法、姿勢或原因；不要重述音名、音分或量測結果。只寫下列格式，第二行可省略：\n練法：…\n練法：…\n重測：…\n練習資料：'+context}],
+    const request={messages:[{role:'user',content:'你是虛擬大提琴老師。你的工作是給正在學習大提琴的學生具體、有建設性、能馬上練習的建議。用繁體中文。'+task+temporal+
+      '用放鬆、舒適的動作；若疼痛就停止。給 1–2 個很短的可做動作（拍數或次數、如何做）和 1 個可用耳朵或音準圖檢查的重測方法。可以建議先分開拉、停住弓再準備手指、再把音連起來。這些是練習方法，不是你觀察到的問題。不要猜測弓向、弦、指法、姿勢或原因；不要重述音名、音分或量測結果。只寫下列格式，第二行可省略：\n練法：…\n練法：…\n重測：…\n練習資料：'+context}],
       extra_body:{enable_thinking:!direct},stream:true,temperature:0.2};
     if(direct){
       request.messages[0].content += '\n這次請改用 JSON：steps 是 1 或 2 個步驟字串，check 是重測字串。不要輸出標題或其他欄位。';
@@ -1761,6 +1789,128 @@
     });
   }
 
+  // The trace uses captured-frame timestamps, not inference delivery time.
+  // It never retains PCM, changes scoring, or paints while the mic is active.
+  function createPitchTrend(origin, {windowMs=120000, stepMs=48, gapMs=95}={}) {
+    const capacity=Math.ceil(windowMs/stepMs)+64;
+    const points=Array(capacity);
+    let write=0, count=0, sequence=0, previous=null, sampledAt=-Infinity, seenAt=-Infinity, elapsed=0;
+    function observe(now, reading, slot, lap) {
+      if(!Number.isFinite(now) || now<origin || now<=seenAt) return;
+      seenAt=now;elapsed=now-origin;
+      if(!Number.isInteger(slot)||!reading||!withinCents(reading.cents)) {previous=null;return;}
+      const changed=!previous||previous.slot!==slot||previous.lap!==lap||now-previous.now>gapMs;
+      previous={slot,lap,now};
+      if(changed) sequence++;
+      // Always retain the first point of a new run; no interpolation through gaps.
+      if(!changed && now-sampledAt<stepMs) return;
+      sampledAt=now;
+      points[write]={ms:elapsed,cents:reading.cents,slot,lap,segment:sequence};
+      write=(write+1)%capacity;count=Math.min(count+1,capacity);
+    }
+    function snapshot() {
+      const floor=Math.max(0,elapsed-windowMs), data=[];
+      for(let i=0;i<count;i++){
+        const p=points[(write-count+i+capacity)%capacity];
+        if(p.ms>=floor)data.push(p);
+      }
+      // Derive the visible start from ring eviction if a highly fragmented take
+      // filled it sooner than the nominal two minutes.
+      const start=count===capacity && data.length ? Math.max(floor,data[0].ms) : floor;
+      return {data,start,end:elapsed};
+    }
+    return {observe,snapshot};
+  }
+
+  function trendSegments(data) {
+    const segments=[];
+    for(const p of data){
+      const last=segments.at(-1);
+      if(last?.[0].segment===p.segment) last.push(p);
+      else segments.push([p]);
+    }
+    return segments;
+  }
+
+  function pitchTrendSummary(trace) {
+    const usable=trendSegments(trace?.data||[]).filter(run=>run.length>=8 && run.at(-1).ms-run[0].ms>=340);
+    const median=items=>{
+      const sorted=items.map(p=>p.cents).sort((a,b)=>a-b);
+      return sorted[Math.floor(sorted.length/2)];
+    };
+    const spans=usable.map(run=>{
+      const lead=median(run.slice(0,3)),tail=median(run.slice(-3));
+      return {slot:run[0].slot,lap:run[0].lap,start:run[0].ms,end:run.at(-1).ms,duration:run.at(-1).ms-run[0].ms,lead,tail,
+        pattern:Math.abs(lead)>=16 && Math.abs(tail)<=10 && Math.abs(lead)-Math.abs(tail)>=13?'settles':
+          (Math.abs(lead)>=16 && Math.abs(tail)>=16 && Math.sign(lead)===Math.sign(tail)?'persists':'held')};
+    });
+    const recent=trace?.start>0;
+    for(const a of spans) {
+      if(a.pattern==='held') continue;
+      const laps=new Set(spans.filter(b=>b.slot===a.slot && b.pattern===a.pattern &&
+        Math.sign(a.lead)===Math.sign(b.lead)).map(b=>b.lap));
+      // Detector gaps can split one long sound; only separate score laps
+      // corroborate repetition.
+      if(laps.size>=2) return {...a,repeats:Math.min(9,laps.size),recent};
+    }
+    const best=spans.sort((a,b)=>b.duration-a.duration)[0];
+    // One sustained sound can support a comparison exercise, not a pattern claim.
+    return best?{...best,pattern:'held',repeats:1,recent}:null;
+  }
+
+  function pitchTrendChart(trace,target,name) {
+    const details=document.createElement('details');
+    details.className='scale-pitch-trend';
+    const summary=document.createElement('summary');summary.textContent='音準走勢';
+    details.append(summary);
+    let drawn=false;
+    details.addEventListener('toggle',()=>{
+      if(!details.open||drawn)return;
+      drawn=true;
+      const seconds=ms=>Math.round(ms/100)/10+' 秒';
+      const info=document.createElement('p');
+      info.textContent='依實際練習時間排列，只畫對到譜音且在 ±50¢ 內的樣本。空白可能是停頓或未辨識；線段不代表完整起音或運弓。'+
+        (Number.isFinite(trace.reference)?' A4 '+trace.reference+' Hz。':'')+
+        (trace.start>0?' 顯示最後 '+seconds(trace.end-trace.start)+'。':'');
+      const scroll=document.createElement('div');scroll.className='scale-pitch-trend-scroll';
+      scroll.tabIndex=0;scroll.setAttribute('aria-label','音準走勢圖，可左右捲動');
+      function svgNode(tag, attrs={}, value){
+        const node=document.createElementNS('http://www.w3.org/2000/svg',tag);
+        for(const [key,v] of Object.entries(attrs))node.setAttribute(key,String(v));
+        if(value!==undefined)node.textContent=value;
+        return node;
+      }
+      const ms=Math.max(trace.end-trace.start,1), width=Math.max(320,Math.min(1080,ms*.018));
+      const left=34,right=width-10,top=24,bottom=112,middle=(top+bottom)/2;
+      const x=at=>left+(right-left)*(at-trace.start)/ms, y=c=>middle-c*(bottom-top)/100;
+      const svg=svgNode('svg',{viewBox:'0 0 '+width+' 140',width,height:140,role:'img',
+        'aria-label':name+'音準走勢，從 '+seconds(trace.start)+' 到 '+seconds(trace.end)+'；縱軸為相對譜音的音分'});
+      for(const [c,label] of [[50,'+50¢'],[0,'0¢'],[-50,'−50¢']]){
+        svg.append(svgNode('line',{x1:left,y1:y(c),x2:right,y2:y(c),class:c===0?'trend-zero':'trend-guide'}),
+          svgNode('text',{x:left-3,y:y(c)+3,'text-anchor':'end'},label));
+      }
+      const markers=ms>45000?5:4;
+      for(let i=0;i<=markers;i++){
+        const t=trace.start+(trace.end-trace.start)*i/markers;
+        if(i>0&&i<markers&&trace.end-trace.start<1000)continue;
+        svg.append(svgNode('text',{x:Math.min(right,Math.max(left,x(t))),y:132,'text-anchor':i===0?'start':i===markers?'end':'middle'},seconds(t)));
+      }
+      const segments=trendSegments(trace.data);
+      let labelAt=-Infinity;
+      for(const run of segments){
+        const first=run[0],px=x(first.ms),note=target[first.slot];
+        const pitch=note?.name&&Number.isInteger(note.octave)?note.name+note.octave:'第 '+(first.slot+1)+' 音';
+        if(px-labelAt>=40&&px+35<width){
+          svg.append(svgNode('text',{x:px,y:13},pitch));labelAt=px;
+        }
+        if(run.length===1)svg.append(svgNode('circle',{cx:px,cy:y(first.cents),r:2.2,class:'trend-dot'}));
+        else svg.append(svgNode('path',{d:run.map((p,i)=>(i?'L':'M')+x(p.ms).toFixed(1)+' '+y(p.cents).toFixed(1)).join(' '),class:'trend-line'}));
+      }
+      scroll.append(svg);details.append(info,scroll);
+    });
+    return details;
+  }
+
   function manager(env, hooks) {
     let active = null;
     const idleMessage = '連續 2 分鐘未對上下一個譜音，已自動停止收音。';
@@ -1778,8 +1928,9 @@
         const base = history || emptyHistory(view.target.length);
         attemptHistory = result?.pairs.length ? addHistory(base,values) : base;
       }
+      const trend=grade&&session.trend?{...session.trend.snapshot(),reference:session.reference}:null;
       const coachResult = grade && values?.some(Number.isFinite) ? {engine:session.engine, reference:session.reference} : null;
-      const display = result || laps ? {values, chartValues:values, attemptHistory, coachResult, coachNoEvidence:grade && !coachResult,
+      const display = result || laps ? {values, chartValues:values, attemptHistory, coachResult, trend, coachNoEvidence:grade && !coachResult,
         history:result ? history : session.beforeLastHistory, mode, laps, passed, final:true} : undefined;
       view.update('idle', message, result, 0, session.reference, display);
     }
@@ -1837,6 +1988,7 @@
           if (active !== session) return;
           reference = session.reference = hooks.reference();
           lastProgress = env.performance.now();
+          session.trend=createPitchTrend(lastProgress);
           session.stage = 'listening'; watchdog(); view.update('listening', null, null, 0, reference, display());
         },
         frame({now,frequency,muted}) {
@@ -1850,6 +2002,9 @@
             const observed = monitor(reading, now);
             if (!observed || observed.midi !== held?.midi) held = null;
             const event = track(reading, now);
+            let closingSlot=null;
+            const currentLap=session.laps+1;
+            let singleDone=false;
             if (event) {
               recentMidi = event.midi;
               session.heardCount++;
@@ -1877,6 +2032,7 @@
               }
               const boundary = mode === 'loop' ? loopBoundary(view.target, session.heard, progress) : null;
               if (boundary) {
+                closingSlot=view.target.length-1;
                 session.laps++;
                 if (boundary.complete) session.passed++;
                 session.lastValues = scoreValues(view.target, session.heard, boundary);
@@ -1889,11 +2045,17 @@
                 held = {midi:event.midi,slot:0};
                 progress = 1;
               } else if (mode === 'single' && progress === view.target.length && align(view.target, session.heard).complete) {
-                stop(null, true); return;
+                singleDone=true;
               }
             }
             const live = observed ? {...observed, name:hooks.pitchName(observed.midi),
               slot:liveSlot(view.target, progress, observed, held)} : null;
+            // The live monitor briefly holds its cursor through silence. A
+            // fresh raw detector reading is required here, even if that cursor remains.
+            const traceSlot=closingSlot ?? live?.slot;
+            const fresh=reading && observed?.midi===reading.midi && view.target[traceSlot]?.midi===reading.midi;
+            session.trend?.observe(now,fresh?reading:null,traceSlot,currentLap);
+            if(singleDone){stop(null,true);return;}
             view.update('listening', session.finishing ? '正在分析最後一音…' : null, null, progress, reference, display(live));
           } catch {
             stop('無法讀取麥克風，請重新開始。');
@@ -2299,7 +2461,7 @@
       coachAction.addEventListener('click',()=>coachBusy?coachService?.cancel():runCoach());
     }
     const noteHeads = [...score.querySelectorAll('[data-midi]')];
-    let chart = null, phase = null, previous = 0, previousLap = 0, currentNote = null, awaiting = null, scoreFollow = null;
+    let chart = null, trendDisclosure = null, phase = null, previous = 0, previousLap = 0, currentNote = null, awaiting = null, scoreFollow = null;
     const label = (note, index) => note.name + note.octave + (index <= (target.length - 1) / 2 ? '↑' : '↓');
     const view = {element, target, get mode() { return preference(); }, get detector() { return detectorValue; },
       update(next, message, result, progress = 0, reference = 442, display) {
@@ -2310,6 +2472,9 @@
         if(noEvidence) display.coachNoEvidence=true;
         if (result && !result.pairs.length) result = null;
         message ||= '顯示上次保留的音準圖。';
+      }
+      if (next==='pending' && trendDisclosure) {
+        trendDisclosure.hidden=true;trendDisclosure.remove?.();trendDisclosure=null;
       }
       const mode = modeValue(display?.mode);
       const laps = display?.laps || 0;
@@ -2421,7 +2586,7 @@
           coachStatus.textContent=coachTip.textContent=coachTime.textContent='';
         } else if(next==='idle' && (display?.coachResult || display?.coachNoEvidence)) {
           const noMeasurement=Boolean(display.coachNoEvidence);
-          coachAttempt={facts:coachAPI.evidence(target,noMeasurement?null:display.values,display.mode,kind,{detector:display.coachResult?.engine,reference:display.coachResult?.reference})};
+          coachAttempt={facts:coachAPI.evidence(target,noMeasurement?null:display.values,display.mode,kind,{detector:display.coachResult?.engine,reference:display.coachResult?.reference,trend:noMeasurement?null:pitchTrendSummary(display.trend)})};
           coachPanel.hidden=false;
           coachAction.hidden=!coachAttempt;
           coachNotice.hidden=!coachAttempt;
@@ -2489,6 +2654,12 @@
       }
       if (chart && (next !== 'idle' || display?.final)) chart.element.hidden = false;
       chart?.update(display?.chartValues ? {...display,values:display.chartValues} : display);
+      if (next==='idle' && display?.trend?.data.length && !trendDisclosure) {
+        trendDisclosure=pitchTrendChart(display.trend,target,name);
+        const afterTrend=historyButtons || coachPanel || savedChart?.element;
+        if(afterTrend) element.insertBefore(trendDisclosure,afterTrend);
+        else element.append(trendDisclosure);
+      }
     }};
     button.addEventListener('click', () => toggle(view));
     element.append(action,status,latest);
@@ -2499,7 +2670,7 @@
     return view;
   }
 
-  return {align, trackNotes, micCapture, metronomeClickGate, manager, card, chartPoint, centsText, scoreValues, monitorPitch, liveSlot, loopBoundary, resolveMidpoint, retainPracticeEvents, addHistory};
+  return {align, trackNotes, micCapture, metronomeClickGate, manager, card, chartPoint, centsText, scoreValues, monitorPitch, liveSlot, loopBoundary, resolveMidpoint, retainPracticeEvents, addHistory, createPitchTrend, trendSegments, pitchTrendSummary, pitchTrendChart};
 });
 // SCALE_PRACTICE_END
   </script>
