@@ -4,9 +4,13 @@ const code=name=>html.split('// '+name+'_START')[1].split('// '+name+'_END')[0];
 function hooks(name,globals={}){const ctx={module:{exports:{}},...globals};vm.runInNewContext(code(name),ctx);return ctx.module.exports;}
 const api=hooks('PRACTICE_COACH');
 test('only experimental opt-in URL enables coach',()=>{
- const when=(pathname,search)=>api.enabled({URLSearchParams,location:{pathname,search}});
+ const cache=new Map(), localStorage={getItem:key=>cache.get(key),setItem:(key,val)=>cache.set(key,val)};
+ const when=(pathname,search)=>api.enabled({URLSearchParams,location:{pathname,search},localStorage});
+ assert.equal(when('/daily-key-practice/experimental/',''),false);
  assert.equal(when('/daily-key-practice/experimental/','?coach=1'),true);
  assert.equal(when('/daily-key-practice/experimental/index.html','?coach=1'),true);
+ assert.equal(when('/daily-key-practice/experimental/',''),true,'clean reload uses the opted-in browser setting');
+ assert.equal(when('/daily-key-practice/experimental/','?coach=0'),false);
  assert.equal(when('/daily-key-practice/experimental/',''),false);
  assert.equal(when('/daily-key-practice/','?coach=1'),false);
 });
@@ -21,14 +25,14 @@ test('suggestions ground direction and exercise in actual notes, never infer cau
  assert.equal(api.drills(target,[null,null,null,null,null],'single').length,0);
  assert.equal(api.pick(' 2 ',options).id,'center_one');
  assert.equal(api.pick('<think>\n</think>\n3',options).id,'bridge_pair');
- for(const unsafe of ['<img src="#">','option 1','<think>3</think>1','1 2',''])assert.equal(api.pick(unsafe,options),null);
+ for(const unsafe of ['<img src="#">','option 1','<think>3','1 2',''])assert.equal(api.pick(unsafe,options),null);
 });
 function sandbox(){
  const jobs=new Map(), workers=[];
  let n=0;
  class Worker{
   constructor(url,opts){this.url=url;this.opts=opts;workers.push(this);}
-  postMessage(msg){this.msg=msg;}
+  postMessage(msg){if(msg.kind==='interrupt')this.interrupt=msg;else this.msg=msg;}
   terminate(){this.dead=true;}
   emit(phase,rest={}){this.onmessage({data:{id:this.msg.id,phase,...rest}});}
  }
@@ -37,23 +41,38 @@ function sandbox(){
  const options=[{id:'center_one',fact:'offset@3:35'}, {id:'slow_pair',fact:'gap@2'}];
  return {scope,options,jobs,workers,service:api.service(scope)};
 }
-test('explicit worker only, short facts, real timing phases and 10s warm bound',async()=>{
+test('thinking is default, timeout leaves warm engine for a separate bounded quick request',async()=>{
  const f=sandbox(), updates=[];
- assert.equal(f.workers.length,0);
  const pending=f.service.run(f.options,(...x)=>updates.push(x));
- const w=f.workers[0];assert.equal(w.opts.type,'module');
+ const w=f.workers[0];assert.equal(w.opts.type,'module');assert.equal(w.msg.thinking,true);
  assert.deepEqual(Array.from(w.msg.options),['1 center_one offset@3:35','2 slow_pair gap@2']);
  assert.equal([...f.jobs.values()][0].ms,180000);
- w.emit('progress',{percent:33});w.emit('ready',{cold:true,load:1500});
- assert.equal([...f.jobs.values()][0].ms,10000);
- w.emit('answer',{output:'2',first:121,generation:200});
+ w.emit('progress',{step:'cached'});w.emit('progress',{step:'gpu-load',percent:33});
+ w.emit('ready',{cold:true,load:1500});assert.equal([...f.jobs.values()][0].ms,30000);
+ w.emit('answer',{digit:2,first:121,generation:200});
  const r=await pending;
  assert.equal(r.choice.id,'slow_pair');assert.equal(r.load,1500);assert.equal(r.first,121);assert.equal(r.generation,200);
- assert.deepEqual(updates,[['loading'],['loading',33],['working']]);
+ assert.deepEqual(updates,[['device'],['cached',undefined],['gpu-load',33],['working']]);
  const warm=f.service.run(f.options);assert.equal(f.workers.length,1);
- assert.equal([...f.jobs.values()][0].ms,10000,'warm wall clock begins with dispatch, not a subsequent ready message');
+ assert.equal([...f.jobs.values()][0].ms,30000);
  w.emit('ready',{cold:false,load:0});[...f.jobs.values()][0].fn();
- assert.equal((await warm).reason,'slow');assert.equal(w.dead,true);
+ assert.equal((await warm).reason,'slow');assert.equal(w.dead,undefined);assert.equal(w.interrupt.kind,'interrupt');
+ const quick=f.service.run(f.options,()=>{},false);assert.equal(f.workers.length,1);assert.equal(w.msg.thinking,false);
+ assert.equal([...f.jobs.values()][0].ms,10000);
+ w.emit('ready',{cold:false,load:0}); w.emit('answer',{digit:1,generation:20});
+ assert.equal((await quick).choice.id,'center_one');
+});
+test('reasoning only admits a finished validated choice; actual shard progress is never invented',()=>{
+ for(const input of ['<think>3','I guess 3','<think>use option 3</think>','unfinished 3'])assert.equal(api.finalDigit(input),null);
+ assert.equal(api.finalDigit('<think>first choice 2</think>\n3'),3);
+ assert.equal(api.finalDigit('thinking text\n</think>\n1'),1,'Qwen may have prefilled the opening tag');
+ const stage=(text,progress)=>JSON.parse(JSON.stringify(api.weightStage({text,progress})));
+ assert.deepEqual(stage('Start to fetch params',.0),{step:'checking'});
+ assert.deepEqual(stage('Fetching param cache[3/9]: ',.52),{step:'weights',percent:52});
+ assert.deepEqual(stage('Loading model from cache[7/9]: ',.7),{step:'gpu-load',percent:70});
+ assert.deepEqual(stage('Loading model from cache[9/9]: ',1),{step:'compile'});
+ assert.deepEqual(stage('Loading GPU shader modules[3/12]: ',.34),{step:'compile'});
+ assert.equal(stage('Unrecognized progress',.62),null);
 });
 test('cancel and stale worker errors cannot leak over to a later request, and no WebGPU is explicit',async()=>{
  const f=sandbox();

@@ -22,9 +22,11 @@ function memory(){
   if(this.fail)throw Error('quota');calls.push(key);data.set(key,value);
  }};
 }
-function realm(storage){
+function realm(storage,search=''){
  const mounted=[];
- const context=vm.createContext({document:{createElement:()=>new Node(),querySelectorAll:()=>mounted},localStorage:storage});
+ const context=vm.createContext({document:{createElement:()=>new Node(),querySelectorAll:()=>mounted},localStorage:storage,URL,URLSearchParams,
+  location:{pathname:'/daily-key-practice/experimental/',search,href:'https://example.test/daily-key-practice/experimental/'+search}});
+ vm.runInContext(code('PRACTICE_COACH'),context);
  vm.runInContext(storageSource,context);
  context.module={exports:{}};vm.runInContext(code('AUDIO_TOOLS'),context);
  const {pitchReading}=context.module.exports;
@@ -148,4 +150,23 @@ test('retry of a draft that failed to write cannot replace another tab’s newer
  assert.equal(a.state.needsExitWarning(),false);
  assert.equal(a.history.load(storage,a.key,target.length).exists,false);
  assert.equal(b.history.loadDraft(storage,b.key,target.length).exists,true);
+});
+
+test('coach opt-in and measured chart restore after reload without changing mic or inventing A4 metadata',async()=>{
+ const storage=memory(), initial=build(storage,'major-C','scale','single',realm(storage,'?coach=1'));
+ assert.equal(initial.view.element.find('scale-practice-coach').hidden,true);
+ await initial.start();initial.play(36,8);await initial.stop();
+ assert.equal(initial.view.element.find('scale-practice-coach').hidden,false);
+ const draft=initial.history.loadDraft(storage,initial.key,target.length).draft;
+ assert.equal(draft.coach.engine,'現有偵測');assert.equal(draft.coach.reference,442);
+ const restored=build(storage,'major-C','scale','single',realm(storage,''));
+ assert.equal(restored.prompts,0);
+ assert.equal(restored.view.element.find('scale-practice-coach').hidden,false);
+ const legacy={...draft};delete legacy.coach;
+ assert.equal(initial.history.saveDraft(storage,initial.key,legacy).ok,true);
+ assert.equal(restored.history.loadDraft(storage,restored.key,target.length).draft.coach,undefined);
+ const old=build(storage,'major-C','scale','single',realm(storage,''));
+ assert.equal(old.view.element.find('scale-practice-coach').hidden,false);
+ const off=build(storage,'major-C','scale','single',realm(storage,'?coach=0'));
+ assert.equal(off.view.element.find('scale-practice-coach'),undefined);
 });

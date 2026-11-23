@@ -1143,8 +1143,12 @@
       if (n !== null && bucket(n) === null) throw new Error();
       return n;
     });
-    return {id: draft.id, values, mode: draft.mode, laps: draft.laps, passed: draft.passed,
+    const result = {id: draft.id, values, mode: draft.mode, laps: draft.laps, passed: draft.passed,
       progress: draft.progress, pending: draft.pending};
+    const coach=draft.coach;
+    if(coach && ['SwiftF0','現有偵測'].includes(coach.engine) && Number.isFinite(coach.reference) &&
+      coach.reference>=430 && coach.reference<=450) result.coach={engine:coach.engine,reference:coach.reference};
+    return result;
   }
 
   function currentDraftId(storage) {
