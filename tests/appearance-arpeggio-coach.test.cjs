@@ -61,8 +61,8 @@ function app(store=memory(), search='', response) {
     pitchReading:midi=>({midi,cents:midi===40?28:-12}),
     pitchName:String
   });
-  coach.service=()=>({isBusy:()=>false,cancel(){},dispose(){},async run(options,progress,config){
-    requested=options;return response ? response(options,progress,config) : {choice:options.find(x=>x.id==='arpeggio_leap')};
+  coach.service=()=>({isBusy:()=>false,cancel(){},dispose(){},async run(options,progress,config={}){
+    requested=options;return response ? response(options,progress,config) : {advice:{steps:['停弓一拍，把下一音的手指先放好。','把這兩音接起來，連做三次。'],check:'再連拉一次，聽第二音起音是否平順。'}};
   }});
   function card(kind){
     const notes=window.CelloFingerboard.scoreNotes('major',key,kind==='arpeggio');
@@ -73,6 +73,7 @@ function app(store=memory(), search='', response) {
     stop:view=>manager.toggle(view),play(midi){for(let i=0;i<5;i++)callbacks.frame({now:now+=25,frequency:midi,muted:false});},
     get listens(){return listens;},get requested(){return requested;}};
 }
+const coachOutput=panel=>{const flatten=n=>[n.textContent,...n.children.map(flatten)].join(' ');return flatten(panel.find('scale-practice-coach-tip')).trim();};
 test('actual arpeggio manager/card reveals its own measured coaching only after stopping',async()=>{
   const p=app(), arp=p.card('arpeggio'), scale=p.card('scale');
   const panel=arp.element.find('scale-practice-coach');
@@ -85,8 +86,9 @@ test('actual arpeggio manager/card reveals its own measured coaching only after 
   assert.equal(scale.element.find('scale-practice-coach').hidden,true);
   const button=panel.find('scale-practice-coach-action');
   await button.handlers.click();
-  assert.ok(p.requested.some(x=>x.id==='arpeggio_leap'));
-  assert.match(panel.find('scale-practice-coach-tip').textContent,/琶音從.*C2.*E2.*再拉一輪琶音.*智慧.*A4 442/);
+  assert.equal(p.requested.exercise,'琶音');
+  assert.match(coachOutput(panel),/C2.*E2.*停弓一拍.*起音是否平順.*智慧.*A4 442/);
+  assert.equal(panel.find('scale-practice-coach-tip').children[3].children.length,2);
   const reloaded=app(p.store,'');
   const restored=reloaded.card('arpeggio');
   assert.equal(reloaded.card('scale').element.find('scale-practice-coach').hidden,true);
@@ -112,20 +114,22 @@ test('the model retries once under the same action after the natural context bou
  for(const kind of ['scale','arpeggio']){
   const calls=[];
   const p=app(memory(),'',(options,_progress,config)=>{
-   calls.push(config);return config.direct?{choice:options[0]}:{reason:'context'};
+   calls.push(config);return config.direct?{advice:{steps:['這個音各拉兩拍，重複三次。'],check:'再拉一次，聽起音是否清楚。'}}:{reason:'context'};
   });
   const view=p.card(kind),panel=view.element.find('scale-practice-coach');
   await p.start(view);p.play(36);await p.stop(view);
   const action=panel.find('scale-practice-coach-action');await action.handlers.click();
-  assert.ok(p.requested.every(x=>['center_one','repeat_one','hold_center'].includes(x.id)));
+  assert.equal(p.requested.measured,1);
   assert.equal(calls.length,2);
   assert.equal(calls[0].direct,undefined);
   assert.equal(calls[1].direct,true);
   assert.equal(panel.find('scale-practice-coach-quick'),undefined);
   assert.equal(action.textContent,'練習建議');
-  assert.match(panel.find('scale-practice-coach-status').textContent,/Qwen3 以簡短模式選出/);
-  assert.match(panel.find('scale-practice-coach-tip').textContent,/C2/);
-  assert.doesNotMatch(panel.find('scale-practice-coach-tip').textContent,/D2|E2|未對上/);
+  assert.equal(panel.find('scale-practice-coach-status').textContent,'');
+  assert.match(panel.find('scale-practice-coach-elapsed').textContent,/^耗時 [0-9.]+ 秒$/);
+  assert.doesNotMatch(coachOutput(panel),/Qwen3/);
+  assert.match(coachOutput(panel),/C2/);
+  assert.doesNotMatch(coachOutput(panel),/D2|E2|未對上/);
  }
 });
 test('typing bubble reflects inference rather than downloads and is removed on an error',async()=>{
@@ -146,7 +150,7 @@ test('typing bubble reflects inference rather than downloads and is removed on a
  assert.equal(bubble.hidden,false);
  assert.equal(bubble.children.length,3);
  assert.equal(bubble.attrs['aria-hidden'],'true');
- assert.match(panel.children.find(n=>n.className.includes('sr-only')).textContent,/正在思考/);
+ assert.match(panel.children.find(n=>n.className.includes('sr-only')).textContent,/正在撰寫/);
  done({reason:'error'});await result;
  assert.equal(bubble.hidden,true);
  assert.equal(action.textContent,'練習建議');
@@ -158,10 +162,9 @@ test('after recording nothing, the only coach action sends synthetic facts and n
  for(const kind of ['scale','arpeggio']){
   let selected=true;
   const p=app(memory(),'',(options,_progress,config)=>{
-   assert.equal(config.noMeasurement,true);
-   assert.equal(options.length,2);
-   assert.ok(options.every(x=>x.fact.startsWith('no measurements')));
-   return selected ? {choice:options[1]} : {reason:'unsupported'};
+   assert.equal(options.measured,0);
+   assert.match(options.focus,/第一個譜音/);
+   return selected ? {advice:{steps:['先開調音器，拉第一個譜音兩秒。'],check:'確認畫面出現音名，再回到練習。'}} : {reason:'unsupported'};
   });
   const view=p.card(kind),panel=view.element.find('scale-practice-coach');
   assert.equal(panel.hidden,true);
@@ -172,10 +175,10 @@ test('after recording nothing, the only coach action sends synthetic facts and n
   assert.match(panel.find('scale-practice-coach-status').textContent,/沒有辨識到可用音符.*練習建議/);
   assert.equal(p.requested,undefined);
   await action.handlers.click();
-  assert.match(panel.find('scale-practice-coach-tip').textContent,/無法判斷音準.*先開調音器/);
-  assert.doesNotMatch(panel.find('scale-practice-coach-tip').textContent,/442|A4|音分/);
+  assert.match(coachOutput(panel),/無法判斷音準.*先開調音器/);
+  assert.doesNotMatch(coachOutput(panel),/442|A4|音分/);
   selected=false;await action.handlers.click();
-  assert.equal(panel.find('scale-practice-coach-tip').textContent,'');
+  assert.equal(coachOutput(panel),'');
   assert.match(panel.find('scale-practice-coach-status').textContent,/WebGPU/);
  }
 });

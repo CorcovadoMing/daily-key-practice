@@ -103,3 +103,7 @@ The same experimental release modestly increases iOS Safari metronome peak from 
 ### Experimental interface polish
 
 The experimental site applies web adaptations of the [Apple Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/): a scalable system-font hierarchy with Traditional Chinese fallbacks, paired radio choices and consistent minimum touch areas for common actions, visible focus and pressed states, and responsive controls that wrap without changing order. The fifths chooser retains its compact circular map rather than overlapping larger tap targets. The screen-only styling leaves printed notation and all practice, classroom, audio, and history behavior unchanged.
+
+### Experimental practice advice wording
+
+After an explicit request, the local coach writes one or two short Traditional Chinese cello drills and a retest, using only the exercise type, the observed score slots, and available method/A4 metadata. The site renders the measured observation separately. Suggestions about the bow and coordination are practice options, not diagnoses from audio. There is no template-choice fallback; the same model can attempt the structured response once more without thinking.
