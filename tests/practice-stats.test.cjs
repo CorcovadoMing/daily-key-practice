@@ -91,7 +91,8 @@ test('actual heat render outputs date/count per cell and consistent green thresh
  const host={replaceChildren(chart){this.chart=chart}};
  const el=()=>({children:[],attrs:{},dataset:{},style:{setProperty(){}},setAttribute(k,v){this.attrs[k]=v},append(...items){this.children.push(...items)}});
  const dated=(date,n)=>({date,majorIds:[0,1,2,3,4,5],minorIds:[],doneIds:Array.from({length:n},(_,i)=>'major-'+i)});
- const box={q:()=>host,document:{createElement:el},state:{personalHistory:[
+ const range=el();
+ const box={q:key=>key==='#practice-heat-range'?range:host,document:{createElement:el},state:{personalHistory:[
   dated('2026-06-01',1),dated('2026-06-02',2),dated('2026-06-03',4),dated('2026-06-04',6)],classroomHistory:[]},currentDate:'2026-06-04'};
  vm.runInNewContext(html.slice(html.indexOf('    function practiceCompletionRows('),html.indexOf('    const cumulativeNoteKey='))+';renderPracticeHeat()',box);
  const cells=host.chart.children.filter(x=>x.className==='practice-heat-cell');
@@ -102,8 +103,21 @@ test('actual heat render outputs date/count per cell and consistent green thresh
  assert.ok(cells.every(x=>x.attrs.role==='listitem'&&x.attrs.tabindex==null));
  assert.deepEqual(host.chart.children.filter(x=>x.className==='practice-heat-month').map(x=>x.textContent),['5月','6月']);
  assert.equal(host.chart.attrs['aria-label'],'最近 30 天，含今天');
+ assert.equal(range.textContent,'5/6–6/4');
+ box.currentDate='2027-01-08';box.renderPracticeHeat();
+ assert.equal(range.textContent,'2026/12/10–2027/1/8');
  assert.deepEqual(cells.filter(x=>x.attrs['aria-current']==='date').map(x=>x.dataset.date),['2026-06-04']);
  assert.equal(cells[0].style.gridArea,'4 / 2');
  assert.equal(cells.at(-1).style.gridArea,'5 / 6');
  assert.ok(cells.every((x,i)=>i===0||x.dataset.date>cells[i-1].dataset.date));
+});
+
+test('phone stats keep overflowing width inside the scrollport and 30-day date labels outside it',()=>{
+ assert.match(html,/\.practice-statistics\{[^}]*grid-template-columns:minmax\(0,1fr\)/);
+ assert.match(html,/\.practice-stats-scroll\{[^}]*overflow-x:auto[^}]*contain:inline-size/);
+ assert.match(html,/@media\(max-width:640px\)\{[\s\S]*?\.practice-stats-plot\{min-width:max\(var\(--stats-min-width,34rem\),calc\(var\(--stats-axis-width,3.25rem\) \+ 24 \* 2rem \+ \.25rem\)\)/);
+ assert.match(html,/\.practice-stats-bars\{grid-template-columns:repeat\(24,minmax\(2rem,1fr\)\)}/);
+ assert.match(html,/id="practice-stats-swipe"[^>]*>左右滑動查看全部 24 調/);
+ assert.match(html,/id="practice-heat-range"[^>]*><\/span><\/div>[\s\S]*?id="practice-heat-grid"/);
+ assert.match(html,/\.practice-heat-grid\{--heat-cell:clamp\(1.125rem,6vw,1.5rem\);margin-inline:auto/);
 });

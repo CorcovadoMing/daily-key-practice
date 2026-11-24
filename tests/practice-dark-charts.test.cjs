@@ -93,3 +93,10 @@ test('actual practice view keeps the same measured active, partial, restored and
  assert.equal(dots().dataset.band,'center');
  assert.equal(line(pitch()),'');assert.equal(line(volume()),'');
 });
+test('expanded dark card reins in the decorative seam without changing chart guides',()=>{
+ assert.match(html,/\.fingering-section\{[^}]*border-top:1px solid #e9ece7/);
+ assert.match(html,/\[data-appearance=dark\] \.key-card\.is-expanded\{--expanded-card-divider:#39424d}/);
+ assert.match(html,/\[data-appearance=dark\] \.key-card\.is-expanded>\.fingering-section,\s*\[data-appearance=dark\] \.key-card\.is-expanded \.cello-fb-sequence\{border-top-color:var\(--expanded-card-divider\)}/);
+ assert.ok(contrast('#39424d','#21252b')<1.7);
+ assert.match(html,/\.scale-pitch-trend \.trend-guide\{stroke:#73859a}/);
+});
