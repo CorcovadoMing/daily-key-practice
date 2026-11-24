@@ -1187,14 +1187,19 @@
   // Store only the rendered deterministic result, never the plan or lap packet.
   function normalizeAdvice(raw,draft,encoded=false) {
     if(!raw||!draft.values.some(Number.isFinite)||
-       (encoded&&(![2,3].includes(raw.v)||raw.draftId!==draft.id||raw.mode!==draft.mode)))return;
+       (encoded&&(![2,3,4].includes(raw.v)||raw.draftId!==draft.id||raw.mode!==draft.mode)))return;
     const {kind,observation,action,check}=raw;
     const bounded=(x,max)=>typeof x==='string'&&x.trim().length>0&&x.length<=max&&!/[\x00-\x1f\x7f]/.test(x);
-    if(Array.isArray(raw.issues)&&Array.isArray(raw.drills)&&(!encoded||raw.v===3)){
+    if(Array.isArray(raw.issues)&&Array.isArray(raw.drills)&&(!encoded||[3,4].includes(raw.v))){
       if(!raw.issues.length||raw.issues.length>256||raw.drills.length>3||
          raw.issues.some(x=>!bounded(x,240))||raw.drills.some(x=>!bounded(x,350)))return;
       const result={issues:[...raw.issues],drills:[...raw.drills]};
-      return encoded?result:{v:3,draftId:draft.id,mode:draft.mode,...result};
+      const ids=['connected','crossing','approach','spacing','shift'];
+      if((!encoded||raw.v===4)&&Array.isArray(raw.drillSources)&&raw.drillSources.length===raw.drills.length&&
+         raw.drillSources.every(group=>Array.isArray(group)&&group.length<=ids.length&&group.every(id=>ids.includes(id)))){
+        result.drillSources=raw.drillSources.map(g=>[...new Set(g)]);
+      }
+      return encoded?result:{v:4,draftId:draft.id,mode:draft.mode,...result};
     }
     if(encoded&&raw.v!==2)return;
     if(!['insufficient','note','crossing','fingers','shift','extension'].includes(kind)||!bounded(observation,240))return;

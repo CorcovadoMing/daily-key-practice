@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261124-046-experimental">
+  <meta name="site-version" content="20261124-047-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -531,6 +531,12 @@
     .scale-practice-coach-raw pre{white-space:pre-wrap;overflow-wrap:anywhere;overflow:auto;max-height:16rem;margin:4px 0 0;padding:8px 10px;background:var(--soft);color:var(--ink);border-radius:8px;font:inherit;line-height:1.55}
     .scale-practice-local-coach{box-sizing:border-box;max-width:100%;overflow-wrap:anywhere}
     .scale-practice-local-coach button{max-width:100%}
+    .scale-practice-coach-sources{margin-block-start:1rem;padding-block-start:.35rem;border-top:1px solid var(--line);font-size:.8125rem;color:var(--muted)}
+    .scale-practice-coach-tip .scale-practice-coach-sources h4{font-size:.8125rem;margin:.3rem 0}
+    .scale-practice-coach-sources ol{margin:.2rem 0;padding-inline-start:1.45rem}
+    .scale-practice-coach-sources li{padding-block:.3rem;line-height:1.5}
+    .scale-practice-coach-sources a{color:var(--ink);text-decoration:underline;text-underline-offset:.15em;overflow-wrap:anywhere}
+    .scale-practice-coach-sources a:focus-visible{outline:2px solid var(--ui-focus,#4c81b3);outline-offset:3px}
     .scale-practice-coach-tip h4{font-size:1rem;margin:.85rem 0 .2rem;line-height:1.35}
     .scale-practice-coach-steps{font-size:.9375rem;line-height:1.55;margin:.25rem 0;padding-inline-start:1.5rem}
     .scale-practice-coach-tip .scale-practice-coach-context{color:var(--muted)}
@@ -1152,7 +1158,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261124-046-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261124-047-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -2334,14 +2340,24 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
 
   // Only this take's accepted, same-lap score evidence enters the rule.
   // Printed/confirmed plans are assumptions, never physical measurements.
-  function connectionDrill(slots,i,{plan,values,restored=false,openTuner='' }={}){
+  const coachSources=Object.freeze({
+    connected:{title:'Emanuel Feuermann：音階的音與音要連接',url:'https://www.cellobello.org/wp-content/uploads/2019/10/CelloLegacy_Feuermann.pdf#page=10',reason:'慢拉相鄰兩音或三音，換弓時讓弓聲連起來。'},
+    crossing:{title:'Ailbhe McDonagh：換弦基礎',url:'https://www.ailbhemcdonagh.com/cello-basics-17-string-crossings.html',reason:'慢速感受各弦的弓高，平順換到下一弦。'},
+    approach:{title:'Gerhard Mantel：練習時把前音加回來',url:'https://cellobello.org/cello-blog/interviews/conversation-with-gerhard-mantel/',reason:'練完兩音，再把前面的譜音接回來。'},
+    spacing:{title:'Seattle Public Schools：大提琴指距與音準',url:'https://www.seattleschools.org/wp-content/uploads/2021/07/EIM-Cello-4-5-Finger-Placement-and-Intonation.pdf',reason:'用耳朵核對同弦手指的落點與音程。'},
+    shift:{title:'Paul Katz：放慢並準備換把',url:'https://cellobello.org/cello-lessons/practicing/shifting-watch-the-speed-limit-2/',reason:'放慢準備手的移動，聽清楚到達音。'}
+  });
+  function connectionDrill(slots,i,{plan,values,restored=false,openTuner='',sources=[] }={}){
     const name=j=>slots[j]?.name||'這個音';
     const direction=j=>slots[j]?.direction||(j<=(slots.length-1)/2?'up':'down');
     const adjacent=j=>Boolean(slots[j]&&direction(j)===direction(i)&&slots[j].midi!==slots[i].midi);
     const here=name(i);
     if(!adjacent(i-1))return openTuner+'先把 '+here+' 慢拉成長音，聽準後停一下，再清楚拉一次。';
     const before=name(i-1);
-    const more=adjacent(i-2)&&slots[i-2].midi!==slots[i-1].midi
+    sources.push('connected');
+    const addLeadIn=adjacent(i-2)&&slots[i-2].midi!==slots[i-1].midi;
+    if(addLeadIn)sources.push('approach');
+    const more=addLeadIn
       ?'順了，再加回譜上更前面的 '+name(i-2)+'，按 '+name(i-2)+' → '+before+' → '+here+' 的順序慢拉。':'順了，再按原譜接回這一段。';
     const compatible=plan?.source==='confirmed/visible plan'&&plan.slots?.length===slots.length&&
       plan.slots.every((entry,j)=>entry?.midi===slots[j].midi);
@@ -2355,11 +2371,12 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       label=from.string+' 弦上的 '+before+' → '+(same?'':to.string+' 弦上的 ')+here;
       let cue='';
       if(!same){
+        sources.push('crossing');
         cue='前音收尾時放慢，換弓時平順到 '+to.string+' 弦的高度';
         if(stopped(to))cue+='，在換弦前就準備好 '+to.finger+' 指';
       }else if(stopped(from)&&stopped(to)){
         const shifts=edge?.shift||(Number.isInteger(from.anchor)&&Number.isInteger(to.anchor)&&from.anchor!==to.anchor);
-        if(shifts)cue='依指板慢練換把：讓前音先放鬆，手移到 '+here+' 的落點，用耳朵確認再連起來';
+        if(shifts){sources.push('shift');cue='依指板慢練換把：讓前音先放鬆，手移到 '+here+' 的落點，用耳朵確認再連起來';}
         else if(edge?.extension)cue='依指板放鬆試伸指，先聽準 '+before+'，再確認 '+here+' 的 '+to.finger+' 指落點，不要硬撐';
         else{
           const start=values?.[i-1],last=values?.[i];
@@ -2368,6 +2385,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
              Number.isFinite(last)&&Math.abs(last-start)>14&&Math.sign(last)===Math.sign(last-start)){
             const movement=last<start?'往琴橋一點':'往琴枕一點';
             const width=Math.sign(slots[i].midi-slots[i-1].midi)*(last-start)<0?'留寬一點':'收窄一點';
+            sources.push('spacing');
             cue='先把 '+before+' 對準，再試讓 '+here+' 的 '+to.finger+' 指落點'+movement+'，兩指的距離'+width+'，不要硬撐';
           }else cue='先聽準 '+before+'，換到 '+here+' 時留意 '+to.finger+' 指的落點，不先假設手指要拉開';
         }
@@ -2401,9 +2419,10 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         current.plan.fingersReviewed===true&&Number.isInteger(current.plan.finger)&&current.plan.finger>=1&&current.plan.finger<=4;
       const possibleOpen=!shownStopped&&Object.keys(openMidi).find(string=>openMidi[string]===note?.midi);
       const openTuner=possibleOpen?'如果這個音用 '+possibleOpen+' 空弦拉，先用相同 A4 設定的調音器確認，確定偏高或偏低再調弦。':'';
-      const action=connectionDrill(packet.slots,chosen,{plan:packet.currentPlan,values:packet.values,restored:true,openTuner});
+      const sources=[];
+      const action=connectionDrill(packet.slots,chosen,{plan:packet.currentPlan,values:packet.values,restored:true,openTuner,sources});
       return {kind:'note',observation:'上次量到的音：'+where+'，'+(value<0?'偏低':'偏高')+'。',
-        action,
+        action,sources,
         check:'回到原譜重拉，看看這個音是否更接近零線。'+setup};
     }
     if(!packet?.rounds?.length)return missing(packet?.measured?
@@ -2498,12 +2517,15 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       return {kind:'note',observation:modeName(i)+'：'+string+' 空弦的 '+label(i)+'，'+seen+'。'+(pair?'連接：'+pair+'。':''),
         action:'先用調音器，'+reference+'單獨慢拉 '+string+' 空弦；若調音器也持續顯示'+landing+'，先把這條弦調準。'+
           (pair?(crossing?'確認後，按原譜慢拉 '+pair+'；一音一弓，前音收尾放慢，換弓時平順換到下一弦的高度。':'確認後，按原譜慢拉 '+pair+'。'):'確認後，再慢拉譜上的這個音。'),
+        sources:crossing?['crossing']:[],
         check:'回到原譜重測，看 '+string+' 空弦的 '+label(i)+' 是否更接近零線。'+settings};
     }
-    if(type==='note')return {kind:type,
-      observation:at+' 反覆'+landing+'。',
-      action:connectionDrill(slots,i,{plan:packet}),
-      check:'按原譜再拉一次，看看這個音是否更接近零線。'+settings};
+    if(type==='note'){
+      const sources=[];
+      const action=connectionDrill(slots,i,{plan:packet,sources});
+      return {kind:type,observation:at+' 反覆'+landing+'。',action,sources,
+        check:'按原譜再拉一次，看看這個音是否更接近零線。'+settings};
+    }
     const x=slots[i-1].plan,y=slots[i].plan;
     const short=shownPair(i-1,i);
     const pair=modeName(i)+'：'+short;
@@ -2530,6 +2552,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       const move=selected.move, anchor=move===i?i-1:i;
       return {kind:type,observation:pair+'。'+occurrence+'的音程'+width+'。',
         action:'先對準 '+label(anchor)+'，放鬆手指，讓 '+label(move)+' 的 '+slots[move].plan.finger+' 指落點'+reach+'，把兩音的距離'+change+'。慢拉 '+short+'，一音一弓、弓聲不斷'+(extend||'。'),
+        sources:['spacing','connected',...(landingRun.left<i-1?['approach']:[])],
         check:'重拉這兩音，先看 '+label(anchor)+' 是否仍準，再看 '+label(move)+' 是否更接近零線。'+settings};
     }
     if(type==='crossing'){
@@ -2538,6 +2561,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       const hand=y.finger===0?'先單獨拉目標空弦，確認它的音準；':y.fingersReviewed?'再提早準備 '+y.finger+' 指，':'再照譜準備下一音，';
       return {kind:type,observation:pair+'。'+occurrence+' '+label(i)+landing+'。',
         action:setup+hand+'慢拉 '+short+'，分弓但不要停聲'+(extend||'。'),
+        sources:['crossing','connected'],
         check:'再拉同一段，聽換弦有沒有碰到別條弦，再看 '+label(i)+' 有沒有更準。'+settings};
     }
     const transition=type==='shift'?'換把提示':type==='extension'?'伸指提示':type==='relocation'?'把位或落點不同':'空弦接按弦';
@@ -2547,6 +2571,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     return {kind:['landing','relocation'].includes(type)?'note':type,
       observation:pair+'（'+transition+'）。'+occurrence+' '+label(i)+landing+'。',
       action:adjust+'再慢拉 '+short+'，一音一弓、弓聲不斷'+(continueRun(landingRun.left,landingRun.right,2)||'。'),
+      sources:['connected',...(type==='shift'?['shift']:[]),...(landingRun.left<i-1?['approach']:[])],
       check:'再拉同一段，看 '+label(i)+' 有沒有更接近零線。'+settings};
     }
   }
@@ -2628,18 +2653,19 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     const observed=[...pitch,...timing];
     if(!observed.length){
       const fallback=single();
-      return {issues:[fallback.observation],drills:fallback.action?[fallback.action]:[]};
+      return {issues:[fallback.observation],drills:fallback.action?[fallback.action]:[],drillSources:fallback.action?[fallback.sources||[]]:[]};
     }
     const issues=[...new Set(observed.map(x=>x.observation))];
-    const drills=[];
+    const drills=[],drillSources=[];
+    const add=(text,sources=[])=>{drills.push(text);drillSources.push(sources);};
     let metric;
     const pin=(type,slots,minRounds)=>{metric??={type,slots,minRounds};};
     const opens=pitch.filter(x=>x.type==='open-check'), openSlots=new Set(opens.map(x=>x.slot));
     if(opens.length){
       pin('pitch',[opens[0].slot],opens[0].minRounds);
       const strings=[...new Set(opens.map(x=>packet.slots[x.slot].plan.string))];
-      if(strings.length===1)drills.push(opens[0].action);
-      else drills.push('先用調音器，沿用'+(Number.isFinite(packet.reference)?' A4 '+packet.reference+' Hz':'原本的 A4')+
+      if(strings.length===1)add(opens[0].action,opens[0].sources);
+      else add('先用調音器，沿用'+(Number.isFinite(packet.reference)?' A4 '+packet.reference+' Hz':'原本的 A4')+
         '，單獨慢拉 '+strings.join('、')+' 空弦；調音器也確認偏差才調弦。調準後再回原譜練連接。');
     }
     const bow=timing.filter(x=>!openSlots.has(x.slot));
@@ -2650,7 +2676,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       const what=(kinds.has('bow-front')?'先把弓放穩再開始，':'')+
         (kinds.has('bow-tail')?'弓到後半仍維持速度，':'')+
         (kinds.has('bow-wobble')?'一弓慢拉，讓聲音均勻，':'');
-      drills.push('拿「'+first.label+'」做一弓長音練習：'+what+
+      add('拿「'+first.label+'」做一弓長音練習：'+what+
         '比較音準走勢裡量到的前後段，看音高有沒有更平穩。'+(targets.length>1?'同樣練法可用在上面其他有走勢變化的音。':''));
     }
     const active=pitch.filter(x=>x.type!=='open-check'&&!openSlots.has(x.slot)&&
@@ -2663,10 +2689,10 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         const main=eligible[0];
         if(main.type==='fingers')pin('interval',[main.slot-1,main.slot],main.minRounds);
         else pin('pitch',[main.slot],main.minRounds);
-        drills.push(main.action+(eligible.length>1?'用同一種練法練清單上相同情況。':''));
+        add(main.action+(eligible.length>1?'用同一種練法練清單上相同情況。':''),main.sources);
       }
     }
-    return {issues,drills,metric};
+    return {issues,drills,drillSources,metric};
   }
 
   function acceptedPlanRound(target,heard,alignment,id){
@@ -3271,6 +3297,24 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
             }
           }catch{} // Optional browser-local comparison; never blocks advice.
         }
+        const sourceIds=[...new Set((report.drillSources||[]).slice(0,loudnessAdvice?2:actions.length).flat())]
+          .filter(id=>Object.hasOwn(coachSources,id));
+        if(actions.length&&sourceIds.length){
+          const section=make('section','scale-practice-coach-sources','');
+          const heading=make('h4','','本次建議參考');
+          const links=make('ol','','');
+          for(const id of sourceIds){
+            const {title,url,reason}=coachSources[id];
+            const item=make('li','','');
+            const link=make('a','',title);
+            link.setAttribute('href',url);
+            link.setAttribute('target','_blank');
+            link.setAttribute('rel','noopener noreferrer');
+            item.append(link,make('span','','。'+reason));
+            links.append(item);
+          }
+          section.append(heading,links);body.append(section);
+        }
       });
     }
     let coachPanel, coachAction, coachTyping, coachStatus, coachTime, coachTip, coachRaw, coachNotice,coachInput, coachAttempt, coachBusy=false, coachTicket=0;
@@ -3662,7 +3706,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
 });
 // SCALE_PRACTICE_END
   </script>
-  <script src="fingerboard.js?v=20261124-046"></script>
+  <script src="fingerboard.js?v=20261124-047"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.

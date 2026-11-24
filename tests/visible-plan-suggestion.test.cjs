@@ -225,7 +225,7 @@ test('v1 advice is not replayed, valid chart remains and old open pitch wording 
  const cache={},f=setup(cache);
  await f.press();f.ready();f.play(f.target[0],-21);await f.press();
  const k=latestKey(cache), saved=JSON.parse(cache[k]);
- a.equal(saved.advice.v,3);
+ a.equal(saved.advice.v,4);
  a.match(setup(cache).advise(),/上次保留的建議.*先用調音器/);
  saved.advice={...saved.advice,v:1,action:'把空弦手指往琴橋移。'};
  cache[k]=JSON.stringify(saved);
@@ -360,4 +360,45 @@ test('a stopped note in today’s confirmed route does not become an open string
  a.doesNotMatch(route.action,/空弦|調音器/);
  const unresolved=f.planSuggestion({restored:true,slots:f.target,values});
  a.match(unresolved.action,/如果這個音用 G 空弦拉.*調音器/);
+});
+
+test('actual recommendation cites only the rendered training recipe, at the very bottom, with safe links restored by ID',async()=>{
+ const cache={},f=setup(cache);
+ await f.press();f.ready();
+ for(const n of f.target.slice(0,12))f.play(n,n.midi===55?-27:0);
+ await f.press(); const current=f.advise();
+ const body=f.panel.find('scale-practice-coach-tip'),footer=body.children.at(-1);
+ a.equal(footer.className,'scale-practice-coach-sources');
+ a.equal(footer.children[0].textContent,'本次建議參考');
+ const list=footer.children[1];
+ a.equal(list.tag,'ol');
+ const links=list.children.map(item=>item.children[0]);
+ a.equal(links.length,3);
+ a.ok(links.some(link=>link.textContent.includes('Feuermann')));
+ a.ok(links.some(link=>link.textContent.includes('Seattle Public Schools')));
+ a.ok(links.some(link=>link.textContent.includes('Mantel')));
+ for(const link of links){
+  a.equal(link.tag,'a');a.match(link.attrs.href,/^https:\/\//);
+  a.equal(link.attrs.rel,'noopener noreferrer');a.equal(link.attrs.target,'_blank');
+ }
+ a.doesNotMatch(current,/McDonagh|Katz/);
+ a.equal(f.network,0);
+ const reopened=setup(cache);a.equal(reopened.advise().replace('上次保留的建議 ',''),current);
+ const k=latestKey(cache),recent=JSON.parse(cache[k]);
+ a.equal(recent.advice.v,4);a.deepEqual(recent.advice.drillSources,[['spacing','connected','approach']]);
+ recent.advice.drillSources=[['javascript:alert(1)','crossing']];
+ cache[k]=JSON.stringify(recent);
+ const sanitized=setup(cache).advise();a.match(sanitized,/音程偏窄/);a.doesNotMatch(sanitized,/本次建議參考|javascript:/);
+ recent.advice.v=3;recent.advice.drillSources=[['shift']];cache[k]=JSON.stringify(recent);
+ a.doesNotMatch(setup(cache).advise(),/本次建議參考|Katz/);
+});
+
+test('unsupported observation, lone tuner check, and no matching notes do not get generic sources',async()=>{
+ const f=setup({});await f.press();f.ready();f.play(f.target[0],-20);await f.press();
+ a.match(f.advise(),/先用調音器/);a.doesNotMatch(f.advise(),/本次建議參考/);
+ await f.press();f.ready();await f.press();
+ a.doesNotMatch(f.advise(),/本次建議參考/);
+ const values=f.startPlan.slots.map((_,i)=>i===3?0:i===4?-24:null);
+ const built=f.practiceAdviceReport({...f.startPlan,rounds:[{id:1,values}],reference:443,detector:'SwiftF0'});
+ a.deepEqual(Array.from(built.drillSources[0]),['crossing']);
 });

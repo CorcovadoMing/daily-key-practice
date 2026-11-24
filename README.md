@@ -123,3 +123,5 @@ The local coach receives every score position, including those explicitly marked
 - **累積練習（實驗）**：底部長條圖以相同縱軸顯示 12 個大調與 12 個小調的實際完成次數，包含零次，依原有個人與課堂歷史計算。窄螢幕可左右捲動；圖下的練習筆記入口仍使用原本的本機資料。縱軸頂端取嚴格高於最高次數的下一個 5 的倍數，平常每 5 次一格，極大數值減少刻度但保留精確上限。旁邊的每日熱圖統計最近 30 天（含今天），同一天完成的每個調只算一次；日期採用已有紀錄日期，並非事後推算的完成時間。
 
 **連接練習（046 實驗）**：偏差音有同一方向的前音時，先把兩音慢練幾次，再加回譜上更早的音；舊紀錄只能證明保存的音準。查看舊圖時若用到目前可見的譜弦與指法，會特別標成「照目前指板試練」，不當作當時的演奏。練習編排參考 [把準備音加回來（Gerhard Mantel）](https://cellobello.org/cello-blog/interviews/conversation-with-gerhard-mantel/#)、[慢速換弦（Ailbhe McDonagh）](https://www.ailbhemcdonagh.com/cello-basics-17-string-crossings.html)及 [指距與音準（Seattle Public Schools）](https://www.seattleschools.org/wp-content/uploads/2021/07/EIM-Cello-4-5-Finger-Placement-and-Intonation.pdf)。
+
+**本次建議參考（047 實驗）**：建議下方只列出本次實際顯示的練法所用的來源；舊報告沒有來源記錄則不補猜。參考連結可自行開啟，不會在練習時載入第三方內容。
