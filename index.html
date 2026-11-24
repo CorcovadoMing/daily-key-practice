@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261124-040-experimental">
+  <meta name="site-version" content="20261124-041-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -1086,7 +1086,7 @@
     <select id="appearance-choice">
       <option value="light">淺色</option><option value="dark">深色</option><option value="system">跟隨系統</option>
     </select>
-  </label><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261124-040-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  </label><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261124-041-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -1636,7 +1636,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
   function trackNotes({stableMs = 70, minFrames = 3, releaseMs = 125, maxFrameGapMs = 90, tolerance = centsLimit} = {}) {
     const limit = tolerance === chartLimit ? chartLimit : toleranceValue(tolerance);
     let candidate = null, current = null, quietSince = null, lastTime = null;
-    return function push(reading, time) {
+    return function push(reading, time, fast = null) {
       if (lastTime !== null && time - lastTime > maxFrameGapMs) candidate = null;
       lastTime = time;
       if (!reading || !Number.isInteger(reading.midi) || !withinCents(reading.cents,limit)) {
@@ -1649,11 +1649,19 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       const {midi, cents} = reading;
       if (current === midi) { candidate = null; return null; }
       if (candidate?.midi !== midi) {
-        candidate = {midi, start: time, cents: [cents]};
+        candidate = {midi, start: time, cents: [cents], fast};
         return null;
       }
       candidate.cents.push(cents);
-      if (time - candidate.start < stableMs || candidate.cents.length < minFrames) return null;
+      // A fast-path pair is two distinct Swift audio-clock hops, not two
+      // readings of an overlapping window. Never accelerate a skipped slot.
+      const elapsed = time - candidate.start;
+      const rapid = stableMs === 24 && minFrames === 2 && candidate.cents.length === 2 &&
+        candidate.fast && fast && candidate.fast.slot === fast.slot &&
+        candidate.fast.hop + 1 === fast.hop && Math.abs(elapsed - 16) < 0.01 &&
+        Math.max(candidate.fast.confidence,fast.confidence) >= .68 &&
+        Math.abs(candidate.cents[0] - cents) <= 18;
+      if (!rapid && (elapsed < stableMs || candidate.cents.length < minFrames)) return null;
       const sorted = candidate.cents.sort((a, b) => a - b);
       const result = {midi, cents: sorted[Math.floor(sorted.length / 2)], at: candidate.start};
       current = midi; candidate = null;
@@ -2264,7 +2272,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
           session.trend=createPitchTrend(lastProgress);
           session.stage = 'listening'; watchdog(); view.update('listening', null, null, 0, reference, display());
         },
-        frame({now,frequency,muted}) {
+        frame({now,frequency,muted,swiftHop,confidence,octaveCorrected}) {
           if (active !== session || !Number.isFinite(now) || now<=lastFrameAt) return;
           lastFrameAt=now;
           if (now - lastProgress >= maxListeningMs) { stop(idleMessage, true); return; }
@@ -2275,7 +2283,11 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
             if (reading) lastPitchAt = now;
             const observed = monitor(reading, now);
             if (!observed || observed.midi !== held?.midi) held = null;
-            const event = track(reading, now);
+            const rapid = swiftSelected && Number.isInteger(swiftHop) && confidence >= .5 && confidence <= 1 &&
+              !octaveCorrected && pitch?.midi === reading?.midi &&
+              reading?.midi === view.target[progress]?.midi && Math.abs(reading?.cents) <= 28
+              ? {hop:swiftHop,slot:progress,confidence} : null;
+            const event = track(reading, now, rapid);
             let closingSlot=null;
             const currentLap=session.laps+1;
             let singleDone=false;
@@ -3046,7 +3058,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
 });
 // SCALE_PRACTICE_END
   </script>
-  <script src="fingerboard.js?v=20261124-040"></script>
+  <script src="fingerboard.js?v=20261124-041"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
@@ -4451,7 +4463,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       })().catch(error => { loading = null; throw error; });
       return loading;
     }
-    async function infer(signal, hops) {
+    async function infer(signal, hops, includeQuality = false) {
       const voiced = hops.map(hop => swiftVoiced(signal,hop));
       if (!voiced.some(Boolean)) return hops.map(() => null);
       const {session,Tensor} = await load();
@@ -4467,7 +4479,10 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         output = await session.run(feeds);
         return hops.map((hop,i) => {
           const hz = output.pitch.data[hop], confidence = output.confidence.data[hop];
-          return voiced[i] && confidence >= .5 && Number.isFinite(hz) && hz >= 46.875 && hz <= 2093.75 ? swiftLowerOctave(signal,hop,hz) : null;
+          if (!voiced[i] || confidence < .5 || !Number.isFinite(confidence) ||
+              !Number.isFinite(hz) || hz < 46.875 || hz > 2093.75) return null;
+          const frequency = swiftLowerOctave(signal,hop,hz);
+          return includeQuality ? {frequency,confidence,octaveCorrected:frequency!==hz} : frequency;
         });
       } finally {
         busy = false;
@@ -4503,12 +4518,14 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       const local = Array.from({length:last-first+1},(_,i)=>first+i-(complete-size));
       const owner = clock;
       busy = true; lastRun = frame.now;
-      tickResult = detector.infer(signal,local).then(values => {
+      tickResult = detector.infer(signal,local,true).then(values => {
         if (!values || owner !== clock) return null;
         lastHop = last;
         return local.map((_,i)=>({
           now:frame.now+((first+i)*.016-frame.audioTime)*1000,
-          frequency:values[i], muted:false
+          frequency:typeof values[i] === 'object' ? values[i]?.frequency ?? null : values[i],
+          swiftHop:first+i, confidence:values[i]?.confidence, octaveCorrected:values[i]?.octaveCorrected,
+          muted:false
         }));
       }).finally(()=>{busy=false;});
       return tickResult;
