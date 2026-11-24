@@ -13,9 +13,9 @@ class Node{
 }
 const key=['C',0,'C D E F G A B'];
 const flatText=n=>[n.textContent,...n.children.map(flatText)].join(' ');
-function setup(data,search=''){
+function setup(data,search='',reject=()=>false){
  let now=0,reference=443,listener,network=0;
- const localStorage={getItem:k=>data[k]??null,setItem:(k,v)=>data[k]=v};
+ const localStorage={getItem:k=>data[k]??null,setItem:(k,v)=>{if(reject(k,v))throw Error('QuotaExceededError');data[k]=v;}};
  const document={createElement:tag=>new Node(tag),querySelectorAll:()=>[],addEventListener(){}};
  const box=vm.createContext({document,window:{},performance,localStorage,URLSearchParams,location:{pathname:'/experimental/',hostname:'corcovadoming.github.io',search},
    fetch(){network++;throw Error('no network');},Worker:class{constructor(){network++;throw Error('no worker');}}});
@@ -38,7 +38,7 @@ function setup(data,search=''){
    setPlan(x){plan=x;},setA4(x){reference=x;},get network(){return network;}};
 }
 test('actual start and stop deliver a repeatable static crossing suggestion without initializing the model',async()=>{
- const f=setup({});a.equal(f.panel.hidden,true);
+ const cache={};const f=setup(cache);a.equal(f.panel.hidden,true);
  await f.press();
  f.setPlan(f.fb.visiblePlan('major',key,{upMap:'{"43":{"s":0,"f":4}}'})); // newer board not this take
  f.ready();f.setA4(445);
@@ -49,6 +49,10 @@ test('actual start and stop deliver a repeatable static crossing suggestion with
  const message=f.advise();
  a.match(message,/照這次指板.*換弦 C→G.*2／2.*第二音偏低.*可以這樣練.*再拉一次.*零線.*443 Hz/);
  a.doesNotMatch(message,/445|實際換弦|因此|造成/);
+ const restored=setup(cache);
+ restored.setPlan(restored.fb.visiblePlan('major',key,{upMap:'{"43":{"s":0,"f":4}}'}));
+ a.equal(restored.advise(),message);
+ a.equal(restored.network,0);
  a.equal(f.network,0);
 });
 test('new confirmed board used only next take; stale mismatched route rolls back to score-only suggestion',async()=>{
@@ -71,7 +75,7 @@ test('missing, partial and restored takes are honest and cannot reuse board or m
  await f.press();f.ready();f.play(f.target[0],4);await f.press();
  a.match(f.advise(),/沒有足夠資料/);
  const g=setup(cache);
- a.match(g.advise(),/上次.*不能用現在.*回推/);
+ a.equal(g.advise(),f.advise());
  await g.press();g.ready();await g.press();
  a.match(g.advise(),/沒有辨識到可用音符/);
  a.doesNotMatch(g.advise(),/上次/);
@@ -94,4 +98,50 @@ test('old URL query cannot activate model on public Pages; opened string gets it
  await f.press();
  a.match(f.advise(),/先單獨拉目標空弦.*確認它的音準.*分弓/);
  a.equal(f.network,0);
+});
+
+const latestKey=cache=>Object.keys(cache).find(k=>k.endsWith('latest-local'));
+test('legacy and corrupted optional payloads use only signed saved downward note; replacing singleton invalidates prior advice',async()=>{
+ const cache={},f=setup(cache);
+ await f.press();f.ready();f.play(f.target[0],20);await f.press();
+ const k=latestKey(cache), old=JSON.parse(cache[k]);
+ const slot=f.target.length-2;
+ old.values=old.values.map((_,i)=>i===slot?-24:null);
+ // A mismatched take payload stays optional; the dot chart is still valid.
+ old.advice={v:1,draftId:'different-take',mode:old.mode,kind:'insufficient',observation:'無關資料'};
+ cache[k]=JSON.stringify(old);
+ const g=setup(cache);
+ a.match(g.advise(),new RegExp('下行第 '+(slot+1)+' 音，−24¢'));
+ a.doesNotMatch(g.advise(),/無關資料|換弦|反覆|[0-9]／[0-9]/);
+ delete old.advice;cache[k]=JSON.stringify(old);
+ a.match(setup(cache).advise(),/一次音準讀數/);
+ cache[k]=JSON.stringify({...old,id:'replacement'});
+ a.equal(g.advise().trim(),'');a.equal(g.panel.hidden,true);
+ delete cache[k];
+ a.equal(setup(cache).panel.hidden,true);
+});
+test('stale mounted view clears previously rendered advice when notified',async()=>{
+ const cache={}, f=setup(cache);
+ await f.press();f.ready();f.play(f.target[0],24);await f.press();
+ a.match(f.advise(),/沒有足夠資料/);
+ delete cache[latestKey(cache)];
+ a.equal(f.advise().trim(),'');a.equal(f.panel.hidden,true);
+});
+
+test('quota fallback keeps measured chart if optional advice does not fit',async()=>{
+ const cache={}; const f=setup(cache,'',(k,v)=>k.endsWith('latest-local')&&Boolean(JSON.parse(v).advice));
+ await f.press();f.ready();f.play(f.target[0],-21);await f.press();
+ const snapshot=JSON.parse(cache[latestKey(cache)]);
+ a.equal(snapshot.advice,undefined);a.equal(snapshot.values[0],-21);
+ const g=setup(cache);
+ a.match(g.advise(),/上次量到.*−21¢.*一次音準讀數/);
+});
+test('reload at a completed loop checkpoint restores its same-lap advice without restarting the microphone',async()=>{
+ const cache={},f=setup(cache);
+ await f.press();f.ready();
+ for(const n of f.target)f.play(n,n.midi===43?-25:0);
+ for(const n of f.target.slice(1))f.play(n,n.midi===43?-24:0);
+ const g=setup(cache);
+ a.match(g.advise(),/換弦 C→G.*2／2.*第二音偏低/);
+ a.equal(g.network,0);
 });

@@ -1,5 +1,87 @@
-const test=require('node:test'),assert=require('node:assert/strict'),fs=require('fs'),vm=require('vm');const html=fs.readFileSync('index.html','utf8'),c={};vm.runInNewContext(html.slice(html.indexOf('    function cumulativePracticeCounts('),html.indexOf('    const cumulativeNoteKey='))+';this.count=cumulativePracticeCounts',c);const row=(id,doneIds,majorIds=[0,1],minorIds=[2])=>({id,doneIds,majorIds,minorIds});
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('fs'),vm=require('vm');const html=fs.readFileSync('index.html','utf8'),c={};vm.runInNewContext(html.slice(html.indexOf('    function practiceCompletionRows('),html.indexOf('    const cumulativeNoteKey='))+';this.count=cumulativePracticeCounts;this.heat=practiceHeatDays',c);const row=(id,doneIds,majorIds=[0,1],minorIds=[2])=>({id,doneIds,majorIds,minorIds});
 test('24 counters including zero, no drawn-only completions',()=>{const counts=c.count([row('a',[])]);assert.equal(Object.keys(counts).length,24);assert.ok(Object.values(counts).every(x=>x===0));});
 test('unique completion per actual row and source mirror, invalid keys excluded',()=>{const counts=c.count([row('a',['major-0','major-0','minor-2','major-4','major-12']),row('b',['major-0']),null],[row('a',['major-0','major-0','minor-2']),row('c',['minor-2'],[],[2,2,'2',13])]);assert.equal(counts['major-0'],2);assert.equal(counts['minor-2'],2);assert.equal(counts['major-4'],0);assert.equal(Object.keys(counts).length,24);});
 test('deleted and resumed records derive counts without increment drift',()=>{let rows=[row('a',['major-0']),row('b',[])];assert.equal(c.count(rows)['major-0'],1);rows[1].doneIds.push('major-0');assert.equal(c.count(rows)['major-0'],2);rows[1].doneIds=[];assert.equal(c.count(rows)['major-0'],1);rows.splice(0,1);assert.equal(c.count(rows)['major-0'],0);});
 test('cumulative scope never depends on shared room, rendering reads only archived histories',()=>{assert.ok(html.includes("const cumulativeNoteKey=studentNoteKey;"));assert.ok(html.includes('cumulativePracticeCounts(state.personalHistory,state.classroomHistory)'));assert.ok(html.includes('function renderHistory(){\n      renderPracticeStats();'));});
+
+test('24 ordered accessible counts share one linear axis, including zeros and large counts; one separate note picker',()=>{
+ function el(tag){return {tag,children:[],dataset:{},style:{setProperty(k,v){this[k]=v}},events:{},attrs:{},
+   setAttribute(k,v){this.attrs[k]=v},addEventListener(k,f){this.events[k]=f},append(...items){this.children.push(...items)},replaceChildren(...items){this.children=items}}}
+ const grid=el('div'),picker=el('select'),open=el('button');
+ const nodes={'#practice-stats-grid':grid,'#practice-stats-note-key':picker,'#practice-stats-note-open':open};
+ const first=html.indexOf('    const MAJOR_KEYS = ['),last=html.indexOf('    const STORAGE_KEY',first);
+ const counts=(personal,classroom)=>c.count(personal,classroom);
+ const noteCalls=[];
+ const box={document:{createElement:el},q:s=>nodes[s],state:{personalHistory:[],classroomHistory:[]},
+  cumulativePracticeCounts:counts,selectedId:(m,i)=>m+'-'+i,cumulativeNoteKey:k=>'private-'+k,openStudentNote:(...x)=>noteCalls.push(x)};
+ vm.runInNewContext(html.slice(first,last)+';function keyName(m,i){return (m==="major"?MAJOR_KEYS:MINOR_KEYS)[i][0];}\n'+
+  html.slice(html.indexOf('    function practiceStatsScale('),html.indexOf('    function historyProgress(')),box);
+ box.renderPracticeStats();
+ let [axis,bars]=grid.children[0].children;
+ assert.equal(bars.children.length,24);
+ assert.ok(bars.children.every(col=>col.dataset.count==='0'&&col.style['--bar-height']==='0%'));
+ assert.deepEqual(axis.children.map(t=>t.textContent),['0','1']);
+ assert.equal(bars.children[1].children[0].textContent,'D♭ 大調，0 次');
+ assert.equal(bars.children[13].children[0].textContent,'C♯ 小調，0 次');
+ assert.ok(bars.children.every(col=>!col.events.click&&col.tag==='li'));
+ box.state.personalHistory=Array.from({length:1300},(_,i)=>row('personal'+i,i<650?['major-0','minor-2']:['major-0']));
+ box.renderPracticeStats();
+ [axis,bars]=grid.children[0].children;
+ assert.deepEqual(axis.children.map(t=>t.textContent),['0','500','1000','1500']);
+ assert.equal(bars.children[0].dataset.count,'1300');
+ assert.equal(bars.children[14].dataset.count,'650');
+ assert.equal(bars.children[0].style['--bar-height'],2*parseFloat(bars.children[14].style['--bar-height'])+'%');
+ assert.equal(bars.children[14].children[0].textContent,'D 小調，650 次');
+ assert.equal(picker.children.length,2,'one initialized note picker, not duplicate on rerender');
+ picker.value='minor-2';picker.selectedOptions=[picker.children[1].children[2]];
+ picker.events.change();assert.equal(open.disabled,false);
+ open.events.click();assert.deepEqual(noteCalls[0],['minor-2',open,'private-minor-2']);
+ assert.match(html,/class="practice-stats-scroll" role="region"[^>]*tabindex="0"/);
+ assert.match(html,/\.practice-stats-scroll\{[^}]*overflow-x:auto/);
+});
+
+test('heat uses valid local civil record dates, 52 weeks through today and unique completed keys each day',()=>{
+ const dated=(date,id,doneIds)=>({...row(id,doneIds),date});
+ const records=[
+  dated('2026-04-30','earlier',['major-0']),
+  dated('2026-05-01','a',['major-0','major-0','minor-2','major-9']),
+  dated('2026-05-01','b',['major-0','major-1']),
+  dated('2026-05-12','today',['minor-2']),
+  dated('2026-05-13','future',['major-1']),
+  dated('2026-02-30','invalid',['major-1']),
+  dated(null,'undated',['major-0']),
+  dated('2025-01-01','expired',['major-0'])
+ ];
+ const classRows=[dated('2026-05-01','mirror',['major-1']),dated('2026-05-12','fresh',['major-0','minor-2'])];
+ const days=c.heat(records,classRows,'2026-05-12'),get=date=>days.find(d=>d.date===date);
+ assert.equal(days.length,364);
+ assert.equal(days.at(-1).date,'2026-05-12');
+ assert.equal(new Set(days.map(d=>d.date)).size,364);
+ assert.equal(get('2026-05-12').weekday,1);
+ assert.equal(get('2026-04-30').count,1);assert.equal(get('2026-05-01').count,3);
+ assert.equal(get('2026-05-02').count,0);assert.equal(get('2026-05-12').count,2);
+ assert.equal(days.reduce((n,d)=>n+d.count,0),6);
+ assert.equal(get('2026-05-13'),undefined);assert.equal(get('2026-02-30'),undefined);
+ // Leap day and transitions across common DST weekends remain individual cells.
+ const leap=c.heat([],[],'2024-03-12');
+ for(const day of ['2024-02-29','2024-03-09','2024-03-10','2024-03-11'])assert.ok(leap.some(d=>d.date===day));
+ assert.match(html,/class="practice-stats-scroll" role="region" aria-label="每日完成調數，可左右捲動" tabindex="0"/);
+ assert.match(html,/\.practice-statistics\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}/);
+ assert.match(html,/依原紀錄日期統計/);
+});
+
+test('actual heat render outputs date/count per cell and consistent green thresholds without 364 Tab stops',()=>{
+ const host={replaceChildren(chart){this.chart=chart}};
+ const el=()=>({children:[],attrs:{},dataset:{},style:{setProperty(){}},setAttribute(k,v){this.attrs[k]=v},append(...items){this.children.push(...items)}});
+ const dated=(date,n)=>({date,majorIds:[0,1,2,3,4,5],minorIds:[],doneIds:Array.from({length:n},(_,i)=>'major-'+i)});
+ const box={q:()=>host,document:{createElement:el},state:{personalHistory:[
+  dated('2026-06-01',1),dated('2026-06-02',2),dated('2026-06-03',4),dated('2026-06-04',6)],classroomHistory:[]},currentDate:'2026-06-04'};
+ vm.runInNewContext(html.slice(html.indexOf('    function practiceCompletionRows('),html.indexOf('    const cumulativeNoteKey='))+';renderPracticeHeat()',box);
+ const cells=host.chart.children.filter(x=>x.className==='practice-heat-cell');
+ assert.equal(cells.length,364);
+ assert.equal(cells[0].dataset.count,'0');
+ assert.deepEqual(cells.slice(-4).map(cell=>cell.dataset.level),['1','2','3','4']);
+ assert.equal(cells.at(-1).children[0].textContent,'2026-06-04，完成 6 調');
+ assert.ok(cells.every(x=>x.attrs.role==='listitem'&&x.attrs.tabindex==null));
+ assert.ok(host.chart.children.some(x=>x.className==='practice-heat-month'&&x.textContent==='5 月'));
+});

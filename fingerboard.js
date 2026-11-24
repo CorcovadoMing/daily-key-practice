@@ -1183,6 +1183,18 @@
     return result;
   }
 
+  // Store only the rendered deterministic result, never the plan or lap packet.
+  function normalizeAdvice(raw,draft,encoded=false) {
+    if(!raw||!draft.values.some(Number.isFinite)||
+       (encoded&&(raw.v!==1||raw.draftId!==draft.id||raw.mode!==draft.mode)))return;
+    const {kind,observation,action,check}=raw;
+    const bounded=(x,max)=>typeof x==='string'&&x.trim().length>0&&x.length<=max&&!/[\x00-\x1f\x7f]/.test(x);
+    if(!['insufficient','note','crossing','fingers','shift','extension'].includes(kind)||!bounded(observation,240))return;
+    if(kind==='insufficient'?(action!==undefined||check!==undefined):(!bounded(action,180)||!bounded(check,180)))return;
+    const result=kind==='insufficient'?{kind,observation}:{kind,observation,action,check};
+    return encoded?result:{v:1,draftId:draft.id,mode:draft.mode,...result};
+  }
+
   // Optional finalized trace is part of the single draft, never a separate
   // storage key. Tuples store time/cents/score slot/lap/segment, not audio.
   const TREND_MS = 120000, TREND_CAP = 2564;
@@ -1232,6 +1244,8 @@
       snapshot = normalizeDraft(draft, count);
       const trend=normalizeTrend(draft.trend,snapshot,count);
       if(trend)snapshot.trend=trend;
+      const advice=normalizeAdvice(draft.advice,snapshot);
+      if(advice)snapshot.advice=advice;
       for (const name of ['history', 'attemptHistory']) {
         if (draft[name] == null) continue;
         const bins = fresh(count);
@@ -1251,15 +1265,15 @@
       if (!latest.ok) return latest;
       if (!latest.exists || latest.draft.id !== snapshot.id) return {ok: false, reason: 'stale-draft'};
     }
-    let saved=write(storage, DRAFT_KEY, {v: 1, scope: key, ...snapshot});
-    // If trace size exhausts local quota, keep the original dot-chart backup.
-    // A failed trace write must not block the existing draft behavior.
-    if(!saved.ok && snapshot.trend){
-      delete snapshot.trend;
-      saved=write(storage, DRAFT_KEY, {v: 1, scope: key, ...snapshot});
-      if(saved.ok)return {...saved,trendSaved:false};
-    }
-    return snapshot.trend&&saved.ok?{...saved,trendSaved:true}:saved;
+    const hadTrend=Boolean(snapshot.trend), hadAdvice=Boolean(snapshot.advice);
+    const publish=()=>write(storage, DRAFT_KEY, {v: 1, scope: key, ...snapshot});
+    let saved=publish();
+    // Optional coaching and trace must never prevent restoring the dot chart.
+    if(!saved.ok&&hadTrend){delete snapshot.trend;saved=publish();}
+    if(!saved.ok&&hadAdvice){delete snapshot.advice;saved=publish();}
+    if(saved.ok&&hadTrend)saved={...saved,trendSaved:Boolean(snapshot.trend)};
+    if(saved.ok&&hadAdvice)saved={...saved,adviceSaved:Boolean(snapshot.advice)};
+    return saved;
   }
 
   function loadDraft(storage, key, count) {
@@ -1274,6 +1288,8 @@
       const draft = normalizeDraft(snapshot, count);
       const trend=normalizeTrend(snapshot.trend,draft,count,true);
       if(trend)draft.trend=trend;
+      const advice=normalizeAdvice(snapshot.advice,draft,true);
+      if(advice)draft.advice=advice;
       for (const name of ['history', 'attemptHistory']) {
         if (snapshot[name] !== undefined) draft[name] = decodeSlots(snapshot[name], count);
       }

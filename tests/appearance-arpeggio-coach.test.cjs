@@ -16,14 +16,14 @@ class Node {
 }
 const memory=()=>{const m=new Map();return {getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,v)};};
 function appearance(store, matches) {
-  const root=new Node(), themeMeta=new Node(), select=new Node(), toggle=new Node();
+  const root=new Node(), themeMeta=new Node(), toggle=new Node();
   const media={matches, addListener(fn){this.changed=fn;}};
   const events={};
-  const document={documentElement:root,querySelector:()=>themeMeta,getElementById:id=>id==='appearance-toggle'?toggle:select,
+  const document={documentElement:root,querySelector:()=>themeMeta,getElementById:id=>id==='appearance-toggle'?toggle:null,
     addEventListener(k,fn){events[k]=fn;}};
   vm.runInNewContext(code('APPEARANCE'), {document,localStorage:store,matchMedia:()=>media});
   events.DOMContentLoaded();
-  return {root,themeMeta,select,media,toggle,choice(val){select.value=val;select.handlers.change();}};
+  return {root,themeMeta,media,toggle};
 }
 test('appearance keeps light default, persists manual choice, follows system only when selected, and works with denied storage',()=>{
   const store=memory(), page=appearance(store,true);
@@ -31,17 +31,30 @@ test('appearance keeps light default, persists manual choice, follows system onl
   page.toggle.handlers.click();
   assert.equal(page.root.dataset.appearance,'dark');
   assert.equal(page.toggle.attrs['aria-label'],'切換淺色模式');
-  assert.equal(appearance(store,false).select.value,'dark');
+  assert.equal(appearance(store,false).root.dataset.appearance,'dark');
   assert.equal(appearance(store,false).themeMeta.attrs.content,'#16191d');
-  page.choice('system');
-  assert.equal(page.root.dataset.appearance,'dark');
-  page.media.matches=false;page.media.changed();
-  assert.equal(page.root.dataset.appearance,'light');
+  store.setItem('cello-experimental-appearance','system');
+  const legacy=appearance(store,true);
+  assert.equal(legacy.root.dataset.appearance,'dark');
+  legacy.media.matches=false;legacy.media.changed();
+  assert.equal(legacy.root.dataset.appearance,'light');
   const blocked=appearance({},false);
-  blocked.choice('dark');
+  blocked.toggle.handlers.click();
   assert.equal(blocked.root.dataset.appearance,'dark');
-  assert.match(html,/@media print\{\.theme-choice\{display:none\}\}/);
+  assert.doesNotMatch(html,/appearance-choice|footer-theme/);
+  assert.match(html,/\.local-audio-note\{[^}]*text-align:left;align-self:flex-start/);
   assert.match(html,/@media screen\{\s*:root\[data-appearance=dark\]/);
+});
+
+test('tablet global action is bounded; filled score primary applies only to idle scale/arpeggio',()=>{
+  assert.match(html,/@media\(min-width:600px\) and \(max-width:1180px\)\{\s*\.launch-controls\{grid-template-columns:fit-content\(16rem\).*\n/);
+  assert.match(html,/\.launch-controls #draw-button\{width:auto;min-inline-size:11rem;max-inline-size:16rem/);
+  assert.match(html,/\.launch-controls #draw-button\{min-width:0;width:100%[^}]*min-height:54px/);
+  assert.match(html,/\.scale-practice\[data-phase=idle\]>\.scale-practice-action>\.scale-practice-button\{\s*background:var\(--score-start-fill\)/);
+  assert.match(html,/\[data-appearance=dark\] \.scale-practice\{--score-start-fill:#363d46/);
+  assert.match(html,/\.launch-options-toggle\{background:transparent;color:var\(--ink\);border:0/);
+  assert.match(html,/\.launch-options-toggle:focus-visible\{outline:/);
+  assert.match(html,/<button type="button" class="launch-options-toggle"[^>]+aria-expanded="false"/);
 });
 
 function app(store=memory(), search='?aiCoach=1', response) {
