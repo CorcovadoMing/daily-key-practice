@@ -488,7 +488,7 @@
       const x=startX+i*spacing,y=110-(staffStep(note)-18)*5;
       for(let ly=120;ly<=y;ly+=10)svg.append(svgNode('line',{x1:x-11,x2:x+11,y1:ly,y2:ly,stroke:'#444','stroke-width':1}));
       for(let ly=60;ly>=y;ly-=10)svg.append(svgNode('line',{x1:x-11,x2:x+11,y1:ly,y2:ly,stroke:'#444','stroke-width':1}));
-      const g=svgNode('g',{'data-midi':note.midi,'data-note':note.name,'data-duration':arpeggio||i===sequence.length-1?'4':'16'});
+      const g=svgNode('g',{'data-midi':note.midi,'data-score-index':i,'data-note':note.name,'data-duration':arpeggio||i===sequence.length-1?'4':'16'});
       g.append(svgNode('title',{},note.name+' · MIDI '+note.midi));
       if(accidentals[i])g.append(svgNode('text',{class:'scale-accidental',x:x-18,y:y+5,'text-anchor':'middle','font-family':'Georgia, serif','font-size':18,fill:'#222'},accidentals[i]));
       g.append(svgNode('ellipse',{cx:x,cy:y,rx:5.8,ry:3.7,transform:'rotate(-20 '+x+' '+y+')',fill:'#222'}));

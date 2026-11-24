@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261124-049-experimental">
+  <meta name="site-version" content="20261124-050-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -557,9 +557,12 @@
     .cello-scale-score [data-practice-next=true] .scale-stem{stroke:#68776c;stroke-width:1.8}
     .cello-scale-score [data-practice-current=true] .scale-stem{stroke:var(--practice-tone);stroke-width:3.2;stroke-linecap:round}
     .cello-scale-score [data-practice-current=true] .scale-beam-local{stroke:var(--practice-tone)}
+    .cello-scale-score [data-practice=skipped] ellipse{fill:var(--practice-red);stroke:#4e5449;stroke-width:.65}
+    .cello-scale-score [data-practice=skipped] :is(.scale-stem,.scale-beam-local){stroke:var(--practice-red)}
+    .cello-scale-score [data-practice=skipped] .scale-stem{stroke-width:2.2}
     .cello-scale-score [data-practice=detuned] ellipse{stroke-dasharray:1.5 1}
     @media print{
-      .cello-scale-score [data-midi][data-practice-current] .scale-beam-local,.cello-scale-score [data-midi][data-practice-next] .scale-beam-local{stroke:none}
+      .cello-scale-score [data-midi][data-practice-current] .scale-beam-local,.cello-scale-score [data-midi][data-practice-next] .scale-beam-local,.cello-scale-score [data-midi][data-practice=skipped] .scale-beam-local{stroke:none}
       .cello-scale-score [data-midi][data-practice] ellipse,.cello-scale-score [data-midi][data-practice-current] ellipse,.cello-scale-score [data-midi][data-practice-next] ellipse{fill:#222}
       .cello-scale-score [data-midi][data-practice] .scale-stem,.cello-scale-score [data-midi][data-practice-current] .scale-stem,.cello-scale-score [data-midi][data-practice-next] .scale-stem{stroke:#222;stroke-width:1.25}
     }
@@ -1161,7 +1164,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261124-049-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261124-050-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -2793,7 +2796,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         planDiagnostics={...session.visiblePlan,rounds,reference:session.reference,detector:session.engine,trend,take:session.take};
       }
       const display = result || laps ? {values, chartValues:values, attemptHistory, coachResult, trend, loudness, planDiagnostics, coachNoEvidence:grade && !coachResult,
-        history:result ? history : session.beforeLastHistory, mode, laps, passed, final:true} : undefined;
+        history:result ? history : session.beforeLastHistory, mode, laps, passed, progress:result?(session.frontier||0):(session.lastFrontier||0),final:true} : undefined;
       const retry=!message&&grade&&!result?.pairs.some(p=>p.expected===0)?session.openingGuide.message(hooks.pitchName,false):null;
       view.update('idle', message||retry, result, 0, session.reference, display);
     }
@@ -2912,7 +2915,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
                 held = {midi:event.midi, slot:position};
                 values = values.slice();
                 values[position] = event.cents;
-                progress = position + 1;
+                progress = session.frontier = position + 1;
                 // Fuzzy recovery can annotate later slots without extending the timer.
                 if (isExactNext) lastProgress = now;
               }
@@ -2923,6 +2926,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
                 acceptLoudness(session,session.heard,boundary,session.laps);
                 if (boundary.complete) session.passed++;
                 session.lastValues = scoreValues(view.target, session.heard, boundary);
+                session.lastFrontier = view.target.length;
                 if(session.visiblePlan){
                   session.planRounds.push(acceptedPlanRound(view.target,session.heard,boundary,session.laps));
                   if(session.planRounds.length>8)session.planRounds.shift();
@@ -2936,7 +2940,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
                 values = Array(view.target.length).fill(null);
                 values[0] = event.cents;
                 held = {midi:event.midi,slot:0};
-                progress = 1;
+                progress = session.frontier = 1;
               } else if (mode === 'single' && progress === view.target.length && align(view.target, session.heard).complete) {
                 singleDone=true;
               }
@@ -3497,8 +3501,13 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       }
       coachAction.addEventListener('click',()=>coachBusy?coachService?.cancel():runCoach());
     }
-    const noteHeads = [...score.querySelectorAll('[data-midi]')];
-    let chart = null, trendDisclosure = null, loudnessDisclosure=null, phase = null, previous = 0, previousLap = 0, currentNote = null, awaiting = null, scoreFollow = null;
+    const noteHeads = new Array(target.length).fill(null);
+    [...score.querySelectorAll('[data-midi]')].forEach((head, fallback)=>{
+      const index=head.dataset.scoreIndex===undefined?fallback:Number(head.dataset.scoreIndex);
+      if(Number.isInteger(index)&&index>=0&&index<target.length&&
+         (head.dataset.midi===undefined||Number(head.dataset.midi)===target[index].midi))noteHeads[index]=head;
+    });
+    let chart = null, trendDisclosure = null, loudnessDisclosure=null, phase = null, currentNote = null, awaiting = null, scoreFollow = null;
     const label = (note, index) => note.name + note.octave + (index <= (target.length - 1) / 2 ? '↑' : '↓');
     const view = {element, target, snapshotVisiblePlan, get mode() { return preference(); }, get detector() { return detectorValue; },
       update(next, message, result, progress = 0, reference = 442, display) {
@@ -3672,23 +3681,24 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
             ? '這次沒有辨識到可用音符。仍可按「練習建議」，取得下一步建議。' : '';
         }
       }
-      if (status.textContent !== text) status.textContent = text;
-      if (result || display?.final) {
-        noteHeads.forEach((head, i) => {
-          if (Number.isFinite(display?.values?.[i])) head.dataset.practice = 'matched';
-          else head.dataset.practice = 'missing';
-        });
-      } else if (next !== 'listening') {
-        noteHeads.forEach(head => { delete head.dataset.practice; });
-      } else {
-        if (progress < previous || laps !== previousLap) {
-          noteHeads.forEach(head => { delete head.dataset.practice; });
-          previous = 0;
-        }
-        for (let i = previous; i < progress && i < noteHeads.length; i++) {
-          if (Number.isFinite(display?.values?.[i])) noteHeads[i].dataset.practice = 'matched';
-        }
+      const measured=display?.values;
+      let frontier=0, skipped=0;
+      if(next==='listening')frontier=Math.min(target.length,progress);
+      else if(result||display?.final){
+        // Older local drafts may carry only dots, not the final live cursor.
+        frontier=Math.min(target.length,Math.max(0,display?.progress||0));
+        for(let i=frontier;i<target.length;i++)if(Number.isFinite(measured?.[i]))frontier=i+1;
       }
+      for(let i=0;i<target.length;i++){
+        const state=Number.isFinite(measured?.[i])?'matched':i<frontier?'skipped':null;
+        if(state==='skipped')skipped++;
+        const head=noteHeads[i];
+        if(!head||head.dataset.practice===state)continue;
+        if(state)head.dataset.practice=state;
+        else delete head.dataset.practice;
+      }
+      if(skipped)text+=' · 已越過但未對上 '+skipped+' 音（紅色）';
+      if (status.textContent !== text) status.textContent = text;
       const live = next === 'listening' ? display?.live : null;
       // An out-of-range observation only changes the live sheet if the
       // position is sufficiently clear and not already accepted.
@@ -3700,6 +3710,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         currentNote = nextNote;
       }
       noteHeads.forEach((head,i) => {
+        if(!head)return;
         const cents = nextNote === i ? live.cents : (display?.chartValues ?? display?.values)?.[i];
         const band = chartPoint(cents)?.band;
         if (band) {
@@ -3720,8 +3731,6 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         }
       }
       scoreFollow = follow;
-      previous = next === 'listening' ? progress : 0;
-      previousLap = next === 'listening' ? laps : 0;
       // A practice list can contain all 24 cards; avoid constructing thousands
       // of chart nodes for cards where listening has not been used.
       if (!chart && (next !== 'idle' || display?.final)) {
@@ -3759,7 +3768,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
 });
 // SCALE_PRACTICE_END
   </script>
-  <script src="fingerboard.js?v=20261124-047"></script>
+  <script src="fingerboard.js?v=20261124-050"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.

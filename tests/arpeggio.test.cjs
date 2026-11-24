@@ -60,9 +60,10 @@ test('all 24 keys feed targets from the exact rendered scale and arpeggio staff'
  }
 });
 
-test('local double-beam follows active pitch hue only and is suppressed in print',()=>{
+test('local double-beam follows active pitch hue or explicit skipped red and is suppressed in print',()=>{
  assert.match(html,/\[data-practice-current=true\] \.scale-stem\{stroke:var\(--practice-tone\)/);
  assert.match(html,/\[data-practice-current=true\] \.scale-beam-local\{stroke:var\(--practice-tone\)/);
- assert.match(html,/@media print\{\s*[^}]*\[data-practice-current\] \.scale-beam-local,[^}]*\[data-practice-next\] \.scale-beam-local\{stroke:none\}/);
+ assert.match(html,/@media print\{\s*[^}]*\[data-practice-current\] \.scale-beam-local,[^}]*\[data-practice-next\] \.scale-beam-local,[^}]*\[data-practice=skipped\] \.scale-beam-local\{stroke:none\}/);
+ assert.match(html,/\[data-practice=skipped\] :is\(\.scale-stem,\.scale-beam-local\)\{stroke:var\(--practice-red\)\}/);
  assert.doesNotMatch(html,/\[data-practice=(matched|missing|detuned)\] \.scale-beam-local/);
 });

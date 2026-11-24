@@ -517,3 +517,60 @@ test('chart stacks historic and current pitches by printed slot, and keeps await
   view.update('idle',null,null,0,442,{mode:'loop',laps:3,values,history,final:true});
   assert.equal(heads[1].dataset.practiceCurrent,undefined);
 });
+
+test('actual ordered tracking colors a gap red and continues; a manual-stop future suffix stays neutral',async()=>{
+  const lab=await skippedStaff([36,38,40,41,43],'single');
+  lab.play(36);lab.play(40); // D was not matched; E advanced.
+  assert.equal(lab.heads[1].dataset.practice,'skipped');
+  assert.equal(lab.heads[2].dataset.practice,'matched');
+  assert.equal(lab.heads[3].dataset.practice,undefined);
+  assert.match(lab.status.textContent,/已越過但未對上 1 音（紅色）/);
+  lab.play(41);
+  await lab.stop();
+  assert.deepEqual(lab.heads.map(x=>x.dataset.practice),['matched','skipped','matched','matched',undefined]);
+  assert.match(lab.status.textContent,/3／5/);
+  assert.doesNotMatch(lab.status.textContent,/通過！/);
+  assert.match(html,/\[data-practice=skipped\] :is\(\.scale-stem,\.scale-beam-local\)\{stroke:var\(--practice-red\)\}/);
+  assert.match(html,/\[data-practice=skipped\] ellipse\{fill:var\(--practice-red\)/);
+});
+
+test('opening only, future indices, mirrored labels and shared tonic do not manufacture a red note',async()=>{
+  const opening=await skippedStaff([36,38,40,38,36],'single');
+  opening.play(38);opening.play(40); // cannot seed first anchor or label heard as skipped
+  assert.ok(opening.heads.every(x=>x.dataset.practice===undefined));
+  assert.match(opening.status.textContent,/不用停止收音/);
+  const loop=await skippedStaff([36,38,40,41,43,41,40,38,36],'loop');
+  [36,40,41,43,41,40,38].forEach(loop.play);
+  assert.equal(loop.heads[1].dataset.practice,'skipped');
+  assert.equal(loop.heads[7].dataset.practice,'matched'); // same MIDI, independent score position
+  assert.equal(loop.heads[8].dataset.practice,undefined);
+  loop.play(36);
+  assert.deepEqual(loop.heads.map(x=>x.dataset.practice),['matched',undefined,undefined,undefined,undefined,undefined,undefined,undefined,undefined]);
+  await loop.stop();
+  assert.equal(loop.heads[1].dataset.practice,'skipped'); // final view is last completed lap
+  assert.equal(loop.heads[7].dataset.practice,'matched');
+  assert.match(loop.status.textContent,/0 輪通過/);
+});
+
+async function skippedStaff(notes,mode){
+  class Node {
+    constructor(){this.children=[];this.dataset={};this.attributes={};this.style={setProperty(){}};this.textContent='';}
+    append(...x){this.children.push(...x);}
+    setAttribute(k,v){this.attributes[k]=v;}
+    addEventListener(){}
+  }
+  const standalone={module:{exports:{}},document:{createElement:()=>new Node()}};
+  vm.runInNewContext(html.split('// SCALE_PRACTICE_START')[1].split('// SCALE_PRACTICE_END')[0],standalone);
+  const {card,manager}=standalone.module.exports;
+  let listener,now=0;
+  const route={subscribe(x){listener=x;return()=>{};}};
+  const target=notes.map(midi=>({midi,name:String(midi),octave:2}));
+  const heads=target.map(({midi},i)=>{const node=new Node();node.dataset.midi=String(midi);node.dataset.scoreIndex=String(i);return node;});
+  const env={performance:{now:()=>now}};
+  const run=manager(env,{capture:route,pitchReading:reading=>reading,pitchName:String,reference:()=>442});
+  const view=card({querySelectorAll:()=>heads.slice().reverse()},target,()=>{});
+  Object.defineProperties(view,{mode:{value:mode},detector:{value:'existing'}});
+  await run.toggle(view);listener.ready();
+  return {heads,status:view.element.children[1],stop:()=>run.toggle(view),
+    play(midi){for(let i=0;i<3;i++){now+=27;listener.frame({now,frequency:{midi,cents:0}});}}};
+}
