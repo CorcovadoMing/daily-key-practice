@@ -277,3 +277,11 @@ test('coach uses qualified temporal facts only while the displayed restored nonc
  assert.match(calls[1].coverage,/上次/);
  assert.equal(calls[1].trace,null);
 });
+
+test('fresh expanded card mounts all graphs when initial restored payload is explicitly null',()=>{
+ const f=build(memory(),'major-C','scale','single');
+ f.view.update('idle',null,null,0,442,null);
+ assert.doesNotThrow(()=>f.view.element.showPracticeCharts(true));
+ assert.ok(f.view.element.children.some(n=>n.dataset.chartTime==='pitch'));
+ assert.ok(f.view.element.children.some(n=>n.dataset.chartTime==='volume'));
+});
