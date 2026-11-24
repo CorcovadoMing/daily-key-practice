@@ -24,10 +24,22 @@ test('dark grid, datum, paths and text preserve separate high contrast, history 
  assert.ok(contrast('#73859a',track)>3);
  for(const tone of ['practice-green','practice-yellow','practice-red'])
    assert.ok(contrast(color(tone),track)>6,tone);
- assert.match(html,/\.scale-pitch-slot :is\(\.scale-pitch-history-dot\)\{opacity:max\(\.48,var\(--past-opacity,\.48\)\)}/);
+ assert.match(html,/\.scale-pitch-slot \.scale-pitch-history-dot::before\{opacity:max\(\.48,var\(--past-opacity,\.48\)\)}/);
  assert.match(html,/\.scale-pitch-dot\{[^}]*background:var\(--practice-tone\);z-index:2}/);
  assert.match(html,/\.scale-pitch-trend .trend-line\{stroke-width:2\.2}/);
  assert.match(html,/\.scale-pitch-trend :is\(\.scale-pitch-time-info,text\)\{color:var\(--ink\);fill:var\(--ink\)}/);
+});
+test('faded solid history fill is separate from its thin high-contrast same-hue edge',()=>{
+ assert.match(html,/\.scale-pitch-history-dot\{border:1px solid var\(--practice-ink\);background:transparent}/);
+ assert.match(html,/\.scale-pitch-history-dot::before\{[^}]*background:var\(--practice-tone\);opacity:var\(--past-opacity,\.36\)}/);
+ assert.doesNotMatch(html,/\.scale-pitch-history-dot\{[^}]*opacity:/);
+ assert.doesNotMatch(html,/\.scale-pitch-history-dot\{[^}]*dashed/);
+ for(const [theme,lanes,edges] of [
+  ['light',['#f2f6f0','#f8faf7'],['#327052','#81580c','#9a3321']],
+  ['dark',['#292e36','#21252b'],['#b5e6bd','#ffe0a3','#f29a96']]
+ ])for(const lane of lanes)for(const edge of edges)
+    assert.ok(contrast(edge,lane)>=4.5,theme+' '+edge+' on '+lane+' ratio '+contrast(edge,lane).toFixed(2));
+ assert.match(html,/\.scale-pitch-dot\{[^}]*background:var\(--practice-tone\);z-index:2}/);
 });
 class Node{
  constructor(tag){this.tag=tag;this.children=[];this.attrs={};this.dataset={};this.style={setProperty:(k,v)=>this.style[k]=v};this.scrollLeft=0;this.clientWidth=300;}
@@ -54,7 +66,7 @@ test('actual practice view keeps the same measured active, partial, restored and
  const line=node=>node.find(n=>n.attrs.class==='trend-line').attrs.d;
  assert.equal(dots(),undefined);assert.equal(line(pitch()),'');assert.equal(line(volume()),'');
  const final={
-   values:[6,null,null],history:[new Map([[-10,2]]),new Map(),new Map()],mode:'loop',final:true,
+   values:[6,null,null],history:[new Map([[-10,2],[-42,1]]),new Map([[46,1]]),new Map()],mode:'loop',final:true,
    trend:{data:pts('cents',6),reference:442},loudness:{points:pts('db',1)}
  };
  // With no RAF in the test realm the live view renders on its actual update.
@@ -66,6 +78,13 @@ test('actual practice view keeps the same measured active, partial, restored and
    view.update('idle',null,null,0,442,final);
    assert.equal(dots().dataset.band,'center');
    assert.equal(view.element.find(n=>n.className==='scale-pitch-history-dot').dataset.band,'center');
+   const grid=view.element.find(n=>n.className==='scale-pitch-columns');
+   for(const i of [0,1]){
+     const red=grid.children[i].find(n=>n.className==='scale-pitch-history-dot'&&n.dataset.band==='outside');
+     assert.ok(red,'real single historic red point present on alternating lane '+i);
+     assert.equal(red.style['--past-opacity'],.34);
+   }
+   assert.match(view.element.find(n=>n.className==='scale-pitch-legend').textContent,/本輪：實色 · 先前：淡色/);
    assert.match(line(pitch()),/^M/);assert.match(line(volume()),/^M/);
  }
  // The restored old note graph is valid, while a muted/unavailable volume must
