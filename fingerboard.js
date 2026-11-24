@@ -206,7 +206,8 @@
       const v=p.position, previous=points[i-1], cue=previous?.shiftCue;
       const known=v.group!=='unverified' && v.finger!==null && Number.isInteger(v.string);
       const plan=known?{string:v.stringName,finger:v.finger,reviewed:true,
-        fingersReviewed:Number.isInteger(v.finger)&&!v.technique,source:v.custom?'confirmed-edit':'visible-board'}:null;
+        fingersReviewed:Number.isInteger(v.finger)&&!v.technique,
+        ...(!v.custom&&Number.isInteger(v.anchor)&&!v.technique?{anchor:v.anchor}:{}),source:v.custom?'confirmed-edit':'visible-board'}:null;
       // Only a rendered explicit direction-specific cue, never inferred from
       // anchor distance, color, or a digit change. No extension flag is invented.
       const edge=known && (i<up.length || !shared) && i!==up.length && cue?.toMidi===p.midi

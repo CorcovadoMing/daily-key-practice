@@ -4,7 +4,7 @@ const url = process.env.URL || 'http://127.0.0.1:8769/experimental/';
 (async () => {
   const browser = await chromium.launch({headless:true, executablePath:process.env.CHROMIUM || '/usr/bin/chromium'});
   try {
-    for(const width of [320,390,1000,1440]){
+    for(const width of [320,390,768,1024,1440]){
     const page = await browser.newPage({viewport:{width,height:900},colorScheme:'light'});
     const origin = new URL(url).origin;
     await page.route('**/*', r => new URL(r.request().url()).origin === origin ? r.continue() : r.abort());
@@ -19,7 +19,10 @@ const url = process.env.URL || 'http://127.0.0.1:8769/experimental/';
     const launchBox=await page.locator('#draw-button').boundingBox();
     const roomBox=await page.locator('#classroom-settings').boundingBox();
     assert.ok(launchBox.height>=54&&roomBox.y+roomBox.height<=launchBox.y);
-    if(width===1000) assert.ok(launchBox.width>=176&&launchBox.width<=256);
+    assert.ok(launchBox.width>=122&&launchBox.width<=134&&launchBox.height>=74&&launchBox.height<=82);
+    const gearBox=await page.locator('#launch-options-toggle').boundingBox();
+    assert.ok(gearBox.width>=44&&gearBox.height>=44&&gearBox.x>=launchBox.x+launchBox.width);
+    assert.ok(Math.abs((launchBox.y+launchBox.height/2)-(gearBox.y+gearBox.height/2))<2);
     const footer=await page.locator('footer').boundingBox();
     const footerNote=await page.locator('.local-audio-note').boundingBox();
     assert.ok(Math.abs(footerNote.x-footer.x)<1);

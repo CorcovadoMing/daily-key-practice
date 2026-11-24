@@ -20,14 +20,27 @@ test('24 ordered accessible counts share one linear axis, including zeros and la
  let [axis,bars]=grid.children[0].children;
  assert.equal(bars.children.length,24);
  assert.ok(bars.children.every(col=>col.dataset.count==='0'&&col.style['--bar-height']==='0%'));
- assert.deepEqual(axis.children.map(t=>t.textContent),['0','1']);
+ assert.deepEqual(axis.children.map(t=>t.textContent),['0','5']);
  assert.equal(bars.children[1].children[0].textContent,'D♭ 大調，0 次');
  assert.equal(bars.children[13].children[0].textContent,'C♯ 小調，0 次');
  assert.ok(bars.children.every(col=>!col.events.click&&col.tag==='li'));
+ for(const [max,ticks] of [[2,['0','5']],[5,['0','5','10']],[10,['0','5','10','15']]]){
+   box.state.personalHistory=Array.from({length:max},(_,i)=>row('ordinary'+i,['major-0']));
+   box.renderPracticeStats();
+   const [axis,bars]=grid.children[0].children;
+   assert.deepEqual(axis.children.map(t=>t.textContent),ticks);
+   assert.equal(axis.children.at(-1).style['--level'],'1');
+   assert.ok(parseFloat(bars.children[0].style['--bar-height'])<100);
+   assert.match(bars.style['--grid-lines'],/var\(--line\) 100%/);
+ }
+ const huge=box.practiceStatsScale(1_000_000_000);
+ assert.equal(huge.max,1_000_000_005);
+ assert.ok(huge.ticks.length<=9);
+ assert.equal(huge.ticks.at(-1),huge.max);
  box.state.personalHistory=Array.from({length:1300},(_,i)=>row('personal'+i,i<650?['major-0','minor-2']:['major-0']));
  box.renderPracticeStats();
  [axis,bars]=grid.children[0].children;
- assert.deepEqual(axis.children.map(t=>t.textContent),['0','500','1000','1500']);
+ assert.deepEqual(axis.children.map(t=>t.textContent),['0','165','330','495','660','825','990','1155','1305']);
  assert.equal(bars.children[0].dataset.count,'1300');
  assert.equal(bars.children[14].dataset.count,'650');
  assert.equal(bars.children[0].style['--bar-height'],2*parseFloat(bars.children[14].style['--bar-height'])+'%');
@@ -40,10 +53,12 @@ test('24 ordered accessible counts share one linear axis, including zeros and la
  assert.match(html,/\.practice-stats-scroll\{[^}]*overflow-x:auto/);
 });
 
-test('heat uses valid local civil record dates, 52 weeks through today and unique completed keys each day',()=>{
+test('heat uses valid local civil record dates, exactly 30 dates through today and unique completed keys each day',()=>{
  const dated=(date,id,doneIds)=>({...row(id,doneIds),date});
  const records=[
   dated('2026-04-30','earlier',['major-0']),
+  dated('2026-04-13','opening',['major-0']),
+  dated('2026-04-12','one-day-too-old',['major-0']),
   dated('2026-05-01','a',['major-0','major-0','minor-2','major-9']),
   dated('2026-05-01','b',['major-0','major-1']),
   dated('2026-05-12','today',['minor-2']),
@@ -54,13 +69,15 @@ test('heat uses valid local civil record dates, 52 weeks through today and uniqu
  ];
  const classRows=[dated('2026-05-01','mirror',['major-1']),dated('2026-05-12','fresh',['major-0','minor-2'])];
  const days=c.heat(records,classRows,'2026-05-12'),get=date=>days.find(d=>d.date===date);
- assert.equal(days.length,364);
+ assert.equal(days.length,30);
+ assert.equal(days[0].date,'2026-04-13');
+ assert.equal(get('2026-04-13').count,1);assert.equal(get('2026-04-12'),undefined);
  assert.equal(days.at(-1).date,'2026-05-12');
- assert.equal(new Set(days.map(d=>d.date)).size,364);
+ assert.equal(new Set(days.map(d=>d.date)).size,30);
  assert.equal(get('2026-05-12').weekday,1);
  assert.equal(get('2026-04-30').count,1);assert.equal(get('2026-05-01').count,3);
  assert.equal(get('2026-05-02').count,0);assert.equal(get('2026-05-12').count,2);
- assert.equal(days.reduce((n,d)=>n+d.count,0),6);
+ assert.equal(days.reduce((n,d)=>n+d.count,0),7);
  assert.equal(get('2026-05-13'),undefined);assert.equal(get('2026-02-30'),undefined);
  // Leap day and transitions across common DST weekends remain individual cells.
  const leap=c.heat([],[],'2024-03-12');
@@ -70,7 +87,7 @@ test('heat uses valid local civil record dates, 52 weeks through today and uniqu
  assert.match(html,/依原紀錄日期統計/);
 });
 
-test('actual heat render outputs date/count per cell and consistent green thresholds without 364 Tab stops',()=>{
+test('actual heat render outputs date/count per cell and consistent green thresholds without a Tab stop per day',()=>{
  const host={replaceChildren(chart){this.chart=chart}};
  const el=()=>({children:[],attrs:{},dataset:{},style:{setProperty(){}},setAttribute(k,v){this.attrs[k]=v},append(...items){this.children.push(...items)}});
  const dated=(date,n)=>({date,majorIds:[0,1,2,3,4,5],minorIds:[],doneIds:Array.from({length:n},(_,i)=>'major-'+i)});
@@ -78,10 +95,15 @@ test('actual heat render outputs date/count per cell and consistent green thresh
   dated('2026-06-01',1),dated('2026-06-02',2),dated('2026-06-03',4),dated('2026-06-04',6)],classroomHistory:[]},currentDate:'2026-06-04'};
  vm.runInNewContext(html.slice(html.indexOf('    function practiceCompletionRows('),html.indexOf('    const cumulativeNoteKey='))+';renderPracticeHeat()',box);
  const cells=host.chart.children.filter(x=>x.className==='practice-heat-cell');
- assert.equal(cells.length,364);
+ assert.equal(cells.length,30);
  assert.equal(cells[0].dataset.count,'0');
  assert.deepEqual(cells.slice(-4).map(cell=>cell.dataset.level),['1','2','3','4']);
  assert.equal(cells.at(-1).children[0].textContent,'2026-06-04，完成 6 調');
  assert.ok(cells.every(x=>x.attrs.role==='listitem'&&x.attrs.tabindex==null));
- assert.ok(host.chart.children.some(x=>x.className==='practice-heat-month'&&x.textContent==='5 月'));
+ assert.deepEqual(host.chart.children.filter(x=>x.className==='practice-heat-month').map(x=>x.textContent),['5月','6月']);
+ assert.equal(host.chart.attrs['aria-label'],'最近 30 天，含今天');
+ assert.deepEqual(cells.filter(x=>x.attrs['aria-current']==='date').map(x=>x.dataset.date),['2026-06-04']);
+ assert.equal(cells[0].style.gridArea,'4 / 2');
+ assert.equal(cells.at(-1).style.gridArea,'5 / 6');
+ assert.ok(cells.every((x,i)=>i===0||x.dataset.date>cells[i-1].dataset.date));
 });

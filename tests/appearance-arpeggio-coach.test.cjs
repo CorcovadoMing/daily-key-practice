@@ -46,10 +46,10 @@ test('appearance keeps light default, persists manual choice, follows system onl
   assert.match(html,/@media screen\{\s*:root\[data-appearance=dark\]/);
 });
 
-test('tablet global action is bounded; filled score primary applies only to idle scale/arpeggio',()=>{
-  assert.match(html,/@media\(min-width:600px\) and \(max-width:1180px\)\{\s*\.launch-controls\{grid-template-columns:fit-content\(16rem\).*\n/);
-  assert.match(html,/\.launch-controls #draw-button\{width:auto;min-inline-size:11rem;max-inline-size:16rem/);
-  assert.match(html,/\.launch-controls #draw-button\{min-width:0;width:100%[^}]*min-height:54px/);
+test('global action is compact and tall; filled score primary applies only to idle scale/arpeggio',()=>{
+  assert.match(html,/\.launch-controls\{\s*grid-template-columns:minmax\(0,8\.25rem\) max\(44px,var\(--ui-touch\)\) auto;/);
+  assert.match(html,/\.launch-controls #draw-button\{\s*width:100%;max-inline-size:8\.25rem;min-block-size:4\.75rem/);
+  assert.match(html,/@media\(max-width:16em\)\{\s*\.launch-controls\{grid-template-columns:minmax\(0,8\.25rem\) max\(44px,var\(--ui-touch\)\)\}/);
   assert.match(html,/\.scale-practice\[data-phase=idle\]>\.scale-practice-action>\.scale-practice-button\{\s*background:var\(--score-start-fill\)/);
   assert.match(html,/\[data-appearance=dark\] \.scale-practice\{--score-start-fill:#363d46/);
   assert.match(html,/\.launch-options-toggle\{background:transparent;color:var\(--ink\);border:0/);

@@ -26,9 +26,12 @@ test('the major and minor key title rows place separate notes next to the title,
   title.events.click();a.deepEqual(calls.pop(),['expand',mode+'-0']);
   expand.events.click();a.deepEqual(calls.pop(),['expand',mode+'-0']);
  }
- a.match(html,/data-key-mode=major[^\n]*--key-card-tint:#eaf1f8[^\n]*--key-card-accent:#57789b/);
- a.match(html,/data-key-mode=minor[^\n]*--key-card-tint:#f1eaf5[^\n]*--key-card-accent:#805c91/);
- a.match(html,/data-appearance=dark[^\n]*data-key-mode=major[^\n]*--key-card-tint:#263645/);
- a.match(html,/data-appearance=dark[^\n]*data-key-mode=minor[^\n]*--key-card-tint:#382d43/);
+ a.match(html,/data-key-mode=major[^\n]*--key-card-accent:#57789b/);
+ a.match(html,/data-key-mode=minor[^\n]*--key-card-accent:#805c91/);
+ a.match(html,/data-appearance=dark[^\n]*data-key-mode=major[^\n]*--key-card-accent:#87aacd/);
+ a.match(html,/data-appearance=dark[^\n]*data-key-mode=minor[^\n]*--key-card-accent:#b49ac6/);
+ a.doesNotMatch(html,/--key-card-tint/);
+ a.match(html,/\.key-card\[data-key-mode\]>\.key-card-heading\{\s*box-shadow:inset 6px 0 var\(--key-card-accent\)\s*\}/);
+ a.match(html,/\.key-title:focus-visible/);
  a.match(html,/\.key-title-row\{display:flex;flex-wrap:wrap/);
 });

@@ -51,7 +51,7 @@ test('actual start and stop deliver a repeatable static crossing suggestion with
  a.doesNotMatch(message,/445|實際換弦|因此|造成/);
  const restored=setup(cache);
  restored.setPlan(restored.fb.visiblePlan('major',key,{upMap:'{"43":{"s":0,"f":4}}'}));
- a.equal(restored.advise(),message);
+ a.equal(restored.advise().replace('上次保留的建議 ',''),message);
  a.equal(restored.network,0);
  a.equal(f.network,0);
 });
@@ -75,7 +75,7 @@ test('missing, partial and restored takes are honest and cannot reuse board or m
  await f.press();f.ready();f.play(f.target[0],4);await f.press();
  a.match(f.advise(),/沒有足夠資料/);
  const g=setup(cache);
- a.equal(g.advise(),f.advise());
+ a.equal(g.advise().replace('上次保留的建議 ',''),f.advise());
  await g.press();g.ready();await g.press();
  a.match(g.advise(),/沒有辨識到可用音符/);
  a.doesNotMatch(g.advise(),/上次/);
@@ -144,4 +144,57 @@ test('reload at a completed loop checkpoint restores its same-lap advice without
  const g=setup(cache);
  a.match(g.advise(),/換弦 C→G.*2／2.*第二音偏低/);
  a.equal(g.network,0);
+});
+
+test('actual partial C major take connects F3→G3, then restores its whole D-string run in the printed order',async()=>{
+ const f=setup({});
+ await f.press();f.ready();
+ for(const n of f.target.slice(0,12))f.play(n,n.midi===55?-27:0);
+ await f.press();
+ const tip=f.advise();
+ a.match(tip,/F3.*G3.*只有這一輪.*音程偏窄.*先對準 F3.*G3 的 4 指落點往琴橋.*留寬一點.*慢拉 F3 → G3.*D3、E3、F3、G3/);
+ a.doesNotMatch(tip,/A3|反覆|你手.*太/);
+});
+
+test('the exact score and route distinguish equal offsets, a missing predecessor, wide intervals and descending order',()=>{
+ const f=setup({});
+ const make=marks=>f.startPlan.slots.map((_,i)=>Object.hasOwn(marks,i)?marks[i]:null);
+ const advice=(one,two=one)=>f.planSuggestion({...f.startPlan,rounds:[{id:1,values:make(one)},{id:2,values:make(two)}]});
+ a.equal(advice({10:-27,11:-27}).kind,'note');
+ a.equal(advice({11:-27}).kind,'note');
+ const wide=advice({10:0,11:25});
+ a.match(wide.action,/往琴枕.*收窄一點/);
+ const down=advice({17:0,18:-25});
+ a.match(down.observation,/G3.*F3.*音程偏寬/);
+ a.match(down.action,/F3 的 2 指落點往琴橋.*收窄.*G3、F3、E3、D3/);
+ const sharedApex=advice({14:0,15:-25});
+ a.notEqual(sharedApex.kind,'fingers');a.doesNotMatch(sharedApex.action,/C4/);
+});
+
+test('actual saved edit changes advice from fingers to bow; unknown/harmonic plans do not infer finger motion',()=>{
+ const f=setup({});
+ const plan=f.fb.visiblePlan('major',key,{upMap:'{"55":{"s":1,"f":3}}'});
+ const values=f.startPlan.slots.map((_,i)=>i===10?0:i===11?-27:null);
+ const measured={rounds:[{id:1,values},{id:2,values}]};
+ const c=f.planSuggestion({...plan,...measured});
+ a.match(c.observation,/換弦 D→G/);
+ a.match(c.action,/兩條空弦.*高度.*準備 3 指.*F3 → G3/);
+ a.doesNotMatch(c.action,/距離|硬撐|琴橋/);
+ const unknown=f.startPlan.slots.map((slot,i)=>i===11?{...slot,plan:null}:slot);
+ a.equal(f.planSuggestion({...f.startPlan,slots:unknown,...measured}).kind,'note');
+ const same=f.startPlan.slots.map((slot,i)=>i===11?{...slot,plan:{...slot.plan,finger:2}}:slot);
+ a.match(f.planSuggestion({...f.startPlan,slots:same,...measured}).action,/手移到下一個落點.*不要硬拉開/);
+});
+
+test('explicit extension is never inferred and an open-string landing never receives a finger correction',()=>{
+ const f=setup({});
+ const make=(a,b)=>f.startPlan.slots.map((_,i)=>i===a?0:i===b?-21:null);
+ const rounds=values=>[{id:1,values},{id:2,values}];
+ const marked=f.startPlan.slots.map((s,i)=>i===11?{...s,edge:{from:10,reviewed:true,extension:true}}:s);
+ const extension=f.planSuggestion({...f.startPlan,slots:marked,rounds:rounds(make(10,11))});
+ a.equal(extension.kind,'extension');a.match(extension.action,/照指板提示.*不要硬撐/);
+ const open=f.planSuggestion({...f.startPlan,rounds:rounds(make(3,4))});
+ a.equal(open.kind,'crossing');a.match(open.action,/單獨拉目標空弦/);a.doesNotMatch(open.action,/0 指|琴橋/);
+ const split=f.planSuggestion({...f.startPlan,rounds:[{id:1,values:make(9,11)},{id:2,values:make(10,12)}]});
+ a.notEqual(split.kind,'fingers');
 });

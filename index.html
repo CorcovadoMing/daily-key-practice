@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261124-042-experimental">
+  <meta name="site-version" content="20261124-043-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -828,12 +828,12 @@
     [data-appearance=dark] .practice-stats [data-kind=minor]{--stats-bar:#b49ac6}
     .practice-stats-scroll{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}
     .practice-stats-scroll:focus-visible{outline:2px solid #4c81b3;outline-offset:-2px}
-    .practice-stats-plot{display:grid;grid-template-columns:3.25rem minmax(0,1fr);min-width:var(--stats-min-width,34rem);padding-block:1.25rem .25rem}
+    .practice-stats-plot{display:grid;grid-template-columns:var(--stats-axis-width,3.25rem) minmax(0,1fr);min-width:var(--stats-min-width,34rem);padding-block:1.25rem .25rem}
     .practice-stats-axis,.practice-stats-bars{position:relative;margin:0;padding:0;list-style:none}
     .practice-stats-axis{position:sticky;left:0;z-index:1;background:var(--page);font-size:.75rem}
     .practice-stats-axis span{position:absolute;bottom:calc(1.75rem + 8rem * var(--level));right:.45rem;transform:translateY(50%);font-variant-numeric:tabular-nums}
     .practice-stats-bars{display:grid;grid-template-columns:repeat(24,minmax(0,1fr));isolation:isolate}
-    .practice-stats-bars::before{content:"";position:absolute;inset:0 0 1.75rem;border-bottom:1px solid var(--line);z-index:-1;background:repeating-linear-gradient(to top,transparent 0,transparent calc(var(--grid-step) - 1px),var(--line) calc(var(--grid-step) - 1px),var(--line) var(--grid-step))}
+    .practice-stats-bars::before{content:"";position:absolute;inset:0 0 1.75rem;border-bottom:1px solid var(--line);z-index:-1;background:var(--grid-lines,none)}
     .practice-stats-col{min-width:0;display:grid;grid-template-rows:8rem 1.75rem;text-align:center}
     .practice-stats-col:nth-child(13){border-inline-start:1px solid var(--line)}
     .practice-stats-bar-slot{position:relative}
@@ -848,10 +848,12 @@
     .practice-heat [data-level="3"]{--heat-color:var(--heat-3)}
     .practice-heat [data-level="4"]{--heat-color:var(--heat-4)}
     .practice-heat [data-level]{background:var(--heat-color)}
-    .practice-heat-grid{display:grid;width:max-content;grid-template-columns:1.75rem repeat(var(--weeks),.72rem);grid-template-rows:1rem repeat(7,.72rem);gap:.2rem;padding:.25rem 0 .5rem;align-items:center}
+    .practice-heat-grid{--heat-cell:1.375rem;display:grid;width:max-content;grid-template-columns:1.75rem repeat(var(--weeks),var(--heat-cell));grid-template-rows:1rem repeat(7,var(--heat-cell));gap:.25rem;padding:.25rem .2rem .5rem;align-items:center}
     .practice-heat-month,.practice-heat-weekday{font-size:.6875rem;white-space:nowrap}
     .practice-heat-weekday{position:sticky;left:0;background:var(--page);z-index:1}
     .practice-heat-cell{display:block;width:.72rem;height:.72rem;border-radius:2px}
+    .practice-heat-grid .practice-heat-cell{width:100%;height:100%;border-radius:4px}
+    .practice-heat-grid .practice-heat-cell[aria-current=date]{outline:1px solid var(--ink);outline-offset:1px}
     .practice-heat-legend{display:flex;align-items:center;justify-content:flex-end;gap:.55rem;flex-wrap:wrap;font-size:.6875rem;margin:.45rem 0 0}
     .practice-heat-legend span{display:inline-flex;align-items:center;gap:.25rem}
     .practice-stats-notes{display:flex;align-items:center;flex-wrap:wrap;gap:.375rem;margin:.5rem 0 0;font-size:.8125rem;color:var(--muted)}
@@ -957,17 +959,23 @@
       .scale-practice-button{display:inline-flex;align-items:center;justify-content:center;gap:.375rem}
       .scale-practice[data-phase=idle] .practice-stop-icon,
       .scale-practice:not([data-phase=idle]) .practice-play-icon{display:none}
-      .launch-controls #draw-button{gap:.375rem}
-      @media(min-width:600px) and (max-width:1180px){
-        .launch-controls{grid-template-columns:fit-content(16rem) 44px auto;justify-content:start}
-        .launch-controls #draw-button{width:auto;min-inline-size:11rem;max-inline-size:16rem;padding-inline:1.25rem}
+      .launch-controls{
+        grid-template-columns:minmax(0,8.25rem) max(44px,var(--ui-touch)) auto;
+        justify-content:start;align-items:center
       }
-      .key-card[data-key-mode=major]{--key-card-tint:#eaf1f8;--key-card-accent:#57789b}
-      .key-card[data-key-mode=minor]{--key-card-tint:#f1eaf5;--key-card-accent:#805c91}
-      [data-appearance=dark] .key-card[data-key-mode=major]{--key-card-tint:#263645;--key-card-accent:#87aacd}
-      [data-appearance=dark] .key-card[data-key-mode=minor]{--key-card-tint:#382d43;--key-card-accent:#b49ac6}
+      .launch-controls #draw-button{
+        width:100%;max-inline-size:8.25rem;min-block-size:4.75rem;gap:.375rem;padding-inline:.5rem
+      }
+      .launch-controls>.launch-mode{min-block-size:44px}
+      @media(max-width:16em){
+        .launch-controls{grid-template-columns:minmax(0,8.25rem) max(44px,var(--ui-touch))}
+      }
+      .key-card[data-key-mode=major]{--key-card-accent:#57789b}
+      .key-card[data-key-mode=minor]{--key-card-accent:#805c91}
+      [data-appearance=dark] .key-card[data-key-mode=major]{--key-card-accent:#87aacd}
+      [data-appearance=dark] .key-card[data-key-mode=minor]{--key-card-accent:#b49ac6}
       .key-card[data-key-mode]>.key-card-heading{
-        background:var(--key-card-tint);box-shadow:inset 3px 0 var(--key-card-accent)
+        box-shadow:inset 6px 0 var(--key-card-accent)
       }
       .key-card[data-key-mode].done .key-title{color:var(--ink)}
       .scale-practice{--score-start-fill:#304c37;--score-start-ink:#fff;--score-start-hover:#405b45}
@@ -1137,14 +1145,14 @@
         </section>
         <section class="practice-stats practice-heat" aria-labelledby="practice-heat-title">
         <h3 id="practice-heat-title">每日練習熱圖</h3>
-        <p>最近 52 週，依原紀錄日期統計完成的調；同日同調只算一次，無有效日期不列入。</p>
+        <p>最近 30 天，含今天。依原紀錄日期統計，同日同調只算一次。</p>
         <div id="practice-heat-grid" class="practice-stats-scroll" role="region" aria-label="每日完成調數，可左右捲動" tabindex="0"></div>
         <div class="practice-heat-legend" aria-label="每日完成調數"><span><i class="practice-heat-cell" data-level="0" aria-hidden="true"></i>0</span><span><i class="practice-heat-cell" data-level="1" aria-hidden="true"></i>1</span><span><i class="practice-heat-cell" data-level="2" aria-hidden="true"></i>2</span><span><i class="practice-heat-cell" data-level="3" aria-hidden="true"></i>3–4</span><span><i class="practice-heat-cell" data-level="4" aria-hidden="true"></i>5+</span></div>
         </section>
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261124-042-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261124-043-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -2195,6 +2203,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       const median=all.length%2?all[k]:(all[k-1]+all[k])/2;
       return {sign,hits,median,n:samples.length};
     }
+    const single=sample=>Math.abs(sample)>10+1e-7?{sign:Math.sign(sample),hits:1,n:1,median:sample}:null;
     const edgeCandidates=[], noteCandidates=[];
     for(let i=0;i<slots.length;i++){
       const to=slots[i], from=slots[i-1];
@@ -2202,17 +2211,29 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       if(bias)noteCandidates.push({type:'note',i,...bias});
       if(!from||from.direction!==to.direction||from.midi===to.midi)continue;
       const edges=values.filter(row=>finite(row[i-1])&&finite(row[i]));
-      const landing=pattern(edges.map(row=>row[i]));
+      const pairedOnce=edges.length===1&&Math.abs(edges[0][i-1])<=10+1e-7;
+      const landing=pattern(edges.map(row=>row[i])) || (pairedOnce&&single(edges[0][i]));
       const x=from.plan,y=to.plan;
       const confirmedPlan=packet.source==='confirmed/visible plan'&&known(x)&&known(y);
-      if(confirmedPlan&&x.string!==y.string&&landing)edgeCandidates.push({type:'crossing',i,...landing});
-      if(confirmedPlan&&x.string===y.string&&x.fingersReviewed&&y.fingersReviewed&&
-         ((x.finger===2&&y.finger===3)||(x.finger===3&&y.finger===2))){
-        const relative=pattern(edges.map(row=>Math.sign(to.midi-from.midi)*(row[i]-row[i-1])));
-        if(relative)edgeCandidates.push({type:'fingers',i,...relative});
-      }
-      if(confirmedPlan&&landing&&to.edge?.reviewed===true&&to.edge.from===i-1&&(to.edge.shift||to.edge.extension)){
-        edgeCandidates.push({type:to.edge.shift?'shift':'extension',i,...landing});
+      if(!confirmedPlan)continue;
+      const explicit=to.edge?.reviewed===true&&to.edge.from===i-1?to.edge:null;
+      const interval=edges.map(row=>Math.sign(to.midi-from.midi)*(row[i]-row[i-1]));
+      const relative=pattern(interval)||(pairedOnce&&landing&&single(interval[0]));
+      if(x.string!==y.string&&landing)edgeCandidates.push({type:'crossing',i,...landing});
+      else if(y.finger===0&&landing)edgeCandidates.push({type:'open',i,...landing});
+      else if(landing&&(explicit?.shift||explicit?.extension))edgeCandidates.push({type:explicit.shift?'shift':'extension',i,...landing});
+      else if(landing&&x.fingersReviewed&&y.fingersReviewed&&x.finger>0&&y.finger>0&&
+        (x.finger===y.finger || (Number.isInteger(x.anchor)&&Number.isInteger(y.anchor)&&x.anchor!==y.anchor))){
+        edgeCandidates.push({type:'relocation',i,...landing});
+      }else if(relative&&x.fingersReviewed&&y.fingersReviewed&&x.finger>0&&y.finger>0&&x.finger!==y.finger){
+        // Only suggest moving the landing finger when its own sign corroborates
+        // the measured interval. Equal bias in both notes is not a spacing issue.
+        const adjust=-relative.sign*Math.sign(to.midi-from.midi);
+        const departure=pattern(edges.map(row=>row[i-1]));
+        if(landing?.sign===-adjust)edgeCandidates.push({type:'fingers',i,...relative,adjust,move:i});
+        else if(departure?.sign===adjust)edgeCandidates.push({type:'fingers',i,...relative,adjust:-adjust,move:i-1});
+      }else if(landing&&y.fingersReviewed&&y.finger>0&&x.finger===0){
+        edgeCandidates.push({type:'landing',i,...landing});
       }
     }
     const byEvidence=(a,b)=>b.hits-a.hits || Math.abs(b.median)-Math.abs(a.median) || a.i-b.i;
@@ -2220,25 +2241,58 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     if(!selected)return missing('目前沒有足夠資料顯示同一譜位反覆偏高、偏低，或相鄰音反覆偏窄、偏寬。先照原譜慢練，再觀察兩輪。');
     const {type,i,sign,hits,n,median}=selected;
     const at=position(i), landing=sign<0?'偏低':'偏高';
-    const counted=hits+'／'+n+' 輪';
+    const counted=n===1?'只有這一輪兩音都量到':hits+'／'+n+' 輪';
     const settings=packet.reference&&packet.detector?'請用同一偵測方式、A4 '+packet.reference+' Hz。':'請沿用原設定。';
     if(type==='note')return {kind:type,
       observation:at+'，'+counted+'朝同一側'+landing+'，中位數 '+signed(median)+'。',
       action:'把這個音單獨拉成長音，停一下再重拉；先放慢，不急著接下一音。',
       check:'再用原譜回到同一格，比較該格是否更接近零線。'+settings};
+    const label=j=>slots[j].name&&Number.isInteger(slots[j].octave)?slots[j].name+slots[j].octave:'第 '+(j+1)+' 音';
     const pair=position(i-1)+' → '+at;
-    if(type==='fingers'){
-      const width=sign<0?'偏窄':'偏寬', fingers=slots[i-1].plan.finger+'→'+slots[i].plan.finger;
-      return {kind:type,observation:'照這次指板，同弦 '+fingers+'（'+pair+'），兩音都量到的 '+counted+'音程'+width+'；中位差 '+signed(median)+'。',
-        action:'先分開慢拉這兩音，各自起弓、各自聽準，再接在一起。',
-        check:'用原譜重拉兩格，比較兩格音分的差是否更接近零，不只看第二音。'+settings};
+    const x=slots[i-1].plan,y=slots[i].plan;
+    const short=label(i-1)+' → '+label(i);
+    function run(string,start){
+      let left=start,right=start;
+      const there=j=>slots[j]?.direction===slots[start].direction&&known(slots[j].plan)&&slots[j].plan.string===string;
+      while(there(left-1))left--;
+      while(there(right+1))right++;
+      return {left,right};
     }
-    const transition=type==='crossing'?'換弦 '+slots[i-1].plan.string+'→'+slots[i].plan.string:type==='shift'?'換把提示':'伸指提示';
-    return {kind:type,observation:'照這次指板，'+transition+'（'+pair+'）；兩音都量到的 '+counted+'，第二音'+landing+'，中位數 '+signed(median)+'。',
-      action:type==='crossing'&&slots[i].plan.finger===0
-        ? '先單獨拉目標空弦，確認它的音準；再把兩音分弓、放慢換過去。'
-        : '先每音分開慢拉，在兩音之間停一下、準備下一音，再用同一段連續重拉。',
-      check:'再拉同一段，看看換到的那一格是否更接近零線。'+settings};
+    const landingRun=run(y.string,i);
+    function continueRun(first,last,baseline){
+      if(last-first+1<=baseline)return '';
+      const printed=slots.slice(first,last+1).map((_,j)=>label(first+j)).join('、');
+      return '，穩了再按譜序接回 '+printed+'。';
+    }
+    const direction=sign<0?'往琴橋一點':'往琴枕一點';
+    const occurrence=n===1?'只有這一輪兩音都量到':('兩音都量到的 '+counted);
+    if(type==='fingers'){
+      const width=sign<0?'偏窄':'偏寬';
+      const change=sign<0?'留寬一點':'收窄一點';
+      const reach=selected.adjust>0?'往琴橋一點':'往琴枕一點';
+      const extend=continueRun(landingRun.left,landingRun.right,2);
+      const move=selected.move, anchor=move===i?i-1:i;
+      return {kind:type,observation:'照這次指板，同弦 '+x.finger+'→'+y.finger+'（'+pair+'）；'+occurrence+'，音程'+width+'，中位差 '+signed(median)+'。',
+        action:'先對準 '+label(anchor)+'，放鬆手指，讓 '+label(move)+' 的 '+slots[move].plan.finger+' 指落點'+reach+'，把兩音的距離'+change+'。慢拉 '+short+'，一音一弓、弓聲不斷'+(extend||'。'),
+        check:'重拉這兩個譜位，先確認基準音接近零線，再看調整的音有沒有跟著靠近零線，兩格的音分差也縮小。'+settings};
+    }
+    if(type==='crossing'){
+      const extend=continueRun(i-1,landingRun.right,2);
+      const setup='先在 '+x.string+'、'+y.string+' 兩條空弦各慢拉一弓；前音收尾時先放慢，換弓時平順換到下一弦的高度。';
+      const hand=y.finger===0?'先單獨拉目標空弦，確認它的音準；':y.fingersReviewed?'再提早準備 '+y.finger+' 指，':'再照譜準備下一音，';
+      return {kind:type,observation:'照這次指板，換弦 '+x.string+'→'+y.string+'（'+pair+'）；'+occurrence+'，第二音'+landing+'，中位數 '+signed(median)+'。',
+        action:setup+hand+'慢拉 '+short+'，分弓但不要停聲'+(extend||'。'),
+        check:'再拉同一段，換弦時聽有沒有多碰一條弦，並看第二格是否更接近零線。'+settings};
+    }
+    const transition=type==='shift'?'換把提示':type==='extension'?'伸指提示':type==='open'?'落在空弦':type==='relocation'?'把位或落點不同':'空弦接按弦';
+    const adjust=type==='open'?'先用調音器確認目標空弦，不用手指修這個音。':
+      type==='extension'?'照指板提示放鬆手，再試第二音的落點'+direction+'，不要硬撐。':
+      type==='landing'?'聽準空弦，再準備下一指，試著把第二音落點'+direction+'。':
+      '鬆開前音，讓手移到下一個落點；對準第二音，試著'+direction+'，不要硬拉開手指。';
+    return {kind:['open','landing','relocation'].includes(type)?'note':type,
+      observation:'照這次指板，'+transition+'（'+pair+'）；'+occurrence+'，第二音'+landing+'，中位數 '+signed(median)+'。',
+      action:adjust+'再慢拉 '+short+'，一音一弓、弓聲不斷'+(continueRun(landingRun.left,landingRun.right,2)||'。'),
+      check:'再拉同一段，看這兩個譜位有沒有更靠近零線。'+settings};
   }
 
   function acceptedPlanRound(target,heard,alignment,id){
@@ -2770,6 +2824,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         }
         const suggestion=localAttempt?.practiceAdvice ?? planSuggestion(localAttempt);
         body.textContent='';
+        if(localAttempt?.restored&&localAttempt.practiceAdvice)body.append(make('p','scale-practice-coach-context','上次保留的建議'));
         body.append(make('p','scale-practice-coach-observation',suggestion.observation));
         if(suggestion.action){
           body.append(make('h4','','可以這樣練'),make('p','',suggestion.action),
@@ -3148,7 +3203,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
 });
 // SCALE_PRACTICE_END
   </script>
-  <script src="fingerboard.js?v=20261124-042"></script>
+  <script src="fingerboard.js?v=20261124-043"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
@@ -4107,7 +4162,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       };
       const end=civil(today);
       if(!Number.isFinite(end))return [];
-      const first=end-363*day;
+      const numberOfDays=30, first=end-(numberOfDays-1)*day;
       const byDate=new Map();
       for(const {date,completed} of practiceCompletionRows(personal,classroom)){
         const ms=civil(date);
@@ -4116,7 +4171,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         for(const id of completed)byDate.get(ms).add(id);
       }
       const leading=(new Date(first).getUTCDay()+6)%7;
-      return Array.from({length:364},(_,i)=>{
+      return Array.from({length:numberOfDays},(_,i)=>{
         const ms=first+i*day, date=new Date(ms).toISOString().slice(0,10), count=byDate.get(ms)?.size||0;
         return {date,count,week:Math.floor((leading+i)/7),weekday:(leading+i)%7};
       });
@@ -4126,33 +4181,42 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       const days=practiceHeatDays(state.personalHistory,state.classroomHistory,currentDate);
       if(!days.length){host.replaceChildren();return;}
       const item=(cls,text)=>{const el=document.createElement('span');el.className=cls;if(text)el.textContent=text;return el;};
-      const chart=document.createElement('div');chart.className='practice-heat-grid';chart.setAttribute('role','list');chart.setAttribute('aria-label','最近 52 週');
+      const chart=document.createElement('div');chart.className='practice-heat-grid';chart.setAttribute('role','list');chart.setAttribute('aria-label','最近 30 天，含今天');
       chart.style.setProperty('--weeks',String(days.at(-1).week+1));
       for(const [row,label] of [[2,'一'],[4,'三'],[6,'五'],[8,'日']]){
         const weekday=item('practice-heat-weekday',label);weekday.style.gridArea=row+' / 1';weekday.setAttribute('aria-hidden','true');chart.append(weekday);
       }
-      let lastMonthWeek=-4;
+      const months=new Map([[0,days[0].date]]);
+      for(const {date,week} of days)if(date.endsWith('-01'))months.set(week,date);
+      for(const [week,date] of months){
+        const month=item('practice-heat-month',Number(date.slice(5,7))+'月');
+        month.style.gridArea='1 / '+(week+2);month.setAttribute('aria-hidden','true');chart.append(month);
+      }
       for(const {date,count,week,weekday} of days){
-        if((date.endsWith('-01')||(week===0&&Number(date.slice(8,10))<=7))&&week-lastMonthWeek>=3){
-          const month=item('practice-heat-month',Number(date.slice(5,7))+' 月');
-          month.style.gridArea='1 / '+(week+2);month.setAttribute('aria-hidden','true');chart.append(month);lastMonthWeek=week;
-        }
         const cell=item('practice-heat-cell');
         const value=date+'，完成 '+count+' 調';
         cell.dataset.date=date;cell.dataset.count=String(count);
         cell.dataset.level=String(count===0?0:count===1?1:count===2?2:count<=4?3:4);
         cell.style.gridArea=(weekday+2)+' / '+(week+2);cell.title=value;
-        cell.setAttribute('role','listitem');cell.append(item('sr-only',value));chart.append(cell);
+        cell.setAttribute('role','listitem');
+        if(date===currentDate)cell.setAttribute('aria-current','date');
+        cell.append(item('sr-only',value));chart.append(cell);
       }
       host.replaceChildren(chart);
     }
     const cumulativeNoteKey=studentNoteKey;
     function practiceStatsScale(max){
-      const raw=Math.max(1,max)/4;
-      const base=10**Math.floor(Math.log10(raw));
-      const step=Math.max(1,([1,2,5,10].find(n=>n*base>=raw)||10)*base);
-      const levels=Math.max(1,Math.ceil(max/step));
-      return {step,levels,max:levels*step};
+      const top=(Math.floor(Math.max(0,max)/5)+1)*5;
+      // Preserve the exact ceiling even if a large count requires fewer labels.
+      // At most eight equal advances; hide the last interior tick if it crowds the ceiling.
+      const step=Math.ceil(top/40)*5,ticks=[0];
+      for(let i=1;i<=8;i++){
+        const tick=i*step;
+        if(tick>=top || top-tick<step*.75)break;
+        ticks.push(tick);
+      }
+      ticks.push(top);
+      return {max:top,ticks};
     }
     function renderPracticeStats(){
       const grid=q('#practice-stats-grid');if(!grid)return;
@@ -4161,13 +4225,20 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       const build=(tag,cls,text)=>{const el=document.createElement(tag);el.className=cls;if(text!==undefined)el.textContent=text;return el;};
       const plot=build('div','practice-stats-plot');
       const digits=String(scale.max).length;
-      if(digits>3)plot.style.setProperty('--stats-min-width',(34+(digits-3)*7)+'rem');
+      if(digits>3){
+        plot.style.setProperty('--stats-axis-width',(3.25+(digits-3)*.5)+'rem');
+        plot.style.setProperty('--stats-min-width',(34+(digits-3)*7)+'rem');
+      }
       const axis=build('div','practice-stats-axis');axis.setAttribute('aria-hidden','true');
-      for(let i=0;i<=scale.levels;i++){
-        const tick=build('span','',String(i*scale.step));tick.style.setProperty('--level',String(i/scale.levels));axis.append(tick);
+      for(const value of scale.ticks){
+        const tick=build('span','',String(value));tick.style.setProperty('--level',String(value/scale.max));axis.append(tick);
       }
       const bars=build('ul','practice-stats-bars');bars.setAttribute('role','list');
-      bars.style.setProperty('--grid-step',String(100/scale.levels)+'%');
+      const gridLines=scale.ticks.slice(1).flatMap(value=>{
+        const h=(100*value/scale.max)+'%', below='calc('+h+' - 1px)';
+        return ['transparent '+below,'var(--line) '+below,'var(--line) '+h,'transparent '+h];
+      });
+      bars.style.setProperty('--grid-lines','linear-gradient(to top,'+gridLines.join(',')+')');
       const picker=q('#practice-stats-note-key'),open=q('#practice-stats-note-open');
       const initNotes=picker&&open&&!picker.dataset.bound;
       for(const mode of ['major','minor']){
