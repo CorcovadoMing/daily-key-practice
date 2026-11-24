@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261124-050-experimental">
+  <meta name="site-version" content="20261124-051-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -540,6 +540,12 @@
     .scale-practice-coach-sources li{padding-block:.3rem;line-height:1.5}
     .scale-practice-coach-sources a{color:var(--ink);text-decoration:underline;text-underline-offset:.15em;overflow-wrap:anywhere}
     .scale-practice-coach-sources a:focus-visible{outline:2px solid var(--ui-focus,#4c81b3);outline-offset:3px}
+    .scale-practice-local-coach-title{margin:0}
+    .scale-practice-local-coach{width:100%;min-width:0;background:var(--paper);border-color:var(--line);padding:10px}
+    :is(.scale-pitch-chart,.scale-pitch-trend) .scale-pitch-title,.scale-practice-local-coach-title{
+      font-size:var(--ui-detail,.875rem);font-weight:750;line-height:1.4;color:var(--ink);
+    }
+    .scale-practice-slur-controls button{min-block-size:var(--ui-touch,44px);line-height:1.3}
     .scale-practice-coach-tip h4{font-size:1rem;margin:.85rem 0 .2rem;line-height:1.35}
     .scale-practice-coach-steps{font-size:.9375rem;line-height:1.55;margin:.25rem 0;padding-inline-start:1.5rem}
     .scale-practice-coach-tip .scale-practice-coach-context{color:var(--muted)}
@@ -567,43 +573,51 @@
       .cello-scale-score [data-midi][data-practice] .scale-stem,.cello-scale-score [data-midi][data-practice-current] .scale-stem,.cello-scale-score [data-midi][data-practice-next] .scale-stem{stroke:#222;stroke-width:1.25}
     }
     .scale-pitch-trend{flex:0 1 100%;width:100%;min-width:0;border:1px solid var(--line);border-radius:12px;padding:0 10px;background:var(--paper);color:var(--ink)}
-    .scale-pitch-trend summary{padding:10px 0;cursor:pointer;font-size:13px;font-weight:750;line-height:24px}
-    .scale-pitch-trend summary:focus-visible{outline:2px solid #4c81b3;outline-offset:-2px}
+    .scale-pitch-trend{padding:10px}
+    .scale-pitch-trend .scale-pitch-title{margin:0 0 .3125rem}
     .scale-pitch-trend p{font-size:12px;margin:0 0 5px;color:var(--muted)}
-    .scale-pitch-trend-scroll{overflow:auto;max-width:100%}
-    .scale-pitch-trend svg{display:block;min-width:100%;height:auto}
+    .scale-pitch-trend-scroll{overflow-x:auto;overscroll-behavior-x:contain;max-width:100%;min-width:0}
+    .scale-pitch-trend-scroll:focus-visible{outline:2px solid #4c81b3;outline-offset:2px}
+    .scale-pitch-trend svg{display:block;height:112px;max-width:none}
+    .scale-pitch-trend[data-live=true] svg{width:100%}
     .scale-pitch-trend text{fill:var(--muted);font:10px ui-sans-serif,system-ui,sans-serif}
     .scale-pitch-trend .trend-zero{stroke:var(--muted);stroke-width:1;stroke-dasharray:4 3}
     .scale-pitch-trend .trend-guide{stroke:var(--line)}
     .scale-pitch-trend .trend-line{fill:none;stroke:#296487;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
     .scale-pitch-trend .trend-dot{fill:#296487}
+    .scale-pitch-trend .trend-selection{fill:var(--accent-ink);opacity:.13}
     @media screen{[data-appearance=dark] .scale-pitch-trend .trend-line{stroke:#9bd0f5}[data-appearance=dark] .scale-pitch-trend .trend-dot{fill:#9bd0f5}}
-    .scale-pitch-chart{flex:0 1 100%;width:100%;min-width:0;border:1px solid #dce5d9;border-radius:12px;padding:10px;background:#fcfdfb}
+    .scale-pitch-chart{flex:0 1 100%;width:100%;min-width:0;border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--paper)}
     .scale-pitch-header{display:flex;flex-wrap:wrap;align-items:baseline;gap:5px 12px;margin:0 0 7px}
     .scale-pitch-title{margin:0;color:#274a35;font-size:13px;font-weight:700}
     .scale-pitch-legend{color:#425948;font-size:11px}
-    .scale-pitch-area{display:grid;grid-template-columns:34px minmax(0,1fr);gap:3px;align-items:start}
+    .scale-pitch-area{display:grid;grid-template-columns:39px minmax(0,1fr);gap:3px;align-items:start}
     .scale-pitch-axis{position:relative;height:76px;margin-top:7px;text-align:right;font-size:10px;line-height:1;font-variant-numeric:tabular-nums}
     .scale-pitch-axis span{position:absolute;top:0;right:0;transform:translateY(-50%)}
     .scale-pitch-axis span:nth-child(2){top:50%}.scale-pitch-axis span:nth-child(3){top:100%}
     .scale-pitch-scroller{overflow-x:auto;position:relative;overscroll-behavior-x:contain;min-width:0;padding:7px 0 3px}
     .scale-pitch-scroller:focus-visible{outline:2px solid #4c81b3;outline-offset:2px}
-    .scale-pitch-columns{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(var(--note-count),minmax(34px,1fr));width:max-content;min-width:100%}
-    .scale-pitch-slot{display:grid;grid-template-rows:76px 17px 17px;justify-items:center;min-width:0;color:#44554b;text-align:center;line-height:17px}
+    .scale-pitch-columns{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(var(--note-count),2.375rem);width:max-content}
+    .scale-pitch-slot{position:relative;display:grid;grid-template-rows:76px 17px 17px;justify-items:center;min-width:0;color:#44554b;text-align:center;line-height:17px}
     .scale-pitch-track{position:relative;width:100%;box-sizing:border-box;border-left:1px solid #e0e8df;border-top:1px solid #e3eae1;border-bottom:1px solid #e3eae1;background:#f2f6f0}
     .scale-pitch-track::before{content:'';position:absolute;left:0;right:0;top:50%;border-top:1px dashed #687f70}
     .scale-pitch-slot:last-child .scale-pitch-track{border-right:1px solid #e0e8df}
     .scale-pitch-slot:nth-child(even) .scale-pitch-track{background:#f8faf7}
     .scale-pitch-name{font-size:10px;white-space:nowrap;font-weight:700}
+    .scale-pitch-select{position:absolute;inset:0;z-index:4;border:0;background:transparent;color:inherit;border-radius:3px;padding:0}
+    .scale-pitch-select[aria-pressed=true]{box-shadow:inset 0 0 0 2px var(--accent-ink)}
+    .scale-pitch-select:focus-visible{outline:2px solid #4c81b3;outline-offset:-2px}
+    [data-appearance=dark] .scale-pitch-select[aria-pressed=true]{box-shadow:inset 0 0 0 2px #9bd0f5}
+    [data-appearance=dark] .scale-pitch-trend .trend-selection{fill:#9bd0f5}
     .scale-pitch-cents{font-size:10px;font-variant-numeric:tabular-nums}
     .scale-pitch-track [data-band=center]{--practice-tone:var(--practice-green);--practice-ink:#327052}
     .scale-pitch-track [data-band=near]{--practice-tone:var(--practice-yellow);--practice-ink:#81580c}
     .scale-pitch-track [data-band=outside]{--practice-tone:var(--practice-red);--practice-ink:#9a3321}
     .scale-pitch-dot,.scale-pitch-current,.scale-pitch-history-dot{position:absolute;top:var(--pitch-y);left:50%;transform:translate(-50%,-50%);width:8px;height:8px;box-sizing:border-box;border-radius:50%;z-index:1}
-    .scale-pitch-dot{border:1px solid var(--practice-ink);background:var(--practice-tone)}
+    .scale-pitch-dot{border:1px solid var(--practice-ink);background:var(--practice-tone);z-index:2}
     .scale-pitch-history{position:absolute;inset:0;pointer-events:none}
-    .scale-pitch-history-dot{border:1.5px dashed var(--practice-ink);background:transparent;opacity:var(--past-opacity,.65)}
-    .scale-pitch-current{width:12px;height:12px;border:2px solid var(--practice-ink);background:#fff;z-index:2}
+    .scale-pitch-history-dot{border:1px solid var(--practice-ink);background:var(--practice-tone);opacity:var(--past-opacity,.36)}
+    .scale-pitch-current{width:12px;height:12px;border:2px solid var(--practice-ink);background:var(--practice-tone);z-index:3}
     :is(.scale-pitch-dot,.scale-pitch-history-dot)[data-failed=true]{border-radius:0;transform:translate(-50%,-50%) rotate(45deg)}
     .scale-pitch-cents[data-band=center]{color:#176043}.scale-pitch-cents[data-band=near]{color:#775017}.scale-pitch-cents[data-band=outside]{color:#9a3321}
     .scale-pitch-dot[hidden],.scale-pitch-current[hidden]{display:none}
@@ -690,7 +704,6 @@
       [data-appearance=dark] .scale-pitch-track [data-band=center]{--practice-ink:var(--theme-green)}
       [data-appearance=dark] .scale-pitch-track [data-band=near]{--practice-ink:var(--theme-gold)}
       [data-appearance=dark] .scale-pitch-track [data-band=outside]{--practice-ink:var(--theme-red)}
-      [data-appearance=dark] .scale-pitch-current{background:var(--page)}
       [data-appearance=dark] .scale-pitch-history-dot[data-band=outside]{--practice-ink:#f29a96}
       [data-appearance=dark] .scale-pitch-cents[data-band=center]{color:var(--theme-green)}
       [data-appearance=dark] .scale-pitch-cents[data-band=near]{color:var(--theme-gold)}
@@ -920,10 +933,10 @@
       .room-join-dialog .room-digits span{height:max(46px,2.875rem);font-size:1.375rem}
       .scale-practice>.scale-practice-action,.scale-practice-history-actions{gap:var(--ui-gap)}
       .scale-practice-action>.scale-practice-button{min-block-size:calc(2.5rem + 6px)}
-      :is(.scale-pitch-chart,.scale-practice-coach){padding:clamp(.625rem,2.8vw,.875rem);border-radius:var(--ui-radius)}
-      .scale-pitch-area{grid-template-columns:2.5rem minmax(0,1fr)}
+      :is(.scale-pitch-chart,.scale-pitch-trend,.scale-practice-coach){padding:clamp(.625rem,2.8vw,.875rem);border-radius:var(--ui-radius)}
+      .scale-pitch-area{grid-template-columns:39px minmax(0,1fr)}
       .scale-pitch-axis{font-size:var(--ui-caption)}
-      .scale-pitch-columns{grid-template-columns:repeat(var(--note-count),minmax(2.375rem,1fr))}
+
       .scale-pitch-slot{grid-template-rows:76px 1.2rem 1.2rem;line-height:1.2rem}
       :is(.scale-pitch-name,.scale-pitch-cents){font-size:.75rem}
       .cello-scale-score,.scale-pitch-scroller{scrollbar-width:auto}
@@ -1164,7 +1177,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261124-050-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261124-051-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -1229,6 +1242,7 @@
     if(!Number.isInteger(limit)||limit<8)throw Error('Invalid take limit');
     const input=[], spans=[];
     let serial=0,lastPitch=-Infinity,lastInput=-Infinity,lastMetro=-Infinity, clipped=false, metronome=false, processing=false, capped=false;
+    let liveReference=null;
     return {
       observeMic({now,halfMs=0,rms,clipped:over,muted,metro,processed}={}){
         if(!finite(now)||now-(finite(halfMs)?halfMs:0)<start||now<=lastInput)return;
@@ -1253,11 +1267,15 @@
         else if(spans.length<limit)spans.push({start:now,end:now,slot,lap});
         else capped=true;
       },
-      snapshot(floor=.004,acceptedSpan){
+      preview(since,floor=.004){return this.snapshot(floor,null,since);},
+      snapshot(floor=.004,acceptedSpan,since=null){
         const points=[], groups=[];
         const floorDb=20*Math.log10(Math.max(.0005,finite(floor)&&floor>0?floor:.004));
-        let si=0,last=null,segment=0;
-        for(const row of input){
+        const preview=finite(since);
+        const firstAt=(rows,field)=>{let a=0,b=rows.length;while(a<b){const m=(a+b)>>1;if(rows[m][field]<since)a=m+1;else b=m;}return a;};
+        let si=preview?firstAt(spans,'end'):0,last=null,segment=0;
+        for(let j=preview?firstAt(input,'now'):0;j<input.length;j++){
+          const row=input[j];
           while(spans[si]&&row.now>spans[si].end)si++;
           const span=spans[si];
           // Require same-take pitch evidence across the loudness window.
@@ -1269,9 +1287,10 @@
           points.push(point);
           last={...row,span,segment};
         }
-        const reference=points.length?quantile(points.map(p=>p.db).sort((a,b)=>a-b),.5):null;
+        if(preview&&liveReference===null&&points.length>=4)liveReference=quantile(points.slice(0,4).map(p=>p.db).sort((a,b)=>a-b),.5);
+        const reference=preview?liveReference:points.length?quantile(points.map(p=>p.db).sort((a,b)=>a-b),.5):null;
         let best=null;
-        if(!processing)for(const {span,points:g} of groups){
+        if(!preview&&!processing)for(const {span,points:g} of groups){
           // Do not mistake a deliberate start/release, a short note or one outlier for an uneven sustain.
           if(span.end-span.start<380||(acceptedSpan&&!acceptedSpan(span)))continue;
           const interior=g.filter(p=>p.ms>=span.start-start+75&&p.ms<=span.end-start-75);
@@ -1281,7 +1300,7 @@
           if(spread>=4.5&&(!best||spread>best.spread))
             best={slot:span.slot,lap:span.lap,spread:Math.round(spread)};
         }
-        return {points:points.map(({db,...p})=>({...p,db:Math.round((db-reference)*10)/10})),
+        return {points:reference===null?[]:points.map(({db,...p})=>({...p,db:Math.round((db-reference)*10)/10})),
           best,clipped,metronome,processing,capped};
       }
     };
@@ -2179,7 +2198,17 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       const start=count===capacity && data.length ? Math.max(floor,data[0].ms) : floor;
       return {data,start,end:elapsed};
     }
-    return {observe,snapshot};
+    function preview(after) {
+      const data=[];
+      for(let i=count-1;i>=0;i--){
+        const p=points[(write-count+i+capacity)%capacity];
+        if(p.ms<after)break;
+        data.push(p);
+      }
+      data.reverse();
+      return {data};
+    }
+    return {observe,snapshot,preview};
   }
 
   function trendSegments(data) {
@@ -2218,130 +2247,225 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     return best?{...best,pattern:'held',repeats:1,recent}:null;
   }
 
-  function loudnessChart(trace,name){
-    const details=document.createElement('details');
-    details.className='scale-pitch-trend';
-    const summary=document.createElement('summary');summary.textContent='相對音量走勢';
-    details.append(summary);
-    let drawn=false;
-    details.addEventListener('toggle',()=>{
-      if(!details.open||drawn)return;
-      drawn=true;
-      const note=document.createElement('p');
-      note.textContent='以本次可對到譜音的收音中間值當 0 dB，只比較這一回。請固定手機位置；重新整理後不保留。';
-      details.append(note);
-      if(trace.metronome||trace.clipped||trace.processing||trace.capped){
-        const flag=document.createElement('p');
-        flag.textContent=[trace.metronome?'節拍器有聲期間與剛關閉的殘響不計入。':'',trace.clipped?'略過收音爆音時段。':'',
-          trace.processing?'裝置使用自動音訊處理，無法判斷持音是否均勻。':'',trace.capped?'顯示本次前段量測。':''].filter(Boolean).join('');
-        details.append(flag);
-      }
-      if(!trace.points.length){
-        const missing=document.createElement('p');missing.textContent='沒有足夠且可連續對到譜音的相對音量。可以關掉節拍器、拉長一個音再試。';
-        details.append(missing);return;
-      }
-      const W=600,H=158,left=50,right=585,top=12,bottom=125;
-      const ns='http://www.w3.org/2000/svg', mk=(tag,attrs={})=>{
-        const node=document.createElementNS(ns,tag);
-        for(const [key,value] of Object.entries(attrs))node.setAttribute(key,value);
-        return node;
-      };
-      const svg=mk('svg',{viewBox:'0 0 '+W+' '+H,width:W,height:H,role:'img','aria-label':name+'相對音量時間走勢'});
-      const abs=trace.points.reduce((a,p)=>Math.max(a,Math.abs(p.db)),6);
-      const range=Math.ceil(abs/6)*6, end=Math.max(1000,trace.points.at(-1).ms);
-      const x=ms=>left+(right-left)*ms/end, y=db=>top+(bottom-top)*(range-db)/(2*range);
-      for(const db of [-range,0,range]){
-        svg.append(mk('line',{x1:left,y1:y(db),x2:right,y2:y(db),class:db?'trend-guide':'trend-zero'}));
-        const mark=mk('text',{x:left-6,y:y(db)+3,'text-anchor':'end'});
-        mark.textContent=(db>0?'+':'')+db+' dB';svg.append(mark);
-      }
-      for(let i=0;i<=4;i++){
-        const ms=end*i/4,label=mk('text',{x:x(ms),y:bottom+17,'text-anchor':'middle'});
-        label.textContent=(ms/1000).toFixed(1)+' 秒';svg.append(label);
-      }
-      let path='',prev=null;
-      function single(p){svg.append(mk('circle',{cx:x(p.ms),cy:y(p.db),r:2,class:'trend-dot'}));}
-      let length=0;
-      for(const p of trace.points){
-        const contiguous=prev?.segment===p.segment;
-        if(prev&&!contiguous&&length===1)single(prev);
-        length=contiguous?length+1:1;
-        path+=(contiguous?'L':'M')+x(p.ms).toFixed(1)+' '+y(p.db).toFixed(1);
-        prev=p;
-      }
-      if(prev&&length===1)single(prev);
-      svg.append(mk('path',{d:path,class:'trend-line'}));
-      const scroll=document.createElement('div');
-      scroll.className='scale-pitch-trend-scroll';
-      scroll.tabIndex=0;scroll.setAttribute('role','region');
-      scroll.setAttribute('aria-label','可水平捲動的相對音量走勢');
-      scroll.append(svg);details.append(scroll);
-    });
-    return details;
+  // The display window is shared. Stored snapshots and timestamps are untouched.
+  function sharedChartTime(trend,loudness) {
+    let first=Infinity,last=-Infinity;
+    for(const p of [trend?.data,loudness?.points]){
+      if(!p?.length)continue;
+      if(Number.isFinite(p[0].ms))first=Math.min(first,p[0].ms);
+      if(Number.isFinite(p.at(-1).ms))last=Math.max(last,p.at(-1).ms);
+    }
+    return Number.isFinite(first)&&last>=first?{start:first,end:last}:null;
   }
 
-  function pitchTrendChart(trace,target,name,restored=false,isCurrent) {
-    const details=document.createElement('details');
-    details.className='scale-pitch-trend';
-    const summary=document.createElement('summary');summary.textContent=restored?'上次音準走勢':'音準走勢';
-    details.append(summary);
-    let drawn=false;
-    details.addEventListener('toggle',()=>{
-      if(!details.open||drawn)return;
-      drawn=true;
-      const seconds=ms=>Math.round(ms/100)/10+' 秒';
-      const info=document.createElement('p');
-      if(restored && trace && isCurrent && !isCurrent()){
-        info.textContent='這份音準走勢已被另一筆練習取代。';
-        details.append(info);
-        return;
-      }
-      if(!trace?.data?.length){
-        info.textContent=restored?'上次只保留了譜位音準圖，沒有可用的時間走勢。':
-          '本次已辨識到譜音，但沒有足夠的連續音高樣本可畫時間走勢。可把第一個音多拉一會兒再試。';
-        details.append(info);
-        return;
-      }
-      info.textContent=(restored?'上次保留的練習。':'')+'依實際練習時間排列，只畫對到譜音且在 ±50¢ 內的樣本。空白可能是停頓或未辨識；線段不代表完整起音或運弓。'+
-        (Number.isFinite(trace.reference)?' A4 '+trace.reference+' Hz。':'')+
-        (trace.start>0?' 顯示最後 '+seconds(trace.end-trace.start)+'。':'');
-      const scroll=document.createElement('div');scroll.className='scale-pitch-trend-scroll';
-      scroll.tabIndex=0;scroll.setAttribute('aria-label','音準走勢圖，可左右捲動');
-      function svgNode(tag, attrs={}, value){
-        const node=document.createElementNS('http://www.w3.org/2000/svg',tag);
-        for(const [key,v] of Object.entries(attrs))node.setAttribute(key,String(v));
-        if(value!==undefined)node.textContent=value;
-        return node;
-      }
-      const ms=Math.max(trace.end-trace.start,1), width=Math.max(320,Math.min(1080,ms*.018));
-      const left=34,right=width-10,top=24,bottom=112,middle=(top+bottom)/2;
-      const x=at=>left+(right-left)*(at-trace.start)/ms, y=c=>middle-c*(bottom-top)/100;
-      const svg=svgNode('svg',{viewBox:'0 0 '+width+' 140',width,height:140,role:'img',
-        'aria-label':name+'音準走勢，從 '+seconds(trace.start)+' 到 '+seconds(trace.end)+'；縱軸為相對譜音的音分'});
-      for(const [c,label] of [[50,'+50¢'],[0,'0¢'],[-50,'−50¢']]){
-        svg.append(svgNode('line',{x1:left,y1:y(c),x2:right,y2:y(c),class:c===0?'trend-zero':'trend-guide'}),
-          svgNode('text',{x:left-3,y:y(c)+3,'text-anchor':'end'},label));
-      }
-      const markers=ms>45000?5:4;
-      for(let i=0;i<=markers;i++){
-        const t=trace.start+(trace.end-trace.start)*i/markers;
-        if(i>0&&i<markers&&trace.end-trace.start<1000)continue;
-        svg.append(svgNode('text',{x:Math.min(right,Math.max(left,x(t))),y:132,'text-anchor':i===0?'start':i===markers?'end':'middle'},seconds(t)));
-      }
-      const segments=trendSegments(trace.data);
-      let labelAt=-Infinity;
-      for(const run of segments){
-        const first=run[0],px=x(first.ms),note=target[first.slot];
-        const pitch=note?.name&&Number.isInteger(note.octave)?note.name+note.octave:'第 '+(first.slot+1)+' 音';
-        if(px-labelAt>=40&&px+35<width){
-          svg.append(svgNode('text',{x:px,y:13},pitch));labelAt=px;
-        }
-        if(run.length===1)svg.append(svgNode('circle',{cx:px,cy:y(first.cents),r:2.2,class:'trend-dot'}));
-        else svg.append(svgNode('path',{d:run.map((p,i)=>(i?'L':'M')+x(p.ms).toFixed(1)+' '+y(p.cents).toFixed(1)).join(' '),class:'trend-line'}));
-      }
-      scroll.append(svg);details.append(info,scroll);
+  function measuredChartSpans(points){
+    const out=[];
+    for(const p of points||[]){
+      if(!Number.isFinite(p?.ms)||!Number.isInteger(p.slot))continue;
+      const run=out.at(-1);
+      if(run&&run.segment===p.segment&&run.slot===p.slot&&run.lap===p.lap)run.end=p.ms;
+      else out.push({start:p.ms,end:p.ms,slot:p.slot,lap:p.lap,segment:p.segment});
+    }
+    return out;
+  }
+
+  function chartSlotAt(points,at) {
+    const spans=measuredChartSpans(points);
+    for(const span of spans){
+      if(at>=span.start-.5&&at<=span.end+.5)return span.slot;
+      if(span.start>at+.5)break;
+    }
+    return null;
+  }
+
+  function timeChart(kind,name,onSelect){
+    const pitch=kind==='pitch', title=pitch?'音準走勢':'相對音量走勢';
+    const node=document.createElement('section');
+    node.className='scale-pitch-trend';
+    node.setAttribute('aria-label',name+title);
+    node.dataset.chartTime=kind;
+    const heading=document.createElement('h4');heading.className='scale-pitch-title';heading.textContent=title;
+    const info=document.createElement('p');info.className='scale-pitch-time-info';
+    const scroll=document.createElement('div');scroll.className='scale-pitch-trend-scroll';
+    scroll.tabIndex=0;scroll.setAttribute('role','region');scroll.setAttribute('aria-label',title+'，左右捲動查看時間');
+    const mk=(tag,attrs={})=>{
+      const n=document.createElementNS?.('http://www.w3.org/2000/svg',tag)??document.createElement(tag);
+      for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));
+      return n;
+    };
+    const svg=mk('svg',{height:112,role:'img','aria-label':title});
+    const left=42, right=14, top=8, bottom=89, h=112;
+    const guides=mk('g'), xTicks=mk('g'), band=mk('path',{class:'trend-selection'}), line=mk('path',{class:'trend-line'});
+    const levels=pitch?[50,0,-50]:[24,0,-24];
+    const axis=levels.map(value=>{
+      const y=top+(bottom-top)*(levels[0]-value)/(2*levels[0]);
+      const rule=mk('line',{x1:left,y1:y,y2:y,class:value===0?'trend-zero':'trend-guide'});
+      const label=mk('text',{x:left-5,y:y+3,'text-anchor':'end'});
+      label.textContent=(value>0?'+':value<0?'−':'')+Math.abs(value)+(pitch?'¢':' dB');
+      guides.append(rule,label);return rule;
     });
-    return details;
+    svg.append(guides,band,line,xTicks);scroll.append(svg);node.append(heading,info,scroll);
+    let tickKey='', ticks=[], rendered=null, lastWidth=0;
+    svg.addEventListener('click',event=>{
+      if(!rendered)return;
+      const bounds=svg.getBoundingClientRect();
+      if(!bounds.width)return;
+      const px=(event.clientX-bounds.left)*rendered.width/bounds.width;
+      const py=(event.clientY-bounds.top)*h/bounds.height;
+      if(px<left||px>rendered.width-right||py<top||py>bottom)return;
+      const at=rendered.start+(px-left)*rendered.span/(rendered.width-left-right);
+      const hit=chartSlotAt(rendered.points,at);
+      if(hit!==null)onSelect?.(hit);
+    });
+    function render(points, domain, selectedSpans, common, taking, message){
+      const {start,end,width}=domain;
+      const span=Math.max(1,end-start), inner=width-left-right;
+      const x=ms=>left+inner*(ms-start)/span;
+      const y=v=>top+(bottom-top)*(levels[0]-Math.max(-levels[0],Math.min(levels[0],v)))/(2*levels[0]);
+      const style=n=>Math.round(n*10)/10;
+      if(info.textContent!==message)info.textContent=message;
+      node.dataset.live=String(taking);
+      const vw='0 0 '+width+' '+h;
+      if(lastWidth!==width){
+        lastWidth=width;
+        svg.setAttribute('width',String(width));svg.setAttribute('viewBox',vw);
+        axis.forEach(rule=>rule.setAttribute('x2',String(width-right)));
+      }
+      // Exactly one mutable path per trace. A solitary measurement is a tiny
+      // round-capped stroke, not a connection across an unmeasured interval.
+      let path='',previous=null;
+      for(const p of points){
+        if(p.ms<start||p.ms>end)continue;
+        const value=pitch?p.cents:p.db;
+        if(!Number.isFinite(value)){previous=null;continue;}
+        const contiguous=previous?.segment===p.segment&&previous?.slot===p.slot&&previous?.lap===p.lap;
+        const at=style(x(p.ms))+' '+style(y(value));
+        path+=contiguous?'L'+at:'M'+at+'h.12M'+at;
+        previous=p;
+      }
+      line.setAttribute('d',path);
+      const masks=[];
+      for(const {start:a,end:b} of selectedSpans){
+        if(a>end||b<start)continue;
+        const x1=style(x(Math.max(a,start))), x2=style(x(Math.min(b,end)));
+        masks.push('M'+x1+' '+top+'h'+Math.max(2,x2-x1)+'v'+(bottom-top)+'H'+x1+'Z');
+      }
+      band.setAttribute('d',masks.join(''));
+      // Live labels roll at a fixed rate. Recycle handfuls of text nodes.
+      const zero=common??0, scale=inner/span;
+      let step=taking?2000:(span<2000?span/2:Math.ceil(Math.max(1,span/36000))*1000);
+      if(!taking&&scale*step<45)step*=Math.ceil(45/(scale*step));
+      const marks=[];
+      if(!taking)marks.push(start);
+      const phase=Math.max(zero,zero+Math.ceil((start-zero)/step)*step);
+      for(let at=phase;at<=end&&marks.length<62;at+=step){
+        if(taking||at>start+step*.22&&at<end-step*.35)marks.push(at);
+      }
+      if(!taking&&end-start>5)marks.push(end);
+      const key=marks.join(',')+':'+zero;
+      if(key!==tickKey){
+        tickKey=key;
+        while(ticks.length<marks.length){const n=mk('text',{y:105});ticks.push(n);xTicks.append(n);}
+        ticks.forEach((t,i)=>{
+          if(i>=marks.length){t.setAttribute('visibility','hidden');return;}
+          t.setAttribute('visibility','visible');
+          const value=(marks[i]-zero)/1000;
+          t.textContent=(Math.round(value*(span<1000?100:10))/(span<1000?100:10))+' 秒';
+          t.setAttribute('text-anchor',!taking&&i===0?'start':!taking&&i===marks.length-1?'end':'middle');
+        });
+      }
+      for(let i=0;i<marks.length;i++)ticks[i].setAttribute('x',String(style(x(marks[i]))));
+      rendered={points,start,span,width};
+    }
+    return {node,scroll,render};
+  }
+
+  function timeCharts(name,target,onSelect,env=globalThis){
+    let selected=null, active=null, frame=null, renderedAt=-Infinity, saved=null, mounted=false;
+    const select=slot=>{
+      if(!Number.isInteger(slot)||slot<0||slot>=target.length)return;
+      selected=slot;onSelect?.(slot);
+      if(active)drawLive();else {drawSaved();scrollToSelection();}
+    };
+    const pitch=timeChart('pitch',name,select), volume=timeChart('volume',name,select);
+    const scrolls=[pitch.scroll,volume.scroll];
+    const resize=typeof env.ResizeObserver==='function'?new env.ResizeObserver(()=>{if(!active&&mounted)drawSaved();}):null;
+    for(const [i,scroll] of scrolls.entries()){
+      scroll.addEventListener('scroll',()=>{
+        const peer=scrolls[1-i];
+        if(Math.abs(peer.scrollLeft-scroll.scrollLeft)>1)peer.scrollLeft=scroll.scrollLeft;
+      });
+    }
+    const width=()=>Math.max(220,Math.floor(Math.min(...scrolls.map(s=>s.clientWidth||320))));
+    const pts=packet=>[packet?.trend?.data||[],packet?.loudness?.points||[]];
+    const spans=(p,v)=>selected===null?[]:[...measuredChartSpans(p),...measuredChartSpans(v)].filter(s=>s.slot===selected);
+    function paint(packet, domain, taking){
+      const [p,v]=pts(packet), highlights=spans(p,v), reference=packet?.trend?.reference, loudness=packet?.loudness;
+      const pitchMsg=p.length?(taking?'即時 · 音分偏差；空白不補線。':(packet?.restored?'上次保留的練習。':'')+'相對譜音的音分；空白保留。'+(Number.isFinite(reference)?' A4 '+reference+' Hz。':''))
+        :taking?'等待對上譜音…':packet?.stale?'這份音準走勢已被另一筆練習取代。':'尚無可顯示的音準走勢。';
+      const exclusions=loudness?.metronome?' 節拍器聲與殘響時段不納入。':loudness?.clipped?' 略過爆音時段。':'';
+      const levelMsg=v.length?(taking?'即時 · 以起初量到的音量為基準。':'以本回收音中位數為 0 dB；不跨回比較。')+exclusions
+        :taking?'等待可對到譜音的音量…'+exclusions:'尚無可顯示的相對音量；重新整理後不保留。'+exclusions;
+      const foot=loudness?.processing?' 裝置可能自動調整音量。':'';
+      pitch.render(p,domain,highlights,taking?0:domain.start,taking,pitchMsg);
+      volume.render(v,domain,highlights,taking?0:domain.start,taking,levelMsg+foot);
+    }
+    function scrollToSelection(){
+      if(selected===null||!mounted)return;
+      const [p,v]=pts(saved), range=sharedChartTime(saved?.trend,saved?.loudness);
+      if(!range)return;
+      const w=width(), pixels=Math.max(w-56,Math.ceil((range.end-range.start)*.048));
+      const x=ms=>42+pixels*(ms-range.start)/Math.max(1,range.end-range.start);
+      const left=scrolls[0].scrollLeft;
+      const candidates=spans(p,v).filter(run=>Number.isFinite(run.start));
+      if(!candidates.length||candidates.some(run=>x(run.start)<left+w&&x(run.end)>=left))return;
+      const chosen=candidates.reduce((a,b)=>Math.abs(x(a.start)-left)<=Math.abs(x(b.start)-left)?a:b);
+      const next=Math.max(0,x(chosen.start)-w*.35);
+      scrolls.forEach(scroller=>{scroller.scrollLeft=next;});
+    }
+    function drawSaved(){
+      if(!mounted)return;
+      const w=width(), range=sharedChartTime(saved?.trend,saved?.loudness);
+      const domain=range?{...range,width:Math.max(w,56+Math.ceil((range.end-range.start)*.048))}:{start:0,end:6000,width:w};
+      paint(saved,domain,false);
+    }
+    function drawLive(){
+      if(!active||!mounted)return;
+      const w=width(), end=active.elapsed(), start=end-(w-56)/.048;
+      let packet;
+      try{packet=active.read(Math.max(0,start));}catch{packet=null;}
+      paint(packet,{start,end,width:w},true);
+    }
+    function cancel(){
+      if(frame!==null){env.cancelAnimationFrame?.(frame);frame=null;}
+    }
+    function tick(){
+      if(!active||!mounted||frame!==null)return;
+      if(typeof env.requestAnimationFrame!=='function'){drawLive();return;}
+      frame=env.requestAnimationFrame(t=>{
+        frame=null;
+        if(t-renderedAt>=95){renderedAt=t;drawLive();}
+        if(active&&mounted)tick();
+      });
+    }
+    function setView(open){
+      mounted=open;
+      if(!open){cancel();resize?.disconnect();return;}
+      resize?.observe(scrolls[0]);
+      if(active){drawLive();tick();}else drawSaved();
+    }
+    function reset(clock,packet){
+      if(!clock)cancel();
+      const switched=active!==clock||saved!==packet;
+      active=clock;saved=packet;
+      if(switched){
+        renderedAt=-Infinity;
+        if(clock){selected=null;onSelect?.(null);}
+        scrolls.forEach(s=>{s.scrollLeft=0;});
+      }
+      if(active)tick();else drawSaved();
+    }
+    return {nodes:[pitch.node,volume.node],setView,reset,select,clear:()=>{selected=null;onSelect?.(null);}};
   }
 
   // Only this take's accepted, same-lap score evidence enters the rule.
@@ -2769,15 +2893,16 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       const result = grade && (mode === 'single' || pending || !laps) ? align(view.target, heard) : null;
       if (result) result.extra = heardCount - result.pairs.length;
       const values = result ? scoreValues(view.target, heard, result) : lastValues;
+      const openingUnverified=Boolean(session.openingRecovered&&!session.recoveryContinued);
       let attemptHistory;
-      if (grade && (laps || result?.pairs.length)) {
+      if (grade && !openingUnverified && (laps || result?.pairs.length)) {
         const base = history || emptyHistory(view.target.length);
         attemptHistory = result?.pairs.length ? addHistory(base,values) : base;
       }
-      const trend=grade&&session.trend?{...session.trend.snapshot(),reference:session.reference}:null;
+      const trend=grade&&!openingUnverified&&session.trend?{...session.trend.snapshot(),reference:session.reference}:null;
       let loudness=null;
       try {
-        if(grade&&session.loudness){
+        if(grade&&!openingUnverified&&session.loudness){
           if(result)acceptLoudness(session,heard,result,laps+1);
           loudness=session.loudness.snapshot(hooks.loudnessFloor,span=>{
             const at=session.loudnessAccepted.get(span.lap+':'+span.slot);
@@ -2787,17 +2912,18 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
           });
         }
       } catch {}
-      const coachResult = grade && values?.some(Number.isFinite) ? {engine:session.engine, reference:session.reference} : null;
+      const coachResult = grade && !openingUnverified && values?.some(Number.isFinite) ? {engine:session.engine, reference:session.reference} : null;
       let planDiagnostics;
-      if(grade&&session.visiblePlan){
+      if(grade&&!openingUnverified&&session.visiblePlan){
         const partial=result&&result.pairs.length?acceptedPlanRound(view.target,heard,result,laps+1):null;
         const rounds=partial?[...session.planRounds,partial].slice(-8):session.planRounds;
         // Optional/private hook: never fed into Qwen or persisted.
         planDiagnostics={...session.visiblePlan,rounds,reference:session.reference,detector:session.engine,trend,take:session.take};
       }
-      const display = result || laps ? {values, chartValues:values, attemptHistory, coachResult, trend, loudness, planDiagnostics, coachNoEvidence:grade && !coachResult,
-        history:result ? history : session.beforeLastHistory, mode, laps, passed, progress:result?(session.frontier||0):(session.lastFrontier||0),final:true} : undefined;
-      const retry=!message&&grade&&!result?.pairs.some(p=>p.expected===0)?session.openingGuide.message(hooks.pitchName,false):null;
+      const display = result || laps ? {values, chartValues:values, attemptHistory, coachResult, trend, loudness, planDiagnostics, coachNoEvidence:grade && !coachResult && !openingUnverified,openingUnverified,
+        history:result ? history : session.beforeLastHistory, mode, laps, passed, openingRecovered:Boolean(session.openingRecovered),progress:result?(session.frontier||0):(session.lastFrontier||0),final:true} : undefined;
+      const retry=!message&&grade&&!result?.pairs.some(p=>p.expected===0)
+        ?(session.openingRecovered?'開頭未對上；只計入後續實際對上的音。':session.openingGuide.message(hooks.pitchName,false)):null;
       view.update('idle', message||retry, result, 0, session.reference, display);
     }
     function stop(message = null, grade = false) {
@@ -2839,6 +2965,37 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       let reference = 442, progress = 0, lastProgress = 0, held = null;
       let recentMidi = null, lastPitchAt = null, lastFrameAt = -Infinity;
       let values = Array(view.target.length).fill(null);
+      const canRecoverOpening=view.target.length>=3&&view.target[0].midi<view.target[1].midi&&view.target[1].midi<view.target[2].midi;
+      const firstDescent=view.target.findIndex((note,i)=>i>0&&note.midi<view.target[i-1].midi);
+      // Bound the total unsupported audio within each unanchored transition,
+      // not its duration. Short pulses cannot renew it; sustained sound can
+      // last indefinitely under the normal exact-next watchdog.
+      const openingSilenceMs=2500;
+      let openingSecond=null, openingSupport=null, openingExpired=false;
+      function beginEvidence(now){
+        session.trend=createPitchTrend(now);
+        session.loudness=null;session.loudnessAccepted=null;
+        try {
+          session.loudness=hooks.loudnessCapture?.(now);
+          if(session.loudness)session.loudnessAccepted=new Map();
+        } catch {}
+        session.chartClock={
+          elapsed:()=>Math.max(0,(session.loudnessCutoff??env.performance.now())-now),
+          read:since=>({trend:session.trend.preview(since),loudness:session.loudness?.preview?.(now+since,hooks.loudnessFloor)})
+        };
+      }
+      function resetProvisional(now){
+        session.heard=[];session.heardCount=0;session.frontier=0;
+        values=Array(view.target.length).fill(null);
+        progress=0;held=null;openingSecond=null;openingSupport=null;
+        session.openingRecovered=false;session.recoveryContinued=false;
+        session.openingGuide=openingRecoveryGuide(view.target);
+        beginEvidence(now);
+      }
+      function observedDescent(){
+        return firstDescent>0&&view.target[0].midi===view.target.at(-1).midi&&
+          values.slice(firstDescent,-1).some(Number.isFinite);
+      }
       function watchdog() {
         if (active !== session || session.stage !== 'listening') return;
         // SwiftF0 uses lookahead. Allow bounded delivery of frames already
@@ -2848,8 +3005,8 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         else session.idleTimer = env.setTimeout?.(watchdog, remaining);
       }
       const display = (live = null) => ({values, live, listening:true, progress, mode,
-        history:session.history, laps:session.laps, passed:session.passed,
-        lastValues:session.lastValues,beforeLastHistory:session.beforeLastHistory,lastAdvice:session.lastAdvice,coachSource:{engine:session.engine,reference:session.reference}});
+        history:session.history, laps:session.laps, passed:session.passed,openingRecovered:Boolean(session.openingRecovered),
+        lastValues:session.lastValues,beforeLastHistory:session.beforeLastHistory,lastAdvice:session.lastAdvice,coachSource:{engine:session.engine,reference:session.reference},chartClock:session.chartClock});
       session.showFinishing = () => view.update('listening','正在分析最後一音…',null,progress,reference,display());
       session.release = route.subscribe({
         fast:true,
@@ -2857,11 +3014,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
           if (active !== session) return;
           reference = session.reference = hooks.reference();
           lastProgress = env.performance.now();
-          session.trend=createPitchTrend(lastProgress);
-          try {
-            session.loudness=hooks.loudnessCapture?.(lastProgress);
-            if(session.loudness)session.loudnessAccepted=new Map();
-          } catch {}
+          beginEvidence(lastProgress);
           session.stage = 'listening'; watchdog(); view.update('listening', null, null, 0, reference, display());
         },
         loudness:hooks.loudnessCapture?metric=>{
@@ -2879,6 +3032,17 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
             const reading = resolveMidpoint(pitch,view.target[progress]?.midi,recentMidi);
             if (reading) lastPitchAt = now;
             const observed = monitor(reading, now);
+            if(openingSupport){
+              const span=now-openingSupport.at;
+              const supported=reading?.midi===openingSupport.midi&&observed?.midi===openingSupport.midi&&withinCents(reading.cents);
+              if(span>90||!supported||!openingSupport.supported)openingSupport.unsupported+=span;
+              openingSupport.at=now;openingSupport.supported=supported;
+              if(openingSupport.unsupported>openingSilenceMs){
+                openingExpired=true;
+                if(session.openingRecovered&&!session.recoveryContinued)resetProvisional(now);
+                else{openingSecond=null;openingSupport=null;}
+              }
+            }
             if (!observed || observed.midi !== held?.midi) held = null;
             const rapid = swiftSelected && Number.isInteger(swiftHop) && confidence >= .5 && confidence <= 1 &&
               !octaveCorrected && pitch?.midi === reading?.midi &&
@@ -2890,18 +3054,41 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
             let singleDone=false;
             if (event) {
               if(progress===0&&session.laps===0)session.openingGuide.observe(event.midi);
+              let openingBootstrap=false;
+              if(session.openingRecovered&&session.laps===0&&event.midi===view.target[0].midi&&!observedDescent()){
+                // A genuine late start takes precedence over earlier exploration.
+                // Discard its provisional score and auxiliary evidence, not the mic.
+                resetProvisional(now);
+              }
+              if(canRecoverOpening&&!openingExpired&&progress===0&&session.laps===0){
+                if(openingSecond&&event.midi===view.target[2].midi){
+                  // Two consecutive actual events, exactly slots 2 and 3; slot 1
+                  // remains unfilled. The held first event is also the most recent
+                  // event in heard, retained by the bounded history.
+                  openingSecond.firstEligibleSlot=openingSecond.lastEligibleSlot=1;
+                  values=values.slice();
+                  values[1]=openingSecond.cents;
+                  progress=2;
+                  openingBootstrap=session.openingRecovered=true;
+                }
+                openingSecond=event.midi===view.target[1].midi?event:null;
+                openingSupport=openingBootstrap||openingSecond?{at:now,midi:event.midi,unsupported:0,supported:true}:null;
+              }
               recentMidi = event.midi;
               // Prefix points are provisional; the weighted alignment
               // replaces them on stop or at the end of a cycle.
               const isExactNext = view.target[progress]?.midi === event.midi;
               let position = progress;
               if (progress > 0 && !isExactNext) {
-                // A repeated pitch on the approach to the apex is not proof
-                // that the player has reached the same pitch on the descent.
-                const repeated = view.target.slice(Math.max(0,progress-2),progress).some(
-                  (note,i) => note.midi === event.midi && Number.isFinite(values[Math.max(0,progress-2)+i]));
-                position = repeated ? -1 : view.target.findIndex(
-                  (note,i) => i > progress && i <= progress+2 && note.midi === event.midi);
+                if(session.openingRecovered&&!session.recoveryContinued)position=-1;
+                else{
+                  // A repeated pitch on the approach to the apex is not proof
+                  // that the player has reached the same pitch on the descent.
+                  const repeated = view.target.slice(Math.max(0,progress-2),progress).some(
+                    (note,i) => note.midi === event.midi && Number.isFinite(values[Math.max(0,progress-2)+i]));
+                  position = repeated ? -1 : view.target.findIndex(
+                    (note,i) => i > progress && i <= progress+2 && note.midi === event.midi);
+                }
               }
               const advances=position>=0 && event.midi===view.target[position]?.midi;
               // The final DP may select cleaner repeats for slots already
@@ -2917,7 +3104,10 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
                 values[position] = event.cents;
                 progress = session.frontier = position + 1;
                 // Fuzzy recovery can annotate later slots without extending the timer.
-                if (isExactNext) lastProgress = now;
+                if (isExactNext&&!openingBootstrap){
+                  lastProgress = now;
+                  if(session.openingRecovered){session.recoveryContinued=true;openingSupport=null;}
+                }
               }
               const boundary = mode === 'loop' ? loopBoundary(view.target, session.heard, progress) : null;
               if (boundary) {
@@ -2941,6 +3131,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
                 values[0] = event.cents;
                 held = {midi:event.midi,slot:0};
                 progress = session.frontier = 1;
+                openingSecond=null;openingSupport=null;session.openingRecovered=false;session.recoveryContinued=false;
               } else if (mode === 'single' && progress === view.target.length && align(view.target, session.heard).complete) {
                 singleDone=true;
               }
@@ -2955,7 +3146,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
             const carriedOnly=traceSlot===0&&session.heard.length===1&&session.heard[0]?.carriedPlanTonic===true;
             try { session.loudness?.observePitch(now,fresh&&!carriedOnly?traceSlot:null,currentLap); } catch {}
             if(singleDone){stop(null,true);return;}
-            view.update('listening', session.finishing ? '正在分析最後一音…' : progress===0&&session.laps===0?session.openingGuide.message(hooks.pitchName,true):null, null, progress, reference, display(live));
+            view.update('listening', session.finishing ? '正在分析最後一音…' : session.openingRecovered?'第一音未對上，可接著練，或重新拉第一音。':progress===0&&session.laps===0?session.openingGuide.message(hooks.pitchName,true):null, null, progress, reference, display(live));
           } catch {
             stop('無法讀取麥克風，請重新開始。');
           }
@@ -2970,7 +3161,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     }};
   }
 
-  function pitchChart(target, name, archived = false) {
+  function pitchChart(target, name, archived = false, onSelect) {
     const make = (tag, className, text) => {
       const el = document.createElement(tag);
       el.className = className;
@@ -3005,9 +3196,23 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       [track,name,value].forEach(node=>node.setAttribute('aria-hidden','true'));
       track.append(past, recorded, current);
       slot.append(track, name, value);
-      slot.setAttribute('aria-label', '第 ' + (index + 1) + ' 音 ' + label + '，尚未辨識');
+      const description='第 ' + (index + 1) + ' 音 ' + label + '，尚未辨識';
+      slot.setAttribute('aria-label',description);
+      const pick=!archived&&onSelect?make('button','scale-pitch-select'):null;
+      if(pick){
+        pick.type='button';pick.tabIndex=index===0?0:-1;
+        pick.setAttribute('aria-label',description);
+        pick.setAttribute('aria-pressed','false');
+        pick.addEventListener('click',()=>onSelect(index));
+        pick.addEventListener('keydown',e=>{
+          const next=e.key==='ArrowLeft'?index-1:e.key==='ArrowRight'?index+1:e.key==='Home'?0:e.key==='End'?target.length-1:null;
+          if(next===null||!cells[next])return;
+          e.preventDefault();onSelect(next);cells[next].pick.focus?.({preventScroll:true});
+        });
+        slot.append(pick);
+      }
       columns.append(slot);
-      return {slot, past, recorded, current, name, value, label};
+      return {slot, past, recorded, current, name, value, label,pick};
     });
     scroller.append(columns); area.append(axis, scroller);
     chart.append(head, area);
@@ -3018,24 +3223,48 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       dot.dataset.band = point.band;
       dot.dataset.failed = String(point.failed);
     }
-    let previousValues, previousHistory, liveIndex = null, latestFollow = null, wasListening = false;
+    let previousValues, previousHistory, previousFinal, liveIndex = null, selectedSlot=null, latestFollow = null, wasListening = false, manualUntil=0;
+    for(const event of ['pointerdown','touchstart','wheel','keydown']){
+      scroller.addEventListener(event,()=>{manualUntil=Date.now()+2400;});
+    }
+    function ensureVisible(index,force=false){
+      if(!cells[index])return false;
+      if(!force&&Date.now()<manualUntil)return false;
+      const sl=scroller.scrollLeft, width=scroller.clientWidth, slot=cells[index].slot;
+      if(!width)return false;
+      const left=slot.offsetLeft;
+      if(left<sl||left+slot.offsetWidth>sl+width)scroller.scrollLeft=Math.max(0,left-width*.35);
+      return true;
+    }
+    function select(index){
+      if(index===selectedSlot)return;
+      if(selectedSlot!==null&&cells[selectedSlot]?.pick){
+        cells[selectedSlot].pick.setAttribute('aria-pressed','false');
+        cells[selectedSlot].pick.tabIndex=-1;
+      }else if(cells[0]?.pick)cells[0].pick.tabIndex=-1;
+      selectedSlot=index;
+      const pick=cells[index]?.pick;
+      if(pick){pick.setAttribute('aria-pressed','true');pick.tabIndex=0;ensureVisible(index,true);}
+      else if(cells[0]?.pick)cells[0].pick.tabIndex=0;
+    }
     function update({values, history, live, progress, listening, final, mode} = {}) {
       const liveLegend = listening ? '白圈：即時 · ' : '';
-      const legendText = archived ? '' : mode === 'loop' ? liveLegend + '實心：本輪 · 虛線：先前'
+      const legendText = archived ? '' : mode === 'loop' ? liveLegend + '深色：本輪 · 淡色：先前'
         : liveLegend + '實心：本次';
       if (legend.textContent !== legendText) legend.textContent = legendText;
       const historyChanged = history !== previousHistory;
-      if (values !== previousValues || historyChanged) {
+      if (values !== previousValues || historyChanged || final !== previousFinal) {
+        previousFinal = final;
         previousValues = values;
         previousHistory = history;
-        cells.forEach(({slot, past, recorded, value, label}, i) => {
+        cells.forEach(({slot, past, recorded, value, label,pick}, i) => {
           const bin = history?.[i];
           if (historyChanged) {
             past.textContent = '';
             for (const [cents,count] of bin || []) {
               const dot = make('span','scale-pitch-history-dot');
               place(dot, chartPoint(cents));
-              dot.style.setProperty('--past-opacity', Math.min(.90, .62 + (count - 1) * .07));
+              dot.style.setProperty('--past-opacity', Math.min(.55, .34 + (count - 1) * .04));
               dot.title = centsText(cents) + ' · ' + count + ' 輪' + (!withinCents(cents) ? '（未通過）' : '');
               past.append(dot);
             }
@@ -3045,8 +3274,10 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
           const state = point ? '已辨識 ' + point.text : archived ? (bin?.size ? '有累積記錄' : '尚無累積記錄') : final ? '未辨識' : '尚未辨識';
           const pastCount = bin ? [...bin.values()].reduce((sum,count) => sum + count,0) : 0;
           const failedCount = bin ? [...bin].reduce((sum,[cents,count]) => sum + (!withinCents(cents) ? count : 0),0) : 0;
-          slot.setAttribute('aria-label', '第 ' + (i + 1) + ' 音 ' + label + '，' + state +
-            (pastCount ? '，另有 ' + pastCount + ' 輪記錄' + (failedCount ? '，其中 ' + failedCount + ' 輪未通過' : '') : ''));
+          const description='第 ' + (i + 1) + ' 音 ' + label + '，' + state +
+            (pastCount ? '，另有 ' + pastCount + ' 輪記錄' + (failedCount ? '，其中 ' + failedCount + ' 輪未通過' : '') : '');
+          slot.setAttribute('aria-label',description);
+          pick?.setAttribute('aria-label',description);
           value.textContent = point?.text || '—';
           value.dataset.band = point?.band || '';
         });
@@ -3060,23 +3291,16 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         place(cells[liveIndex].current, point);
       }
       const follow = listening ? (liveIndex ?? (progress < target.length ? progress : target.length - 1)) : null;
-      if (follow !== null && follow !== latestFollow) {
-        const sl = scroller.scrollLeft, width = scroller.clientWidth, slot = cells[follow].slot;
-        if (width) {
-          const left = slot.offsetLeft;
-          if (left < sl || left + slot.offsetWidth > sl + width) scroller.scrollLeft = Math.max(0, left - width * 0.35);
-        }
-      }
-      // Grading returns the start into view; the player can scroll to any slot.
-      if (!listening && (!final || wasListening)) scroller.scrollLeft = 0;
-      latestFollow = follow;
+      if(follow!==null&&follow!==latestFollow&&ensureVisible(follow))latestFollow=follow;
+      if (!listening && wasListening && Date.now()>=manualUntil) scroller.scrollLeft = 0;
+      if(!listening)latestFollow=null;
       wasListening = Boolean(listening);
       chart.dataset.active = String(Boolean(listening));
     }
     // Hide both marker styles until they have measured values.
     cells.forEach(cell => {cell.recorded.hidden = true;cell.current.hidden = true;});
     if (archived) chart.className += ' scale-practice-saved-history';
-    return {element:chart, update};
+    return {element:chart, update, select};
   }
 
   function card(score, target, toggle, kind = 'scale', scope = null, snapshotVisiblePlan = null) {
@@ -3256,11 +3480,18 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       }
       element.practiceHistory = {hasUnsaved:()=>Boolean(canSave && (!newestDraft || ownsDraft())),save:savePending,discard:deferPending,
         needsExitWarning:()=>Boolean(ownsDraft() && !draftDurable),
+        syncDraftOwner() {
+          if(!ownsDraft()||!draftDurable||phase!=='idle'||localAttempt?.freshEmpty)return;
+          const owner=historyApi.currentDraftId?.(storage);
+          if(owner?.ok&&owner.id!==newestDraft.id){
+            latestDraftToken=owner.id;
+            this.supersede();
+          }
+        },
         supersede() {
           if (!newestDraft || ownsDraft() || phase !== 'idle') return;
           canSave = newestDraft = null; merge.hidden = true;
           historyStatus.textContent = '';
-          if (chart) chart.element.hidden = true;
           view.update('idle');
         }};
       merge.addEventListener('click',savePending);
@@ -3273,22 +3504,27 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     let localAttempt=null, localComparison, comparisonRead=false, loudnessAdvice=null, localSlur=false;
     if(localCoach){
       localCoach.className='scale-practice-coach scale-practice-local-coach';
-      localCoach.hidden=true;
+      localCoach.hidden=false;
       localCoach.setAttribute('aria-label','練習建議');
       const make=(tag,cls,content)=>{
         const node=document.createElement(tag);node.className=cls;node.textContent=content;return node;
       };
-      const action=make('button','scale-practice-coach-action','練習建議');action.type='button';
+      const title=make('h3','scale-practice-local-coach-title','練習建議');
       const body=make('div','scale-practice-coach-tip','');body.setAttribute('role','status');
-      localCoach.append(action,body);
-      localCoach.reset=(packet,show)=>{
-        localAttempt=packet;
+      localCoach.append(title,body);
+      let adviceState, advicePacket;
+      localCoach.updateAdvice=(state,packet=null)=>{
+        if(adviceState===state && advicePacket===packet)return;
+        adviceState=state;advicePacket=packet;localAttempt=packet;
         localComparison=undefined;comparisonRead=false;localSlur=false;
-        localCoach.hidden=!show;
+        if(packet){showAdvice();return;}
         body.textContent='';
+        const hint=state==='listening' ? '練習結束後，這裡會顯示本次建議。'
+          : '開始練習後，這裡會顯示依本次音準與走勢整理的建議。';
+        body.append(make('p','scale-practice-coach-context',hint));
       };
       function showAdvice(restoreSlurFocus=false){
-        if(localCoach.hidden)return;
+        if(!localAttempt)return;
         if(ownsDraft()&&draftDurable&&!localAttempt?.freshEmpty){
           const liveOwner=historyApi.currentDraftId?.(storage);
           if(liveOwner?.ok&&liveOwner.id!==newestDraft.id){
@@ -3309,7 +3545,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         const converted=saved?.issues?saved:saved?{issues:[saved.observation],drills:saved.action?[saved.action]:[]}:practiceAdviceReport(packet);
         const report=old?{...converted,issues:converted.issues.map(line=>line.replaceAll('這是一次讀數。',''))}:converted;
         body.textContent='';
-        if(localAttempt?.restored&&saved)body.append(make('p','scale-practice-coach-context','上次保留的建議'));
+        if(localAttempt?.restored)body.append(make('p','scale-practice-coach-context',saved?'上次保留的建議':'依上次保留的音準圖整理'));
         const list=make('ul','scale-practice-coach-steps','');
         const issues=loudnessAdvice?[...report.issues,loudnessAdvice.observation]:report.issues;
         const drillCount=loudnessAdvice?Math.min(2,report.drills.length):report.drills.length;
@@ -3372,7 +3608,6 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
           section.append(heading,links);body.append(section);
         }
       }
-      action.addEventListener('click',()=>showAdvice());
     }
     let coachPanel, coachAction, coachTyping, coachStatus, coachTime, coachTip, coachRaw, coachNotice,coachInput, coachAttempt, coachBusy=false, coachTicket=0;
     if (coachVisible) {
@@ -3507,7 +3742,37 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       if(Number.isInteger(index)&&index>=0&&index<target.length&&
          (head.dataset.midi===undefined||Number(head.dataset.midi)===target[index].midi))noteHeads[index]=head;
     });
-    let chart = null, trendDisclosure = null, loudnessDisclosure=null, phase = null, currentNote = null, awaiting = null, scoreFollow = null;
+    let chart=null, traces=null, visual=null, chartOpen=false, phase=null, currentNote=null, awaiting=null, scoreFollow=null;
+    // Slots and time plots are mounted when this card is opened, before its
+    // first microphone take, but never for every collapsed card at once.
+    function mountCharts(){
+      if(chart)return;
+      const anchor=historyButtons||localCoach||coachPanel||savedChart?.element;
+      traces=timeCharts(name,target,index=>chart?.select(index));
+      chart=pitchChart(target,name,false,index=>traces.select(index));
+      chart.element.hidden=false;
+      for(const node of [chart.element,...traces.nodes]){
+        if(anchor)element.insertBefore(node,anchor);
+        else element.append(node);
+      }
+    }
+    function updateCharts(){
+      if(!chartOpen||!chart||!visual)return;
+      const {next,display}=visual;
+      chart.update(display?.chartValues?{...display,values:display.chartValues}:display);
+      if(next==='pending'||next==='idle'&&!display?.final)traces.clear();
+      const stale=Boolean(display?.restored&&display.trend&&!restoredTrendIsCurrent(display.restoredDraftId));
+      const payload=next==='idle'&&display?.final
+        ?{trend:!stale&&!display.trendSuppressed?display.trend:null,loudness:display.loudness,stale,restored:Boolean(display.restored)}:null;
+      traces.reset(next==='listening'?display?.chartClock:null,payload);
+    }
+    element.syncPracticeCharts=updateCharts;
+    element.showPracticeCharts=open=>{
+      chartOpen=Boolean(open);
+      if(chartOpen)mountCharts();
+      traces?.setView(chartOpen);
+      if(chartOpen)updateCharts();
+    };
     const label = (note, index) => note.name + note.octave + (index <= (target.length - 1) / 2 ? '↑' : '↓');
     const view = {element, target, snapshotVisiblePlan, get mode() { return preference(); }, get detector() { return detectorValue; },
       update(next, message, result, progress = 0, reference = 442, display) {
@@ -3520,10 +3785,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         if (result && !result.pairs.length) result = null;
         message ||= '顯示上次保留的音準圖。';
       }
-      if(next==='pending'){
-        loudnessAdvice=null;
-        if(loudnessDisclosure){loudnessDisclosure.hidden=true;loudnessDisclosure.remove?.();loudnessDisclosure=null;}
-      }
+      if(next==='pending')loudnessAdvice=null;
       if(next==='idle'&&display?.final&&display.loudness){
         const slot=display.loudness.best?.slot;
         const plan=display.planDiagnostics, score=target[slot];
@@ -3531,9 +3793,6 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         const direction=note?.direction==='down'||(!note&&slot>(target.length-1)/2)?'下行':'上行';
         const string=confirmed&&['C','G','D','A'].includes(note.plan.string)?note.plan.string+' 弦上的 ':'';
         loudnessAdvice=score?globalThis.CelloPracticeLoudness?.suggestion(display.loudness,direction+'：'+string+score.name):null;
-      }
-      if (next==='pending' && trendDisclosure) {
-        trendDisclosure.hidden=true;trendDisclosure.remove?.();trendDisclosure=null;
       }
       const mode = modeValue(display?.mode);
       const laps = display?.laps || 0;
@@ -3595,7 +3854,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
           }
         }
         let supersededAtStop = staleAttempt;
-        const liveCheckpoint = next === 'listening' && display && (display.values !== observedValues || display.history !== observedHistory);
+        const liveCheckpoint = next === 'listening' && display && !display.openingRecovered && (display.values !== observedValues || display.history !== observedHistory);
         if (!staleAttempt && !display?.restored && draftId && (liveCheckpoint || display?.attemptHistory)) {
           observedValues = display.values; observedHistory = display.history;
           const onlySharedTonic = liveCheckpoint && laps && display.progress <= 1;
@@ -3643,15 +3902,15 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         refreshHistoryActions();
       }
       if(localCoach){
-        if(next==='pending')localCoach.reset(null,false);
-        else if(next==='idle' && staleAttempt)localCoach.reset(null,false);
+        if(next==='pending'||next==='listening')localCoach.updateAdvice('listening');
+        else if(next==='idle' && (staleAttempt||display?.openingUnverified))localCoach.updateAdvice('empty');
         else if(next==='idle' && (display?.final || display?.coachNoEvidence)){
           const measured=!display.coachNoEvidence&&display.values?.some(Number.isFinite);
           const packet=display.planDiagnostics??{measured,restored:Boolean(display.restored&&!display.coachNoEvidence),
             practiceAdvice:display.coachNoEvidence?undefined:display.practiceAdvice,freshEmpty:display.coachNoEvidence,
             values:display.values,slots:target,reference:display.coachResult?.reference};
-          localCoach.reset(packet,true);
-        }else if(next==='idle'&&!display)localCoach.reset(null,false);
+          localCoach.updateAdvice(packet.restored?'restored':'finished',packet);
+        }else if(next==='idle')localCoach.updateAdvice('empty');
       }
       if (coachPanel) {
         if(next==='pending') {
@@ -3731,28 +3990,9 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         }
       }
       scoreFollow = follow;
-      // A practice list can contain all 24 cards; avoid constructing thousands
-      // of chart nodes for cards where listening has not been used.
-      if (!chart && (next !== 'idle' || display?.final)) {
-        chart = pitchChart(target, name);
-        const afterChart=historyButtons || localCoach || coachPanel || savedChart?.element;
-        if (afterChart) element.insertBefore(chart.element,afterChart);
-        else element.append(chart.element);
-      }
-      if (chart && (next !== 'idle' || display?.final)) chart.element.hidden = false;
-      chart?.update(display?.chartValues ? {...display,values:display.chartValues} : display);
-      if (next==='idle' && display?.final && !display.trendSuppressed && (display.trend?.data.length || display.values?.some(Number.isFinite)) && !trendDisclosure) {
-        trendDisclosure=pitchTrendChart(display.trend,target,name,display.restored,()=>restoredTrendIsCurrent(display.restoredDraftId));
-        const afterTrend=historyButtons || localCoach || coachPanel || savedChart?.element;
-        if(afterTrend) element.insertBefore(trendDisclosure,afterTrend);
-        else element.append(trendDisclosure);
-      }
-      if(next==='idle'&&display?.final&&display.loudness&&!loudnessDisclosure){
-        loudnessDisclosure=loudnessChart(display.loudness,name);
-        const afterLoudness=historyButtons||localCoach||coachPanel||savedChart?.element;
-        if(afterLoudness)element.insertBefore(loudnessDisclosure,afterLoudness);
-        else element.append(loudnessDisclosure);
-      }
+      visual={next,display};
+      if(!chart&&next!=='idle')element.showPracticeCharts(true);
+      else updateCharts();
     }};
     button.addEventListener('click', () => toggle(view));
     element.append(action,status,latest);
@@ -3764,7 +4004,13 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     return view;
   }
 
-  return {align, trackNotes, micCapture, metronomeClickGate, manager, card, chartPoint, centsText, scoreValues, monitorPitch, liveSlot, loopBoundary, resolveMidpoint, retainPracticeEvents, addHistory, createPitchTrend, trendSegments, pitchTrendSummary, pitchTrendChart, planSuggestion, practiceAdviceReport, measuredTrendIssues, measuredTrendMetrics};
+  globalThis.addEventListener?.('storage',()=>{
+    for(const card of globalThis.document?.querySelectorAll?.('.scale-practice')||[]){
+      card.practiceHistory?.syncDraftOwner();
+      card.syncPracticeCharts?.();
+    }
+  });
+  return {align, trackNotes, micCapture, metronomeClickGate, manager, card, chartPoint, centsText, scoreValues, monitorPitch, liveSlot, loopBoundary, resolveMidpoint, retainPracticeEvents, addHistory, createPitchTrend, trendSegments, pitchTrendSummary, timeCharts, sharedChartTime, chartSlotAt, planSuggestion, practiceAdviceReport, measuredTrendIssues, measuredTrendMetrics};
 });
 // SCALE_PRACTICE_END
   </script>
@@ -4565,6 +4811,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
  if(previous===opened)return;
  item.opened=opened;
  if(!opened)window.CelloScalePractice?.controller?.stopWithin(panel);
+ for(const practice of panel.querySelectorAll?.('.scale-practice')||[])practice.showPracticeCharts?.(opened);
  if(!opened&&panel.contains(document.activeElement))item.title.focus({preventScroll:true});
  panel.inert=!opened;
  panel.setAttribute('aria-hidden',String(!opened));
@@ -4610,6 +4857,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     function renderGroups(session){
       const container=q('#key-groups');
       window.CelloScalePractice?.controller?.stopWithin(container);
+      for(const practice of container.querySelectorAll('.scale-practice'))practice.showPracticeCharts?.(false);
       boardInstances.clear();cardInstances.clear();
       container.replaceChildren();
       if(signatureOrderedSession(session)){

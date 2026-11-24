@@ -83,42 +83,72 @@ test('actual manager only records fresh, positively attributed pitch on either p
   a.ok(updates.filter(x=>x[0]==='listening').every(x=>!x[5].trend),'no live chart build or replace');
  }
 });
-test('native disclosure lazily renders labelled real-time axes and separately broken strokes',()=>{
- class Node{
-  constructor(tag){this.tag=tag;this.attrs={};this.children=[];this.listeners={};}
-  append(...nodes){this.children.push(...nodes);}
-  setAttribute(k,v){this.attrs[k]=v;}
-  addEventListener(k,cb){this.listeners[k]=cb;}
+class ChartNode{
+ constructor(tag){this.tag=tag;this.attrs={};this.dataset={};this.children=[];this.listeners={};this.scrollLeft=0;this.clientWidth=300;}
+ append(...nodes){this.children.push(...nodes);}
+ setAttribute(k,v){this.attrs[k]=String(v);}
+ addEventListener(k,cb){this.listeners[k]=cb;}
+ getBoundingClientRect(){return {top:0,left:0,width:Number(this.attrs.width)||300,height:112};}
+}
+const chartDocument={createElement:tag=>new ChartNode(tag),createElementNS:(_,tag)=>new ChartNode(tag)};
+const pathOf=(t,cls)=>t.children[2].children[0].children.find(x=>x.attrs.class===cls);
+const svgOf=t=>t.children[2].children[0];
+test('both time plots are visible and share only measured end points, preserve pause and distinguish repeated pitches',()=>{
+ const core=section('SCALE_PRACTICE',{document:chartDocument});
+ const selected=[],group=core.timeCharts('音階',[{name:'F',octave:2},{name:'G',octave:2},{name:'F',octave:2}],i=>selected.push(i));
+ a.equal(group.nodes.length,2);group.setView(true);
+ for(const node of group.nodes){a.equal(node.tag,'section');a.match(node.children[1].textContent,/尚無可顯示/);a.equal(pathOf(node,'trend-line').attrs.d,'');}
+ const packet={trend:{reference:442,start:0,end:9000,data:[
+  {ms:1000,slot:0,lap:1,segment:1,cents:3},{ms:1048,slot:0,lap:1,segment:1,cents:4},
+  {ms:5900,slot:2,lap:1,segment:2,cents:-5},{ms:5950,slot:2,lap:1,segment:2,cents:-2}]},
+  loudness:{points:[{ms:1020,slot:0,lap:1,segment:1,db:2},{ms:1050,slot:0,lap:1,segment:1,db:3},
+    {ms:5910,slot:2,lap:1,segment:2,db:-1},{ms:6000,slot:2,lap:1,segment:2,db:4}]}};
+ const [p,v]=group.nodes;
+ group.reset(null,packet);
+ a.deepEqual(JSON.parse(JSON.stringify(core.sharedChartTime(packet.trend,packet.loudness))),{start:1000,end:6000});
+ a.equal(svgOf(p).attrs.viewBox,svgOf(v).attrs.viewBox);
+ a.equal(svgOf(p).children.at(-1).children.map(n=>n.textContent).join(','),svgOf(v).children.at(-1).children.map(n=>n.textContent).join(','));
+ a.match(p.children[1].textContent,/A4 442/);
+ a.match(v.children[1].textContent,/中位數/);
+ for(const node of group.nodes){
+   const d=pathOf(node,'trend-line').attrs.d;
+   a.equal((d.match(/M/g)||[]).length,4,'two segments; interior pause is not bridged');
+   a.equal(node.children[2].tabIndex,0);
  }
- const doc={createElement:tag=>new Node(tag),createElementNS:(_,tag)=>new Node(tag)};
- const core=section('SCALE_PRACTICE',{document:doc});
- const t=core.createPitchTrend(100);
- for(const [now,cents] of [[100,3],[148,7],[200,null],[350,-4],[398,-8],[2000,null]])
-   t.observe(now,cents===null?null:p(41,cents),cents===null?null:0,1);
- const node=core.pitchTrendChart({...t.snapshot(),reference:442},[{name:'F',octave:2}],'音階');
- a.equal(node.tag,'details'); a.equal(node.children.length,1);
- a.equal(node.children[0].textContent,'音準走勢');
- node.listeners.toggle();a.equal(node.children.length,1);
- node.open=true;node.listeners.toggle();node.listeners.toggle();
- const [_,desc,scroll]=node.children;
- a.equal(node.children.length,3);a.match(desc.textContent,/±50¢.*空白.*完整起音.*A4 442/);
- a.equal(scroll.tabIndex,0);
- const svg=scroll.children[0];
- a.match(svg.attrs['aria-label'],/0 秒 到 1\.9 秒/);
- a.equal(svg.children.filter(x=>x.tag==='path').length,2);
- a.ok(svg.children.some(x=>x.attrs.class==='trend-zero'));
- a.ok(svg.children.some(x=>x.textContent==='F2'));
- a.match(html,/\.scale-pitch-trend-scroll\{overflow:auto;max-width:100%\}/);
+ group.select(2);
+ a.equal(selected.at(-1),2);
+ a.equal(pathOf(p,'trend-selection').attrs.d,pathOf(v,'trend-selection').attrs.d);
+ a.match(pathOf(p,'trend-selection').attrs.d,/^M2\d\d[. /]/);
+ group.select(1);
+ a.equal(pathOf(p,'trend-selection').attrs.d,'','unmeasured slot is selectable but has no fabricated span');
+ v.children[2].scrollLeft=87;v.children[2].listeners.scroll();
+ a.equal(p.children[2].scrollLeft,87);
+ const px=at=>42+(300-56)*(at-1000)/5000;
+ svgOf(p).listeners.click({clientX:px(5920),clientY:32});
+ a.equal(selected.at(-1),2,'actual descending printed slot, not identical ascending pitch');
+ const before=selected.length;
+ svgOf(v).listeners.click({clientX:px(2900),clientY:32});
+ a.equal(selected.length,before,'no guessing in silent gaps');
 });
-
-test('a prior draft or sparse current take keeps the disclosure without drawing invented times',()=>{
- const make=tag=>({tag,children:[],append(...x){this.children.push(...x);},addEventListener(_,cb){this.toggle=cb;}});
- const core=section('SCALE_PRACTICE',{document:{createElement:make}});
- for(const restored of [false,true]){
-  const node=core.pitchTrendChart(undefined,[],'琶音',restored);
-  a.equal(node.children[0].textContent,restored?'上次音準走勢':'音準走勢');
-  node.open=true;node.toggle();
-  a.equal(node.children.length,2);
-  a.match(node.children[1].textContent,restored?/上次只保留.*沒有可用/:/沒有足夠.*樣本/);
- }
+test('live chart moves old samples left, uses a bounded read, reuses DOM and stops RAF when grading',()=>{
+ const core=section('SCALE_PRACTICE',{document:chartDocument});
+ let now=4000, sequence=0;
+ const clock=new Map(),env={requestAnimationFrame(cb){clock.set(++sequence,cb);return sequence;},cancelAnimationFrame(id){clock.delete(id);}};
+ const advance=t=>{const [id,cb]=clock.entries().next().value;clock.delete(id);cb(t);};
+ const group=core.timeCharts('琶音',[{name:'A',octave:2}],null,env);
+ const reads=[];
+ group.setView(true);
+ group.reset({elapsed:()=>now,read:since=>{reads.push(since);return {trend:{data:[{ms:3100,slot:0,lap:1,segment:2,cents:6}]}};}},null);
+ advance(100);const [pitch,volume]=group.nodes, line=pathOf(pitch,'trend-line'), svg=svgOf(pitch);
+ const first=Number(line.attrs.d.match(/^M([\d.]+)/)[1]);
+ now=4500;advance(125);a.equal(reads.length,1,'coalesced animation frames do not replot at capture frequency');
+ advance(200);const next=Number(line.attrs.d.match(/^M([\d.]+)/)[1]);
+ a.ok(next<first,'the same point moves left as new time enters on the right');
+ now=10000;advance(300);a.ok(reads.at(-1)>0);
+ a.equal(pitch.dataset.live,'true');a.equal(volume.dataset.live,'true');
+ a.equal(pathOf(volume,'trend-line').attrs.d,'');
+ a.equal(pathOf(pitch,'trend-line'),line);a.equal(svgOf(pitch),svg);
+ group.reset(null,{trend:{data:[{ms:3100,slot:0,lap:1,segment:2,cents:6}]}});
+ a.equal(clock.size,0);a.equal(pitch.dataset.live,'false');
+ group.reset(null,null);a.equal(line.attrs.d,'', 'old curve is cleared for the next take');
 });

@@ -13,11 +13,12 @@ class Node{
 }
 const key=['C',0,'C D E F G A B'];
 const flatText=n=>[n.textContent,...n.children.map(flatText)].join(' ');
-function setup(data,search='',reject=()=>false){
+function setup(data,search='',reject=()=>false,configurePlan=x=>x){
  let now=0,reference=443,listener,network=0;
  const localStorage={get length(){return Object.keys(data).length;},key:i=>Object.keys(data)[i]??null,removeItem:k=>delete data[k],getItem:k=>data[k]??null,setItem:(k,v)=>{if(reject(k,v))throw Error('QuotaExceededError');data[k]=v;}};
- const document={createElement:tag=>new Node(tag),querySelectorAll:()=>[],addEventListener(){}};
- const box=vm.createContext({document,window:{},performance,localStorage,URLSearchParams,location:{pathname:'/experimental/',hostname:'corcovadoming.github.io',search},
+ const mounted=[],events={};
+ const document={createElement:tag=>new Node(tag),querySelectorAll:()=>mounted,addEventListener(){}};
+ const box=vm.createContext({document,window:{},addEventListener:(k,fn)=>events[k]=fn,performance,localStorage,URLSearchParams,location:{pathname:'/experimental/',hostname:'corcovadoming.github.io',search},
    fetch(){network++;throw Error('no network');},Worker:class{constructor(){network++;throw Error('no worker');}}});
  for(const file of ['fingering-presets.js','fingerboard.js'])vm.runInContext(fs.readFileSync(file,'utf8'),box);
  vm.runInContext(code('PRACTICE_COACH'),box);vm.runInContext(code('SCALE_PRACTICE'),box);
@@ -25,27 +26,29 @@ function setup(data,search='',reject=()=>false){
  const {manager,card,planSuggestion,practiceAdviceReport,measuredTrendIssues,measuredTrendMetrics}=box.CelloScalePractice,fb=box.window.CelloFingerboard;
  const target=fb.scoreNotes('major',key).map(n=>({...n,octave:Math.floor(fb.staffStep(n)/7)}));
  const startPlan=fb.visiblePlan('major',key);
- let plan=startPlan;
+ let plan=configurePlan(startPlan);
  const capture={subscribe(x){listener=x;return ()=>{};}};
  const m=manager({performance:{now:()=>now}},{capture,swiftCapture:capture,reference:()=>reference,
    pitchName:f=>String(f.midi),pitchReading:f=>f});
  const view=card({querySelectorAll:()=>target.map(()=>new Node('g'))},target,v=>m.toggle(v),'scale','major-C',()=>plan);
  const panel=view.element.find('scale-practice-local-coach');
  const press=()=>view.element.find('scale-practice-button').events.click();
- const advise=()=>{panel.find('scale-practice-coach-action').events.click();return flatText(panel.find('scale-practice-coach-tip'));};
- return {target,view,planSuggestion,practiceAdviceReport,measuredTrendIssues,measuredTrendMetrics,fb,startPlan,panel,press,advise,ready(){listener.ready();},
+ mounted.push(view.element);
+ const advise=()=>flatText(panel.find('scale-practice-coach-tip'));
+ return {sync:()=>events.storage(),target,view,planSuggestion,practiceAdviceReport,measuredTrendIssues,measuredTrendMetrics,fb,startPlan,panel,press,advise,ready(){listener.ready();},
    play(n,cents=0,frames=5){for(let i=0;i<frames;i++){now+=25;listener.frame({now,frequency:{midi:n.midi,cents}});}},
    setPlan(x){plan=x;},setA4(x){reference=x;},get network(){return network;}};
 }
 test('actual start and stop deliver a repeatable static crossing suggestion without initializing the model',async()=>{
- const cache={};const f=setup(cache);a.equal(f.panel.hidden,true);
+ const cache={};const f=setup(cache);a.ok(!f.panel.hidden);a.match(f.advise(),/開始練習後/);
  await f.press();
  f.setPlan(f.fb.visiblePlan('major',key,{upMap:'{"43":{"s":0,"f":4}}'})); // newer board not this take
- f.ready();f.setA4(445);
+ f.ready();a.match(f.advise(),/練習結束後/);f.setA4(445);
  for(const n of f.target)f.play(n,n.midi===43?-24:0);
  for(const n of f.target.slice(1))f.play(n,n.midi===43?-23:0);
  await f.press();
- a.equal(f.panel.hidden,false);
+ a.ok(!f.panel.hidden);a.equal(f.panel.find('scale-practice-coach-action'),undefined);
+ a.ok(f.view.element.children.indexOf(f.view.element.find('scale-pitch-chart'))<f.view.element.children.indexOf(f.panel));
  const message=f.advise();
  a.match(message,/上行：G 空弦.*反覆偏低.*可以這樣練.*調音器.*A4 443 Hz.*偏低.*C 弦上的 F → G 弦上的 G.*下一弦的高度/);
  a.doesNotMatch(message,/445|實際換弦|因此|造成/);
@@ -116,16 +119,16 @@ test('legacy and corrupted optional payloads use only signed saved downward note
  delete old.advice;cache[k]=JSON.stringify(old);
  a.doesNotMatch(setup(cache).advise(),/這是一次讀數/);
  cache[k]=JSON.stringify({...old,id:'replacement'});
- a.equal(g.advise().trim(),'');a.equal(g.panel.hidden,true);
+ g.sync();a.match(g.advise(),/開始練習後/);a.ok(!g.panel.hidden);
  delete cache[k];
- a.equal(setup(cache).panel.hidden,true);
+ a.ok(!setup(cache).panel.hidden);
 });
 test('stale mounted view clears previously rendered advice when notified',async()=>{
  const cache={}, f=setup(cache);
  await f.press();f.ready();f.play(f.target[0],24);await f.press();
  a.match(f.advise(),/C 空弦.*調音器/);
  delete cache[latestKey(cache)];
- a.equal(f.advise().trim(),'');a.equal(f.panel.hidden,true);
+ f.sync();a.match(f.advise(),/開始練習後/);a.ok(!f.panel.hidden);
 });
 
 test('quota fallback keeps measured chart if optional advice does not fit',async()=>{
@@ -284,7 +287,7 @@ test('only deterministic distinct qualified slot/lap fragments report timing, an
  a.deepEqual(Array.from(f.measuredTrendIssues(clipped),x=>x.type),['bow-tail']);
 });
 
-test('actual advice button compares a measured healthier next take to the prior issue, and does not overwrite it on a repeat click',async()=>{
+test('automatic advice compares a measured healthier next take to the prior issue, and does not overwrite the baseline on reread',async()=>{
  const cache={},f=setup(cache);
  await f.press();f.ready();f.play(f.target[0],24);await f.press();
  a.match(f.advise(),/C 空弦.*偏高/);a.doesNotMatch(f.advise(),/跟上次比較/);
@@ -307,7 +310,7 @@ test('real restored legacy report replaces the reported stale copy with the writ
  const text=setup(cache).advise();
  a.match(text,/下行：C，偏低.*如果這個音用 C 空弦拉.*照目前指板試練.*D → C.*慢慢連拉幾次.*E → D → C/);
  a.doesNotMatch(text,/這是一次讀數|單獨慢拉成長音|D 也偏|手指要拉開/);
- const unknown=setup(cache);unknown.setPlan(null);
+ const unknown=setup(cache,'',()=>false,()=>null);
  a.match(unknown.advise(),/D → C.*E → D → C/);
  a.doesNotMatch(unknown.advise(),/照目前指板|弦上的|手指.*落點/);
 });
@@ -449,4 +452,16 @@ test('a cross-string pair with centered landing does not fall back to a same-str
  const report=f.practiceAdviceReport({...plan,rounds:[{id:1,values},{id:2,values}]});
  a.equal(report.slur,undefined);
  a.doesNotMatch(report.issues.join(' '),/音程偏窄|音程偏寬/);
+});
+
+test('single natural completion automatically replaces the listening placeholder with current advice',async()=>{
+ const f=setup({});
+ // The manager reads the view mode; isolate this from unrelated radio UI.
+ Object.defineProperty(f.view,'mode',{value:'single'});
+ await f.press();f.ready();
+ f.target.forEach(n=>f.play(n,n===f.target[0]?24:0));
+ a.equal(f.view.element.dataset.phase,'idle');
+ a.match(f.advise(),/這次觀察/);
+ a.doesNotMatch(f.advise(),/練習結束後|上次保留/);
+ a.equal(f.network,0);
 });

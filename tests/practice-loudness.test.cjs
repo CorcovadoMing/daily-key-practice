@@ -152,19 +152,15 @@ test('actual coach button renders current take loudness and resets from next tak
     }
     await managerInstance.toggle(view);
   }
-  const button=()=>view.element.find(n=>n.className==='scale-practice-coach-action');
-  const chart=()=>view.element.find(n=>n.tag==='details'&&n.children[0]?.textContent==='相對音量走勢');
+  const chart=()=>view.element.find(n=>n.tag==='section'&&n.dataset.chartTime==='volume');
   await play(true);
   assert.ok(chart());
-  chart().open=true;chart().handlers.toggle();
-  assert.match(chart().textContent,/本次可對到譜音/);
-  assert.ok(chart().find(n=>n.tag==='path')?.attributes.d.includes('L'));
-  button().handlers.click();
+  assert.match(chart().textContent,/本回收音中位數/);
+  assert.ok(chart().find(n=>n.attributes.class==='trend-line')?.attributes.d.includes('L'));
   assert.match(view.element.textContent,/上行：D.*收音強弱起伏/);
   const first=chart();
   await play(false);
-  assert.notEqual(chart(),first);
-  button().handlers.click();
+  assert.equal(chart(),first,'reuse the same chart across takes');
   assert.doesNotMatch(view.element.textContent,/收音強弱起伏/);
   assert.equal(writes,0);assert.equal(fetches,0);
 });

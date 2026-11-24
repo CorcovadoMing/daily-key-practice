@@ -116,7 +116,8 @@ test('new measured scope supersedes singleton and hides stale mounted draft, but
  assert.equal(c.state.hasUnsaved(),true);
  await f.start();f.play(36,9);await f.stop();
  assert.equal(c.state.hasUnsaved(),false);
- assert.equal(c.view.element.find('scale-pitch-chart').hidden,true);
+ assert.equal(c.view.element.find('scale-pitch-chart').hidden,false);
+ assert.equal(c.view.element.find('scale-pitch-cents').textContent,'—');
  assert.equal(f.state.hasUnsaved(),true);
  assert.equal(c.history.loadDraft(storage,c.key,target.length).exists,false);
  assert.equal(f.history.loadDraft(storage,f.key,target.length).exists,true);
@@ -155,14 +156,14 @@ test('retry of a draft that failed to write cannot replace another tab’s newer
 
 test('measured chart and coaching restore after reload without changing mic or inventing A4 metadata',async()=>{
  const storage=memory(), initial=build(storage,'major-C','scale','single',realm(storage,''));
- assert.equal(initial.view.element.find('scale-practice-coach').hidden,true);
+ assert.ok(!initial.view.element.find('scale-practice-coach').hidden);
  await initial.start();initial.play(36,8);await initial.stop();
- assert.equal(initial.view.element.find('scale-practice-coach').hidden,false);
+ assert.ok(!initial.view.element.find('scale-practice-coach').hidden);
  const draft=initial.history.loadDraft(storage,initial.key,target.length).draft;
  assert.equal(draft.coach.engine,'SwiftF0');assert.equal(draft.coach.reference,442);
  const restored=build(storage,'major-C','scale','single',realm(storage,''));
  assert.equal(restored.prompts,0);
- assert.equal(restored.view.element.find('scale-practice-coach').hidden,false);
+ assert.ok(!restored.view.element.find('scale-practice-coach').hidden);
  const legacy={...draft};delete legacy.coach;
  assert.equal(initial.history.saveDraft(storage,initial.key,legacy).ok,true);
  assert.equal(restored.history.loadDraft(storage,restored.key,target.length).draft.coach,undefined);
@@ -172,7 +173,7 @@ test('measured chart and coaching restore after reload without changing mic or i
  assert.equal(off.view.element.find('scale-practice-coach'),undefined);
 });
 
-test('a finished measured trace reopens collapsed as the exact previous attempt and never revives after an empty successor',async()=>{
+test('a finished measured trace restores when expanded and never revives after an empty successor',async()=>{
  const store=memory(), first=build(store,'major-C','scale','single');
  await first.start();first.play(36,21,32);first.play(null,0,5);first.play(38,-14,32);
  const checkpoint=first.history.loadDraft(store,first.key,target.length).draft;
@@ -185,15 +186,17 @@ test('a finished measured trace reopens collapsed as the exact previous attempt 
  assert.ok(finished.trend.data.length>=8);
  assert.equal(store.data.size,1,'no per-key/trace store');
  const fresh=build(store,'major-C','scale','single');
+ assert.equal(fresh.view.element.find('scale-pitch-trend'),undefined,'collapsed cards stay lazy');
+ fresh.view.element.showPracticeCharts(true);
  const details=fresh.view.element.find('scale-pitch-trend');
- assert.equal(fresh.prompts,0);assert.ok(details);assert.ok(!details.open);
- assert.equal(details.children[0].textContent,'上次音準走勢');
- details.open=true;details.handlers.toggle();
+ assert.equal(fresh.prompts,0);assert.ok(details);
+ assert.equal(details.children[0].textContent,'音準走勢');
  assert.match(details.children[1].textContent,/上次保留.*A4 442 Hz/);
  assert.ok(details.find('scale-pitch-trend-scroll'));
  assert.equal(build(store,'major-C','arpeggio').view.element.find('scale-pitch-trend'),undefined);
  await fresh.start();fresh.play(null,0,10);await fresh.stop();
- assert.equal(fresh.view.element.children.filter(e=>e.className==='scale-pitch-trend'&&!e.hidden).length,0);
+ assert.equal(fresh.view.element.children.filter(e=>e.className==='scale-pitch-trend'&&!e.hidden).length,2);
+ assert.match(details.children[1].textContent,/尚無可顯示/);
  assert.equal(first.history.loadDraft(store,first.key,target.length).draft.id,finished.id);
 });
 
@@ -207,9 +210,9 @@ test('corrupt trace provenance is ignored, preserving the dot draft and leaving 
   const next=build(store);
   const draft=next.history.loadDraft(store,next.key,target.length).draft;
   assert.equal(draft.trend,undefined);assert.equal(next.nodes[0].dataset.practice,'matched');
+  next.view.element.showPracticeCharts(true);
   const details=next.view.element.find('scale-pitch-trend');
-  details.open=true;details.handlers.toggle();
-  assert.match(details.children[1].textContent,/沒有可用的時間走勢/);
+  assert.match(details.children[1].textContent,/尚無可顯示/);
  }
 });
 
@@ -249,12 +252,12 @@ test('merging dots does not remove trace and old tabs cannot reopen a superseded
  assert.equal(merged.pending,false);
  assert.deepEqual(merged.trend,draft.trend);
  const stale=build(store,'major-C','scale','loop');
- const detail=stale.view.element.find('scale-pitch-trend');
  const newer=build(store,'major-C','scale','loop');
  await newer.start();newer.play(36,-14,28);await newer.stop();
- detail.open=true;detail.handlers.toggle();
+ stale.view.element.showPracticeCharts(true);
+ const detail=stale.view.element.find('scale-pitch-trend');
  assert.match(detail.children[1].textContent,/已被另一筆練習取代/);
- assert.equal(detail.find('scale-pitch-trend-scroll'),undefined);
+ assert.equal(detail.children[2].children[0].children[2].attributes.d,'');
 });
 
 test('coach uses qualified temporal facts only while the displayed restored nonce still owns the local draft',async()=>{

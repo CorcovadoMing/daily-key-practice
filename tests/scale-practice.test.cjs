@@ -307,10 +307,11 @@ test('arpeggios use distinct kind labels, chart and results without changing but
   assert.match(html, /data-phase=idle\] \.practice-stop-icon/);
   assert.match(html, /id="draw-button"[^>]+><span class="practice-action-icon" aria-hidden="true"><svg[^>]+practice-play-icon/);
   view.update('pending');
-  const chart=view.element.children.at(-1);
+  const chart=view.element.children.find(n=>n.className==='scale-pitch-chart');
   assert.match(chart.attributes['aria-label'],/^琶音音準圖/);
   const grid=chart.children[1].children[1].children[0];
   assert.equal(grid.children.length,13);
+  assert.equal(view.element.children.filter(n=>n.className==='scale-pitch-trend').length,2);
   // A displayed-but-not-accepted pitch is a live cue, not a successful note.
   view.update('listening',null,null,0,442,{live:{slot:0,cents:45,name:'C2'},values:[],progress:0,listening:true});
   assert.equal(heads[0].dataset.practiceCurrent,'true','46¢ stable exact MIDI can color a score note');
@@ -500,7 +501,7 @@ test('chart stacks historic and current pitches by printed slot, and keeps await
   history[0].set(-12,3);history[0].set(4,1);history[14].set(22,1);
   const values=Array(notes.length).fill(null);values[0]=-15;
   view.update('listening',null,null,1,442,{mode:'loop',laps:3,passed:2,values,history,progress:1,listening:true});
-  const chart=view.element.children.at(-1);
+  const chart=view.element.children.find(n=>n.className==='scale-pitch-chart');
   const slots=chart.children[1].children[1].children[0].children;
   const [past,recorded,live]=slots[0].children[0].children;
   assert.equal(past.children.length,2);
@@ -536,9 +537,9 @@ test('actual ordered tracking colors a gap red and continues; a manual-stop futu
 
 test('opening only, future indices, mirrored labels and shared tonic do not manufacture a red note',async()=>{
   const opening=await skippedStaff([36,38,40,38,36],'single');
-  opening.play(38);opening.play(40); // cannot seed first anchor or label heard as skipped
-  assert.ok(opening.heads.every(x=>x.dataset.practice===undefined));
-  assert.match(opening.status.textContent,/不用停止收音/);
+  opening.play(38);opening.play(40); // confirmed later pair leaves first red
+  assert.deepEqual(opening.heads.map(x=>x.dataset.practice),['skipped','matched','matched',undefined,undefined]);
+  assert.match(opening.status.textContent,/重新拉第一音/);
   const loop=await skippedStaff([36,38,40,41,43,41,40,38,36],'loop');
   [36,40,41,43,41,40,38].forEach(loop.play);
   assert.equal(loop.heads[1].dataset.practice,'skipped');
