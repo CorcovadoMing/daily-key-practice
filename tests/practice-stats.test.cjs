@@ -17,10 +17,11 @@ test('24 ordered accessible counts share one linear axis, including zeros and la
  vm.runInNewContext(html.slice(first,last)+';function keyName(m,i){return (m==="major"?MAJOR_KEYS:MINOR_KEYS)[i][0];}\n'+
   html.slice(html.indexOf('    function practiceStatsScale('),html.indexOf('    function historyProgress(')),box);
  box.renderPracticeStats();
- const allBars=()=>grid.children.flatMap(x=>x.children[2].children);
- let [,axis,bars]=grid.children[0].children;
- assert.equal(grid.children.length,4);
- assert.ok(grid.children.every(x=>x.children[2].children.length===6));
+ const allBars=()=>grid.children.flatMap(x=>x.children[1].children);
+ let [axis,bars]=grid.children[0].children;
+ assert.equal(grid.children.length,1);
+ assert.equal(bars.children.length,24);
+ assert.equal(bars.children.at(-1).children[0].textContent,'B 小調，0 次');
  assert.equal(allBars().length,24);
  assert.ok(allBars().every(col=>col.dataset.count==='0'&&col.style['--bar-height']==='0%'));
  assert.deepEqual(axis.children.map(t=>t.textContent),['0','5']);
@@ -30,7 +31,7 @@ test('24 ordered accessible counts share one linear axis, including zeros and la
  for(const [max,ticks] of [[2,['0','5']],[5,['0','5','10']],[10,['0','5','10','15']]]){
    box.state.personalHistory=Array.from({length:max},(_,i)=>row('ordinary'+i,['major-0']));
    box.renderPracticeStats();
-   const [,axis,bars]=grid.children[0].children;
+   const [axis,bars]=grid.children[0].children;
    assert.deepEqual(axis.children.map(t=>t.textContent),ticks);
    assert.equal(axis.children.at(-1).style['--level'],'1');
    assert.ok(parseFloat(bars.children[0].style['--bar-height'])<100);
@@ -42,7 +43,7 @@ test('24 ordered accessible counts share one linear axis, including zeros and la
  assert.equal(huge.ticks.at(-1),huge.max);
  box.state.personalHistory=Array.from({length:1300},(_,i)=>row('personal'+i,i<650?['major-0','minor-2']:['major-0']));
  box.renderPracticeStats();
- [,axis,bars]=grid.children[0].children;
+ [axis,bars]=grid.children[0].children;
  assert.deepEqual(axis.children.map(t=>t.textContent),['0','165','330','495','660','825','990','1.2k','1.3k']);
  assert.equal(bars.children[0].dataset.count,'1300');
  assert.equal(allBars()[14].dataset.count,'650');
@@ -51,7 +52,7 @@ test('24 ordered accessible counts share one linear axis, including zeros and la
  assert.equal(picker.children.length,0);
  open.events.click();assert.deepEqual(noteCalls[0],[open]);
  assert.ok(allBars().some(col=>col.children[1].children[1].textContent==='0'));
- assert.match(html,/class="practice-stats-bands" role="region" aria-label="24 調的練習次數"/);
+ assert.match(html,/class="practice-stats-chart" role="region" aria-label="24 調的練習次數"/);
  assert.match(html,/\.practice-stats-scroll\{[^}]*overflow-x:auto/);
 });
 
@@ -114,12 +115,15 @@ test('actual heat render outputs date/count per cell and consistent green thresh
  assert.ok(cells.every((x,i)=>i===0||x.dataset.date>cells[i-1].dataset.date));
 });
 
-test('phone stats keep overflowing width inside the scrollport and 30-day date labels outside it',()=>{
+test('phone shares one 24-slot axis with rotated note names, and heat legend has fixed tracks',()=>{
  assert.match(html,/\.practice-statistics\{[^}]*grid-template-columns:minmax\(0,1fr\)/);
  assert.match(html,/\.practice-stats-scroll\{[^}]*overflow-x:auto[^}]*contain:inline-size/);
- assert.match(html,/\.practice-stats-bars\{[^}]*grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/);
- assert.match(html,/@media\(min-width:650px\)\{\.practice-stats-bands\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}/);
- assert.match(html,/id="practice-stats-grid" class="practice-stats-bands"/);
+ assert.match(html,/\.practice-stats-bars\{[^}]*grid-template-columns:repeat\(24,minmax\(0,1fr\)\)/);
+ assert.match(html,/@media\(max-width:820px\)\{[\s\S]*?\.practice-statistics\{[^}]*grid-template-columns:minmax\(0,1fr\)/);
+ assert.match(html,/\.practice-stats-key\{[^}]*writing-mode:vertical-rl/);
+ assert.match(html,/\.practice-heat-legend\{display:grid;grid-template-columns:repeat\(3,max-content\)/);
+ assert.doesNotMatch(html,/practice-stats-band-label/);
+ assert.match(html,/id="practice-stats-grid" class="practice-stats-chart"/);
  assert.match(html,/id="practice-heat-range"[^>]*><\/span><\/div>[\s\S]*?id="practice-heat-grid"/);
  assert.match(html,/\.practice-heat-grid\{--heat-cell:\.85rem;gap:\.2rem;margin-inline:auto/);
 });

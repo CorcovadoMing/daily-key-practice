@@ -1,16 +1,33 @@
-const test=require('node:test'),assert=require('node:assert/strict'),fs=require('fs');
-test('fixed practice rail remains content-sized with bounded scrolling',()=>{
- const html=fs.readFileSync('index.html','utf8');
- assert.match(html,/\.practice-float\{position:fixed;top:50%;/);
- assert.match(html,/\.practice-float\{bottom:auto;max-height:min\(78vh,720px,calc\(100vh - 220px\)\)\}/);
- assert.doesNotMatch(html,/\.practice-float\{bottom:100px\}/);
- assert.match(html,/overflow:auto;z-index:20/);
- assert.match(html,/rail.hidden=order.length===0/);
+const test=require('node:test'),a=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const html=fs.readFileSync(new URL('../index.html','file://'+__filename),'utf8');
+test('only the bottom-right shortcut is available on viable desktop viewports; narrow fallback stays inline',()=>{
+ a.match(html,/\.practice-float\{position:fixed;right:[^;]+;bottom:var\(--practice-float-bottom,76px\)/);
+ a.doesNotMatch(html,/\.container\{width:calc\(100% - 155px\)/);
+ a.match(html,/@media\(min-width:1120px\) and \(min-height:321px\)\{\s*body:has\(#floating-practice-nav:not\(\[hidden\]\)\) \.result-bottom\{display:none\}/);
+ a.match(html,/@media\(max-width:1119px\),\(max-height:320px\)\{\.practice-float\{display:none!important\}/);
+});
+test('audio dock resize lifts existing practice rail above actual tuner bounds',()=>{
+ let top=737;
+ const css=new Map(),styles={setProperty:(k,v)=>css.set(k,v)};
+ const rail={style:styles},tools={style:styles,getBoundingClientRect:()=>({top})};
+ const controls={children:[]},buttons={getBoundingClientRect:()=>({width:176}),scrollWidth:176};
+ const els={'.audio-tools':tools,'.audio-controls':controls,'.audio-buttons':buttons};
+ const tuner={hidden:true};
+ const ctx={document:{querySelector:k=>els[k]},$:id=>id==='floating-practice-nav'?rail:tuner,
+  innerWidth:1200,innerHeight:800,getComputedStyle:()=>({paddingLeft:'12px',paddingRight:'12px',gap:'8px'})};
+ const start=html.indexOf('  function sizeTools()'),end=html.indexOf('  const toolResize',start);
+ vm.runInNewContext(html.slice(start,end)+';this.resize=sizeTools;',ctx);
+ ctx.resize();
+ a.equal(css.get('--practice-float-bottom'),'73px');
+ tuner.hidden=false;top=668;ctx.resize();
+ a.equal(css.get('--tools-width'),'1176px');
+ a.equal(css.get('--practice-float-bottom'),'142px');
+ a.match(html,/querySelectorAll\('\.audio-tools,\.audio-panel,\.audio-status,\.audio-buttons'\)/);
 });
 test('selection summary has labeled heading and separate grid rows',()=>{
  const html=fs.readFileSync('index.html','utf8');
- assert.match(html,/class="filter-status sr-only" role="group" aria-labelledby="key-filter-title"/);
- assert.match(html,/id="key-filter-title">已選調性<\/h3>/);
- assert.match(html,/\.filter-status\{[^}]*display:grid;gap:6px;margin-top:26px/);
- assert.match(html,/<span>大調 <b id="major-eligible">12 \/ 12<\/b><\/span><span>古典旋律小調 <b id="minor-eligible">12 \/ 12<\/b><\/span>/);
+ a.match(html,/class="filter-status sr-only" role="group" aria-labelledby="key-filter-title"/);
+ a.match(html,/id="key-filter-title">已選調性<\/h3>/);
+ a.match(html,/\.filter-status\{[^}]*display:grid;gap:6px;margin-top:26px/);
+ a.match(html,/<span>大調 <b id="major-eligible">12 \/ 12<\/b><\/span><span>古典旋律小調 <b id="minor-eligible">12 \/ 12<\/b><\/span>/);
 });

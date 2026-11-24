@@ -3,7 +3,7 @@
 a.equal(w.document.querySelectorAll('.practice-stats-col[data-count="0"]').length,24);
 w.DailyKeyPractice.setClassroomRoom('123456',{createdAt:1,majorIds:[0],minorIds:[],doneIds:['major-0'],preferences:{majorCount:1,minorCount:0},session:{date:'2026-11-14',createdAt:1,majorIds:[0],minorIds:[],doneIds:['major-0']}});
 let b=q('.practice-stats-col[data-stat-key="major-0"]');a.ok(b);a.equal(b.dataset.count,'1');
-q('#practice-stats-note-open').click();[...w.document.querySelectorAll('.practice-note-chips button')].find(x=>x.textContent==='C 大調').click();q('#practice-note-overview-editor').value='共享私人筆記';[...w.document.querySelectorAll('dialog button')].find(x=>x.textContent==='儲存筆記').click();
+q('#practice-stats-note-open').click();q('[data-note-add]').click();const search=q('#practice-note-key-search');search.value='C大調';search.dispatchEvent(new w.Event('input'));[...w.document.querySelectorAll('.practice-note-results button')].find(x=>x.textContent==='C 大調').click();q('#practice-note-overview-editor').value='共享私人筆記';[...w.document.querySelectorAll('dialog button')].find(x=>x.textContent==='儲存筆記').click();
 a.equal(w.localStorage.getItem('daily-key-practice:experimental:key-note:major-0'),'共享私人筆記');
 a.ok([...w.document.querySelectorAll('[data-note-key="major-0"]')].every(x=>x.classList.contains('has-note')));
 w.document.querySelectorAll('dialog').forEach(x=>x.remove());

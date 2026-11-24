@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261124-057-experimental">
+  <meta name="site-version" content="20261124-058-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -214,7 +214,10 @@
     .key-card-content{min-width:0;flex:1}
     .key-title-row{display:flex;flex-wrap:wrap;align-items:center;gap:0 6px;min-width:0}
     .key-title-row>.key-title{max-width:100%;white-space:normal;overflow-wrap:anywhere}
-    .key-title-row>.student-note-button{min-inline-size:44px;min-block-size:44px}
+    .key-details-row{display:grid;grid-template-columns:44px minmax(0,1fr);align-items:center;gap:8px;min-width:0}
+    .key-details-row>.student-note-button{min-inline-size:44px;min-block-size:44px}
+    .key-details-row .key-relative{margin-top:0}
+    .key-details-row .key-secondary{margin-top:3px;overflow-wrap:anywhere}
     .key-complete{display:grid;place-items:center;flex:none;min-width:44px;min-height:44px;padding:0;border:0;background:transparent;border-radius:50%;color:inherit}
     .key-complete .check-circle{margin:0}
     .key-title{min-height:44px;padding:0;border:0;background:transparent;text-align:left;color:inherit;cursor:pointer}
@@ -350,18 +353,14 @@
     .practice-jump.is-done{background:#eff1ef;border-color:#d9deda;color:#77857b}
     .practice-jump.is-active{border-color:#69a079;background:#e9f3e9;color:#2f6641;box-shadow:0 0 0 1px #a6c7ad}
     .practice-jump .quick-check{font-size:9px;font-weight:850;width:13px;height:13px;border-width:1.3px}
-    .practice-float{position:fixed;top:50%;right:max(12px,calc((100vw - 1380px)/2 + 12px));transform:translateY(-50%);width:112px;max-height:min(78vh,720px);overflow:auto;z-index:20;padding:10px 7px;background:rgba(255,255,255,.97);border:1px solid #dce6dd;box-shadow:0 12px 40px rgba(39,61,45,.13);border-radius:15px}
+    .practice-float{position:fixed;right:max(12px,env(safe-area-inset-right,0px));bottom:var(--practice-float-bottom,76px);width:108px;max-height:min(42vh,25rem,calc(100dvh - var(--practice-float-bottom,76px) - 12px));overflow:auto;overscroll-behavior:contain;z-index:20;padding:10px 7px;background:rgba(255,255,255,.97);border:1px solid #dce6dd;box-shadow:0 12px 40px rgba(39,61,45,.13);border-radius:15px}
     .practice-float-title{display:block;text-align:center;font-size:11px;font-weight:850;color:#3c5f45;margin:3px 0 9px}
     .practice-float-list{display:grid;gap:5px}
     .practice-float .practice-jump{width:100%;padding:8px 3px;font-size:10px;white-space:normal}
-    @media(min-width:1120px) and (max-width:1399px){
-      .container{width:calc(100% - 155px);margin-left:24px;margin-right:auto}
-      .practice-float{width:100px}
+    @media(min-width:1120px) and (min-height:321px){
+      body:has(#floating-practice-nav:not([hidden])) .result-bottom{display:none}
     }
-    @media(min-width:1400px){
-      .practice-float{width:104px}
-    }
-    @media(max-width:1119px){.practice-float{display:none!important}}
+    @media(max-width:1119px),(max-height:320px){.practice-float{display:none!important}}
     .toggle-wrap{display:flex;gap:8px;align-items:center;font-size:12px;color:#66706a;cursor:pointer;user-select:none}
     .toggle-wrap input{accent-color:#3f764d;width:15px;height:15px;margin:0}
     .hint{font-size:11px;color:#949b96;margin:14px 0 0;line-height:1.7}
@@ -411,7 +410,7 @@
     body{padding-bottom:85px}
     .cello-scale-score{width:100%;min-width:0;margin:8px 0 16px;border:1px solid #dce5d9;border-radius:10px;background:#fffffc}.cello-scale-score svg{display:block;width:100%;height:auto;max-width:100%}
     .audio-tools{position:fixed;z-index:50;left:12px;right:auto;width:var(--tools-width,196px);max-width:calc(100vw - 24px);transition:width .28s cubic-bezier(.22,.8,.3,1);bottom:max(8px,env(safe-area-inset-bottom));display:flex;align-items:center;gap:8px;min-width:0;margin:0;padding:8px;border:1px solid #ccd8c9;border-radius:22px;background:#fffffc;color:#263e2e;font-size:14px;box-sizing:border-box}
-    body{padding-bottom:calc(100px + env(safe-area-inset-bottom))}html{scroll-padding-bottom:110px}.toast{bottom:110px}.practice-float{bottom:auto;max-height:min(78vh,720px,calc(100vh - 220px))}
+    body{padding-bottom:calc(100px + env(safe-area-inset-bottom))}html{scroll-padding-bottom:110px}.toast{bottom:110px}
     .tuner-preferences{position:absolute;bottom:calc(100% + 8px);left:0;display:flex;align-items:center;gap:12px;padding:12px;background:#fffffc;border:1px solid #ccd8c9;border-radius:12px;box-shadow:0 4px 24px #243a2520;max-width:calc(100vw - 48px)}
     #tuner-settings{border-left:0;margin-left:-6px;border-radius:0 8px 8px 0}#tuner-open{border-radius:8px 0 0 8px}
     .audio-buttons button{display:grid;place-items:center;width:44px;height:44px;min-width:44px;flex:none;padding:8px!important}.audio-buttons button svg{width:22px;height:22px;grid-area:1 / 1}.audio-buttons{min-height:52px;align-items:center}
@@ -887,7 +886,6 @@
     .history-access>.practice-stats{box-shadow:none}
     .practice-stats{min-width:0}
     .practice-statistics{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,11rem);gap:.75rem;min-width:0}
-    @media(max-width:290px){.practice-statistics{grid-template-columns:minmax(0,1fr)}}
     .practice-stats-legend{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin:.75rem 0;font-size:.8125rem}
     .practice-stats-legend span{display:inline-flex;align-items:center;gap:.35rem}
     .practice-stats-legend i{width:.65rem;height:.65rem;border-radius:2px;background:var(--stats-bar)}
@@ -897,19 +895,17 @@
     [data-appearance=dark] .practice-stats [data-kind=minor]{--stats-bar:#b49ac6}
     .practice-stats-scroll{max-width:100%;min-width:0;overflow-x:auto;overscroll-behavior-x:contain;contain:inline-size}
     .practice-stats-scroll:focus-visible{outline:2px solid #4c81b3;outline-offset:-2px}
-    .practice-stats-bands{display:grid;grid-template-columns:minmax(0,1fr);gap:.45rem;min-width:0}
-    @media(min-width:650px){.practice-stats-bands{grid-template-columns:repeat(2,minmax(0,1fr))}}
-    .practice-stats-plot{--stats-height:5rem;--stats-labels:1.35rem;display:grid;grid-template-columns:2.15rem minmax(0,1fr);min-width:0;padding-block:.8rem .1rem}
-    .practice-stats-plot h4{grid-column:1/-1;font-size:.75rem;margin:0 0 .65rem;color:var(--muted)}
+    .practice-stats-plot{--stats-height:5rem;--stats-labels:1.35rem;display:grid;grid-template-columns:2.15rem minmax(0,1fr);min-width:0;padding-block:2.35rem .1rem}
     .practice-stats-axis,.practice-stats-bars{position:relative;margin:0;padding:0;list-style:none}
     .practice-stats-axis{position:sticky;left:0;z-index:1;background:var(--page);font-size:.75rem}
     .practice-stats-axis span{position:absolute;bottom:calc(var(--stats-labels) + var(--stats-height) * var(--level));right:.2rem;transform:translateY(50%);font-variant-numeric:tabular-nums}
-    .practice-stats-bars{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));isolation:isolate}
+    .practice-stats-bars{display:grid;grid-template-columns:repeat(24,minmax(0,1fr));isolation:isolate}
     .practice-stats-bars::before{content:"";position:absolute;inset:0 0 var(--stats-labels);border-bottom:1px solid var(--line);z-index:-1;background:var(--grid-lines,none)}
     .practice-stats-col{min-width:0;display:grid;grid-template-rows:var(--stats-height) var(--stats-labels);text-align:center}
     .practice-stats-bar-slot{position:relative}
     .practice-stats-bar{position:absolute;inset-inline:24%;bottom:0;height:var(--bar-height);background:var(--stats-bar);border-radius:3px 3px 0 0}
-    .practice-stats-value{position:absolute;inset-inline:0;bottom:var(--bar-height);font-size:.6875rem;font-variant-numeric:tabular-nums;white-space:normal;overflow-wrap:anywhere;line-height:1.05}
+    .practice-stats-value{position:absolute;inset-inline:0;bottom:var(--bar-height);font-size:.6875rem;font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1.05}
+    .practice-stats-value.long{inset-inline:auto;left:50%;transform:translateX(-50%);writing-mode:vertical-rl;text-orientation:sideways}
     .practice-stats-key{font-size:.75rem;font-weight:700;padding-top:.3rem;color:var(--ink)}
     .practice-heat{--heat-0:#e6ebe5;--heat-1:#b8d6b8;--heat-2:#87b58c;--heat-3:#528557;--heat-4:#286037}
     [data-appearance=dark] .practice-heat{--heat-0:#333d3a;--heat-1:#3b5b46;--heat-2:#4d8059;--heat-3:#72a978;--heat-4:#a0cda1}
@@ -925,22 +921,21 @@
     .practice-heat-cell{display:block;width:.72rem;height:.72rem;border-radius:2px}
     .practice-heat-grid .practice-heat-cell{width:100%;height:100%;border-radius:4px}
     .practice-heat-grid .practice-heat-cell[aria-current=date]{outline:1px solid var(--ink);outline-offset:1px}
-    .practice-heat-legend{display:flex;align-items:center;justify-content:flex-end;gap:.55rem;flex-wrap:wrap;font-size:.6875rem;margin:.45rem 0 0}
+    .practice-heat-legend{display:grid;grid-template-columns:repeat(3,max-content);align-items:center;justify-content:end;gap:.25rem .55rem;font-size:.6875rem;margin:.45rem 0 0}
     .practice-heat-legend span{display:inline-flex;align-items:center;gap:.25rem}
     .practice-heat-head{display:flex;align-items:baseline;flex-wrap:wrap;justify-content:space-between;gap:.25rem .75rem}
     .practice-heat-range{font-size:.8125rem;color:var(--ink);font-variant-numeric:tabular-nums}
-    @media(max-width:640px){
-      .practice-statistics{gap:.5rem;grid-template-columns:minmax(0,1fr) minmax(0,9rem)}
-      @media(max-width:290px){.practice-statistics{grid-template-columns:minmax(0,1fr)}}
-      .practice-heat{max-inline-size:9.5rem}
-      .practice-stats-plot{--stats-height:3.15rem;grid-template-columns:1.1rem minmax(0,1fr)}
-      .practice-stats-axis{background:var(--page);font-size:.6rem}
+    @media(max-width:820px){
+      .practice-statistics{gap:.5rem;grid-template-columns:minmax(0,1fr)}
+      .practice-heat{justify-self:end;inline-size:min(100%,11rem)}
+      .practice-stats-plot{--stats-labels:1.65rem;grid-template-columns:1.4rem minmax(0,1fr)}
+      .practice-stats-axis{font-size:.625rem}
       .practice-stats-axis span:not(:first-child):not(:last-child){display:none}
       .practice-stats-key,.practice-stats-value{font-size:.625rem}
-      .practice-heat-head{justify-content:flex-start}
+      .practice-stats-key{padding:0;justify-self:center;writing-mode:vertical-rl;text-orientation:sideways;padding-block:0;padding-inline-start:.2rem}
+      .practice-heat-head{justify-content:flex-end}
       .practice-heat-head h3{margin-block-end:0}
       .practice-heat-grid{--heat-cell:.85rem;gap:.2rem;margin-inline:auto}
-      .practice-heat-legend{justify-content:center}
     }
     @media(max-width:380px){
       .launch-mode span{padding:0 5px}
@@ -1058,8 +1053,11 @@
       .practice-note-summary{border-top:1px solid var(--line);padding-block:.55rem}
       .practice-note-summary h3{margin:.2rem 0}
       .practice-note-summary p{white-space:pre-wrap;overflow-wrap:anywhere;margin:.2rem 0}
-      .practice-note-chips{display:flex;flex-wrap:wrap;gap:.25rem}
-      .practice-note-chips button,.practice-notes-overview button{min-height:44px}
+      .practice-notes-overview button{min-height:44px}
+      .practice-note-search{display:grid;gap:.4rem;margin-block:.5rem}
+      .practice-note-search input{font:inherit;color:var(--ink);background:var(--page);border:1px solid var(--line);border-radius:8px;padding:.6rem;min-width:0}
+      .practice-note-results{display:grid;max-block-size:12rem;overflow:auto}
+      .practice-note-results button{text-align:start}
       .practice-notes-overview textarea{width:100%}
       @media(max-width:16em){
         .launch-controls{grid-template-columns:minmax(0,8.25rem) max(44px,var(--ui-touch))}
@@ -1237,7 +1235,7 @@
         <h3 id="practice-stats-title">累積練習</h3>
 
         <div class="practice-stats-legend" aria-hidden="true"><span data-kind="major"><i></i>大調</span><span data-kind="minor"><i></i>小調</span><span>次數</span></div>
-        <div id="practice-stats-grid" class="practice-stats-bands" role="region" aria-label="24 調的練習次數"></div>
+        <div id="practice-stats-grid" class="practice-stats-chart" role="region" aria-label="24 調的練習次數"></div>
         <button type="button" class="room-action practice-notes-open" id="practice-stats-note-open">練習筆記</button>
         </section>
         <section class="practice-stats practice-heat" aria-labelledby="practice-heat-title">
@@ -1248,7 +1246,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261124-057-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261124-058-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -4684,14 +4682,16 @@ function openPracticeNotes(opener){
    input.id='practice-note-overview-editor';label.htmlFor=input.id;input.rows=5;input.value=key.value;
    dirty=()=>input.value!==key.value;
    const actions=create('div');actions.className='student-note-actions';
-   const cancel=button('取消'),save=button('儲存筆記'),status=create('p');
+   const clear=button('清空內容'),cancel=button('取消'),save=button('儲存筆記'),status=create('p');
+   save.className='room-action primary';
+   clear.addEventListener('click',()=>{input.value='';input.focus();});
    status.setAttribute('role','status');
    cancel.addEventListener('click',()=>{render();close.focus();});
    save.addEventListener('click',()=>{
     try{saveStudentNote(key.id,input.value);render();close.focus();}
     catch{status.textContent='無法儲存，請先複製筆記保留。';}
    });
-   actions.append(cancel,save);group.append(label,input,actions,status);
+   actions.append(clear,cancel,save);group.append(label,input,actions,status);
    return {group,input};
   }
   let focused;
@@ -4706,14 +4706,31 @@ function openPracticeNotes(opener){
    body.append(entry);
   }
   const add=create('section');add.className='practice-note-summary';
-  add.append(create('h3','新增筆記'));
   const pending=rows.find(key=>key.id===active&&!key.value.trim());
   if(pending){const edit=editor(pending);add.append(edit.group);focused=edit.input;}
-  const chips=create('div');chips.className='practice-note-chips';
-  for(const key of rows.filter(key=>!key.value.trim())){
-   const chip=button(key.label);chip.disabled=Boolean(active);chip.addEventListener('click',()=>render(key.id));chips.append(chip);
+  const available=rows.filter(key=>!key.value.trim());
+  if(!active&&available.length){
+   const start=button('新增筆記');start.setAttribute('aria-expanded','false');start.setAttribute('aria-controls','practice-note-search');add.append(start);
+   let chooser;
+   start.addEventListener('click',()=>{
+    if(chooser){chooser.remove();chooser=null;start.setAttribute('aria-expanded','false');start.focus();return;}
+    start.setAttribute('aria-expanded','true');
+    chooser=create('div');chooser.id='practice-note-search';
+    const label=create('label','搜尋要寫筆記的調'),input=create('input'),results=create('div'),hint=create('p');
+    chooser.className='practice-note-search';results.className='practice-note-results';
+    input.id='practice-note-key-search';input.type='search';input.placeholder='例如 C、升 F、小調';label.htmlFor=input.id;
+    hint.setAttribute('role','status');hint.textContent='輸入音名或大小調。';
+    const normalize=value=>value.normalize('NFKC').toLowerCase().replace(/\s/g,'').replace(/^(升|降|#|♯|♭)([a-g])/,'$2$1').replace(/[升♯]/g,'#').replace(/[降♭]/g,'b');
+    function filter(){
+     const query=normalize(input.value);const matches=query?available.filter(key=>normalize(key.label).includes(query)):[];
+     results.replaceChildren();hint.textContent=!query?'輸入音名或大小調。':matches.length>6?'找到 '+matches.length+' 個調，請再輸入音名或大小調。':matches.length?'找到 '+matches.length+' 個調':'沒有符合的調。';
+     for(const key of matches.slice(0,6)){const choice=button(key.label);choice.addEventListener('click',()=>render(key.id));results.append(choice);}
+    }
+    input.addEventListener('input',filter);
+    input.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.isComposing&&results.children.length===1){event.preventDefault();results.children[0].click();}});
+    chooser.append(label,input,hint,results);add.append(chooser);input.focus();
+   });start.dataset.noteAdd='true';
   }
-  if(chips.children.length)add.append(chips);
   body.append(add);focused?.focus();
  }
  const blockClose=event=>{if(!dirty())return false;event.preventDefault?.();closeNotice.textContent='請先儲存或取消編輯。';return true;};
@@ -4754,11 +4771,11 @@ function createCard(mode,index,doneIds){
  const titleRow=document.createElement('div');titleRow.className='key-title-row';
  content.append(titleRow);
  const details=document.createElement('div');details.innerHTML=`<span class="key-relative">${relativeKeyLabel(mode,key)}</span><span class="key-secondary">${scaleNameSummary(mode,key)}</span>`;
- content.append(details);
+ const detailsRow=document.createElement('div');detailsRow.className='key-details-row';content.append(detailsRow);
  const noteButton=document.createElement('button');noteButton.type='button';noteButton.className='student-note-button';
  noteButton.innerHTML=NOTE_ICON;
  noteButton.dataset.noteTitle=title.textContent;noteButton.dataset.noteLabel=title.textContent+'，';
- titleRow.append(title,noteButton);
+ titleRow.append(title);detailsRow.append(noteButton,details);
  refreshNoteButton(noteButton,id);noteButton.addEventListener('click',()=>openStudentNote(id,noteButton));
  main.append(complete,content);
  const expand=document.createElement('button');expand.type='button';expand.className='key-expand';expand.innerHTML='<svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>';
@@ -5204,31 +5221,27 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         open.dataset.bound='true';
         open.addEventListener('click',()=>openPracticeNotes(open));
       }
-      const panels=[];
-      for(const mode of ['major','minor'])for(const start of [0,6]){
-        const suffix=mode==='major'?'大調':'小調';
-        const plot=build('section','practice-stats-plot');
-        plot.append(build('h4','practice-stats-band-label',suffix+(start?' · 續':'')));
-        const axis=build('div','practice-stats-axis');axis.setAttribute('aria-hidden','true');
+      const plot=build('div','practice-stats-plot');
+      const axis=build('div','practice-stats-axis');axis.setAttribute('aria-hidden','true');
         for(const value of scale.ticks){
           const text=value>=1000000?Number((value/1000000).toPrecision(2))+'M':value>=1000?Number((value/1000).toPrecision(2))+'k':String(value);
           const tick=build('span','',text);tick.style.setProperty('--level',String(value/scale.max));axis.append(tick);
         }
         const bars=build('ul','practice-stats-bars');bars.setAttribute('role','list');
         bars.style.setProperty('--grid-lines','linear-gradient(to top,'+gridLines.join(',')+')');
-        for(let i=start;i<start+6;i++){
+        for(const mode of ['major','minor'])for(let i=0;i<12;i++){
+          const suffix=mode==='major'?'大調':'小調';
           const id=selectedId(mode,i),name=keyName(mode,i),count=counts[id];
-          const col=build('li','practice-stats-col');col.dataset.kind=mode;col.dataset.statKey=id;col.dataset.count=String(count);
+          const col=build('li','practice-stats-col');col.dataset.kind=mode;col.dataset.statKey=id;col.dataset.count=String(count);col.title=name+' '+suffix+'，'+count+' 次';
           col.style.setProperty('--bar-height',String(100*count/scale.max)+'%');
           col.append(build('span','sr-only',name+' '+suffix+'，'+count+' 次'));
           const slot=build('div','practice-stats-bar-slot');slot.setAttribute('aria-hidden','true');
-          slot.append(build('span','practice-stats-bar'),build('span','practice-stats-value',String(count)));
+          slot.append(build('span','practice-stats-bar'),build('span','practice-stats-value'+(count>=10?' long':''),String(count)));
           const label=build('span','practice-stats-key',name);label.setAttribute('aria-hidden','true');
           col.append(slot,label);bars.append(col);
         }
-        plot.append(axis,bars);panels.push(plot);
-      }
-      grid.replaceChildren(...panels);
+        plot.append(axis,bars);
+      grid.replaceChildren(plot);
     }
     function historyProgress(record){
       const ids=[...record.majorIds.map(i=>selectedId('major',i)),
@@ -5851,9 +5864,14 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     const buttons=document.querySelector('.audio-buttons');
     const target=Math.max(buttons.getBoundingClientRect().width,buttons.scrollWidth)+padding+(controlWidth?parseFloat(style.gap)+controlWidth:0);
     tools.style.setProperty('--tools-width',Math.ceil((!$('tuner-panel').hidden?innerWidth-24:Math.min(innerWidth-24,target)))+'px');
+    const rail=$('floating-practice-nav');
+    if(rail){
+      const bottom=Math.ceil(Math.max(0,innerHeight-tools.getBoundingClientRect().top)+10);
+      rail.style.setProperty('--practice-float-bottom',bottom+'px');
+    }
   }
   const toolResize=new ResizeObserver(()=>requestAnimationFrame(sizeTools));
-  document.querySelectorAll('.audio-panel,.audio-status,.audio-buttons').forEach(e=>toolResize.observe(e));
+  document.querySelectorAll('.audio-tools,.audio-panel,.audio-status,.audio-buttons').forEach(e=>toolResize.observe(e));
   window.addEventListener('resize',sizeTools);requestAnimationFrame(sizeTools);
   function showPanel(name, visible) {
     $(name+'-panel').hidden=!visible;
