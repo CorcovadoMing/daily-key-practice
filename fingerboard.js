@@ -1187,13 +1187,20 @@
   // Store only the rendered deterministic result, never the plan or lap packet.
   function normalizeAdvice(raw,draft,encoded=false) {
     if(!raw||!draft.values.some(Number.isFinite)||
-       (encoded&&(raw.v!==1||raw.draftId!==draft.id||raw.mode!==draft.mode)))return;
+       (encoded&&(![2,3].includes(raw.v)||raw.draftId!==draft.id||raw.mode!==draft.mode)))return;
     const {kind,observation,action,check}=raw;
     const bounded=(x,max)=>typeof x==='string'&&x.trim().length>0&&x.length<=max&&!/[\x00-\x1f\x7f]/.test(x);
+    if(Array.isArray(raw.issues)&&Array.isArray(raw.drills)&&(!encoded||raw.v===3)){
+      if(!raw.issues.length||raw.issues.length>256||raw.drills.length>3||
+         raw.issues.some(x=>!bounded(x,240))||raw.drills.some(x=>!bounded(x,350)))return;
+      const result={issues:[...raw.issues],drills:[...raw.drills]};
+      return encoded?result:{v:3,draftId:draft.id,mode:draft.mode,...result};
+    }
+    if(encoded&&raw.v!==2)return;
     if(!['insufficient','note','crossing','fingers','shift','extension'].includes(kind)||!bounded(observation,240))return;
     if(kind==='insufficient'?(action!==undefined||check!==undefined):(!bounded(action,180)||!bounded(check,180)))return;
     const result=kind==='insufficient'?{kind,observation}:{kind,observation,action,check};
-    return encoded?result:{v:1,draftId:draft.id,mode:draft.mode,...result};
+    return encoded?result:{v:2,draftId:draft.id,mode:draft.mode,...result};
   }
 
   // Optional finalized trace is part of the single draft, never a separate
@@ -1319,3 +1326,160 @@
   return {keyFor, bucket, appendPoints, load, save, newDraftId, currentDraftId, saveDraft, loadDraft, removeDraft};
 });
 /* END practice history module */
+/* Local-only comparison with the last fresh take used for practice advice. */
+(function (root, factory) {
+  const api=factory();
+  if(typeof module!=='undefined'&&module.exports)module.exports=api;
+  else root.CelloPracticeProgress=api;
+})(globalThis,function(){
+  'use strict';
+  const prefix='daily-key-practice:experimental:practice-comparison:v1:';
+  const not=reason=>({status:'unavailable',reason});
+  const own=(a,b)=>Object.prototype.hasOwnProperty.call(a,b);
+  const knownScopes={
+    major:new Set('C D♭ D E♭ E F F♯ G A♭ A B♭ B'.split(' ')),
+    minor:new Set('C C♯ D E♭ E F F♯ G G♯ A B♭ B'.split(' '))
+  };
+  const scopePrefix=scope=>{
+    const m=typeof scope==='string'&&/^(major|minor)-([A-G][♯♭]?):(scale|arpeggio)$/.exec(scope);
+    return m&&m[0]===scope&&knownScopes[m[1]].has(m[2])?prefix+scope+':':null;
+  };
+  const takeOf=p=>{
+    const t=p?.take;
+    return !p?.restored&&typeof t?.id==='string'&&/^[\w.:-]{1,120}$/.test(t.id)&&Number.isSafeInteger(t.beganAt)&&t.beganAt>0
+      ?{id:t.id,beganAt:t.beganAt}:null;
+  };
+  const metricArity={pitch:1,interval:2,front:1,tail:1,wobble:1};
+  function metricOf(m,len){
+    if(!m||!own(metricArity,m.type)||!Array.isArray(m.slots)||m.slots.length!==metricArity[m.type]||
+       !m.slots.every(i=>Number.isInteger(i)&&i>=0&&i<len)||
+       (m.slots.length===2&&m.slots[1]!==m.slots[0]+1)||![1,2].includes(m.minRounds))return null;
+    return {type:m.type,slots:[...m.slots],minRounds:m.minRounds};
+  }
+  function provenance(p){
+    if (p?.source!=='confirmed/visible plan'||!Array.isArray(p.slots)||p.slots.length<1||p.slots.length>64||
+        !Number.isFinite(p.reference)||p.reference<430||p.reference>450||!['SwiftF0','現有偵測'].includes(p.detector))return null;
+    const slots=p.slots.map(s=>{
+      if(!Number.isInteger(s?.midi)||s.midi<0||s.midi>127||!['up','down'].includes(s.direction))return null;
+      const v=s.plan, e=s.edge, known=v?.reviewed===true&&['C','G','D','A'].includes(v.string)&&Number.isInteger(v.finger)&&v.finger>=0&&v.finger<=4;
+      return [s.midi,s.direction,known?[v.string,v.finger,v.fingersReviewed===true,Number.isInteger(v.anchor)?v.anchor:null,
+        ['confirmed-edit','visible-board'].includes(v.source)?v.source:null]:null,
+        e?.reviewed===true&&Number.isInteger(e.from)?[e.from,e.shift===true,e.extension===true]:null];
+    });
+    if(slots.some(s=>!s))return null;
+    return {reference:p.reference,detector:p.detector,slots,route:JSON.stringify(slots)};
+  }
+  const isCents=c=>Number.isFinite(c)&&Math.abs(c)<=50+1e-7;
+  const boundedId=id=>(typeof id==='string'&&id.length>0&&id.length<=120)||Number.isInteger(id);
+  function measure(packet,metric,provenance){
+    const slots=metric.slots.map(i=>provenance.slots[i]);
+    if(slots.some(s=>!s[2])||(slots.length===2&&(slots[0][1]!==slots[1][1]||slots[0][0]===slots[1][0])))return null;
+    const rounds=packet.rounds;
+    if(!Array.isArray(rounds)||rounds.length>8)return null;
+    const counts=new Map(), accepted=new Map();
+    for(const r of rounds)if(boundedId(r?.id))counts.set(r.id,(counts.get(r.id)||0)+1);
+    for(const r of rounds){
+      if(counts.get(r?.id)!==1||!Array.isArray(r.values)||r.values.length!==provenance.slots.length)continue;
+      const row=metric.slots.map(i=>r.values[i]);
+      if(row.every(isCents))accepted.set(r.id,row);
+    }
+    let samples=[];
+    if(metric.type==='pitch'||metric.type==='interval'){
+      samples=[...accepted.values()].map(row=>Math.abs(row.length===1?row[0]:row[1]-row[0]));
+    }else{
+      const spans=packet.trendMetrics;
+      if(!Array.isArray(spans)||spans.length>2564)return null;
+      const laps=new Map();
+      const field=metric.type==='wobble'?'range':metric.type;
+      for(const s of spans){
+        if(s?.slot!==metric.slots[0]||!Number.isInteger(s.lap)||s.lap<1||!accepted.has(s.lap))continue;
+        const value=s[field];
+        const valid=field==='range'?Number.isFinite(value)&&value>=0&&value<=100+1e-7:isCents(value);
+        if(!valid)continue;
+        // Ambiguous disjoint valid segments from one lap aren't one repeat.
+        laps.set(s.lap,laps.has(s.lap)?null:Math.abs(value));
+      }
+      samples=[...laps.values()].filter(Number.isFinite).slice(-8);
+    }
+    if(samples.length<metric.minRounds)return null;
+    samples.sort((a,b)=>a-b);
+    const mid=Math.floor(samples.length/2);
+    return {error:samples.length%2?samples[mid]:(samples[mid-1]+samples[mid])/2,rounds:samples.length};
+  }
+  function labelFor(packet,metric){
+    const ns=metric.slots.map(i=>packet.slots[i]);
+    const name=s=>typeof s.name==='string'&&s.name.length<=16?s.name:'這個音';
+    const strings=ns.map(s=>s.plan.string);
+    const location=ns.map((s,i)=>i===0||strings[i]!==strings[i-1]?strings[i]+' 弦上的 '+name(s):name(s)).join(' → ');
+    const field={pitch:'音準偏差',interval:'音程偏差',front:'量到的前段偏差',tail:'量到的後段偏差',wobble:'量到的持音波動'}[metric.type];
+    return (ns[0].direction==='down'?'下行':'上行')+'：'+location+'的'+field;
+  }
+  function decode(raw,name,root){
+    if(typeof raw!=='string'||raw.length>10000)return null;
+    try{
+      const e=JSON.parse(raw);
+      if(!takeOf(e)||root+e.take.id!==name||typeof e.route!=='string'||e.route.length>8000||
+        !Number.isFinite(e.reference)||!['SwiftF0','現有偵測'].includes(e.detector)||
+        !Number.isFinite(e.sample?.error)||e.sample.error<0||e.sample.error>100+1e-7||
+        !Number.isInteger(e.sample.rounds)||e.sample.rounds<1||e.sample.rounds>8)return null;
+      return e;
+    }catch{return null;}
+  }
+  const latestFirst=(a,b)=>b.entry.take.beganAt-a.entry.take.beganAt||b.entry.take.id.localeCompare(a.entry.take.id);
+  function create(storage){
+    function read(key){
+      if(!storage)return null;
+      const found=[];
+      try{
+        // Snapshot keys so deleting stale records never shifts enumeration or
+        // removes an unseen concurrent write from a newer tab.
+        const keys=Array.from({length:storage.length},(_,i)=>storage.key(i));
+        for(const name of keys)if(typeof name==='string'&&name.startsWith(key)){
+          const entry=decode(storage.getItem(name),name,key);
+          if(entry)found.push({name,entry});
+        }
+      }catch{return null;}
+      return found.sort(latestFirst);
+    }
+    function pin(scope,packet,proposed){
+      const key=scopePrefix(scope),take=takeOf(packet),prov=provenance(packet);
+      if(!key||!take||!prov)return not('provenance');
+      const metric=metricOf(proposed,prov.slots.length);
+      const sample=metric&&measure(packet,metric,prov);
+      if(!sample)return not('insufficient');
+      const found=read(key);
+      if(!found)return not('storage');
+      if(found[0]?.entry.take.id===take.id)return {status:'pinned'};
+      if(found.length&&found[0].entry.take.beganAt>=take.beganAt)return not('stale');
+      const name=key+take.id;
+      try{storage.setItem(name,JSON.stringify({take,reference:prov.reference,detector:prov.detector,route:prov.route,metric,sample}));}
+      catch{return not('storage');}
+      const after=read(key);
+      if(after?.length){
+        for(const item of after.slice(1)){
+          try{storage.removeItem(item.name);}catch{}
+        }
+        if(after[0].name!==name)return not('stale');
+      }
+      return {status:'pinned'};
+    }
+    function compare(scope,packet){
+      const key=scopePrefix(scope),take=takeOf(packet),prov=provenance(packet);
+      if(!key||!take||!prov)return not('provenance');
+      const found=read(key),prior=found?.[0]?.entry;
+      if(!found)return not('storage');
+      if(!prior)return not('no-baseline');
+      if(prior.take.id===take.id || prior.take.beganAt>=take.beganAt)return not('same-or-older');
+      if(prior.reference!==prov.reference||prior.detector!==prov.detector)return not('settings');
+      if(prior.route!==prov.route)return not('route');
+      const m=metricOf(prior.metric,prov.slots.length);
+      const current=m&&measure(packet,m,prov);
+      if(!current||prior.sample.rounds<m.minRounds)return not('insufficient');
+      const delta=current.error-prior.sample.error;
+      return {status:Math.abs(delta)<3?'unchanged':delta<0?'improved':'worse',label:labelFor(packet,m),
+        before:prior.sample.error,after:current.error,beforeRounds:prior.sample.rounds,afterRounds:current.rounds};
+    }
+    return {pin,compare};
+  }
+  return {create};
+});
