@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261124-056-experimental">
+  <meta name="site-version" content="20261124-057-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -854,7 +854,6 @@
     .launch-options-toggle:focus-visible{outline:2px solid #4c81b3;outline-offset:-2px}
     .launch-options-toggle[aria-expanded=true]{background:var(--accent);color:var(--accent-ink)}
     .launch-meta{display:flex;align-items:center;flex-wrap:wrap;gap:2px 9px;margin-top:5px}
-    .launch-meta #session-launch-note{flex-basis:100%}
     .launch-fresh{margin:0 0 7px;min-height:44px}
     .launch-meta small{color:var(--muted);font-size:11px}
     .launch-settings{position:fixed;inset:auto;margin:0;left:var(--launch-left,10px);top:var(--launch-top,95px);width:var(--launch-width,min(420px,calc(100vw - 20px)));max-width:none;max-height:var(--launch-height,min(475px,62dvh));overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;z-index:70;padding:9px;box-shadow:0 15px 54px #10192135}
@@ -887,8 +886,8 @@
     :is(.scale-practice-choice,.scale-practice-detector):disabled :is(label,input){cursor:default}
     .history-access>.practice-stats{box-shadow:none}
     .practice-stats{min-width:0}
-    .practice-statistics{display:grid;grid-template-columns:minmax(0,1fr);gap:1.25rem;min-width:0}
-    @media(min-width:1000px){.practice-statistics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    .practice-statistics{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,11rem);gap:.75rem;min-width:0}
+    @media(max-width:290px){.practice-statistics{grid-template-columns:minmax(0,1fr)}}
     .practice-stats-legend{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin:.75rem 0;font-size:.8125rem}
     .practice-stats-legend span{display:inline-flex;align-items:center;gap:.35rem}
     .practice-stats-legend i{width:.65rem;height:.65rem;border-radius:2px;background:var(--stats-bar)}
@@ -898,17 +897,19 @@
     [data-appearance=dark] .practice-stats [data-kind=minor]{--stats-bar:#b49ac6}
     .practice-stats-scroll{max-width:100%;min-width:0;overflow-x:auto;overscroll-behavior-x:contain;contain:inline-size}
     .practice-stats-scroll:focus-visible{outline:2px solid #4c81b3;outline-offset:-2px}
-    .practice-stats-plot{display:grid;grid-template-columns:var(--stats-axis-width,3.25rem) minmax(0,1fr);min-width:var(--stats-min-width,34rem);padding-block:1.25rem .25rem}
+    .practice-stats-bands{display:grid;grid-template-columns:minmax(0,1fr);gap:.45rem;min-width:0}
+    @media(min-width:650px){.practice-stats-bands{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    .practice-stats-plot{--stats-height:5rem;--stats-labels:1.35rem;display:grid;grid-template-columns:2.15rem minmax(0,1fr);min-width:0;padding-block:.8rem .1rem}
+    .practice-stats-plot h4{grid-column:1/-1;font-size:.75rem;margin:0 0 .65rem;color:var(--muted)}
     .practice-stats-axis,.practice-stats-bars{position:relative;margin:0;padding:0;list-style:none}
     .practice-stats-axis{position:sticky;left:0;z-index:1;background:var(--page);font-size:.75rem}
-    .practice-stats-axis span{position:absolute;bottom:calc(1.75rem + 8rem * var(--level));right:.45rem;transform:translateY(50%);font-variant-numeric:tabular-nums}
-    .practice-stats-bars{display:grid;grid-template-columns:repeat(24,minmax(0,1fr));isolation:isolate}
-    .practice-stats-bars::before{content:"";position:absolute;inset:0 0 1.75rem;border-bottom:1px solid var(--line);z-index:-1;background:var(--grid-lines,none)}
-    .practice-stats-col{min-width:0;display:grid;grid-template-rows:8rem 1.75rem;text-align:center}
-    .practice-stats-col:nth-child(13){border-inline-start:1px solid var(--line)}
+    .practice-stats-axis span{position:absolute;bottom:calc(var(--stats-labels) + var(--stats-height) * var(--level));right:.2rem;transform:translateY(50%);font-variant-numeric:tabular-nums}
+    .practice-stats-bars{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));isolation:isolate}
+    .practice-stats-bars::before{content:"";position:absolute;inset:0 0 var(--stats-labels);border-bottom:1px solid var(--line);z-index:-1;background:var(--grid-lines,none)}
+    .practice-stats-col{min-width:0;display:grid;grid-template-rows:var(--stats-height) var(--stats-labels);text-align:center}
     .practice-stats-bar-slot{position:relative}
     .practice-stats-bar{position:absolute;inset-inline:24%;bottom:0;height:var(--bar-height);background:var(--stats-bar);border-radius:3px 3px 0 0}
-    .practice-stats-value{position:absolute;inset-inline:0;bottom:var(--bar-height);font-size:.6875rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .practice-stats-value{position:absolute;inset-inline:0;bottom:var(--bar-height);font-size:.6875rem;font-variant-numeric:tabular-nums;white-space:normal;overflow-wrap:anywhere;line-height:1.05}
     .practice-stats-key{font-size:.75rem;font-weight:700;padding-top:.3rem;color:var(--ink)}
     .practice-heat{--heat-0:#e6ebe5;--heat-1:#b8d6b8;--heat-2:#87b58c;--heat-3:#528557;--heat-4:#286037}
     [data-appearance=dark] .practice-heat{--heat-0:#333d3a;--heat-1:#3b5b46;--heat-2:#4d8059;--heat-3:#72a978;--heat-4:#a0cda1}
@@ -918,7 +919,7 @@
     .practice-heat [data-level="3"]{--heat-color:var(--heat-3)}
     .practice-heat [data-level="4"]{--heat-color:var(--heat-4)}
     .practice-heat [data-level]{background:var(--heat-color)}
-    .practice-heat-grid{--heat-cell:1.375rem;display:grid;width:max-content;grid-template-columns:1.75rem repeat(var(--weeks),var(--heat-cell));grid-template-rows:1rem repeat(7,var(--heat-cell));gap:.25rem;padding:.25rem .2rem .5rem;align-items:center}
+    .practice-heat-grid{--heat-cell:1rem;display:grid;width:max-content;grid-template-columns:1.75rem repeat(var(--weeks),var(--heat-cell));grid-template-rows:1rem repeat(7,var(--heat-cell));gap:.25rem;padding:.25rem .2rem .5rem;align-items:center}
     .practice-heat-month,.practice-heat-weekday{font-size:.6875rem;white-space:nowrap}
     .practice-heat-weekday{position:sticky;left:0;background:var(--page);z-index:1}
     .practice-heat-cell{display:block;width:.72rem;height:.72rem;border-radius:2px}
@@ -926,24 +927,21 @@
     .practice-heat-grid .practice-heat-cell[aria-current=date]{outline:1px solid var(--ink);outline-offset:1px}
     .practice-heat-legend{display:flex;align-items:center;justify-content:flex-end;gap:.55rem;flex-wrap:wrap;font-size:.6875rem;margin:.45rem 0 0}
     .practice-heat-legend span{display:inline-flex;align-items:center;gap:.25rem}
-    .practice-stats-swipe{display:none}
     .practice-heat-head{display:flex;align-items:baseline;flex-wrap:wrap;justify-content:space-between;gap:.25rem .75rem}
     .practice-heat-range{font-size:.8125rem;color:var(--ink);font-variant-numeric:tabular-nums}
     @media(max-width:640px){
-      .practice-statistics{gap:1.125rem}
-      #practice-stats-grid{border-block:1px solid var(--line);background:var(--paper)}
-      .practice-stats-plot{min-width:max(var(--stats-min-width,34rem),calc(var(--stats-axis-width,3.25rem) + 24 * 2rem + .25rem));padding-inline-end:.25rem}
-      .practice-stats-bars{grid-template-columns:repeat(24,minmax(2rem,1fr))}
-      .practice-stats-axis{background:var(--paper)}
-      .practice-stats-key,.practice-stats-value{font-size:.8125rem}
-      .practice-stats-swipe{display:block;color:var(--muted);font-size:.8125rem;margin:.25rem 0 .35rem}
+      .practice-statistics{gap:.5rem;grid-template-columns:minmax(0,1fr) minmax(0,9rem)}
+      @media(max-width:290px){.practice-statistics{grid-template-columns:minmax(0,1fr)}}
+      .practice-heat{max-inline-size:9.5rem}
+      .practice-stats-plot{--stats-height:3.15rem;grid-template-columns:1.1rem minmax(0,1fr)}
+      .practice-stats-axis{background:var(--page);font-size:.6rem}
+      .practice-stats-axis span:not(:first-child):not(:last-child){display:none}
+      .practice-stats-key,.practice-stats-value{font-size:.625rem}
       .practice-heat-head{justify-content:flex-start}
       .practice-heat-head h3{margin-block-end:0}
-      .practice-heat-grid{--heat-cell:clamp(1.125rem,6vw,1.5rem);margin-inline:auto}
+      .practice-heat-grid{--heat-cell:.85rem;gap:.2rem;margin-inline:auto}
       .practice-heat-legend{justify-content:center}
     }
-    .practice-stats-notes{display:flex;align-items:center;flex-wrap:wrap;gap:.375rem;margin:.5rem 0 0;font-size:.8125rem;color:var(--muted)}
-    .practice-stats-notes :is(select,button){min-height:44px;max-width:100%;font:inherit;border:1px solid var(--line);border-radius:8px;padding:0 .55rem;background:var(--paper);color:var(--ink)}
     @media(max-width:380px){
       .launch-mode span{padding:0 5px}
       .audio-buttons{gap:5px}
@@ -1052,7 +1050,17 @@
       .launch-controls #draw-button{
         width:100%;max-inline-size:8.25rem;min-block-size:4.75rem;gap:.375rem;padding-inline:.5rem
       }
-      .launch-controls>.launch-mode{min-block-size:44px}
+      .launch-meta>.launch-mode{min-block-size:44px;flex:none}
+      .launch-controls #session-launch-note{min-width:0;margin:0;font-size:.75rem;line-height:1.45;color:var(--muted);overflow-wrap:anywhere;white-space:pre-line}
+      .practice-notes-open{min-height:44px;margin-block-start:.5rem}
+      .practice-notes-overview{max-height:85dvh;overflow:auto}
+      .practice-notes-head{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+      .practice-note-summary{border-top:1px solid var(--line);padding-block:.55rem}
+      .practice-note-summary h3{margin:.2rem 0}
+      .practice-note-summary p{white-space:pre-wrap;overflow-wrap:anywhere;margin:.2rem 0}
+      .practice-note-chips{display:flex;flex-wrap:wrap;gap:.25rem}
+      .practice-note-chips button,.practice-notes-overview button{min-height:44px}
+      .practice-notes-overview textarea{width:100%}
       @media(max-width:16em){
         .launch-controls{grid-template-columns:minmax(0,8.25rem) max(44px,var(--ui-touch))}
       }
@@ -1126,13 +1134,13 @@
           <button type="button" class="launch-options-toggle" id="launch-options-toggle" popovertarget="draw-settings" aria-label="調性與抽籤設定" aria-controls="draw-settings" aria-expanded="false" title="調性與抽籤設定">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m9.5 3-.9 2.8-2.6 1.5-2.9-.6-2 3.5 2 2.2v3l-2 2.2 2 3.5 2.9-.6 2.6 1.5.9 2.8h4l.9-2.8 2.6-1.5 2.9.6 2-3.5-2-2.2v-3l2-2.2-2-3.5-2.9.6-2.6-1.5-.9-2.8z" transform="translate(1 0) scale(.92 .88)"/></svg>
           </button>
+          <p id="session-launch-note" aria-live="polite"></p>
+        </div>
+        <div class="launch-meta">
           <fieldset class="launch-mode" aria-label="練習清單順序">
             <label><input type="radio" name="launch-mode" value="random" checked><span>隨機</span></label>
             <label><input type="radio" name="launch-mode" value="sequential"><span>循序</span></label>
           </fieldset>
-        </div>
-        <div class="launch-meta">
-          <p id="session-launch-note" aria-live="polite"></p>
         </div>
         <section class="layout-disclosure launch-settings" id="draw-settings" popover role="dialog" aria-labelledby="launch-settings-title" hidden>
           <div class="launch-settings-head">
@@ -1227,22 +1235,20 @@
         <div class="practice-statistics">
         <section class="practice-stats" aria-labelledby="practice-stats-title">
         <h3 id="practice-stats-title">累積練習</h3>
-        <p>依此瀏覽器保留的個人與課堂紀錄，每個調在每筆紀錄完成算 1 次；刪除紀錄也會扣除。</p>
+
         <div class="practice-stats-legend" aria-hidden="true"><span data-kind="major"><i></i>大調</span><span data-kind="minor"><i></i>小調</span><span>次數</span></div>
-        <p id="practice-stats-swipe" class="practice-stats-swipe" aria-hidden="true">左右滑動查看全部 24 調</p>
-        <div id="practice-stats-grid" class="practice-stats-scroll" role="region" aria-label="24 調的練習次數，可左右捲動" tabindex="0"></div>
-        <div class="practice-stats-notes"><label for="practice-stats-note-key">練習筆記</label><select id="practice-stats-note-key"><option value="">選擇調性</option></select><button type="button" id="practice-stats-note-open" disabled>開啟筆記</button></div>
+        <div id="practice-stats-grid" class="practice-stats-bands" role="region" aria-label="24 調的練習次數"></div>
+        <button type="button" class="room-action practice-notes-open" id="practice-stats-note-open">練習筆記</button>
         </section>
         <section class="practice-stats practice-heat" aria-labelledby="practice-heat-title">
         <div class="practice-heat-head"><h3 id="practice-heat-title">每日練習熱圖</h3><span id="practice-heat-range" class="practice-heat-range"></span></div>
-        <p>最近 30 天，含今天。依原紀錄日期統計，同日同調只算一次。</p>
         <div id="practice-heat-grid" class="practice-stats-scroll" role="region" aria-label="每日完成調數，可左右捲動" tabindex="0"></div>
         <div class="practice-heat-legend" aria-label="每日完成調數"><span><i class="practice-heat-cell" data-level="0" aria-hidden="true"></i>0</span><span><i class="practice-heat-cell" data-level="1" aria-hidden="true"></i>1</span><span><i class="practice-heat-cell" data-level="2" aria-hidden="true"></i>2</span><span><i class="practice-heat-cell" data-level="3" aria-hidden="true"></i>3–4</span><span><i class="practice-heat-cell" data-level="4" aria-hidden="true"></i>5+</span></div>
         </section>
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261124-056-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261124-057-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -4499,7 +4505,8 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       if(counts)counts.hidden=launchMode==='sequential';
       const warning=q('#filter-warning');
       if(warning)warning.hidden=launchMode==='sequential'||!warning.textContent;
-      const selected='已選 '+eligible('major').length+' 個大調、'+eligible('minor').length+' 個小調（用齒輪調整）';
+      const names=mode=>eligible(mode).map(i=>keyName(mode,i)).join('、')||'無';
+      const selected='大調：'+names('major')+'\n小調：'+names('minor');
       if(message.textContent!==selected)message.textContent=selected;
     }
     function launchPractice(){
@@ -4654,6 +4661,67 @@ function refreshNoteButton(button,id,storageKey=studentNoteKey(id)){
  button.dataset.noteKey=id;const filled=Boolean(readStudentNote(id,storageKey).trim());button.classList.toggle('has-note',filled);
  button.setAttribute('aria-label',(button.dataset.noteLabel||'')+(filled?'編輯':'新增')+'個人練習筆記（僅此瀏覽器）');
 }
+function saveStudentNote(id,value,key=studentNoteKey(id)){
+ if(value.trim())localStorage.setItem(key,value);else localStorage.removeItem(key);
+ document.querySelectorAll('[data-note-key]').forEach(el=>{if(el.dataset.noteKey===id)refreshNoteButton(el,id);});
+}
+function openPracticeNotes(opener){
+ const create=(tag,text)=>{const node=document.createElement(tag);if(text!==undefined)node.textContent=text;return node;};
+ const button=text=>{const node=create('button',text);node.type='button';node.className='room-action';return node;};
+ const dialog=create('dialog');dialog.className='student-note-dialog practice-notes-overview';
+ dialog.setAttribute('aria-label','練習筆記');
+ const head=create('header');head.className='practice-notes-head';
+ const close=button('關閉');head.append(create('h2','練習筆記'),close);dialog.append(head);
+ const body=create('div');dialog.append(body);
+ let dirty=()=>false;
+ const closeNotice=create('p');closeNotice.setAttribute('role','status');dialog.append(closeNotice);
+ const all=['major','minor'].flatMap(mode=>Array.from({length:12},(_,i)=>({id:selectedId(mode,i),label:keyName(mode,i)+(mode==='major'?' 大調':' 小調')})));
+ function render(active=null){
+  const rows=all.map(key=>({...key,value:readStudentNote(key.id)}));
+  dirty=()=>false;closeNotice.textContent='';body.replaceChildren();
+  function editor(key){
+   const group=create('div'),label=create('label',key.label+' 練習筆記'),input=create('textarea');
+   input.id='practice-note-overview-editor';label.htmlFor=input.id;input.rows=5;input.value=key.value;
+   dirty=()=>input.value!==key.value;
+   const actions=create('div');actions.className='student-note-actions';
+   const cancel=button('取消'),save=button('儲存筆記'),status=create('p');
+   status.setAttribute('role','status');
+   cancel.addEventListener('click',()=>{render();close.focus();});
+   save.addEventListener('click',()=>{
+    try{saveStudentNote(key.id,input.value);render();close.focus();}
+    catch{status.textContent='無法儲存，請先複製筆記保留。';}
+   });
+   actions.append(cancel,save);group.append(label,input,actions,status);
+   return {group,input};
+  }
+  let focused;
+  for(const key of rows.filter(key=>key.value.trim())){
+   const entry=create('section');entry.className='practice-note-summary';
+   entry.append(create('h3',key.label));
+   if(active===key.id){const edit=editor(key);entry.append(edit.group);focused=edit.input;}
+   else{
+    const edit=button('編輯');edit.disabled=Boolean(active);edit.setAttribute('aria-label','編輯 '+key.label+' 筆記');
+    edit.addEventListener('click',()=>render(key.id));entry.append(create('p',key.value),edit);
+   }
+   body.append(entry);
+  }
+  const add=create('section');add.className='practice-note-summary';
+  add.append(create('h3','新增筆記'));
+  const pending=rows.find(key=>key.id===active&&!key.value.trim());
+  if(pending){const edit=editor(pending);add.append(edit.group);focused=edit.input;}
+  const chips=create('div');chips.className='practice-note-chips';
+  for(const key of rows.filter(key=>!key.value.trim())){
+   const chip=button(key.label);chip.disabled=Boolean(active);chip.addEventListener('click',()=>render(key.id));chips.append(chip);
+  }
+  if(chips.children.length)add.append(chips);
+  body.append(add);focused?.focus();
+ }
+ const blockClose=event=>{if(!dirty())return false;event.preventDefault?.();closeNotice.textContent='請先儲存或取消編輯。';return true;};
+ close.addEventListener('click',event=>{if(!blockClose(event))dialog.close();});
+ dialog.addEventListener('cancel',blockClose);
+ dialog.addEventListener('close',()=>{dialog.remove();opener.focus({preventScroll:true});});
+ document.body.append(dialog);render();dialog.showModal();close.focus();
+}
 function openStudentNote(id,button,storageKey=studentNoteKey(id)){
  const dialog=document.createElement('dialog');dialog.className='student-note-dialog';
  const heading=document.createElement('h2');heading.textContent=button.dataset.noteTitle?button.dataset.noteTitle+'練習筆記':'我的練習筆記';heading.id='student-note-heading';
@@ -4666,7 +4734,7 @@ function openStudentNote(id,button,storageKey=studentNoteKey(id)){
  const save=document.createElement('button');save.type='button';save.textContent='儲存筆記';save.className='room-action primary';
  const clear=document.createElement('button');clear.type='button';clear.textContent='清空內容';clear.className='room-action';
  clear.addEventListener('click',()=>{input.value='';input.focus();});cancel.addEventListener('click',()=>dialog.close());
- save.addEventListener('click',()=>{try{if(input.value.trim())localStorage.setItem(storageKey,input.value);else localStorage.removeItem(storageKey);document.querySelectorAll('[data-note-key]').forEach(el=>{if(el.dataset.noteKey===id)refreshNoteButton(el,id);});dialog.close();}catch{help.textContent='無法儲存，請先複製筆記保留。';}});
+ save.addEventListener('click',()=>{try{saveStudentNote(id,input.value,storageKey);dialog.close();}catch{help.textContent='無法儲存，請先複製筆記保留。';}});
  dialog.addEventListener('close',()=>{dialog.remove();button.focus({preventScroll:true});});
  actions.append(clear,cancel,save);dialog.append(heading,label,input,help,actions);document.body.append(dialog);dialog.showModal();input.focus();
 }
@@ -5127,29 +5195,28 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       const counts=cumulativePracticeCounts(state.personalHistory,state.classroomHistory);
       const scale=practiceStatsScale(Math.max(...Object.values(counts)));
       const build=(tag,cls,text)=>{const el=document.createElement(tag);el.className=cls;if(text!==undefined)el.textContent=text;return el;};
-      const plot=build('div','practice-stats-plot');
-      const digits=String(scale.max).length;
-      if(digits>3){
-        plot.style.setProperty('--stats-axis-width',(3.25+(digits-3)*.5)+'rem');
-        plot.style.setProperty('--stats-min-width',(34+(digits-3)*7)+'rem');
-      }
-      const axis=build('div','practice-stats-axis');axis.setAttribute('aria-hidden','true');
-      for(const value of scale.ticks){
-        const tick=build('span','',String(value));tick.style.setProperty('--level',String(value/scale.max));axis.append(tick);
-      }
-      const bars=build('ul','practice-stats-bars');bars.setAttribute('role','list');
       const gridLines=scale.ticks.slice(1).flatMap(value=>{
         const h=(100*value/scale.max)+'%', below='calc('+h+' - 1px)';
         return ['transparent '+below,'var(--line) '+below,'var(--line) '+h,'transparent '+h];
       });
-      bars.style.setProperty('--grid-lines','linear-gradient(to top,'+gridLines.join(',')+')');
-      const picker=q('#practice-stats-note-key'),open=q('#practice-stats-note-open');
-      const initNotes=picker&&open&&!picker.dataset.bound;
-      for(const mode of ['major','minor']){
+      const open=q('#practice-stats-note-open');
+      if(open&&!open.dataset.bound){
+        open.dataset.bound='true';
+        open.addEventListener('click',()=>openPracticeNotes(open));
+      }
+      const panels=[];
+      for(const mode of ['major','minor'])for(const start of [0,6]){
         const suffix=mode==='major'?'大調':'小調';
-        const group=initNotes?document.createElement('optgroup'):null;
-        if(group)group.label=suffix;
-        for(let i=0;i<12;i++){
+        const plot=build('section','practice-stats-plot');
+        plot.append(build('h4','practice-stats-band-label',suffix+(start?' · 續':'')));
+        const axis=build('div','practice-stats-axis');axis.setAttribute('aria-hidden','true');
+        for(const value of scale.ticks){
+          const text=value>=1000000?Number((value/1000000).toPrecision(2))+'M':value>=1000?Number((value/1000).toPrecision(2))+'k':String(value);
+          const tick=build('span','',text);tick.style.setProperty('--level',String(value/scale.max));axis.append(tick);
+        }
+        const bars=build('ul','practice-stats-bars');bars.setAttribute('role','list');
+        bars.style.setProperty('--grid-lines','linear-gradient(to top,'+gridLines.join(',')+')');
+        for(let i=start;i<start+6;i++){
           const id=selectedId(mode,i),name=keyName(mode,i),count=counts[id];
           const col=build('li','practice-stats-col');col.dataset.kind=mode;col.dataset.statKey=id;col.dataset.count=String(count);
           col.style.setProperty('--bar-height',String(100*count/scale.max)+'%');
@@ -5158,20 +5225,10 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
           slot.append(build('span','practice-stats-bar'),build('span','practice-stats-value',String(count)));
           const label=build('span','practice-stats-key',name);label.setAttribute('aria-hidden','true');
           col.append(slot,label);bars.append(col);
-          if(group){const option=build('option','',name+' '+suffix);option.value=id;group.append(option);}
         }
-        if(group)picker.append(group);
+        plot.append(axis,bars);panels.push(plot);
       }
-      if(initNotes){
-        picker.dataset.bound='true';
-        picker.addEventListener('change',()=>{open.disabled=!Object.hasOwn(counts,picker.value);});
-        open.addEventListener('click',()=>{
-          if(!Object.hasOwn(counts,picker.value))return;
-          open.dataset.noteTitle=picker.selectedOptions[0]?.textContent+' ';
-          openStudentNote(picker.value,open,cumulativeNoteKey(picker.value));
-        });
-      }
-      plot.append(axis,bars);grid.replaceChildren(plot);
+      grid.replaceChildren(...panels);
     }
     function historyProgress(record){
       const ids=[...record.majorIds.map(i=>selectedId('major',i)),

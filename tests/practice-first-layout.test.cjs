@@ -12,7 +12,7 @@ function scope(){
   const env={q:key=>nodes[key],state:{personalHistory:[]},sharedRoom:null,replaySession:null,session:null,
     currentDate:'2026-11-23',currentSession:()=>env.session,selectedId:(kind,n)=>kind+'-'+n,
     visiblePreferences:()=>({majorCount:2,minorCount:2}),refreshDate(){},
-    orderedSelections:()=>pool,eligible:()=>pool,
+    orderedSelections:()=>pool,eligible:()=>pool,keyName:(mode,i)=>(mode==='major'?'M':'m')+i,
     drawToday(){calls.push('random');},practiceInSignatureOrder(){calls.push('sequential');},
     jumpOrder:()=>['major-1','minor-3'],jumpToPractice(id){calls.push(id);},
     cardInstances:new Map(),requestCardAction(fn){fn();},
@@ -26,14 +26,14 @@ test('resume chooses validated unfinished work, otherwise reuse prior draw optio
   env.updateSessionLaunch();
   assert.equal(nodes['#launch-fresh'].hidden,true);
   assert.equal(nodes['#draw-text'].textContent,'開始練習');
-  assert.match(nodes['#session-launch-note'].textContent,/已選 3 個大調、3 個小調（用齒輪調整）/);
+  assert.match(nodes['#session-launch-note'].textContent,/大調：M1、M2、M3\n小調：m1、m2、m3/);
   setPool([0]);
   env.updateSessionLaunch();
   assert.equal(nodes['#draw-button'].disabled,true);
-  assert.match(nodes['#session-launch-note'].textContent,/已選 1 個大調、1 個小調（用齒輪調整）/);
+  assert.match(nodes['#session-launch-note'].textContent,/大調：M0\n小調：m0/);
   env.setLaunchMode('sequential');
   assert.equal(nodes['#draw-button'].disabled,false);
-  assert.match(nodes['#session-launch-note'].textContent,/已選 1 個大調、1 個小調（用齒輪調整）/);
+  assert.match(nodes['#session-launch-note'].textContent,/大調：M0\n小調：m0/);
   assert.deepEqual(calls,[],'choosing a mode is never a start');
   env.startPractice();
   assert.deepEqual(calls,['sequential']);

@@ -13,21 +13,24 @@ test('24 ordered accessible counts share one linear axis, including zeros and la
  const counts=(personal,classroom)=>c.count(personal,classroom);
  const noteCalls=[];
  const box={document:{createElement:el},q:s=>nodes[s],state:{personalHistory:[],classroomHistory:[]},
-  cumulativePracticeCounts:counts,selectedId:(m,i)=>m+'-'+i,cumulativeNoteKey:k=>'private-'+k,openStudentNote:(...x)=>noteCalls.push(x)};
+  cumulativePracticeCounts:counts,selectedId:(m,i)=>m+'-'+i,cumulativeNoteKey:k=>'private-'+k,openPracticeNotes:(...x)=>noteCalls.push(x)};
  vm.runInNewContext(html.slice(first,last)+';function keyName(m,i){return (m==="major"?MAJOR_KEYS:MINOR_KEYS)[i][0];}\n'+
   html.slice(html.indexOf('    function practiceStatsScale('),html.indexOf('    function historyProgress(')),box);
  box.renderPracticeStats();
- let [axis,bars]=grid.children[0].children;
- assert.equal(bars.children.length,24);
- assert.ok(bars.children.every(col=>col.dataset.count==='0'&&col.style['--bar-height']==='0%'));
+ const allBars=()=>grid.children.flatMap(x=>x.children[2].children);
+ let [,axis,bars]=grid.children[0].children;
+ assert.equal(grid.children.length,4);
+ assert.ok(grid.children.every(x=>x.children[2].children.length===6));
+ assert.equal(allBars().length,24);
+ assert.ok(allBars().every(col=>col.dataset.count==='0'&&col.style['--bar-height']==='0%'));
  assert.deepEqual(axis.children.map(t=>t.textContent),['0','5']);
- assert.equal(bars.children[1].children[0].textContent,'D♭ 大調，0 次');
- assert.equal(bars.children[13].children[0].textContent,'C♯ 小調，0 次');
- assert.ok(bars.children.every(col=>!col.events.click&&col.tag==='li'));
+ assert.equal(allBars()[1].children[0].textContent,'D♭ 大調，0 次');
+ assert.equal(allBars()[13].children[0].textContent,'C♯ 小調，0 次');
+ assert.ok(allBars().every(col=>!col.events.click&&col.tag==='li'));
  for(const [max,ticks] of [[2,['0','5']],[5,['0','5','10']],[10,['0','5','10','15']]]){
    box.state.personalHistory=Array.from({length:max},(_,i)=>row('ordinary'+i,['major-0']));
    box.renderPracticeStats();
-   const [axis,bars]=grid.children[0].children;
+   const [,axis,bars]=grid.children[0].children;
    assert.deepEqual(axis.children.map(t=>t.textContent),ticks);
    assert.equal(axis.children.at(-1).style['--level'],'1');
    assert.ok(parseFloat(bars.children[0].style['--bar-height'])<100);
@@ -39,17 +42,16 @@ test('24 ordered accessible counts share one linear axis, including zeros and la
  assert.equal(huge.ticks.at(-1),huge.max);
  box.state.personalHistory=Array.from({length:1300},(_,i)=>row('personal'+i,i<650?['major-0','minor-2']:['major-0']));
  box.renderPracticeStats();
- [axis,bars]=grid.children[0].children;
- assert.deepEqual(axis.children.map(t=>t.textContent),['0','165','330','495','660','825','990','1155','1305']);
+ [,axis,bars]=grid.children[0].children;
+ assert.deepEqual(axis.children.map(t=>t.textContent),['0','165','330','495','660','825','990','1.2k','1.3k']);
  assert.equal(bars.children[0].dataset.count,'1300');
- assert.equal(bars.children[14].dataset.count,'650');
- assert.equal(bars.children[0].style['--bar-height'],2*parseFloat(bars.children[14].style['--bar-height'])+'%');
- assert.equal(bars.children[14].children[0].textContent,'D 小調，650 次');
- assert.equal(picker.children.length,2,'one initialized note picker, not duplicate on rerender');
- picker.value='minor-2';picker.selectedOptions=[picker.children[1].children[2]];
- picker.events.change();assert.equal(open.disabled,false);
- open.events.click();assert.deepEqual(noteCalls[0],['minor-2',open,'private-minor-2']);
- assert.match(html,/class="practice-stats-scroll" role="region"[^>]*tabindex="0"/);
+ assert.equal(allBars()[14].dataset.count,'650');
+ assert.equal(bars.children[0].style['--bar-height'],2*parseFloat(allBars()[14].style['--bar-height'])+'%');
+ assert.equal(allBars()[14].children[0].textContent,'D 小調，650 次');
+ assert.equal(picker.children.length,0);
+ open.events.click();assert.deepEqual(noteCalls[0],[open]);
+ assert.ok(allBars().some(col=>col.children[1].children[1].textContent==='0'));
+ assert.match(html,/class="practice-stats-bands" role="region" aria-label="24 調的練習次數"/);
  assert.match(html,/\.practice-stats-scroll\{[^}]*overflow-x:auto/);
 });
 
@@ -83,8 +85,8 @@ test('heat uses valid local civil record dates, exactly 30 dates through today a
  const leap=c.heat([],[],'2024-03-12');
  for(const day of ['2024-02-29','2024-03-09','2024-03-10','2024-03-11'])assert.ok(leap.some(d=>d.date===day));
  assert.match(html,/class="practice-stats-scroll" role="region" aria-label="每日完成調數，可左右捲動" tabindex="0"/);
- assert.match(html,/\.practice-statistics\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}/);
- assert.match(html,/依原紀錄日期統計/);
+ assert.match(html,/\.practice-statistics\{[^}]*grid-template-columns:minmax\(0,1fr\) minmax\(0,11rem\)/);
+ assert.match(html,/最近 30 天，含今天/);
 });
 
 test('actual heat render outputs date/count per cell and consistent green thresholds without a Tab stop per day',()=>{
@@ -115,9 +117,9 @@ test('actual heat render outputs date/count per cell and consistent green thresh
 test('phone stats keep overflowing width inside the scrollport and 30-day date labels outside it',()=>{
  assert.match(html,/\.practice-statistics\{[^}]*grid-template-columns:minmax\(0,1fr\)/);
  assert.match(html,/\.practice-stats-scroll\{[^}]*overflow-x:auto[^}]*contain:inline-size/);
- assert.match(html,/@media\(max-width:640px\)\{[\s\S]*?\.practice-stats-plot\{min-width:max\(var\(--stats-min-width,34rem\),calc\(var\(--stats-axis-width,3.25rem\) \+ 24 \* 2rem \+ \.25rem\)\)/);
- assert.match(html,/\.practice-stats-bars\{grid-template-columns:repeat\(24,minmax\(2rem,1fr\)\)}/);
- assert.match(html,/id="practice-stats-swipe"[^>]*>左右滑動查看全部 24 調/);
+ assert.match(html,/\.practice-stats-bars\{[^}]*grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/);
+ assert.match(html,/@media\(min-width:650px\)\{\.practice-stats-bands\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}/);
+ assert.match(html,/id="practice-stats-grid" class="practice-stats-bands"/);
  assert.match(html,/id="practice-heat-range"[^>]*><\/span><\/div>[\s\S]*?id="practice-heat-grid"/);
- assert.match(html,/\.practice-heat-grid\{--heat-cell:clamp\(1.125rem,6vw,1.5rem\);margin-inline:auto/);
+ assert.match(html,/\.practice-heat-grid\{--heat-cell:\.85rem;gap:\.2rem;margin-inline:auto/);
 });
