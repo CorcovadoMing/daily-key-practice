@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261124-055-experimental">
+  <meta name="site-version" content="20261124-056-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -762,7 +762,6 @@
     .session-heading h1{font-size:clamp(27px,5vw,43px);letter-spacing:-.07em;line-height:1.16;margin:0 0 7px}
     .session-launch{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin:13px 0 0}
     .session-launch .draw-button{width:auto;min-height:46px;max-width:100%;margin:0;padding:9px 13px;font-size:14px;gap:8px}
-    .session-launch[data-resume=true] #draw-button{background:var(--paper);color:var(--ink);border:1px solid var(--line);font-size:12px}
     .session-launch #session-launch-note{flex:1 1 100%;line-height:1.35;font-size:12px;color:var(--muted);margin:0}
     .session-shortcuts{display:flex;gap:14px;margin-top:5px}
     .session-shortcuts a{display:inline-flex;align-items:center;min-height:34px;font-size:12px;color:var(--muted);text-underline-offset:3px}
@@ -782,7 +781,9 @@
     .layout-disclosure>:not(summary){margin:8px}
     .classroom-access{display:flex;align-items:flex-start;min-width:0;gap:7px}
     .classroom-access>details{flex:1;min-width:0}
-    .classroom-access>.classroom-bar{flex:1;box-shadow:none;padding:4px 0;min-width:0}
+    .classroom-access .classroom-bar{box-shadow:none;padding:4px 0;min-width:0}
+    .classroom-access>details>summary{display:list-item;min-block-size:44px;line-height:44px;width:fit-content;color:var(--muted);font-size:var(--ui-detail,.875rem);font-weight:650;cursor:pointer}
+    .classroom-access>details[data-active]>summary{display:none}
     .session-intro>.classroom-access{margin:6px 0 0;max-width:720px}
     .session-intro .classroom-bar{background:none;border:0;box-shadow:none}
     .session-intro .room-buttons{justify-content:flex-start}
@@ -826,7 +827,6 @@
       [data-appearance=dark] :is(.draw-button,.scale-practice>.scale-practice-action button){background:#9db5ce;color:#131c27;border-color:#aabed5}
       [data-appearance=dark] :is(.draw-button,.scale-practice>.scale-practice-action button):hover:not(:disabled){background:#b6c9dc;color:#131c27}
       [data-appearance=dark] :is(.scale-practice-coach-action,.scale-practice-merge,.room-action.primary,.cello-inline-save,.cello-leave-save){background:#363d46;color:var(--ink);border-color:#7a8797}
-      [data-appearance=dark] .session-launch[data-resume=true] #draw-button{background:var(--paper);color:var(--ink);border-color:var(--line)}
       [data-appearance=dark] :is(.layout-disclosure,.exercise-jump){background:var(--paper);color:var(--ink);border-color:var(--line)}
       [data-appearance=dark] .scale-practice>.scale-practice-action{background:none}
     }
@@ -855,7 +855,7 @@
     .launch-options-toggle[aria-expanded=true]{background:var(--accent);color:var(--accent-ink)}
     .launch-meta{display:flex;align-items:center;flex-wrap:wrap;gap:2px 9px;margin-top:5px}
     .launch-meta #session-launch-note{flex-basis:100%}
-    .launch-resume{background:none;text-decoration:underline;text-underline-offset:3px;border:0;color:var(--ink);padding:0 3px;font-size:13px;font-weight:750;min-height:44px}
+    .launch-fresh{margin:0 0 7px;min-height:44px}
     .launch-meta small{color:var(--muted);font-size:11px}
     .launch-settings{position:fixed;inset:auto;margin:0;left:var(--launch-left,10px);top:var(--launch-top,95px);width:var(--launch-width,min(420px,calc(100vw - 20px)));max-width:none;max-height:var(--launch-height,min(475px,62dvh));overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;z-index:70;padding:9px;box-shadow:0 15px 54px #10192135}
     .launch-settings[data-side=above]{transform:translateY(-100%)}
@@ -975,7 +975,7 @@
       :is(.session-intro>.classroom-access,.launch-meta){margin-block-start:.375rem}
       :is(.room-status,.room-join-status,.local-audio-note,.site-version,.launch-meta small,#tuner-status,.scale-pitch-legend,.scale-practice-history-actions small){font-size:var(--ui-caption);line-height:1.45}
       :is(.local-audio-note,.site-version,.launch-meta small,.scale-pitch-legend){color:var(--ui-secondary)}
-      :is(.layout-disclosure>summary,.exercise-jump,.room-action,.launch-resume,.scale-practice-button,.scale-practice-history-actions button,.scale-practice-coach button,.fingering-edit,.history-replay,.history-delete){font-size:var(--ui-control);line-height:1.35}
+      :is(.layout-disclosure>summary,.exercise-jump,.room-action,.launch-fresh,.scale-practice-button,.scale-practice-history-actions button,.scale-practice-coach button,.fingering-edit,.history-replay,.history-delete){font-size:var(--ui-control);line-height:1.35}
       :is(.room-join-label,.room-join-status,.scale-practice-status,.scale-practice-coach p,.filter-status,.scale-pitch-title,.a4-control span,.audio-panel label){font-size:var(--ui-detail);line-height:1.5}
       :is(.room-join-dialog h2,.launch-settings-head h2,.history-access .history-heading h2){font-size:1.125rem;line-height:1.3}
       :is(.room-action,.room-dialog-actions button,.layout-disclosure>summary,.exercise-jump,.scale-practice-button,.scale-practice-history-actions button,.scale-practice-coach button,.cello-fb-button,.cello-inline-editor button,.teacher-tools button,.history-replay,.history-delete,.key-expand,.key-complete,.filter-all){
@@ -1089,6 +1089,8 @@
         </button>
       </div>
       <div class="classroom-access">
+      <details id="classroom-disclosure">
+      <summary>課堂同步</summary>
       <section class="classroom-bar" id="classroom-settings" aria-label="課堂同步" tabindex="-1">
           <div class="room-buttons">
             <button type="button" class="room-action" id="room-open-join">加入房間</button>
@@ -1098,6 +1100,7 @@
           </div>
           <span class="room-status" id="room-status" role="status"></span>
         </section>
+      </details>
       <dialog id="room-join-dialog" class="room-join-dialog" aria-labelledby="room-join-title">
         <form id="room-join-form" autocomplete="off">
           <h2 id="room-join-title">加入房間</h2>
@@ -1130,7 +1133,6 @@
         </div>
         <div class="launch-meta">
           <p id="session-launch-note" aria-live="polite"></p>
-          <button type="button" id="resume-practice" class="launch-resume" hidden>繼續上次</button>
         </div>
         <section class="layout-disclosure launch-settings" id="draw-settings" popover role="dialog" aria-labelledby="launch-settings-title" hidden>
           <div class="launch-settings-head">
@@ -1139,6 +1141,7 @@
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg>
             </button>
           </div>
+          <button type="button" id="launch-fresh" class="room-action launch-fresh" hidden>重新抽選</button>
         <section class="key-filter" aria-labelledby="key-filter-title">
           <div class="filter-heading">
             <h3 id="key-filter-title">已選調性</h3>
@@ -1239,7 +1242,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261124-055-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261124-056-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -4418,6 +4421,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
           }
           syncPracticeCards(session);
         }
+        updateSessionLaunch();
         if(historyChanged)renderHistory();
         return;
       }
@@ -4450,21 +4454,25 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     }
     // SESSION_LAUNCH_START
     let launchMode='random';
-    function validUnfinished(record){
+    function validSessionRecord(record){
       if(!record||!Array.isArray(record.majorIds)||!Array.isArray(record.minorIds))return false;
       const wellFormed=ids=>ids.every(i=>Number.isInteger(i)&&i>=0&&i<12)&&new Set(ids).size===ids.length;
-      if(!wellFormed(record.majorIds)||!wellFormed(record.minorIds))return false;
+      return wellFormed(record.majorIds)&&wellFormed(record.minorIds)&&record.majorIds.length+record.minorIds.length>0;
+    }
+    function validUnfinished(record){
+      if(!validSessionRecord(record))return false;
       const progress=historyProgress(record);
       return progress.total>0&&progress.count<progress.total;
     }
     function resumeCandidate(){
-      if(sharedRoom||replaySession)return null;
+      if(replaySession)return null; // Temporary rehearsal is not an unfinished saved session.
       const current=currentSession();
-      if(validUnfinished(current))return {record:current,current:true};
+      if(validSessionRecord(current))return validUnfinished(current)?{record:current,current:true}:null;
+      if(sharedRoom)return null;
       const previous=state.personalHistory.filter(record=>
-        typeof record?.id==='string'&&validUnfinished(record))
+        typeof record?.id==='string'&&validSessionRecord(record))
         .sort((a,b)=>(Number(b.drawnAt)||Number(b.createdAt)||0)-(Number(a.drawnAt)||Number(a.createdAt)||0))[0];
-      return previous?{record:previous,current:false}:null;
+      return validUnfinished(previous)?{record:previous,current:false}:null;
     }
     function setLaunchMode(mode){
       launchMode=mode==='sequential'?'sequential':'random';
@@ -4478,9 +4486,14 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       const launch=q('#session-launch');
       if(!launch)return;
       const resume=resumeCandidate(),options=visiblePreferences();
-      const button=q('#resume-practice'),draw=q('#draw-button'),message=q('#session-launch-note');
-      button.hidden=!resume;
-      draw.disabled=!canLaunch(launchMode,options);
+      const fresh=q('#launch-fresh'),draw=q('#draw-button'),caption=q('#draw-text'),message=q('#session-launch-note');
+      const available=canLaunch(launchMode,options),label=resume?'繼續上次':'開始練習';
+      fresh.hidden=!resume;
+      fresh.disabled=!available;
+      const freshLabel=launchMode==='sequential'?'重新開始':'重新抽選';
+      if(fresh.textContent!==freshLabel)fresh.textContent=freshLabel;
+      if(caption.textContent!==label)caption.textContent=label;
+      draw.disabled=!resume&&!available;
       launch.dataset.mode=launchMode;
       const counts=q('#launch-count-settings');
       if(counts)counts.hidden=launchMode==='sequential';
@@ -4488,6 +4501,14 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       if(warning)warning.hidden=launchMode==='sequential'||!warning.textContent;
       const selected='已選 '+eligible('major').length+' 個大調、'+eligible('minor').length+' 個小調（用齒輪調整）';
       if(message.textContent!==selected)message.textContent=selected;
+    }
+    function launchPractice(){
+      const resumeWasShown=q('#draw-text')?.textContent==='繼續上次';
+      refreshDate();
+      if(resumeCandidate()){resumePractice();return;}
+      // If a date or room update invalidated a visible resume, don't turn that click into a redraw.
+      if(resumeWasShown){updateSessionLaunch();return;}
+      startPractice();
     }
     function startPractice(mode=launchMode,historyHandled=false){
       refreshDate();
@@ -5295,7 +5316,6 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     q('#major-plus').addEventListener('click',()=>setCounts(visiblePreferences().majorCount+1,visiblePreferences().minorCount));
     q('#minor-minus').addEventListener('click',()=>setCounts(visiblePreferences().majorCount,visiblePreferences().minorCount-1));
     q('#minor-plus').addEventListener('click',()=>setCounts(visiblePreferences().majorCount,visiblePreferences().minorCount+1));
-    q('#resume-practice').addEventListener('click',resumePractice);
     let closedForPrint=null;
     window.addEventListener('beforeprint',()=>{
       if(closedForPrint)return;
@@ -5388,7 +5408,11 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       if(radio.checked)setLaunchMode(radio.value);
     }));
     launchMode=q('input[name="launch-mode"]:checked')?.value==='sequential'?'sequential':'random';
-    q('#draw-button').addEventListener('click',()=>startPractice());
+    q('#draw-button').addEventListener('click',launchPractice);
+    q('#launch-fresh').addEventListener('click',()=>{
+      showLaunchOptions(false,true);
+      startPractice();
+    });
     q('#history-unavailable-dismiss').addEventListener('click',()=>q('#history-unavailable-dialog').close());
     q('#filter-all').addEventListener('click',()=>updateExclusions([]));
     q('#filter-none').addEventListener('click',()=>updateExclusions([...MAJOR_KEYS.map((_,i)=>selectedId('major',i)),...MINOR_KEYS.map((_,i)=>selectedId('minor',i))]));
@@ -5421,7 +5445,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     render();
   </script>
   <script src="firebase-config.js?v=20261106-001"></script>
-  <script type="module" src="classroom.js?v=20261123-023"></script>
+  <script type="module" src="classroom.js?v=20261124-056"></script>
 <script>
 // AUDIO_TOOLS_START
 (function () {

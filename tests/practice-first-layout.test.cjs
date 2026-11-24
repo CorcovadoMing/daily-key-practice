@@ -5,7 +5,7 @@ const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
 const launch=html.split('// SESSION_LAUNCH_START')[1].split('// SESSION_LAUNCH_END')[0];
 const progress=html.slice(html.indexOf('    function historyProgress(record)'),html.indexOf('    function formatHistoryTime'));
 function scope(){
-  const nodes={'#session-launch':{dataset:{}},'#resume-practice':{},'#draw-button':{disabled:false},'#session-launch-note':{},'#resume-practice-note':{}};
+  const nodes={'#session-launch':{dataset:{}},'#launch-fresh':{},'#draw-text':{},'#draw-button':{disabled:false},'#session-launch-note':{}};
   const calls=[], dialogs=[];
   let pool=[1,2,3];
   const setPool=list=>{pool=list;};
@@ -24,7 +24,8 @@ function scope(){
 test('resume chooses validated unfinished work, otherwise reuse prior draw options',()=>{
   const {env,nodes,calls,setPool}=scope();
   env.updateSessionLaunch();
-  assert.equal(nodes['#resume-practice'].hidden,true);
+  assert.equal(nodes['#launch-fresh'].hidden,true);
+  assert.equal(nodes['#draw-text'].textContent,'開始練習');
   assert.match(nodes['#session-launch-note'].textContent,/已選 3 個大調、3 個小調（用齒輪調整）/);
   setPool([0]);
   env.updateSessionLaunch();
@@ -41,22 +42,28 @@ test('resume chooses validated unfinished work, otherwise reuse prior draw optio
   assert.deepEqual(calls,['sequential','random']);
   calls.length=0;
   env.session={majorIds:[1],minorIds:[3],doneIds:['major-1']};
-  env.updateSessionLaunch();env.resumePractice();
-  assert.equal(nodes['#resume-practice'].hidden,false);
+  setPool([]);env.updateSessionLaunch();env.launchPractice();
+  assert.equal(nodes['#launch-fresh'].hidden,false);
+  assert.equal(nodes['#launch-fresh'].disabled,true);
+  assert.equal(nodes['#draw-button'].disabled,false);
+  assert.equal(nodes['#draw-text'].textContent,'繼續上次');
   assert.deepEqual(calls,['minor-3']);
-  env.sharedRoom={id:'123456'};env.updateSessionLaunch();
-  assert.equal(nodes['#resume-practice'].hidden,true);
+  assert.equal(nodes['#launch-fresh'].textContent,'重新抽選');
+  env.setLaunchMode('sequential');
+  assert.equal(nodes['#launch-fresh'].textContent,'重新開始');
+  assert.deepEqual(calls,['minor-3']);
+  env.sharedRoom={id:'123456'};env.session=null;env.updateSessionLaunch();
+  assert.equal(nodes['#launch-fresh'].hidden,true);
+  assert.equal(nodes['#draw-text'].textContent,'開始練習');
 });
 test('prior resume preserves draft choice before replacing cards and starts first unfinished',()=>{
   const {env,calls,dialogs}=scope();
-  env.session={majorIds:[0],minorIds:[],doneIds:['major-0']};
   env.cardInstances.set('major-0',{opened:true,card:{}});
   env.state.personalHistory=[
     {id:'valid',majorIds:[1],minorIds:[3],doneIds:['major-1'],drawnAt:10},
-    {id:'malformed',majorIds:[1,1],minorIds:[],drawnAt:60},
-    {id:'complete',majorIds:[1],minorIds:[],doneIds:['major-1'],drawnAt:50}
+    {id:'malformed',majorIds:[1,1],minorIds:[],drawnAt:60}
   ];
-  env.resumePractice();
+  env.launchPractice();
   assert.equal(dialogs.length,1);
   assert.deepEqual(calls,[]);
   assert.equal(env.state.continuedSession,undefined);
@@ -64,7 +71,8 @@ test('prior resume preserves draft choice before replacing cards and starts firs
   assert.equal(env.state.continuedSession.historyId,'valid');
   assert.deepEqual(calls,['minor-3']);
 });
-test('classroom actions are directly available and other advanced controls retain their layouts',()=>{
+test('classroom actions are behind a closed disclosure and other advanced controls retain their layouts',()=>{
+  assert.match(html,/<details id="classroom-disclosure">\s*<summary>課堂同步<\/summary>/);
   assert.match(html,/<section[^>]+id="classroom-settings"[^>]*>[\s\S]*id="room-open-join"[\s\S]*id="room-create"[\s\S]*id="room-leave" hidden/);
   assert.match(html,/<details[^>]+id="history-settings"[^>]*>\s*<summary>/);
   assert.match(html,/<button[^>]+id="launch-options-toggle"[^>]+aria-controls="draw-settings"/);
@@ -110,4 +118,60 @@ test('launch is Start, gear, direct order chooser; gear has one count sentence a
   assert.doesNotMatch(html,/<nav class="session-shortcuts"|id="resume-practice-note"/);
   const panel=html.slice(html.indexOf('class="launch-count-sentence"'),html.indexOf('class="audio-tools"'));
   assert.match(panel,/抽取[\s\S]+id="major-minus"[\s\S]+id="major-count"[\s\S]+id="major-plus"[\s\S]+個大調、[\s\S]+id="minor-minus"[\s\S]+id="minor-count"[\s\S]+id="minor-plus"[\s\S]+個小調/);
+});
+
+test('engaged room resumes only its own pending list; personal history cannot leak into the room',()=>{
+ const {env,nodes,calls}=scope();
+ env.sharedRoom={id:'123456'};env.state.personalHistory=[{id:'personal',majorIds:[1],minorIds:[],doneIds:[]}];
+ env.session={majorIds:[1],minorIds:[3],doneIds:['major-1']};
+ env.updateSessionLaunch();env.launchPractice();
+ assert.equal(nodes['#draw-text'].textContent,'繼續上次');
+ assert.deepEqual(calls,['minor-3']);
+ env.session=null;env.updateSessionLaunch();env.launchPractice();
+ assert.equal(nodes['#draw-text'].textContent,'開始練習');
+ assert.deepEqual(calls,['minor-3','random']);
+});
+test('room visibility follows membership, not pending, preserves copy/exit while joining',()=>{
+ const classroom=fs.readFileSync(path.join(__dirname,'../classroom.js'),'utf8');
+ const update=classroom.slice(classroom.indexOf('function updateButtons()'),classroom.indexOf('function syncDigits()'));
+ const state={activeId:null,configured:true,joining:false,disclosure:{open:false,toggleAttribute(k,v){this[k]=v;}},roomCodeNumber:{}};
+ for(const k of ['createButton','openJoinButton','joinButton','joinCancel','joinInput','leaveButton','copyButton'])
+   state[k]={setAttribute(name,val){this[name]=val;}};
+ vm.runInNewContext(update,state);
+ state.updateButtons();
+ assert.equal(state.disclosure.open,false);assert.equal(state.disclosure['data-active'],false);
+ assert.equal(state.copyButton.hidden,true);assert.equal(state.leaveButton.hidden,true);
+ state.disclosure.open=true;state.joining=true;state.updateButtons();
+ assert.equal(state.disclosure['data-active'],false);assert.equal(state.openJoinButton.disabled,true);
+ state.disclosure.open=false;state.activeId='012345';state.updateButtons();
+ assert.equal(state.disclosure.open,true);assert.equal(state.disclosure['data-active'],true);
+ assert.equal(state.createButton.hidden,true);assert.equal(state.openJoinButton.hidden,true);
+ assert.equal(state.roomCodeNumber.textContent,'012345');
+ assert.equal(state.copyButton.hidden,false);assert.equal(state.leaveButton.hidden,false);
+ state.activeId=null;state.joining=false;state.updateButtons();
+ assert.equal(state.disclosure.open,true);assert.equal(state.disclosure['data-active'],false);
+ assert.equal(state.createButton.hidden,false);assert.equal(state.openJoinButton.hidden,false);
+ assert.equal(state.copyButton.hidden,true);assert.equal(state.leaveButton.hidden,true);
+});
+
+test('completed latest practice does not promote older progress; a stale resume click never redraws',()=>{
+ const {env,nodes,calls}=scope();
+ env.state.personalHistory=[{id:'old',majorIds:[1],minorIds:[],doneIds:[],drawnAt:10}];
+ env.session={majorIds:[1],minorIds:[],doneIds:['major-1']};env.updateSessionLaunch();
+ assert.equal(nodes['#draw-text'].textContent,'開始練習');
+ env.state.personalHistory.push({id:'recent',majorIds:[1],minorIds:[],doneIds:['major-1'],drawnAt:20});
+ env.session=null;env.updateSessionLaunch();
+ assert.equal(nodes['#draw-text'].textContent,'開始練習');
+ env.session={majorIds:[1],minorIds:[],doneIds:[]};env.replaySession=env.session;env.updateSessionLaunch();
+ assert.equal(nodes['#draw-text'].textContent,'開始練習');
+ env.replaySession=null;env.updateSessionLaunch();
+ assert.equal(nodes['#draw-text'].textContent,'繼續上次');
+ env.refreshDate=()=>{env.session=null;};env.launchPractice();
+ assert.deepEqual(calls,[]);
+ assert.equal(nodes['#draw-text'].textContent,'開始練習');
+});
+test('redraw sits before the scrollable options and room completion refreshes the primary label',()=>{
+ const section=html.slice(html.indexOf('id="draw-settings"'),html.indexOf('class="audio-tools"'));
+ assert.ok(section.indexOf('id="launch-fresh"')<section.indexOf('id="signature-filters"'));
+ assert.match(html,/syncPracticeCards\(session\);\s*}\s*updateSessionLaunch\(\);\s*if\(historyChanged\)/);
 });

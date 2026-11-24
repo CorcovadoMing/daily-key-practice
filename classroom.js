@@ -6,6 +6,7 @@
 const practice = window.DailyKeyPractice;
 const el = id => document.getElementById(id);
 const status = el('room-status');
+const disclosure = el('classroom-disclosure');
 const createButton = el('room-create');
 const openJoinButton = el('room-open-join');
 const joinDialog = el('room-join-dialog');
@@ -52,6 +53,10 @@ let draftWriteQueueArpeggio=Promise.resolve();
 function setStatus(message) { status.textContent = message; }
 function updateButtons() {
   const inRoom = Boolean(activeId);
+  if(disclosure) {
+    disclosure.toggleAttribute('data-active',inRoom);
+    if(inRoom) disclosure.open = true;
+  }
   createButton.hidden = openJoinButton.hidden = inRoom;
   copyButton.hidden = leaveButton.hidden = !inRoom;
   createButton.disabled = openJoinButton.disabled = !configured || joining;
@@ -350,7 +355,10 @@ async function joinRoom(id) {
   joining = true;
   const attempt = ++joinAttempt;
   if(joinDialog.open) setJoinStatus('正在加入…');
-  else setStatus('正在加入課堂房間…');
+  else {
+    if(disclosure) disclosure.open = true; // Direct invitation links also expose progress and errors.
+    setStatus('正在加入課堂房間…');
+  }
   updateButtons();
   try {
     const {ref:nextRef, data:roomData} = await readRoom(id);
