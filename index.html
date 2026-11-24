@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261124-052-experimental">
+  <meta name="site-version" content="20261124-053-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -567,6 +567,14 @@
     .cello-scale-score [data-practice=skipped] :is(.scale-stem,.scale-beam-local){stroke:var(--practice-red)}
     .cello-scale-score [data-practice=skipped] .scale-stem{stroke-width:2.2}
     .cello-scale-score [data-practice=detuned] ellipse{stroke-dasharray:1.5 1}
+    @media screen{
+      :root:not([data-appearance=dark]) .cello-scale-score [data-practice-band=center]{--score-status-stroke:#49784e}
+      :root:not([data-appearance=dark]) .cello-scale-score [data-practice-band=near]{--score-status-stroke:#8a6711}
+      :root:not([data-appearance=dark]) .cello-scale-score [data-practice-band=outside]{--score-status-stroke:#aa493a}
+      :root:not([data-appearance=dark]) .cello-scale-score [data-practice-band] .scale-stem,
+      :root:not([data-appearance=dark]) .cello-scale-score [data-practice-current=true] .scale-beam-local{stroke:var(--score-status-stroke)}
+      :root:not([data-appearance=dark]) .cello-scale-score [data-practice=skipped] :is(ellipse,.scale-stem,.scale-beam-local){stroke:#aa493a}
+    }
     @media print{
       .cello-scale-score [data-midi][data-practice-current] .scale-beam-local,.cello-scale-score [data-midi][data-practice-next] .scale-beam-local,.cello-scale-score [data-midi][data-practice=skipped] .scale-beam-local{stroke:none}
       .cello-scale-score [data-midi][data-practice] ellipse,.cello-scale-score [data-midi][data-practice-current] ellipse,.cello-scale-score [data-midi][data-practice-next] ellipse{fill:#222}
@@ -645,7 +653,7 @@
       :root[data-appearance=dark]{color-scheme:dark;--page:#16191d;--paper:#21252b;--ink:#eef1f5;--muted:#b9c3cf;--line:#515c69;--accent:#37414d;--accent-ink:#dce7f3;--minor:#3c414a;--minor-ink:#dbe3ed;--soft:#292e36;--shadow:none;--theme-high:#323a43;--theme-green:#b5e6bd;--theme-blue:#b9dcf7;--theme-gold:#ffe0a3;--theme-red:#ffb9ad}
       [data-appearance=dark] :is(.experiment-roadmap,.experiment-roadmap-items li,.classroom-bar,.key-filter,.counter-item,.room-code-display,.room-action,.room-join-line input,.practice-stat,.signature-card,.key-card,.key-group,.history-panel,.history-row,.history-choice-dialog,.practice-float,.finger-dialog,.cello-leave-dialog,.cello-scale-score,.cello-fb-direction,.teacher-fingerboard,.scale-practice-coach,.scale-pitch-chart,.student-note-dialog textarea){background:var(--paper);border-color:var(--line);color:var(--ink)}
       [data-appearance=dark] :is(.key-card.is-expanded,.music-exercise-block,.counter-list,.cello-inline-editor,.cello-fb-viewport,.teacher-fb-scroll,.teacher-memo,.room-join-form,.ordered-practice,.history-chip,.scale-practice-action,.scale-pitch-track){background:var(--soft);border-color:var(--line);color:var(--ink)}
-      [data-appearance=dark] :is(.scale-pitch-slot:nth-child(even) .scale-pitch-track,.scale-pitch-slot:last-child .scale-pitch-track){border-color:var(--line)}
+      [data-appearance=dark] :is(.scale-pitch-track,.scale-pitch-slot:nth-child(even) .scale-pitch-track,.scale-pitch-slot:last-child .scale-pitch-track){border-color:#73859a}
       [data-appearance=dark] :is(.result-summary,.key-card.done,.cello-fb-group,.cello-fb-legend,.fingering-note,.teacher-note-status,.online-count,.history-empty,.empty-graphic){background:var(--soft);color:var(--ink);border-color:var(--line)}
       [data-appearance=dark] :is(button,select,input:not([type=range]):not([type=checkbox]),textarea){color:var(--ink);border-color:var(--line)}
       [data-appearance=dark] :is(.room-action,.icon-button,.stepper button,.filter-all,.filter-key,.show-scales,.history-replay,.history-delete,.practice-jump,.practice-quick-list button,.cello-fb-button,.cello-inline-editor button,.teacher-tools button,.student-note-button,.scale-practice button,.scale-practice select,.audio-tools button,.audio-tools input,.audio-tools select){background:var(--theme-high);border-color:#6d7a8a;color:var(--ink)}
@@ -666,6 +674,16 @@
       [data-appearance=dark] .cello-legend-dot.open{background:var(--soft)!important;border-color:#b4c1d0}
       [data-appearance=dark] .cello-fb-svg circle[fill="#f7f9f6"][stroke="#34483a"]{stroke:#b4c1d0}
       [data-appearance=dark] .scale-pitch-slot:nth-child(even) .scale-pitch-track{background:var(--paper)}
+      /* Slot buttons cover the plot for touch/keyboard access. Never give
+         those transparent hit targets the general dark button background. */
+      [data-appearance=dark] .scale-pitch-chart .scale-pitch-select{background:transparent;border-color:transparent}
+      [data-appearance=dark] .scale-pitch-chart .scale-pitch-select:focus-visible{outline-color:var(--ui-focus,#adcdf1)}
+      [data-appearance=dark] .scale-pitch-chart :is(.scale-pitch-axis,.scale-pitch-name,.scale-pitch-cents:not([data-band]),.scale-pitch-cents[data-band=""]){color:var(--ink)}
+      [data-appearance=dark] .scale-pitch-slot :is(.scale-pitch-history-dot){opacity:max(.48,var(--past-opacity,.48))}
+      [data-appearance=dark] .scale-pitch-trend :is(.scale-pitch-time-info,text){color:var(--ink);fill:var(--ink)}
+      [data-appearance=dark] .scale-pitch-trend .trend-guide{stroke:#73859a}
+      [data-appearance=dark] .scale-pitch-trend .trend-line{stroke-width:2.2}
+      [data-appearance=dark] .scale-pitch-trend .trend-selection{opacity:.23}
       [data-appearance=dark] .scale-pitch-track::before{border-color:#a3b1c3}
       [data-appearance=dark] :is(.experiment-roadmap,.experiment-roadmap-heading span,.experiment-roadmap-scope,.experiment-roadmap-items small,.intro .eyebrow,h1 em,.classroom-bar p,.room-status,.room-join-form label,.online-count,.code-caption,.section-number,.filter-explain,.filter-status,.filter-subhead,.counter-desc,.control-note,.key-secondary,.key-relative,.signature-label,.history-date,.history-empty,.practice-float-title,.fingering-title,.fingering-remark,.cello-fb-caption,.cello-fb-direction-heading,.cello-legend-note,.teacher-open-label,.teacher-finger-label,.teacher-editor-help,.scale-practice-status,.scale-practice-latest,.scale-pitch-title,.scale-pitch-slot,.scale-pitch-legend,.audio-scale,.a4-control span,.tuner-readout #tuner-cents){color:var(--muted)}
       [data-appearance=dark] :is(.filter-key.minor,.history-chip.minor){background:var(--minor);color:var(--minor-ink)}
@@ -701,6 +719,27 @@
       [data-appearance=dark] .cello-fb-svg :is([stroke="#34483a"],[stroke="#a8b9aa"],[stroke="#e3eae2"]){stroke:#8494a8}
       [data-appearance=dark] .cello-fb-svg :is([fill="#273c2e"],[fill="#34483a"],[fill="#34513d"],[fill="#889a8e"]){fill:var(--ink)}
       [data-appearance=dark] .cello-fb-svg [stroke="#273c2e"]{stroke:var(--ink)}
+      /* Keep ink roles readable without overriding score feedback or printed ink. */
+      [data-appearance=dark] .cello-scale-score .scale-key-signature [stroke="#222"]{stroke:var(--ink)}
+      [data-appearance=dark] .cello-scale-score [data-practice=skipped] ellipse{fill:var(--practice-red);stroke:var(--practice-red)}
+      [data-appearance=dark] .cello-scale-score [data-practice=skipped] :is(.scale-stem,.scale-beam-local){stroke:var(--practice-red)}
+      [data-appearance=dark] .cello-fb-svg [fill="#edf1ed"]{fill:#34413f}
+      [data-appearance=dark] .cello-fb-svg [stroke="#8fa69a"]{stroke:#b5cbbf}
+      [data-appearance=dark] .cello-fb-svg :is([fill="#648072"],[fill="#6e8c7b"]){fill:#e4f2e9}
+      [data-appearance=dark] .cello-fb-svg [fill="#bd3c6b"]{fill:#ffabc7}
+      [data-appearance=dark] .cello-fb-svg [stroke="#ce5078"]{stroke:#f69abd}
+      [data-appearance=dark] .cello-fb-svg [stroke="#5773b4"]{stroke:#a7beff}
+      [data-appearance=dark] .cello-fb-svg [stroke="#d28747"],
+      [data-appearance=dark] .cello-fb-note:focus-visible circle:first-of-type{stroke:#ffd298}
+      [data-appearance=dark] .cello-fb-alt circle:first-of-type{fill:#273e33;stroke:#a9dfb3}
+      [data-appearance=dark] .cello-fb-alt:is(:hover,:focus-visible) circle:first-of-type{fill:#385244;stroke:#d9f7df}
+      [data-appearance=dark] .cello-fb-alt text{fill:#d9f7df}
+      [data-appearance=dark] .scale-practice-slur-controls .scale-practice-slur-option[aria-pressed=true]{
+        background:#445970;color:#eff5fd;border-color:#aec3dc
+      }
+      [data-appearance=dark] :is(.scale-practice-choice,.scale-practice-detector,.tuner-detector-control) input:checked+span{
+        background:#445970;color:#eff5fd;border-color:#aec3dc
+      }
       [data-appearance=dark] .scale-pitch-track [data-band=center]{--practice-ink:var(--theme-green)}
       [data-appearance=dark] .scale-pitch-track [data-band=near]{--practice-ink:var(--theme-gold)}
       [data-appearance=dark] .scale-pitch-track [data-band=outside]{--practice-ink:var(--theme-red)}
@@ -1177,7 +1216,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261124-052-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261124-053-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
