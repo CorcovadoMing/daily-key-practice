@@ -114,7 +114,7 @@ test('legacy and corrupted optional payloads use only signed saved downward note
  a.match(g.advise(),/下行：D，偏低/);
  a.doesNotMatch(g.advise(),/無關資料|換弦|反覆|[0-9]／[0-9]/);
  delete old.advice;cache[k]=JSON.stringify(old);
- a.match(setup(cache).advise(),/一次讀數/);
+ a.doesNotMatch(setup(cache).advise(),/這是一次讀數/);
  cache[k]=JSON.stringify({...old,id:'replacement'});
  a.equal(g.advise().trim(),'');a.equal(g.panel.hidden,true);
  delete cache[k];
@@ -134,7 +134,7 @@ test('quota fallback keeps measured chart if optional advice does not fit',async
  const snapshot=JSON.parse(cache[latestKey(cache)]);
  a.equal(snapshot.advice,undefined);a.equal(snapshot.values[0],-21);
  const g=setup(cache);
- a.match(g.advise(),/上次量到.*上行：C，偏低.*一次讀數/);
+ a.match(g.advise(),/上次量到.*上行：C，偏低.*調音器/);
 });
 test('reload at a completed loop checkpoint restores its same-lap advice without restarting the microphone',async()=>{
  const cache={},f=setup(cache);
@@ -230,7 +230,7 @@ test('v1 advice is not replayed, valid chart remains and old open pitch wording 
  saved.advice={...saved.advice,v:1,action:'把空弦手指往琴橋移。'};
  cache[k]=JSON.stringify(saved);
  const reopened=setup(cache).advise();
- a.match(reopened,/上次量到的音：上行：C，偏低.*如果當時是用 C 空弦拉.*相同 A4.*若是按弦，照原指法重測/);
+ a.match(reopened,/上次量到的音：上行：C，偏低.*如果這個音用 C 空弦拉.*相同 A4.*確定偏高或偏低再調弦/);
  a.doesNotMatch(reopened,/空弦手指|上次保留的建議/);
 });
 
@@ -294,4 +294,70 @@ test('actual advice button compares a measured healthier next take to the prior 
  a.equal(f.advise(),changed);
  const reopened=setup(cache);
  a.doesNotMatch(reopened.advise(),/跟上次比較/); // no reconstructed baseline from a draft
+});
+
+test('real restored legacy report replaces the reported stale copy with the written downward pair and preparation note',async()=>{
+ const cache={},f=setup(cache);
+ await f.press();f.ready();f.play(f.target[0],-25);await f.press();
+ const key=latestKey(cache),old=JSON.parse(cache[key]);
+ old.values=old.values.map((_,i)=>i===old.values.length-1?-22:null);
+ old.advice={v:3,draftId:old.id,mode:old.mode,issues:['上次量到的音：下行：C，偏低。這是一次讀數。'],
+  drills:['先把這個音單獨慢拉成長音，停一下再拉一弓。']};
+ cache[key]=JSON.stringify(old);
+ const text=setup(cache).advise();
+ a.match(text,/下行：C，偏低.*如果這個音用 C 空弦拉.*照目前指板試練.*D → C.*慢慢連拉幾次.*E → D → C/);
+ a.doesNotMatch(text,/這是一次讀數|單獨慢拉成長音|D 也偏|手指要拉開/);
+ const unknown=setup(cache);unknown.setPlan(null);
+ a.match(unknown.advise(),/D → C.*E → D → C/);
+ a.doesNotMatch(unknown.advise(),/照目前指板|弦上的|手指.*落點/);
+});
+
+test('fresh isolated-note observation adds the written predecessor without claiming it was measured; turns do not bridge',()=>{
+ const f=setup({});
+ const {slots}=f.startPlan;
+ const values=slots.map((_,i)=>i===11?-25:null);
+ const pitch=f.planSuggestion({...f.startPlan,reference:443,detector:'SwiftF0',rounds:[{id:1,values},{id:2,values}]});
+ a.match(pitch.observation,/上行：D 弦上的 G 反覆偏低/);
+ a.match(pitch.action,/F → G.*E → F → G/);
+ a.doesNotMatch(pitch.action,/留寬一點|往琴橋/);
+ const tail=slots.map((_,i)=>i===15?-25:null);
+ const boundary=f.planSuggestion({restored:true,slots,values:tail,currentPlan:f.startPlan});
+ a.doesNotMatch(boundary.action,/C → B|循環|前一輪/);
+});
+
+test('a verified current crossing can guide the next drill, without asserting that it caused the historical pitch',()=>{
+ const f=setup({});
+ const route=f.fb.visiblePlan('major',key,{upMap:'{"55":{"s":1,"f":3}}'});
+ const values=f.target.map((_,i)=>i===11?-24:null);
+ const info=f.planSuggestion({restored:true,slots:f.target,values,currentPlan:route});
+ a.match(info.observation,/上行：G，偏低/);
+ a.doesNotMatch(info.observation,/換弦|指板|F|弦上的/);
+ a.match(info.action,/照目前指板試練.*換弓時平順到 G 弦.*準備好 3 指.*D 弦上的 F → G 弦上的 G.*E → F → G/);
+ const both=f.target.map((_,i)=>i===10?0:i===11?-24:null);
+ const spacing=f.planSuggestion({restored:true,slots:f.target,values:both,currentPlan:f.startPlan});
+ a.match(spacing.action,/照目前指板試練.*G 的 4 指落點往琴橋.*距離留寬.*不要硬撐/);
+ const equallyFlat=f.target.map((_,i)=>i===10||i===11?-24:null);
+ a.doesNotMatch(f.planSuggestion({restored:true,slots:f.target,values:equallyFlat,currentPlan:f.startPlan}).action,/留寬一點/);
+});
+
+test('a confirmed shift in today’s same-string plan offers arrival prep rather than stretching',()=>{
+ const f=setup({});
+ const currentPlan={...f.startPlan,slots:f.startPlan.slots.map((s,i)=>i===11?{...s,edge:{from:10,reviewed:true,shift:true}}:s)};
+ const values=f.target.map((_,i)=>i===10?0:i===11?-25:null);
+ const got=f.planSuggestion({restored:true,slots:f.target,values,currentPlan});
+ a.match(got.action,/照目前指板試練.*換把.*手移到 G 的落點.*F → G.*E → F → G/);
+ a.doesNotMatch(got.action,/兩指的距離|往琴橋/);
+ a.doesNotMatch(got.observation,/換把|指板/);
+});
+
+
+test('a stopped note in today’s confirmed route does not become an open string merely from its pitch',()=>{
+ const f=setup({});
+ const currentPlan=f.fb.visiblePlan('major',key,{upMap:'{"43":{"s":0,"f":4}}'});
+ const values=f.target.map((_,i)=>i===4?-25:null);
+ const route=f.planSuggestion({restored:true,slots:f.target,values,currentPlan});
+ a.match(route.action,/照目前指板試練.*C 弦上的 F → G/);
+ a.doesNotMatch(route.action,/空弦|調音器/);
+ const unresolved=f.planSuggestion({restored:true,slots:f.target,values});
+ a.match(unresolved.action,/如果這個音用 G 空弦拉.*調音器/);
 });
