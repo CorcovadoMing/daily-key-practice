@@ -44,11 +44,11 @@ test('appearance keeps light default, persists manual choice, follows system onl
   assert.match(html,/@media screen\{\s*:root\[data-appearance=dark\]/);
 });
 
-function app(store=memory(), search='', response) {
+function app(store=memory(), search='?aiCoach=1', response) {
   const events={},docEvents={};
   const document={hidden:false,createElement:()=>new Node(),querySelectorAll:()=>[],addEventListener(name,run){docEvents[name]=run;}};
   const window={};
-  const env=vm.createContext({document,window,addEventListener(name,run){events[name]=run;},performance,setInterval,clearInterval,localStorage:store,URLSearchParams,location:{pathname:'/experimental/',search}});
+  const env=vm.createContext({document,window,addEventListener(name,run){events[name]=run;},performance,setInterval,clearInterval,localStorage:store,URLSearchParams,location:{pathname:'/experimental/',hostname:'localhost',search}});
   vm.runInContext(fingerboard,env);
   vm.runInContext(code('PRACTICE_COACH'),env);
   vm.runInContext(code('SCALE_PRACTICE'),env);
@@ -100,7 +100,7 @@ test('actual arpeggio manager/card reveals its own measured coaching only after 
 
   assert.match(coachOutput(panel),/停弓一拍.*起音是否平順.*智慧.*A4 442/);
   assert.equal(panel.find('scale-practice-coach-steps').children.length,2);
-  const reloaded=app(p.store,'');
+  const reloaded=app(p.store,'?aiCoach=1');
   const restored=reloaded.card('arpeggio');
   assert.equal(reloaded.card('scale').element.find('scale-practice-coach').hidden,true);
   assert.equal(restored.element.find('scale-practice-coach').hidden,false,'latest exact arpeggio draft restores advice');
@@ -123,7 +123,7 @@ test('actual arpeggio manager/card reveals its own measured coaching only after 
 });
 
 test('experimental page has no coach setting and does not run it before an explicit ask',()=>{
-  const p=app(memory(),'');
+  const p=app(memory(),'?aiCoach=1');
   assert.equal(p.card('arpeggio').element.find('scale-practice-coach').hidden,true);
   assert.equal(p.card('scale').element.find('scale-practice-coach').hidden,true);
   assert.equal(p.requested,undefined);
@@ -133,7 +133,7 @@ test('experimental page has no coach setting and does not run it before an expli
 test('the model retries once under the same action after the natural context boundary', async()=>{
  for(const kind of ['scale','arpeggio']){
   const calls=[];
-  const p=app(memory(),'',(options,_progress,config)=>{
+  const p=app(memory(),'?aiCoach=1',(options,_progress,config)=>{
    calls.push(config);return config.direct?{advice:{steps:['這個音各拉兩拍，重複三次。'],check:'再拉一次，聽起音是否清楚。'}}:{reason:'context'};
   });
   const view=p.card(kind),panel=view.element.find('scale-practice-coach');
@@ -154,7 +154,7 @@ test('the model retries once under the same action after the natural context bou
 });
 test('typing bubble reflects inference rather than downloads and is removed on an error',async()=>{
  let report, done;
- const p=app(memory(),'',(_options,progress)=>{
+ const p=app(memory(),'?aiCoach=1',(_options,progress)=>{
   report=progress;
   return new Promise(resolve=>{done=resolve;});
  });
@@ -181,7 +181,7 @@ test('typing bubble reflects inference rather than downloads and is removed on a
 test('after recording nothing, the only coach action sends synthetic facts and needs a model selection',async()=>{
  for(const kind of ['scale','arpeggio']){
   let selected=true;
-  const p=app(memory(),'',(options,_progress,config)=>{
+  const p=app(memory(),'?aiCoach=1',(options,_progress,config)=>{
    assert.equal(options.measured,0);
    assert.match(options.report,/沒有辨識到可用音符/);
    return selected ? {advice:{steps:['先開調音器，拉第一個譜音兩秒。'],check:'確認畫面出現音名，再回到練習。'}} : {reason:'unsupported'};
@@ -211,7 +211,7 @@ test('both real off-format examples and a truncated response stay literal and ne
  ];
  for(const [i,raw] of raws.entries()){
   let calls=0;
-  const p=app(memory(),'',()=>{calls++;return {raw,reason:i===2?'context':'invalid',partial:i===2};});
+  const p=app(memory(),'?aiCoach=1',()=>{calls++;return {raw,reason:i===2?'context':'invalid',partial:i===2};});
   const view=p.card('scale'),panel=view.element.find('scale-practice-coach');
   await p.start(view);p.play(36);await p.stop(view);
   await panel.find('scale-practice-coach-action').handlers.click();
@@ -226,7 +226,7 @@ test('both real off-format examples and a truncated response stay literal and ne
 test('pending coach survives app hide/show and cached pagehide, but not a real page exit',async()=>{
  let finish;
  const raw='練法：先分弓把兩音拉清楚。\n重測：聽音與音交接有沒有變順。';
- const p=app(memory(),'',()=>new Promise(resolve=>{finish=resolve;}));
+ const p=app(memory(),'?aiCoach=1',()=>new Promise(resolve=>{finish=resolve;}));
  const view=p.card('scale'),panel=view.element.find('scale-practice-coach');
  await p.start(view);p.play(36);await p.stop(view);
  const answer=panel.find('scale-practice-coach-action').handlers.click();

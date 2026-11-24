@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261123-039-experimental">
+  <meta name="site-version" content="20261124-040-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -532,6 +532,8 @@
     .scale-practice-coach-raw:empty{display:none}
     .scale-practice-coach-raw summary{min-height:44px;display:list-item;line-height:44px;cursor:pointer}
     .scale-practice-coach-raw pre{white-space:pre-wrap;overflow-wrap:anywhere;overflow:auto;max-height:16rem;margin:4px 0 0;padding:8px 10px;background:var(--soft);color:var(--ink);border-radius:8px;font:inherit;line-height:1.55}
+    .scale-practice-local-coach{box-sizing:border-box;max-width:100%;overflow-wrap:anywhere}
+    .scale-practice-local-coach button{max-width:100%}
     .scale-practice-coach-tip h4{font-size:1rem;margin:.85rem 0 .2rem;line-height:1.35}
     .scale-practice-coach-steps{font-size:.9375rem;line-height:1.55;margin:.25rem 0;padding-inline-start:1.5rem}
     .scale-practice-coach-tip .scale-practice-coach-context{color:var(--muted)}
@@ -1084,7 +1086,7 @@
     <select id="appearance-choice">
       <option value="light">淺色</option><option value="dark">深色</option><option value="system">跟隨系統</option>
     </select>
-  </label><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261123-039-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  </label><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261124-040-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -2079,6 +2081,101 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     return details;
   }
 
+  // Only this take's accepted, same-lap score evidence enters the rule.
+  // Printed/confirmed plans are assumptions, never physical measurements.
+  function planSuggestion(packet) {
+    const missing=(observation)=>({kind:'insufficient',observation});
+    if(packet?.restored)return missing('上次只保留音準結果，不能用現在的指板回推當時的指法。');
+    if(!packet?.rounds?.length)return missing(packet?.measured?
+      '本次沒有可核對的指板路線，資料不足，先不判斷固定模式。':
+      '這次沒有辨識到可用音符。先拉清楚一個譜音，等音準圖出現一點再試。');
+    const {slots,rounds}=packet;
+    const finite=c=>Number.isFinite(c)&&Math.abs(c)<=50+1e-7;
+    const known=p=>p?.reviewed===true&&typeof p.string==='string'&&p.string!=='';
+    const signed=c=>centsText(c);
+    const position=(i)=>{
+      const note=slots[i];
+      const label=note?.name&&Number.isInteger(note.octave)?note.name+note.octave+'，':'';
+      return label+(note.direction==='down'?'下行':'上行')+'第 '+(i+1)+' 音';
+    };
+    const unique=new Map();
+    for(const r of rounds){
+      if(r?.id!=null&&Array.isArray(r.values)&&r.values.length===slots.length)unique.set(r.id,unique.has(r.id)?null:r.values);
+    }
+    const values=[...unique.values()].filter(Boolean);
+    function pattern(samples) {
+      if(samples.length<2)return null;
+      const polarity=[1,-1].map(sign=>[sign,samples.filter(x=>x*sign>10+1e-7).length]).sort((a,b)=>b[1]-a[1])[0];
+      const [sign,hits]=polarity;
+      if(hits<2||hits*3<2*samples.length)return null;
+      const all=samples.slice().sort((a,b)=>a-b), k=Math.floor(all.length/2);
+      const median=all.length%2?all[k]:(all[k-1]+all[k])/2;
+      return {sign,hits,median,n:samples.length};
+    }
+    const edgeCandidates=[], noteCandidates=[];
+    for(let i=0;i<slots.length;i++){
+      const to=slots[i], from=slots[i-1];
+      const bias=pattern(values.map(row=>row[i]).filter(finite));
+      if(bias)noteCandidates.push({type:'note',i,...bias});
+      if(!from||from.direction!==to.direction||from.midi===to.midi)continue;
+      const edges=values.filter(row=>finite(row[i-1])&&finite(row[i]));
+      const landing=pattern(edges.map(row=>row[i]));
+      const x=from.plan,y=to.plan;
+      const confirmedPlan=packet.source==='confirmed/visible plan'&&known(x)&&known(y);
+      if(confirmedPlan&&x.string!==y.string&&landing)edgeCandidates.push({type:'crossing',i,...landing});
+      if(confirmedPlan&&x.string===y.string&&x.fingersReviewed&&y.fingersReviewed&&
+         ((x.finger===2&&y.finger===3)||(x.finger===3&&y.finger===2))){
+        const relative=pattern(edges.map(row=>Math.sign(to.midi-from.midi)*(row[i]-row[i-1])));
+        if(relative)edgeCandidates.push({type:'fingers',i,...relative});
+      }
+      if(confirmedPlan&&landing&&to.edge?.reviewed===true&&to.edge.from===i-1&&(to.edge.shift||to.edge.extension)){
+        edgeCandidates.push({type:to.edge.shift?'shift':'extension',i,...landing});
+      }
+    }
+    const byEvidence=(a,b)=>b.hits-a.hits || Math.abs(b.median)-Math.abs(a.median) || a.i-b.i;
+    const selected=edgeCandidates.sort(byEvidence)[0] || noteCandidates.sort(byEvidence)[0];
+    if(!selected)return missing('目前沒有足夠資料顯示同一譜位反覆偏高、偏低，或相鄰音反覆偏窄、偏寬。先照原譜慢練，再觀察兩輪。');
+    const {type,i,sign,hits,n,median}=selected;
+    const at=position(i), landing=sign<0?'偏低':'偏高';
+    const counted=hits+'／'+n+' 輪';
+    const settings=packet.reference&&packet.detector?'請用同一偵測方式、A4 '+packet.reference+' Hz。':'請沿用原設定。';
+    if(type==='note')return {kind:type,
+      observation:at+'，'+counted+'朝同一側'+landing+'，中位數 '+signed(median)+'。',
+      action:'把這個音單獨拉成長音，停一下再重拉；先放慢，不急著接下一音。',
+      check:'再用原譜回到同一格，比較該格是否更接近零線。'+settings};
+    const pair=position(i-1)+' → '+at;
+    if(type==='fingers'){
+      const width=sign<0?'偏窄':'偏寬', fingers=slots[i-1].plan.finger+'→'+slots[i].plan.finger;
+      return {kind:type,observation:'照這次指板，同弦 '+fingers+'（'+pair+'），兩音都量到的 '+counted+'音程'+width+'；中位差 '+signed(median)+'。',
+        action:'先分開慢拉這兩音，各自起弓、各自聽準，再接在一起。',
+        check:'用原譜重拉兩格，比較兩格音分的差是否更接近零，不只看第二音。'+settings};
+    }
+    const transition=type==='crossing'?'換弦 '+slots[i-1].plan.string+'→'+slots[i].plan.string:type==='shift'?'換把提示':'伸指提示';
+    return {kind:type,observation:'照這次指板，'+transition+'（'+pair+'）；兩音都量到的 '+counted+'，第二音'+landing+'，中位數 '+signed(median)+'。',
+      action:type==='crossing'&&slots[i].plan.finger===0
+        ? '先單獨拉目標空弦，確認它的音準；再把兩音分弓、放慢換過去。'
+        : '先每音分開慢拉，在兩音之間停一下、準備下一音，再用同一段連續重拉。',
+      check:'再拉同一段，看看換到的那一格是否更接近零線。'+settings};
+  }
+
+  function acceptedPlanRound(target,heard,alignment,id){
+    const values=Array(target.length).fill(null);
+    for(const pair of alignment.pairs){
+      const event=heard[pair.heard];
+      if(!event?.carriedPlanTonic)values[pair.expected]=event?.cents ?? null;
+    }
+    return {id,values};
+  }
+  function capturedVisiblePlan(view){
+    if(typeof view.snapshotVisiblePlan!=='function')return null;
+    try{
+      const pin=view.snapshotVisiblePlan();
+      if(pin?.source!=='confirmed/visible plan'||pin.slots?.length!==view.target.length||
+         pin.slots.some((slot,i)=>slot.midi!==view.target[i].midi))return null;
+      return JSON.parse(JSON.stringify(pin));
+    }catch{return null;}
+  }
+
   function manager(env, hooks) {
     let active = null;
     const idleMessage = '連續 2 分鐘未對上下一個譜音，已自動停止收音。';
@@ -2098,7 +2195,14 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       }
       const trend=grade&&session.trend?{...session.trend.snapshot(),reference:session.reference}:null;
       const coachResult = grade && values?.some(Number.isFinite) ? {engine:session.engine, reference:session.reference} : null;
-      const display = result || laps ? {values, chartValues:values, attemptHistory, coachResult, trend, coachNoEvidence:grade && !coachResult,
+      let planDiagnostics;
+      if(grade&&session.visiblePlan){
+        const partial=result&&result.pairs.length?acceptedPlanRound(view.target,heard,result,laps+1):null;
+        const rounds=partial?[...session.planRounds,partial].slice(-8):session.planRounds;
+        // Optional/private hook: never fed into Qwen or persisted.
+        planDiagnostics={...session.visiblePlan,rounds,reference:session.reference,detector:session.engine};
+      }
+      const display = result || laps ? {values, chartValues:values, attemptHistory, coachResult, trend, planDiagnostics, coachNoEvidence:grade && !coachResult,
         history:result ? history : session.beforeLastHistory, mode, laps, passed, final:true} : undefined;
       view.update('idle', message, result, 0, session.reference, display);
     }
@@ -2125,7 +2229,8 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       const route = swiftSelected ? hooks.swiftCapture : hooks.capture;
       if (coachService?.isBusy()) coachService.cancel();
       const session = {view, engine:swiftSelected?'SwiftF0':'現有偵測', stage:'pending', heard:[], heardCount:0, mode, laps:0, passed:0,
-        history:mode === 'loop' ? emptyHistory(view.target.length) : undefined};
+        visiblePlan:capturedVisiblePlan(view)??{source:'score only',revision:null,slots:view.target.map((p,i)=>
+          ({midi:p.midi,name:p.name,octave:p.octave,direction:i<=(view.target.length-1)/2?'up':'down'}))},planRounds:[],history:mode === 'loop' ? emptyHistory(view.target.length) : undefined};
       active = session;
       view.update('pending', swiftSelected ? '正在準備智慧偵測與麥克風…' : null, null, 0, undefined, {mode});
       if (!route) {
@@ -2210,9 +2315,13 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
                 session.laps++;
                 if (boundary.complete) session.passed++;
                 session.lastValues = scoreValues(view.target, session.heard, boundary);
+                if(session.visiblePlan){
+                  session.planRounds.push(acceptedPlanRound(view.target,session.heard,boundary,session.laps));
+                  if(session.planRounds.length>8)session.planRounds.shift();
+                }
                 session.beforeLastHistory = session.history;
                 session.history = addHistory(session.history, session.lastValues);
-                session.heard = [{...event,firstEligibleSlot:0,lastEligibleSlot:0}];
+                session.heard = [{...event,firstEligibleSlot:0,lastEligibleSlot:0,carriedPlanTonic:true}];
                 session.heardCount = 1;
                 values = Array(view.target.length).fill(null);
                 values[0] = event.cents;
@@ -2354,7 +2463,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     return {element:chart, update};
   }
 
-  function card(score, target, toggle, kind = 'scale', scope = null) {
+  function card(score, target, toggle, kind = 'scale', scope = null, snapshotVisiblePlan = null) {
     const name = kind === 'arpeggio' ? '琶音' : '音階';
     const element = document.createElement('div');
     element.className = 'scale-practice';
@@ -2541,7 +2650,36 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       historyButtons.append(merge,look,historyStatus);
     }
     const coachAPI = globalThis.CelloPracticeCoach;
-    const coachVisible = coachAPI?.enabled(globalThis);
+    const experimental=coachAPI?.enabled(globalThis);
+    const coachVisible=experimental&&['localhost','127.0.0.1','[::1]'].includes(globalThis.location?.hostname)&&new URLSearchParams(globalThis.location?.search||'').get('aiCoach')==='1';
+    const localCoach=experimental&&!coachVisible?document.createElement('section'):null;
+    let localAttempt=null;
+    if(localCoach){
+      localCoach.className='scale-practice-coach scale-practice-local-coach';
+      localCoach.hidden=true;
+      localCoach.setAttribute('aria-label','練習建議');
+      const make=(tag,cls,content)=>{
+        const node=document.createElement(tag);node.className=cls;node.textContent=content;return node;
+      };
+      const action=make('button','scale-practice-coach-action','練習建議');action.type='button';
+      const body=make('div','scale-practice-coach-tip','');body.setAttribute('role','status');
+      localCoach.append(action,body);
+      localCoach.reset=(packet,show)=>{
+        localAttempt=packet;
+        localCoach.hidden=!show;
+        body.textContent='';
+      };
+      action.addEventListener('click',()=>{
+        if(localCoach.hidden)return;
+        const suggestion=planSuggestion(localAttempt);
+        body.textContent='';
+        body.append(make('p','scale-practice-coach-observation',suggestion.observation));
+        if(suggestion.action){
+          body.append(make('h4','','可以這樣練'),make('p','',suggestion.action),
+            make('h4','','再拉一次'),make('p','',suggestion.check));
+        }
+      });
+    }
     let coachPanel, coachAction, coachTyping, coachStatus, coachTime, coachTip, coachRaw, coachNotice,coachInput, coachAttempt, coachBusy=false, coachTicket=0;
     if (coachVisible) {
       const mk=(tag,klass,text)=>{
@@ -2672,7 +2810,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     const noteHeads = [...score.querySelectorAll('[data-midi]')];
     let chart = null, trendDisclosure = null, phase = null, previous = 0, previousLap = 0, currentNote = null, awaiting = null, scoreFollow = null;
     const label = (note, index) => note.name + note.octave + (index <= (target.length - 1) / 2 ? '↑' : '↓');
-    const view = {element, target, get mode() { return preference(); }, get detector() { return detectorValue; },
+    const view = {element, target, snapshotVisiblePlan, get mode() { return preference(); }, get detector() { return detectorValue; },
       update(next, message, result, progress = 0, reference = 442, display) {
       if (historyButtons && next === 'idle' && !display?.restored && !display?.attemptHistory &&
           (!result || !display?.values?.some(Number.isFinite)) && ownsDraft()) {
@@ -2791,6 +2929,14 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         }
         refreshHistoryActions();
       }
+      if(localCoach){
+        if(next==='pending')localCoach.reset(null,false);
+        else if(next==='idle' && (display?.final || display?.coachNoEvidence)){
+          const measured=!display.coachNoEvidence&&display.values?.some(Number.isFinite);
+          const packet=display.planDiagnostics??{measured,restored:Boolean(display.restored&&!display.coachNoEvidence)};
+          localCoach.reset(packet,true);
+        }
+      }
       if (coachPanel) {
         if(next==='pending') {
           coachTicket++;coachAttempt=null;coachPanel.hidden=true;coachInput.open=false;
@@ -2873,7 +3019,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       // of chart nodes for cards where listening has not been used.
       if (!chart && (next !== 'idle' || display?.final)) {
         chart = pitchChart(target, name);
-        const afterChart=historyButtons || coachPanel || savedChart?.element;
+        const afterChart=historyButtons || localCoach || coachPanel || savedChart?.element;
         if (afterChart) element.insertBefore(chart.element,afterChart);
         else element.append(chart.element);
       }
@@ -2881,7 +3027,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       chart?.update(display?.chartValues ? {...display,values:display.chartValues} : display);
       if (next==='idle' && display?.final && !display.trendSuppressed && (display.trend?.data.length || display.values?.some(Number.isFinite)) && !trendDisclosure) {
         trendDisclosure=pitchTrendChart(display.trend,target,name,display.restored,()=>restoredTrendIsCurrent(display.restoredDraftId));
-        const afterTrend=historyButtons || coachPanel || savedChart?.element;
+        const afterTrend=historyButtons || localCoach || coachPanel || savedChart?.element;
         if(afterTrend) element.insertBefore(trendDisclosure,afterTrend);
         else element.append(trendDisclosure);
       }
@@ -2889,17 +3035,18 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     button.addEventListener('click', () => toggle(view));
     element.append(action,status,latest);
     if (historyButtons) element.append(historyButtons);
+    if(localCoach)element.append(localCoach);
     if (coachPanel) element.append(coachPanel);
     const restored = ownsDraft() ? restoreGraph(newestDraft) : null;
     view.update('idle', restored ? '已保留上次的音準圖。' : undefined,null,0,442,restored);
     return view;
   }
 
-  return {align, trackNotes, micCapture, metronomeClickGate, manager, card, chartPoint, centsText, scoreValues, monitorPitch, liveSlot, loopBoundary, resolveMidpoint, retainPracticeEvents, addHistory, createPitchTrend, trendSegments, pitchTrendSummary, pitchTrendChart};
+  return {align, trackNotes, micCapture, metronomeClickGate, manager, card, chartPoint, centsText, scoreValues, monitorPitch, liveSlot, loopBoundary, resolveMidpoint, retainPracticeEvents, addHistory, createPitchTrend, trendSegments, pitchTrendSummary, pitchTrendChart, planSuggestion};
 });
 // SCALE_PRACTICE_END
   </script>
-  <script src="fingerboard.js?v=20261123-038"></script>
+  <script src="fingerboard.js?v=20261124-040"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.

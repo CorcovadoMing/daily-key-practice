@@ -25,7 +25,7 @@ function memory(){
 function realm(storage,search='',pathname='/daily-key-practice/experimental/'){
  const mounted=[];
  const context=vm.createContext({document:{createElement:()=>new Node(),createElementNS:()=>new Node(),querySelectorAll:()=>mounted},localStorage:storage,URL,URLSearchParams,
-  location:{pathname,search,href:'https://example.test'+pathname+search}});
+  location:{pathname,hostname:'localhost',search,href:'https://example.test'+pathname+search}});
  vm.runInContext(code('PRACTICE_COACH'),context);
  vm.runInContext(storageSource,context);
  context.module={exports:{}};vm.runInContext(code('AUDIO_TOOLS'),context);
@@ -260,7 +260,7 @@ test('merging dots does not remove trace and old tabs cannot reopen a superseded
 test('coach uses qualified temporal facts only while the displayed restored nonce still owns the local draft',async()=>{
  const store=memory(), first=build(store,'major-C','scale','single');
  await first.start();first.play(36,18,32);await first.stop();
- const watched=realm(store), calls=[];
+ const watched=realm(store,'?aiCoach=1'), calls=[];
  Object.assign(watched.context,{performance,setInterval,clearInterval,navigator:{}});
  watched.context.CelloPracticeCoach.service=()=>({async run(facts){calls.push(facts);return {reason:'unsupported'};}});
  const before=build(store,'major-C','scale','loop',watched);

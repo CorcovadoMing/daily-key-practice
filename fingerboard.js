@@ -180,7 +180,7 @@
     }
     aside.hidden=used.size===0;return aside;
   }
-  function chartSVG(mode,key,direction,octaves,annotations={},interaction=null,remoteDrafts=[],reverseStrings=false,arpeggio=false){
+  function plottedRoute(mode,key,direction,octaves,annotations,arpeggio){
     const scale=scaleNotes(mode,key,direction,octaves);
     const notes=arpeggio?arpeggioNotes(mode,key,direction):scale;
     const sourceDirection=arpeggio||mode==='major'?'up':direction;
@@ -192,6 +192,32 @@
       const position=notePlacement(note.midi,map,presets);
       return {...note,position,style:pointStyling(position),shiftCue:resolvedShiftCue(note.midi,map,presets)};
     });
+    return {notes,map,presets,plotted};
+  }
+
+  function visiblePlan(mode,key,annotations={},arpeggio=false) {
+    const up=plottedRoute(mode,key,'up',PRACTICE_OCTAVES,annotations,arpeggio).plotted;
+    // Major and arpeggio have a single visible board. The ascent is the source
+    // of truth for both, even if stale hidden major down edits exist.
+    const shared=arpeggio||mode==='major';
+    const down=shared?up.slice().reverse():plottedRoute(mode,key,'down',PRACTICE_OCTAVES,annotations,arpeggio).plotted;
+    const points=[...up,...down.slice(1)];
+    const slots=points.map((p,i)=>{
+      const v=p.position, previous=points[i-1], cue=previous?.shiftCue;
+      const known=v.group!=='unverified' && v.finger!==null && Number.isInteger(v.string);
+      const plan=known?{string:v.stringName,finger:v.finger,reviewed:true,
+        fingersReviewed:Number.isInteger(v.finger)&&!v.technique,source:v.custom?'confirmed-edit':'visible-board'}:null;
+      // Only a rendered explicit direction-specific cue, never inferred from
+      // anchor distance, color, or a digit change. No extension flag is invented.
+      const edge=known && (i<up.length || !shared) && i!==up.length && cue?.toMidi===p.midi
+        ? {from:i-1,reviewed:true,shift:true}:null;
+      return {midi:p.midi,name:p.name,octave:Math.floor(staffStep(p)/7),direction:i<up.length?'up':'down',plan,edge};
+    });
+    return {source:'confirmed/visible plan',revision:JSON.stringify([mode,key[0],arpeggio,slots]),slots};
+  }
+
+  function chartSVG(mode,key,direction,octaves,annotations={},interaction=null,remoteDrafts=[],reverseStrings=false,arpeggio=false){
+    const {notes,map,presets,plotted}=plottedRoute(mode,key,direction,octaves,annotations,arpeggio);
     // While editing, reveal nearby equivalent pitches on other strings.
     // Very high alternatives remain available in the buttons below.
     const editableMidi=interaction?.selectedMidi;
@@ -798,7 +824,8 @@
       if(window.CelloScalePractice){
         const expected=sequence.map(note=>({...note,octave:Math.floor(staffStep(note)/7)}));
         const practice=window.CelloScalePractice.card(score,expected,
-          view=>window.CelloScalePractice.controller?.toggle(view),arpeggio?'arpeggio':'scale',id);
+          view=>window.CelloScalePractice.controller?.toggle(view),arpeggio?'arpeggio':'scale',id,
+          ()=>edit.dir===null?visiblePlan(mode,key,arpeggio?arpeggioAnnotations:annotations,arpeggio):null);
         parent.append(practice.element);
       }
     }
@@ -978,7 +1005,7 @@
   window.CelloFingerboard={
     create,
     // Pure helpers exported for automated pitch and placement checks.
-    arpeggioNotes,chartSVG,scoreAccidentals,staffStep,makeScore,scoreNotes,scaleNotes,positionFor,pitchClass,decodeMap,pointStyling,POSITION_COLORS,CHART_POSITIONS,contrastInk,makeLegend,notePlacement,resolvedShiftCue,bMinorAccent
+    arpeggioNotes,chartSVG,visiblePlan,scoreAccidentals,staffStep,makeScore,scoreNotes,scaleNotes,positionFor,pitchClass,decodeMap,pointStyling,POSITION_COLORS,CHART_POSITIONS,contrastInk,makeLegend,notePlacement,resolvedShiftCue,bMinorAccent
   };
 })();
 
