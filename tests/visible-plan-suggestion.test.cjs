@@ -383,7 +383,7 @@ test('actual recommendation cites only the rendered training recipe, at the very
  }
  a.doesNotMatch(current,/McDonagh|Katz/);
  a.equal(f.network,0);
- const reopened=setup(cache);a.equal(reopened.advise().replace('上次保留的建議 ',''),current);
+ const reopened=setup(cache);a.equal(reopened.advise().replace('上次保留的建議 ',''),current.replace(' 兩音一弓 下次練法：一音一弓  ',' '));
  const k=latestKey(cache),recent=JSON.parse(cache[k]);
  a.equal(recent.advice.v,4);a.deepEqual(recent.advice.drillSources,[['spacing','connected','approach']]);
  recent.advice.drillSources=[['javascript:alert(1)','crossing']];
@@ -401,4 +401,52 @@ test('unsupported observation, lone tuner check, and no matching notes do not ge
  const values=f.startPlan.slots.map((_,i)=>i===3?0:i===4?-24:null);
  const built=f.practiceAdviceReport({...f.startPlan,rounds:[{id:1,values}],reference:443,detector:'SwiftF0'});
  a.deepEqual(Array.from(built.drillSources[0]),['crossing']);
+});
+
+test('opt-in only decorates the next same-string pair; one drill changes, links follow, history stays unchanged',async()=>{
+ const cache={},f=setup(cache);
+ await f.press();f.ready();
+ for(const n of f.target.slice(0,12))f.play(n,n.midi===55?-27:n.midi===36?21:0);
+ await f.press();
+ const original=f.advise();
+ const defaults=JSON.stringify(cache);
+ const body=f.panel.find('scale-practice-coach-tip');
+ const button=()=>f.panel.find('scale-practice-slur-option');
+ a.equal(button().attrs['aria-pressed'],'false');
+ a.match(original,/先用調音器.*D 弦上的 F → G，一音一弓.*Feuermann/);
+ a.doesNotMatch(original,/McDonagh：練習連弓/);
+ button().events.click();
+ const alt=flatText(body);
+ a.equal(button().attrs['aria-pressed'],'true');
+ a.match(alt,/先用調音器.*D 弦上的 F → G，只把這兩音放在同一弓裡.*前後各用半弓.*原譜弓法/);
+ a.match(alt,/McDonagh：練習連弓/);
+ a.doesNotMatch(alt,/Feuermann|Mantel|一音一弓、弓聲不斷/);
+ a.equal(body.children.find(n=>n.tag==='ol').children.length,2);
+ a.equal(JSON.stringify(cache),defaults);
+ button().events.click();a.equal(flatText(body),original);
+ const reopened=setup(cache);
+ a.match(reopened.advise(),/一音一弓、弓聲不斷/);a.equal(reopened.panel.find('scale-practice-slur-option'),undefined);
+ a.equal(f.network,0);
+});
+
+test('a cross-string report does not offer same-string slur or infer recorded bowing',async()=>{
+ const f=setup({});
+ f.setPlan(f.fb.visiblePlan('major',key,{upMap:'{"55":{"s":1,"f":3}}'}));
+ await f.press();f.ready();
+ for(const n of f.target.slice(0,12))f.play(n,n.midi===55?-27:0);
+ await f.press();
+ const text=f.advise();
+ a.match(text,/D 弦上的 F → G 弦上的 G/);
+ a.equal(f.panel.find('scale-practice-slur-option'),undefined);
+ a.doesNotMatch(text,/兩音一弓|練習連弓/);
+});
+
+
+test('a cross-string pair with centered landing does not fall back to a same-string interval or slur',()=>{
+ const f=setup({});
+ const plan=f.fb.visiblePlan('major',key,{upMap:'{"55":{"s":1,"f":3}}'});
+ const values=plan.slots.map((_,i)=>i===10?-29:i===11?0:null);
+ const report=f.practiceAdviceReport({...plan,rounds:[{id:1,values},{id:2,values}]});
+ a.equal(report.slur,undefined);
+ a.doesNotMatch(report.issues.join(' '),/音程偏窄|音程偏寬/);
 });

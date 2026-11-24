@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261124-047-experimental">
+  <meta name="site-version" content="20261124-048-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -531,6 +531,9 @@
     .scale-practice-coach-raw pre{white-space:pre-wrap;overflow-wrap:anywhere;overflow:auto;max-height:16rem;margin:4px 0 0;padding:8px 10px;background:var(--soft);color:var(--ink);border-radius:8px;font:inherit;line-height:1.55}
     .scale-practice-local-coach{box-sizing:border-box;max-width:100%;overflow-wrap:anywhere}
     .scale-practice-local-coach button{max-width:100%}
+    .scale-practice-slur-controls{display:flex;align-items:center;gap:.375rem .65rem;flex-wrap:wrap;margin-block-start:.5rem}
+    .scale-practice-slur-controls .scale-practice-slur-option[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+    .scale-practice-slur-controls .scale-practice-slur-option:focus-visible{outline:2px solid var(--ui-focus,#4c81b3);outline-offset:2px}
     .scale-practice-coach-sources{margin-block-start:1rem;padding-block-start:.35rem;border-top:1px solid var(--line);font-size:.8125rem;color:var(--muted)}
     .scale-practice-coach-tip .scale-practice-coach-sources h4{font-size:.8125rem;margin:.3rem 0}
     .scale-practice-coach-sources ol{margin:.2rem 0;padding-inline-start:1.45rem}
@@ -1158,7 +1161,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261124-047-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261124-048-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -2341,6 +2344,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
   // Only this take's accepted, same-lap score evidence enters the rule.
   // Printed/confirmed plans are assumptions, never physical measurements.
   const coachSources=Object.freeze({
+    slur:{title:'Ailbhe McDonagh：練習連弓',url:'https://www.ailbhemcdonagh.com/teaching/cello-intermediate/21-practising-bow-slurs',reason:'只把這兩音放在同一弓內，換指時弓仍平順往前。'},
     connected:{title:'Emanuel Feuermann：音階的音與音要連接',url:'https://www.cellobello.org/wp-content/uploads/2019/10/CelloLegacy_Feuermann.pdf#page=10',reason:'慢拉相鄰兩音或三音，換弓時讓弓聲連起來。'},
     crossing:{title:'Ailbhe McDonagh：換弦基礎',url:'https://www.ailbhemcdonagh.com/cello-basics-17-string-crossings.html',reason:'慢速感受各弦的弓高，平順換到下一弦。'},
     approach:{title:'Gerhard Mantel：練習時把前音加回來',url:'https://cellobello.org/cello-blog/interviews/conversation-with-gerhard-mantel/',reason:'練完兩音，再把前面的譜音接回來。'},
@@ -2478,8 +2482,8 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       const explicit=to.edge?.reviewed===true&&to.edge.from===i-1?to.edge:null;
       const interval=edges.map(row=>Math.sign(to.midi-from.midi)*(row[i]-row[i-1]));
       const relative=pattern(interval)||(pairedOnce&&landing&&single(interval[0]));
-      if(x.string!==y.string&&landing)edgeCandidates.push({type:'crossing',i,...landing});
-      else if(y.finger===0)continue;
+      if(x.string!==y.string){if(landing)edgeCandidates.push({type:'crossing',i,...landing});continue;}
+      if(y.finger===0)continue;
       else if(landing&&(explicit?.shift||explicit?.extension))edgeCandidates.push({type:explicit.shift?'shift':'extension',i,...landing});
       else if(landing&&x.fingersReviewed&&y.fingersReviewed&&x.finger>0&&y.finger>0&&
         (x.finger===y.finger || (Number.isInteger(x.anchor)&&Number.isInteger(y.anchor)&&x.anchor!==y.anchor))){
@@ -2550,8 +2554,13 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       const reach=selected.adjust>0?'往琴橋一點':'往琴枕一點';
       const extend=continueRun(landingRun.left,landingRun.right,2);
       const move=selected.move, anchor=move===i?i-1:i;
+      const prepare='先對準 '+label(anchor)+'，放鬆手指，讓 '+label(move)+' 的 '+slots[move].plan.finger+' 指落點'+reach+'，把兩音的距離'+change+'。';
       return {kind:type,observation:pair+'。'+occurrence+'的音程'+width+'。',
-        action:'先對準 '+label(anchor)+'，放鬆手指，讓 '+label(move)+' 的 '+slots[move].plan.finger+' 指落點'+reach+'，把兩音的距離'+change+'。慢拉 '+short+'，一音一弓、弓聲不斷'+(extend||'。'),
+        action:prepare+'慢拉 '+short+'，一音一弓、弓聲不斷'+(extend||'。'),
+        slur:x.string===y.string&&Math.abs(slots[i].midi-slots[i-1].midi)<=2
+          ?prepare+'慢拉 '+short+'，只把這兩音放在同一弓裡。前後各用半弓，換指時弓持續平順走。'+
+            (extend?'穩了再照原譜弓法接回這段。':'')
+          :undefined,
         sources:['spacing','connected',...(landingRun.left<i-1?['approach']:[])],
         check:'重拉這兩音，先看 '+label(anchor)+' 是否仍準，再看 '+label(move)+' 是否更接近零線。'+settings};
     }
@@ -2658,7 +2667,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     const issues=[...new Set(observed.map(x=>x.observation))];
     const drills=[],drillSources=[];
     const add=(text,sources=[])=>{drills.push(text);drillSources.push(sources);};
-    let metric;
+    let metric,slur;
     const pin=(type,slots,minRounds)=>{metric??={type,slots,minRounds};};
     const opens=pitch.filter(x=>x.type==='open-check'), openSlots=new Set(opens.map(x=>x.slot));
     if(opens.length){
@@ -2689,10 +2698,11 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         const main=eligible[0];
         if(main.type==='fingers')pin('interval',[main.slot-1,main.slot],main.minRounds);
         else pin('pitch',[main.slot],main.minRounds);
+        if(main.slur)slur={index:drills.length,text:main.slur};
         add(main.action+(eligible.length>1?'用同一種練法練清單上相同情況。':''),main.sources);
       }
     }
-    return {issues,drills,drillSources,metric};
+    return {issues,drills,drillSources,metric,slur};
   }
 
   function acceptedPlanRound(target,heard,alignment,id){
@@ -3232,7 +3242,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     const experimental=coachAPI?.enabled(globalThis);
     const coachVisible=experimental&&['localhost','127.0.0.1','[::1]'].includes(globalThis.location?.hostname)&&new URLSearchParams(globalThis.location?.search||'').get('aiCoach')==='1';
     const localCoach=experimental&&!coachVisible?document.createElement('section'):null;
-    let localAttempt=null, localComparison, comparisonRead=false, loudnessAdvice=null;
+    let localAttempt=null, localComparison, comparisonRead=false, loudnessAdvice=null, localSlur=false;
     if(localCoach){
       localCoach.className='scale-practice-coach scale-practice-local-coach';
       localCoach.hidden=true;
@@ -3245,11 +3255,11 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       localCoach.append(action,body);
       localCoach.reset=(packet,show)=>{
         localAttempt=packet;
-        localComparison=undefined;comparisonRead=false;
+        localComparison=undefined;comparisonRead=false;localSlur=false;
         localCoach.hidden=!show;
         body.textContent='';
       };
-      action.addEventListener('click',()=>{
+      function showAdvice(restoreSlurFocus=false){
         if(localCoach.hidden)return;
         if(ownsDraft()&&draftDurable&&!localAttempt?.freshEmpty){
           const liveOwner=historyApi.currentDraftId?.(storage);
@@ -3274,13 +3284,31 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         if(localAttempt?.restored&&saved)body.append(make('p','scale-practice-coach-context','上次保留的建議'));
         const list=make('ul','scale-practice-coach-steps','');
         const issues=loudnessAdvice?[...report.issues,loudnessAdvice.observation]:report.issues;
-        const actions=loudnessAdvice?[...report.drills.slice(0,2),loudnessAdvice.action+loudnessAdvice.check]:report.drills;
+        const drillCount=loudnessAdvice?Math.min(2,report.drills.length):report.drills.length;
+        const actions=report.drills.slice(0,drillCount);
+        const related=actions.map((_,idx)=>report.drillSources?.[idx]||[]);
+        const alternative=!old&&report.slur?.index<drillCount?report.slur:null;
+        if(alternative&&localSlur){
+          actions[alternative.index]=alternative.text;
+          related[alternative.index]=['slur',...related[alternative.index].filter(id=>id!=='connected'&&id!=='approach')];
+        }
+        if(loudnessAdvice)actions.push(loudnessAdvice.action+loudnessAdvice.check);
         issues.forEach(text=>list.append(make('li','',text)));
         body.append(make('h4','','這次觀察'),list);
         if(actions.length){
           const drills=make('ol','scale-practice-coach-steps','');
           actions.forEach(text=>drills.append(make('li','',text)));
           body.append(make('h4','','可以這樣練'),drills);
+          if(alternative){
+            const controls=make('div','scale-practice-slur-controls','');
+            const option=make('button','scale-practice-slur-option','兩音一弓');
+            option.type='button';
+            option.setAttribute('aria-pressed',String(localSlur));
+            option.addEventListener('click',()=>{localSlur=!localSlur;showAdvice(true);});
+            controls.append(option,make('small','','下次練法：'+(localSlur?'兩音一弓':'一音一弓')));
+            body.append(controls);
+            if(restoreSlurFocus)option.focus?.({preventScroll:true});
+          }
         }
         if(progressScope&&localAttempt?.take&&!localAttempt.restored&&localAttempt.rounds?.length&&globalThis.CelloPracticeProgress){
           try{
@@ -3297,7 +3325,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
             }
           }catch{} // Optional browser-local comparison; never blocks advice.
         }
-        const sourceIds=[...new Set((report.drillSources||[]).slice(0,loudnessAdvice?2:actions.length).flat())]
+        const sourceIds=[...new Set(related.flat())]
           .filter(id=>Object.hasOwn(coachSources,id));
         if(actions.length&&sourceIds.length){
           const section=make('section','scale-practice-coach-sources','');
@@ -3315,7 +3343,8 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
           }
           section.append(heading,links);body.append(section);
         }
-      });
+      }
+      action.addEventListener('click',()=>showAdvice());
     }
     let coachPanel, coachAction, coachTyping, coachStatus, coachTime, coachTip, coachRaw, coachNotice,coachInput, coachAttempt, coachBusy=false, coachTicket=0;
     if (coachVisible) {

@@ -125,3 +125,5 @@ The local coach receives every score position, including those explicitly marked
 **連接練習（046 實驗）**：偏差音有同一方向的前音時，先把兩音慢練幾次，再加回譜上更早的音；舊紀錄只能證明保存的音準。查看舊圖時若用到目前可見的譜弦與指法，會特別標成「照目前指板試練」，不當作當時的演奏。練習編排參考 [把準備音加回來（Gerhard Mantel）](https://cellobello.org/cello-blog/interviews/conversation-with-gerhard-mantel/#)、[慢速換弦（Ailbhe McDonagh）](https://www.ailbhemcdonagh.com/cello-basics-17-string-crossings.html)及 [指距與音準（Seattle Public Schools）](https://www.seattleschools.org/wp-content/uploads/2021/07/EIM-Cello-4-5-Finger-Placement-and-Intonation.pdf)。
 
 **本次建議參考（047 實驗）**：建議下方只列出本次實際顯示的練法所用的來源；舊報告沒有來源記錄則不補猜。參考連結可自行開啟，不會在練習時載入第三方內容。
+
+**兩音一弓（048 實驗）**：有符合條件的同弦指距練習時，可自選把這兩音放進同一弓。預設仍是一音一弓，選擇只改本次顯示的下次練法，不判斷已完成練習的弓法，也不影響辨識、計分、音量或歷史。
