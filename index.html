@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261124-048-experimental">
+  <meta name="site-version" content="20261124-049-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -1161,7 +1161,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261124-048-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261124-049-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -2723,6 +2723,28 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     }catch{return null;}
   }
 
+  function openingRecoveryGuide(target){
+    // Hints use only the opening ascent, not repeated pitches from the descent.
+    const links=new Map();
+    for(let i=1;i<Math.min(target.length,8);i++){
+      if(target[i].midi<=target[i-1].midi)break;
+      if(i>=2)links.set(target[i-1].midi,target[i].midi);
+    }
+    let previous=null, heardPair=null;
+    return {
+      observe(midi){
+        if(midi===target[0]?.midi){previous=null;heardPair=null;return;}
+        if(links.get(previous)===midi)heardPair=[previous,midi];
+        previous=midi;
+      },
+      message(name,live){
+        if(!heardPair)return null;
+        return '有聽到 '+heardPair.map(name).join('、')+'，但還沒對上開頭的 '+name(target[0].midi)+'。'+
+          (live?'不用停止收音，從開頭再拉一次。':'這些音沒有計入本次結果。');
+      }
+    };
+  }
+
   function manager(env, hooks) {
     let active = null;
     const idleMessage = '連續 2 分鐘未對上下一個譜音，已自動停止收音。';
@@ -2772,7 +2794,8 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       }
       const display = result || laps ? {values, chartValues:values, attemptHistory, coachResult, trend, loudness, planDiagnostics, coachNoEvidence:grade && !coachResult,
         history:result ? history : session.beforeLastHistory, mode, laps, passed, final:true} : undefined;
-      view.update('idle', message, result, 0, session.reference, display);
+      const retry=!message&&grade&&!result?.pairs.some(p=>p.expected===0)?session.openingGuide.message(hooks.pitchName,false):null;
+      view.update('idle', message||retry, result, 0, session.reference, display);
     }
     function stop(message = null, grade = false) {
       const session = active;
@@ -2798,7 +2821,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       const route = swiftSelected ? hooks.swiftCapture : hooks.capture;
       if (coachService?.isBusy()) coachService.cancel();
       const take={id:globalThis.CelloPracticeHistory?.newDraftId?.()||String(Date.now())+'-'+Math.random().toString(36).slice(2),beganAt:Date.now()};
-      const session = {view, take, engine:swiftSelected?'SwiftF0':'現有偵測', stage:'pending', heard:[], heardCount:0, mode, laps:0, passed:0,
+      const session = {view, take, openingGuide:openingRecoveryGuide(view.target), engine:swiftSelected?'SwiftF0':'現有偵測', stage:'pending', heard:[], heardCount:0, mode, laps:0, passed:0,
         visiblePlan:capturedVisiblePlan(view)??{source:'score only',revision:null,slots:view.target.map((p,i)=>
           ({midi:p.midi,name:p.name,octave:p.octave,direction:i<=(view.target.length-1)/2?'up':'down'}))},planRounds:[],history:mode === 'loop' ? emptyHistory(view.target.length) : undefined};
       active = session;
@@ -2863,6 +2886,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
             const currentLap=session.laps+1;
             let singleDone=false;
             if (event) {
+              if(progress===0&&session.laps===0)session.openingGuide.observe(event.midi);
               recentMidi = event.midi;
               // Prefix points are provisional; the weighted alignment
               // replaces them on stop or at the end of a cycle.
@@ -2927,7 +2951,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
             const carriedOnly=traceSlot===0&&session.heard.length===1&&session.heard[0]?.carriedPlanTonic===true;
             try { session.loudness?.observePitch(now,fresh&&!carriedOnly?traceSlot:null,currentLap); } catch {}
             if(singleDone){stop(null,true);return;}
-            view.update('listening', session.finishing ? '正在分析最後一音…' : null, null, progress, reference, display(live));
+            view.update('listening', session.finishing ? '正在分析最後一音…' : progress===0&&session.laps===0?session.openingGuide.message(hooks.pitchName,true):null, null, progress, reference, display(live));
           } catch {
             stop('無法讀取麥克風，請重新開始。');
           }
@@ -3528,7 +3552,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         const missing = result.missing.slice(0, 4).map(i => label(target[i], i)).join('、');
         text = result.complete ? name + '通過！' : result.pairs.length
           ? '尚未完成；未依序辨識：' + missing + (result.missing.length > 4 ? ' 等。' : '。')
-          : '未辨識到譜上音符。請靠近麥克風，放慢並把每音拉清楚。';
+          : '未依序對上譜音。可以放慢並把開頭的音拉清楚。';
         text += ' 對上 ' + result.pairs.length + '／' + target.length + ' 音。';
         if (result.extra) text += ' 略過 ' + result.extra + ' 個額外音。';
         if (laps) text = summary + '。本輪：' + text;
