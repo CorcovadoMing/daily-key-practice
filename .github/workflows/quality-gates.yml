@@ -1,0 +1,33 @@
+name: Quality gates (behavior baseline)
+
+# Experimental safety: this workflow lives only on the quality branch until
+# reviewed. It does not publish/deploy the website or access Firebase.
+on:
+  push:
+    branches:
+      - quality/behavior-test-foundation
+  pull_request:
+    branches:
+      - experimental
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pure-logic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: |
+          node --check fingerboard.js
+          node --check fingering-presets.js
+          node --check classroom.js
+          node --check fingerboard-editor.js
+      - name: Run scale and fingering behavior checks
+        run: node --test tests/*.test.cjs
