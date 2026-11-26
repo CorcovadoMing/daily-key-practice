@@ -35,10 +35,19 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('n
    if(dark)await p.locator('#appearance-toggle').click();
    assert.equal(await p.locator('html').getAttribute('data-appearance'),dark?'dark':'light');
    const top=selector=>p.locator(selector).evaluate(el=>el.getBoundingClientRect().top);
-   const order=await Promise.all(['#classroom-disclosure','#draw-settings','#draw-button'].map(top));
-   assert.ok(order[0]<order[1]&&order[1]<order[2],JSON.stringify(order));
+   const order=await Promise.all(['#classroom-disclosure','#mode-settings','#draw-settings','#draw-button'].map(top));
+   assert.ok(order[0]<order[1]&&order[1]<order[2]&&order[2]<order[3],JSON.stringify(order));
+   assert.equal(await p.locator('#pitch-detector').isVisible(),false);
+   const keyNote=p.locator('#session-launch-note');
+   assert.equal(await keyNote.isVisible(),true);
+   assert.match(await keyNote.textContent(),/大調：.+\n小調：.+/);
    await p.locator('#launch-settings-toggle').click();
-   await p.locator('#signature-filters .filter-key').first().waitFor({state:'visible'});
+   const filter=p.locator('#signature-filters .filter-key').first();
+   await filter.waitFor({state:'visible'});
+   const beforeNote=await keyNote.textContent();
+   assert.ok(await top('#signature-filters')>await top('#session-launch-note'));
+   await filter.click();assert.notEqual(await keyNote.textContent(),beforeNote);
+   await filter.click();assert.equal(await keyNote.textContent(),beforeNote);
    await p.locator('#launch-settings-toggle').click();
    await p.waitForFunction(()=>!document.querySelector('#draw-settings').open);
    const draw=p.locator('#draw-button'), counts=p.locator('#launch-count-settings'), resume=p.locator('#launch-resume');
@@ -60,13 +69,13 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('n
    const line=await draw.evaluate(e=>{const text=e.querySelector('#draw-text');return {height:text.offsetHeight,line:parseFloat(getComputedStyle(text).lineHeight)};});
    assert.ok(line.height<line.line*1.5,JSON.stringify(line));
    await p.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));
-   await p.screenshot({path:path.join('..','ear-072-home-'+width+'-'+dark+'.png')});
+   await p.screenshot({path:path.join('..','modes-074-home-'+width+'-'+dark+'.png')});
    await resume.click();
    await p.locator('.key-title').first().waitFor({state:'visible'});
    if(!(await p.locator('.scale-practice[data-practice-kind=scale] .scale-practice-demo').first().isVisible()))
      await p.locator('.key-title').first().click();
    const demo=p.locator('.scale-practice[data-practice-kind=scale] .scale-practice-demo').filter({visible:true}).first();
-   await demo.waitFor({state:'visible'});assert.equal(await demo.locator('.scale-demo-caption').textContent(),'先聽一次');assert.equal(await demo.getAttribute('data-demo-state'),'idle');
+   await demo.waitFor({state:'visible'});assert.equal(await demo.locator('.scale-demo-caption').textContent(),'');assert.match(await demo.getAttribute('aria-label'),/先聽一次/);assert.equal(await demo.getAttribute('data-demo-state'),'idle');
    assert.equal(await demo.locator('.scale-demo-ear').isVisible(),true);
    const contrast=()=>demo.evaluate(el=>{
      const linear=x=>{x/=255;return x<=.04045?x/12.92:((x+.055)/1.055)**2.4;};
@@ -81,7 +90,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('n
      return {box:box(el),launch:box(el.closest('.scale-practice-action').querySelector('.scale-practice-button'))};
    });
    assert.ok(box.x+box.width<launch.x && Math.abs(box.y-launch.y)<3,JSON.stringify({box,launch}));
-   assert.ok(box.width>50 && box.height>=44 && box.x>=0 && box.x+box.width<=width+1,JSON.stringify(box));
+   assert.ok(box.width>=44 && box.height>=44 && box.x>=0 && box.x+box.width<=width+1,JSON.stringify(box));
    assert.equal(served.filter(s=>s.endsWith('/fingerboard-editor.js')).length,before);
    await demo.click();
    await p.waitForFunction(()=>Boolean(document.querySelector('.scale-practice-demo[data-demo-state=playing]')));
@@ -89,7 +98,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('n
    assert.match(await demo.getAttribute('aria-label'),/停止音階示範/);
    await p.waitForFunction(()=>getComputedStyle(document.querySelector('.scale-practice-demo[data-demo-state=playing] .scale-demo-caption')).visibility==='hidden');
    assert.ok(await contrast()>=7,JSON.stringify({width,dark,contrast:await contrast()}));
-   await p.waitForFunction(()=>document.querySelector('.scale-practice-demo[data-demo-state=playing]').getBoundingClientRect().width>=111);
+   await p.waitForFunction(()=>document.querySelector('.scale-practice-demo[data-demo-state=playing]').getBoundingClientRect().width>=81);
    const capsule=await demo.boundingBox();
    assert.ok(capsule.width>box.width+7,JSON.stringify({box,capsule}));
    const played=await p.evaluate(()=>window.__qa);
@@ -120,7 +129,13 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('n
    assert.equal(total.decoded.length,1); assert.equal(total.started.length-played.started.length,13);
    assert.equal(total.mic,0); await arp.click();assert.equal(await arp.getAttribute('data-demo-state'),'idle');
    assert.deepEqual(errors,[]);
+   await p.locator('#mode-settings-toggle').click();
    const radio=p.locator('#pitch-detector');
+   await radio.waitFor({state:'visible'});
+   await p.getByRole('radio',{name:'循序'}).check();
+   assert.equal(await counts.isVisible(),false);
+   await p.getByRole('radio',{name:'隨機'}).check();
+   assert.equal(await counts.isVisible(),true);
    const beforeSlide=await radio.evaluate(x=>getComputedStyle(x,'::before').translate);
    await radio.getByRole('radio',{name:'傳統'}).check();
    await p.waitForFunction(()=>getComputedStyle(document.querySelector('#pitch-detector'),'::before').translate==='none');
@@ -135,6 +150,9 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('n
    assert.notEqual(second.mid,second.start);
    assert.notEqual(second.mid,'100%');
    await p.waitForFunction(()=>getComputedStyle(document.querySelector('#pitch-detector'),'::before').translate.startsWith('100%'));
+   await p.locator('#mode-settings-toggle').press('Escape');
+   await p.waitForFunction(()=>!document.querySelector('#mode-settings').open);
+   assert.equal(await keyNote.isVisible(),true);
    console.log(JSON.stringify({width,dark,box,arpBox,scaleNotes:played.started.length,arpeggioNotes:total.started.length-played.started.length,decoded:played.decoded,errors,mic:played.mic}));
    await p.close();
   }

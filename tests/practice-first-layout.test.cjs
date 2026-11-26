@@ -74,7 +74,7 @@ test('classroom actions are behind a closed disclosure and other advanced contro
   assert.match(html,/<details id="classroom-disclosure">\s*<summary>課堂同步<\/summary>/);
   assert.match(html,/<section[^>]+id="classroom-settings"[^>]*>[\s\S]*id="room-open-join"[\s\S]*id="room-create"[\s\S]*id="room-leave" hidden/);
   assert.match(html,/<details[^>]+id="history-settings"[^>]*>\s*<summary>/);
-  assert.match(html,/<details[^>]+id="draw-settings"[^>]*>\s*<summary[^>]*>調性設定<\/summary>[\s\S]+id="signature-filters"[\s\S]+id="launch-count-settings"/);
+  assert.match(html,/<details[^>]+id="draw-settings"[^>]*>\s*<summary[^>]*><span[^>]*>調性設定<\/span>[\s\S]+id="session-launch-note"[\s\S]+?<\/summary>[\s\S]+id="signature-filters"[\s\S]+id="launch-count-settings"/);
 });
 
 test('start with a pending chart passes through the existing save choice instead of launching twice',()=>{
@@ -98,12 +98,12 @@ test('tuning settings are an inline disclosure, not a floating window',()=>{
 test('classroom, inline key settings, and launch appear in that order',()=>{
   assert.match(html,/id="classroom-settings"[\s\S]*id="room-open-join"[\s\S]*id="session-launch"/);
   assert.match(html,/\.launch-controls #draw-button\{[^}]*min-height:54px/);
-  assert.match(html,/<details[^>]*id="draw-settings"[\s\S]+?<div class="launch-controls"[\s\S]+?id="draw-button"[\s\S]+?id="launch-resume"[\s\S]+?<fieldset class="launch-mode"/);
+  assert.match(html,/<details[^>]*id="mode-settings"[\s\S]+?id="pitch-detector"[\s\S]+?name="launch-mode"[\s\S]+?<details[^>]*id="draw-settings"[\s\S]+?<div class="launch-controls"[\s\S]+?id="draw-button"[\s\S]+?id="launch-resume"/);
   assert.doesNotMatch(html,/id="presets"|大調練幾個|小調練幾個/);
   assert.match(html,/id="key-filter-title">已選調性/);
   assert.doesNotMatch(html,/<nav class="session-shortcuts"|id="resume-practice-note"/);
   const panel=html.slice(html.indexOf('class="launch-count-sentence"'),html.indexOf('class="audio-tools"'));
-  assert.match(panel,/id="major-minus"[\s\S]+id="major-count"[\s\S]+id="major-plus"[\s\S]+個大調[\s\S]+id="minor-minus"[\s\S]+id="minor-count"[\s\S]+id="minor-plus"[\s\S]+個小調/);
+  assert.match(panel,/大調<\/span>[\s\S]+id="major-minus"[\s\S]+id="major-count"[\s\S]+id="major-plus"[\s\S]+小調<\/span>[\s\S]+id="minor-minus"[\s\S]+id="minor-count"[\s\S]+id="minor-plus"/);
 });
 
 test('engaged room resumes only its own pending list; personal history cannot leak into the room',()=>{
@@ -158,7 +158,7 @@ test('completed latest practice does not promote older progress; a stale resume 
 });
 test('editable draw counts are beside the primary button, default to one, and resume is a link',()=>{
  assert.doesNotMatch(html,/launch-fresh/);
- const section=html.slice(html.indexOf('class="launch-controls"'),html.indexOf('<fieldset class="launch-mode"'));
+ const section=html.slice(html.indexOf('class="launch-controls"'),html.indexOf('<aside class="audio-tools"'));
  assert.match(section,/<a id="launch-resume"[^>]+hidden>繼續上次<\/a>/);
  assert.match(section,/id="draw-button"[\s\S]+id="launch-count-settings"[\s\S]+id="major-count"[^>]*>1<\/output>[\s\S]+id="minor-count"[^>]*>1<\/output>/);
  assert.match(html,/preferences:\{majorCount:1,minorCount:1,showScale:false\}/);

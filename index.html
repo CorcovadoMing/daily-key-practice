@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261126-073-experimental">
+  <meta name="site-version" content="20261126-074-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -1206,12 +1206,23 @@
       .launch-count-sentence .stepper button:hover:not(:disabled){background:var(--paper);color:var(--ink)}
       .launch-count-sentence .count-output{background:transparent;color:var(--ink);font-weight:750}
       .launch-resume{font-weight:650;min-height:34px}
+      #draw-settings>summary{width:100%;line-height:1.35;padding-block:12px 8px}
+      .launch-summary-title{vertical-align:middle}
+      #draw-settings>summary .launch-selection-note{display:block;font-size:.75rem;font-weight:500;line-height:1.55;max-width:32rem;margin:5px 0 0 1rem}
+      .mode-settings-body{display:grid;gap:5px;padding:0 0 7px 1rem;max-width:22rem}
+      .mode-setting-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:0}
+      .mode-setting-label,#pitch-detector-label{flex:0 0 5rem;font-size:.875rem;color:var(--muted);font-weight:650}
+      .mode-setting-row .launch-mode{width:max-content}
+      #pitch-detector-locked{flex-basis:100%}
+      .launch-count-sentence{display:grid;grid-template-columns:max-content;row-gap:4px}
+      .launch-count-clause{display:grid;grid-template-columns:2rem auto;align-items:center;text-align:left}
+      .launch-count-label{color:var(--ink);font-size:.8125rem;white-space:nowrap}
       @media(max-width:26rem){.launch-count-sentence{row-gap:4px}}
     }
     /* Same button and focus target throughout the playback morph. */
-    .scale-demo-shell{display:inline-grid;inline-size:112px;min-block-size:44px;max-inline-size:100%;justify-items:start}
+    .scale-demo-shell{display:inline-grid;inline-size:82px;min-block-size:44px;max-inline-size:100%;justify-items:start}
     .scale-practice .scale-practice-action .scale-practice-demo{
-      position:relative;display:grid;place-items:center;inline-size:97px;max-inline-size:100%;
+      position:relative;display:grid;place-items:center;inline-size:48px;max-inline-size:100%;
       padding:0;min-block-size:44px;overflow:hidden;border:1px solid var(--line);
       border-radius:22px;background:#e5f1e8;color:#19392c;border-color:#718e7c;white-space:nowrap
     }
@@ -1223,7 +1234,7 @@
       background:#344e42
     }
     .scale-practice .scale-practice-action .scale-practice-demo:is([data-demo-state=loading],[data-demo-state=playing]){
-      inline-size:112px;background:#214638;color:#f5fff8;border-color:#214638
+      inline-size:82px;background:#214638;color:#f5fff8;border-color:#214638
     }
     [data-appearance=dark] .scale-practice .scale-practice-action .scale-practice-demo:is([data-demo-state=loading],[data-demo-state=playing]){
       background:#c9e9d0;color:#163427;border-color:#c9e9d0
@@ -1234,7 +1245,7 @@
       visibility:visible;opacity:1;translate:0 0;scale:1
     }
     .scale-demo-caption{gap:6px}
-    .scale-demo-ear{inline-size:17px;block-size:17px;flex:none}
+    .scale-demo-ear{inline-size:21px;block-size:21px;flex:none}
     .scale-demo-bars{display:flex;align-items:center;gap:3px;block-size:22px}
     .scale-demo-bar{inline-size:3px;block-size:20px;border-radius:2px;background:currentColor;transform:scaleY(var(--demo-level,.20))}
     .scale-demo-stop{inline-size:9px;block-size:9px;border-radius:2px;background:currentColor}
@@ -1272,6 +1283,30 @@
         }
       }
     }
+    /* Primary fills, grouped secondary controls, and quiet matching edges. */
+    @media screen and (forced-colors:none){
+      :root{--control-surface:#e9eee6;--control-outline:#c6d0c4;--control-hover:#dce8dd;
+        --control-main:#294b3b;--control-main-ink:#fbfffc;--control-main-hover:#345a47;
+        --control-segment:#c8ddce;--control-segment-ink:#173d2a;--control-focus:#426e58}
+      :root[data-appearance=dark]{--control-surface:#272f35;--control-outline:#424e57;--control-hover:#334049;
+        --control-main:#b5d4c0;--control-main-ink:#142b21;--control-main-hover:#cce7d4;
+        --control-segment:#435d51;--control-segment-ink:#f1faf4;--control-focus:#a9cdb6}
+      .session-launch #draw-button{background:var(--control-main);color:var(--control-main-ink);border:1px solid transparent;border-radius:15px}
+      .session-launch #draw-button:hover:not(:disabled){background:var(--control-main-hover)}
+      .session-launch :is(.launch-mode,.launch-count-sentence .stepper){background:var(--control-surface);border:1px solid var(--control-outline);border-radius:13px}
+      .session-launch .launch-mode{--segment-fill:var(--control-segment);--segment-edge:transparent}
+      .session-launch .launch-mode input:checked+span{color:var(--control-segment-ink);font-weight:800}
+      .session-launch :is(button,a,summary):focus-visible,.scale-practice .scale-practice-demo:focus-visible{outline:2px solid var(--control-focus);outline-offset:3px}
+      .session-launch .launch-mode input:focus-visible+span{outline-color:var(--control-focus)}
+      .scale-practice .scale-practice-action .scale-practice-demo[data-demo-state=idle]{border-color:var(--control-outline)}
+      .audio-tools{border-color:var(--control-outline)}
+      .audio-tools .audio-tool-pair{gap:0;border:1px solid var(--control-outline);border-radius:13px;background:var(--control-surface)}
+      .audio-tools .audio-tool-pair :is(button,#metro-settings,#tuner-settings){
+        border:0;border-radius:10px;color:var(--ink);background:transparent}
+      .audio-tools .audio-tool-pair :is(button,#metro-settings,#tuner-settings):hover:not(:disabled){background:var(--control-hover)}
+      .audio-tools .audio-tool-pair button[aria-pressed=true]{background:var(--control-segment);color:var(--control-segment-ink)}
+      .audio-tools button:focus-visible{outline:2px solid var(--control-focus);outline-offset:2px}
+    }
     .tuner-stop-icon,[aria-pressed=true]>.tuner-idle-icon{display:none}
     #tuner-open[aria-pressed=true] .tuner-stop-icon{display:block}
     @media screen and (prefers-reduced-motion:no-preference){
@@ -1307,14 +1342,6 @@
           <svg class="theme-glyph theme-moon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 15A8.8 8.8 0 0 1 9 3.5 8.9 8.9 0 1 0 20.5 15Z"/></svg>
         </button>
       </div>
-      <div class="pitch-detector-setting">
-        <span id="pitch-detector-label">音準偵測</span>
-        <fieldset id="pitch-detector" class="launch-mode" aria-labelledby="pitch-detector-label" aria-describedby="pitch-detector-locked">
-          <label><input type="radio" name="pitch-detector" value="existing"><span>傳統</span></label>
-          <label><input type="radio" name="pitch-detector" value="swift" checked><span>智慧</span></label>
-        </fieldset>
-        <span id="pitch-detector-locked" hidden>練習結束後可切換</span>
-      </div>
       <div class="classroom-access">
       <details id="classroom-disclosure">
       <summary>課堂同步</summary>
@@ -1348,8 +1375,30 @@
       </dialog>
       </div>
       <div class="session-launch" id="session-launch">
+        <details class="launch-settings" id="mode-settings" data-expanded="false">
+          <summary id="mode-settings-toggle">模式設定</summary>
+          <div class="launch-settings-body mode-settings-body" inert>
+          <div class="pitch-detector-setting mode-setting-row">
+        <span id="pitch-detector-label">音準偵測</span>
+        <fieldset id="pitch-detector" class="launch-mode" aria-labelledby="pitch-detector-label" aria-describedby="pitch-detector-locked">
+          <label><input type="radio" name="pitch-detector" value="existing"><span>傳統</span></label>
+          <label><input type="radio" name="pitch-detector" value="swift" checked><span>智慧</span></label>
+        </fieldset>
+        <span id="pitch-detector-locked" hidden>練習結束後可切換</span>
+      </div>
+          <div class="mode-setting-row">
+          <span class="mode-setting-label" id="launch-order-label">抽選順序</span>
+          <fieldset class="launch-mode" aria-labelledby="launch-order-label">
+            <label><input type="radio" name="launch-mode" value="random" checked><span>隨機</span></label>
+            <label><input type="radio" name="launch-mode" value="sequential"><span>循序</span></label>
+          </fieldset>
+        </div>
+          </div>
+        </details>
         <details class="launch-settings" id="draw-settings" data-expanded="false">
-          <summary id="launch-settings-toggle">調性設定</summary>
+          <summary id="launch-settings-toggle"><span class="launch-summary-title">調性設定</span>
+            <span id="session-launch-note" class="launch-selection-note"></span>
+          </summary>
           <div class="launch-settings-body" inert>
         <section class="key-filter" aria-labelledby="key-filter-title">
           <div class="filter-heading">
@@ -1357,7 +1406,6 @@
             <div class="key-pool-actions"><button type="button" id="filter-all" class="filter-all">全部選取</button><button type="button" id="filter-none" class="filter-all">全部取消</button></div>
           </div>
           <p class="filter-explain sr-only">預設 24 調全選。按亮的調性會進入抽籤池；灰色代表排除。依五度圈排列，每格上方為大調、下方為小調，可分別選取。F♯ 大調／E♭ 小調保留原本的等音調拼寫。</p>
-          <p id="session-launch-note" class="launch-selection-note"></p>
           <div id="signature-filters" class="fifths-circle" aria-label="五度圈排列的 24 個候選調性，上方大調、下方小調"></div>
           <div class="filter-status sr-only" role="group" aria-labelledby="key-filter-title"><span>大調 <b id="major-eligible">12 / 12</b></span><span>古典旋律小調 <b id="minor-eligible">12 / 12</b></span></div>
         </section>
@@ -1368,25 +1416,19 @@
           <button type="button" id="draw-button" class="draw-button" aria-describedby="session-launch-note"><span class="practice-action-icon" aria-hidden="true"><svg class="practice-play-icon" aria-hidden="true" focusable="false" viewBox="0 0 16 16"><path d="M4 2.5v11l9-5.5z"/></svg></span><span id="draw-text">開始練習</span></button>
           <a id="launch-resume" class="launch-resume" href="#results-title" hidden>繼續上次</a>
           </div>
-          <section class="launch-count-settings" id="launch-count-settings" aria-label="抽取數量">
+          <section class="launch-count-settings" id="launch-count-settings" aria-label="每次抽選數量">
             <div class="launch-count-sentence">
               <span class="launch-count-clause">
+                <span class="launch-count-label">大調</span>
                 <span class="stepper" role="group" aria-label="大調數量"><button type="button" id="major-minus" aria-label="減少大調數量">−</button><output class="count-output" id="major-count" aria-live="polite">1</output><button type="button" id="major-plus" aria-label="增加大調數量">+</button></span>
-                個大調
               </span>
               <span class="launch-count-clause">
+                <span class="launch-count-label">小調</span>
                 <span class="stepper" role="group" aria-label="小調數量"><button type="button" id="minor-minus" aria-label="減少小調數量">−</button><output class="count-output" id="minor-count" aria-live="polite">1</output><button type="button" id="minor-plus" aria-label="增加小調數量">+</button></span>
-                個小調
               </span>
             </div>
             <p id="filter-warning" class="filter-warning" role="status" hidden></p>
           </section>
-        </div>
-        <div class="launch-meta">
-          <fieldset class="launch-mode" aria-label="練習清單順序">
-            <label><input type="radio" name="launch-mode" value="random" checked><span>隨機</span></label>
-            <label><input type="radio" name="launch-mode" value="sequential"><span>循序</span></label>
-          </fieldset>
         </div>
       </div>
     </section>
@@ -1460,7 +1502,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261126-073-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261126-074-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -3863,7 +3905,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     const demoCaption=demoPiece('scale-demo-caption'),demoPlaying=demoPiece('scale-demo-playing'),demoLoading=demoPiece('scale-demo-loading');
     const demoBars=demoPiece('scale-demo-bars'),bars=Array.from({length:6},()=>demoPiece('scale-demo-bar'));
     demoBars.append(...bars);
-    demoCaption.innerHTML='<svg class="scale-demo-ear" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" d="M6 9a6 6 0 1 1 12 0c0 4-3 4.7-4.4 6.4C12.4 17 12.5 20 9.3 20 7.5 20 6 18.6 6 16.8M9 9.6a3 3 0 1 1 5.6 1.5c-.8 1.3-2.3 1.6-3.4 3M9 12.6h.01"/></svg>先聽一次';
+    demoCaption.innerHTML='<svg class="scale-demo-ear" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" d="M6 9a6 6 0 1 1 12 0c0 4-3 4.7-4.4 6.4C12.4 17 12.5 20 9.3 20 7.5 20 6 18.6 6 16.8M9 9.6a3 3 0 1 1 5.6 1.5c-.8 1.3-2.3 1.6-3.4 3M9 12.6h.01"/></svg>';
     demoPlaying.append(demoBars,demoPiece('scale-demo-stop'));
     demoLoading.append(demoPiece('scale-demo-spinner'));
     demoButton.append(demoCaption,demoLoading,demoPlaying);demoShell.append(demoButton);
@@ -5844,7 +5886,8 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       closedForPrint=null;
     });
     // LAUNCH_DISCLOSURE_START
-    const launchOptions=q('#draw-settings'),launchSummary=q('#launch-settings-toggle');
+    function wireLaunchDisclosure(launchOptions){
+    const launchSummary=launchOptions.querySelector('summary');
     const launchBody=launchOptions.querySelector('.launch-settings-body');
     let launchAnimation=null;
     function showLaunchOptions(open,returnFocus=false){
@@ -5880,6 +5923,10 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         event.preventDefault();showLaunchOptions(false,true);
       }
     });
+    return showLaunchOptions;
+    }
+    wireLaunchDisclosure(q('#mode-settings'));
+    const showLaunchOptions=wireLaunchDisclosure(q('#draw-settings'));
     // LAUNCH_DISCLOSURE_END
     document.querySelectorAll('input[name="launch-mode"]').forEach(radio=>radio.addEventListener('change',()=>{
       if(radio.checked)setLaunchMode(radio.value);
