@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261126-061-experimental">
+  <meta name="site-version" content="20261126-062-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -1252,7 +1252,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261126-061-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261126-062-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -3006,7 +3006,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
           if(!Number.isInteger(midi)||midi<36||midi>72)throw new Error('outside sample bank');
           const root=Math.round((midi-36)/3), [hz,offset]=celloDemoRoots[root];
           const rate=a4*Math.pow(2,(midi-69)/12)/hz;
-          const step=view.demoKind==='arpeggio'?.47:i===view.target.length-1?1.144:.286;
+          const step=i===view.target.length-1?1.10:view.demoKind==='arpeggio'?.64:.50;
           const length=step-.023;
           const source=context.createBufferSource(), gain=context.createGain();
           source.buffer=bank;source.playbackRate.value=rate;
@@ -3036,6 +3036,58 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       }
     }
     return {toggle,stop,blocked,stopWithin:host=>{if(active&&host?.contains(active.view.element))stop();}};
+  }
+
+  // Without an opening anchor, a clear run down to the shared low tonic
+  // is ambiguous: it may be the END of a warm-up, not the START of a take.
+  // Do not credit that tonic unless subsequent tracked MIDI confirms ascent.
+  function openingTonicGuard(target, firstDescent){
+    const head=target.slice(0,3).map(n=>n.midi);
+    const descending=new Set(target.slice(firstDescent,-1).map(n=>n.midi));
+    const enabled=firstDescent>0&&head.length===3&&head[0]<head[1]&&head[1]<head[2]&&head[0]===target.at(-1)?.midi;
+    let descent=false, recent=[], provisional=null;
+    let lastFrame=null, wasSupported=false, quietMs=0;
+    function beginPending(event,now){
+      provisional=[event];lastFrame=now;wasSupported=true;quietMs=0;
+    }
+    function sample(reading,observed,now){
+      if(!provisional)return;
+      const midi=provisional.at(-1).midi;
+      const supported=reading?.midi===midi&&observed?.midi===midi&&withinCents(reading.cents);
+      const span=now-lastFrame;
+      if(span>90||!supported||!wasSupported)quietMs+=span;
+      lastFrame=now;wasSupported=supported;
+      // A held note is not a pause; don't splice separate exploration across
+      // extended silence or fill a skipped tonic from a stale note.
+      if(quietMs>2500)provisional=null;
+    }
+    function observe(event,now=event.at){
+      if(!enabled)return undefined;
+      if(event.midi===head[0]){
+        if(!descent)return undefined;
+        beginPending(event,now);return null;
+      }
+      if(provisional){
+        if(event.midi===head[provisional.length]){
+          provisional.push(event);
+          if(provisional.length<3){lastFrame=now;wasSupported=true;quietMs=0;return null;}
+          const prefix=provisional.slice(0,2);
+          provisional=null;descent=false;recent=[];
+          return prefix;
+        }
+        provisional=null;
+      }
+      if(descending.has(event.midi)){
+        recent=[...recent,event.midi].slice(-6);
+        let count=0, previous=Infinity;
+        for(const midi of [...recent].reverse()){
+          if(count===0||midi>previous){count++;previous=midi;}
+        }
+        if(count>=3)descent=true;
+      }
+      return descent?null:undefined;
+    }
+    return {observe,sample};
   }
 
   function manager(env, hooks) {
@@ -3134,11 +3186,13 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       let values = Array(view.target.length).fill(null);
       const canRecoverOpening=view.target.length>=3&&view.target[0].midi<view.target[1].midi&&view.target[1].midi<view.target[2].midi;
       const firstDescent=view.target.findIndex((note,i)=>i>0&&note.midi<view.target[i-1].midi);
+      const openingTonic=openingTonicGuard(view.target,firstDescent);
       // Bound the total unsupported audio within each unanchored transition,
       // not its duration. Short pulses cannot renew it; sustained sound can
       // last indefinitely under the normal exact-next watchdog.
       const openingSilenceMs=2500;
       let openingSecond=null, openingSupport=null, openingExpired=false;
+      let lastReliablePitchAt=null, resumedAt=-Infinity, uncertainDescent=null;
       function beginEvidence(now){
         session.trend=createPitchTrend(now);
         session.loudness=null;session.loudnessAccepted=null;
@@ -3154,7 +3208,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       function resetProvisional(now){
         session.heard=[];session.heardCount=0;session.frontier=0;
         values=Array(view.target.length).fill(null);
-        progress=0;held=null;openingSecond=null;openingSupport=null;
+        progress=0;held=null;openingSecond=null;openingSupport=null;uncertainDescent=null;
         session.openingRecovered=false;session.recoveryContinued=false;
         session.openingGuide=openingRecoveryGuide(view.target);
         beginEvidence(now);
@@ -3198,7 +3252,12 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
             const pitch = !muted && frequency ? hooks.pitchReading(frequency, reference) : null;
             const reading = resolveMidpoint(pitch,view.target[progress]?.midi,recentMidi);
             if (reading) lastPitchAt = now;
+            if(reading && withinCents(reading.cents)){
+              if(lastReliablePitchAt!==null && now-lastReliablePitchAt>=160)resumedAt=now;
+              lastReliablePitchAt=now;
+            }
             const observed = monitor(reading, now);
+            if(progress===0&&session.laps===0)openingTonic.sample(reading,observed,now);
             if(openingSupport){
               const span=now-openingSupport.at;
               const supported=reading?.midi===openingSupport.midi&&observed?.midi===openingSupport.midi&&withinCents(reading.cents);
@@ -3219,8 +3278,21 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
             let closingSlot=null;
             const currentLap=session.laps+1;
             let singleDone=false;
-            if (event) {
-              if(progress===0&&session.laps===0)session.openingGuide.observe(event.midi);
+            const atOpening=event&&progress===0&&session.laps===0;
+            if(atOpening)session.openingGuide.observe(event.midi);
+            const guarded=atOpening?openingTonic.observe(event,now):undefined;
+            if(guarded===null){openingSecond=null;openingSupport=null;}
+            if (event&&guarded!==null) {
+              if(guarded){
+                values=values.slice();
+                for(const [slot,prior] of guarded.entries()){
+                  prior.firstEligibleSlot=prior.lastEligibleSlot=slot;
+                  values[slot]=prior.cents;
+                }
+                session.heard.push(...guarded);
+                session.heardCount+=guarded.length;
+                progress=guarded.length;
+              }
               let openingBootstrap=false;
               if(session.openingRecovered&&session.laps===0&&event.midi===view.target[0].midi&&!observedDescent()){
                 // A genuine late start takes precedence over earlier exploration.
@@ -3244,6 +3316,31 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
               recentMidi = event.midi;
               // Prefix points are provisional; the weighted alignment
               // replaces them on stop or at the end of a cycle.
+              // After a pause an out-of-order pitch already heard on the
+              // ascent may be a repetition or a skip forward. Keep it out of
+              // the score until the next heard pitch supports the descent.
+              let holdReverse=false;
+              const lockSlot=(heardEvent,slot)=>{
+                heardEvent.firstEligibleSlot=heardEvent.lastEligibleSlot=slot;
+                values=values.slice();values[slot]=heardEvent.cents;
+                progress=session.frontier=slot+1;
+              };
+              if(uncertainDescent){
+                const {slot,heardEvent,reverseEvent,ascendingNext}=uncertainDescent;
+                const fresh=event.at-heardEvent.at<=900;
+                if(fresh && reverseEvent && view.target[progress]?.midi===reverseEvent.midi &&
+                   view.target[progress+1]?.midi===event.midi){
+                  // They came back to the skipped descent note then resumed.
+                  lockSlot(reverseEvent,progress);
+                } else if(fresh && !reverseEvent && view.target[slot+1]?.midi===event.midi){
+                  lockSlot(heardEvent,slot);
+                } else if(fresh && !reverseEvent && ascendingNext===event.midi){
+                  // Could still be a deliberate retry of the missing note.
+                  uncertainDescent.reverseEvent=event;
+                  holdReverse=true;
+                }
+                if(!holdReverse)uncertainDescent=null;
+              }
               const isExactNext = view.target[progress]?.midi === event.midi;
               let position = progress;
               if (progress > 0 && !isExactNext) {
@@ -3257,10 +3354,18 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
                     (note,i) => i > progress && i <= progress+2 && note.midi === event.midi);
                 }
               }
+              const priorAscendingSlot=firstDescent>0 ? view.target.slice(0,firstDescent).findIndex(
+                (note,i)=>note.midi===event.midi && Number.isFinite(values[i])) : -1;
+              const waitForDirection=position>progress && position+1<view.target.length &&
+                firstDescent>0 && progress>=firstDescent && event.at>=resumedAt &&
+                event.at-resumedAt<=48 && priorAscendingSlot>=0;
+              if(waitForDirection)uncertainDescent={slot:position,heardEvent:event,
+                ascendingNext:view.target[priorAscendingSlot+1]?.midi};
+              if(waitForDirection||holdReverse)position=-1;
               const advances=position>=0 && event.midi===view.target[position]?.midi;
               // The final DP may select cleaner repeats for slots already
               // reached, but future repetitions need contemporary evidence.
-              event.lastEligibleSlot=advances?position:progress-1;
+              event.lastEligibleSlot=(waitForDirection||holdReverse)?-1:advances?position:progress-1;
               if(advances)event.firstEligibleSlot=position;
               session.heardCount++;
               session.heard.push(event);
@@ -3298,7 +3403,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
                 values[0] = event.cents;
                 held = {midi:event.midi,slot:0};
                 progress = session.frontier = 1;
-                openingSecond=null;openingSupport=null;session.openingRecovered=false;session.recoveryContinued=false;
+                openingSecond=null;openingSupport=null;uncertainDescent=null;session.openingRecovered=false;session.recoveryContinued=false;
               } else if (mode === 'single' && progress === view.target.length && align(view.target, session.heard).complete) {
                 singleDone=true;
               }
