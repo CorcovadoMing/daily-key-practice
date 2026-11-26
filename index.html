@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261126-076-experimental">
+  <meta name="site-version" content="20261126-077-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -544,6 +544,9 @@
     }
     .scale-practice-slur-controls button{min-block-size:var(--ui-touch,44px);line-height:1.3}
     .scale-practice-coach-tip :is(h4,h5){font-size:1rem;margin:.85rem 0 .2rem;line-height:1.35}
+    .practice-advice-caution{margin:0 0 .5rem;padding:.6rem .75rem;border-radius:12px;background:#f8e9ea;color:#843d46;font-size:.8125rem;line-height:1.55}
+    .practice-advice-caution strong{display:block;margin-block-end:2px}
+    [data-appearance=dark] .practice-advice-caution{background:#442c35;color:#f3c4c9}
     .scale-practice-coach-phase + .scale-practice-coach-phase{border-top:1px solid var(--line);margin-top:.85rem;padding-top:.15rem}
     .scale-practice-coach-phase h5{font-size:.875rem;font-weight:600;margin-top:.45rem}
     .scale-practice-coach-steps{font-size:.9375rem;line-height:1.55;margin:.25rem 0;padding-inline-start:1.5rem}
@@ -1504,7 +1507,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261126-076-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261126-077-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -2890,6 +2893,49 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     const single=sample=>Math.abs(sample)>10+1e-7?{sign:Math.sign(sample),hits:1,n:1,median:sample}:null;
     // Open-string status comes from the captured route, not from pitch name:
     // e.g. G2 can also be stopped on the C string in a confirmed custom route.
+    const positionCandidates=[];
+    const point=i=>{
+      const v=slots[i]?.plan;
+      return packet.source==='confirmed/visible plan'&&known(v)&&v.fingersReviewed===true&&
+        v.finger>=1&&v.finger<=4&&Number.isInteger(v.anchor)?v:null;
+    };
+    function classifyPosition(run,row){
+      if(run.some(i=>!finite(row[i])))return null;
+      const notes=run.map(i=>row[i]), signed=sign=>notes.every(v=>sign*v>10);
+      const spread=Math.max(...notes)-Math.min(...notes);
+      if(spread<=12&&Math.abs(notes.reduce((a,b)=>a+b,0)/notes.length)>=16&&(signed(1)||signed(-1)))return {type:'position-offset',sign:Math.sign(notes[0])};
+      const out=run.filter(i=>Math.abs(row[i])>=16);
+      if(out.length===1&&run.every(i=>i===out[0]||Math.abs(row[i])<=10))
+        return {type:'position-finger',i:out[0],sign:Math.sign(row[out[0]])};
+      const sorted=[...run].sort((a,b)=>slots[a].midi-slots[b].midi);
+      const diff=sorted.slice(1).map((i,j)=>row[i]-row[sorted[j]]);
+      const delta=row[sorted.at(-1)]-row[sorted[0]],sign=Math.sign(delta);
+      if(Math.abs(delta)>=16&&diff.every(x=>x*sign>=-4)&&diff.filter(x=>x*sign>=5).length>=2)
+        return {type:'position-spacing',sign,i:Math.abs(row[sorted[0]])>Math.abs(row[sorted.at(-1)])?sorted[0]:sorted.at(-1)};
+      return null;
+    }
+    for(let start=0;start<slots.length;){
+      const first=point(start),run=[start++];
+      if(!first)continue;
+      while(start<slots.length){
+        const next=point(start),left=slots[start-1],right=slots[start];
+        if(!next||next.anchor!==first.anchor||next.string!==first.string||right.direction!==left.direction||
+           right.midi===left.midi||(right.edge?.reviewed===true&&(right.edge.shift||right.edge.extension)))break;
+        run.push(start++);
+      }
+      if(run.length<3||new Set(run.map(i=>point(i).finger)).size<3)continue;
+      const full=values.filter(row=>run.every(i=>finite(row[i])));
+      const tests=full.map(row=>classifyPosition(run,row)).filter(Boolean);
+      const hits=new Map();
+      for(const v of tests){
+        const id=[v.type,v.type==='position-finger'?v.i:'',v.sign].join(':');
+        const group=hits.get(id)||[];group.push(v);hits.set(id,group);
+      }
+      const best=[...hits.values()].sort((a,b)=>b.length-a.length)[0];
+      if(!best||best.length*3<full.length*2)continue;
+      const v=best[0],i=v.i??run[0];
+      positionCandidates.push({...v,i,run,n:full.length,hits:best.length,median:full[0][i]});
+    }
     const openCandidates=[];
     const edgeCandidates=[], noteCandidates=[];
     for(let i=0;i<slots.length;i++){
@@ -2930,7 +2976,9 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       }
     }
     const byEvidence=(a,b)=>b.hits-a.hits || Math.abs(b.median)-Math.abs(a.median) || a.i-b.i;
-    const choices=[...openCandidates.sort(byEvidence),...edgeCandidates.sort(byEvidence),...noteCandidates.sort(byEvidence)];
+    const grouped=new Set(positionCandidates.flatMap(g=>g.run));
+    const choices=[...openCandidates.sort(byEvidence),...positionCandidates.sort(byEvidence),
+      ...edgeCandidates.filter(x=>!grouped.has(x.i)).sort(byEvidence),...noteCandidates.filter(x=>!grouped.has(x.i)).sort(byEvidence)];
     if(collect)return choices.map(item=>({...renderCandidate(item),type:item.type,slot:item.i,minRounds:item.n===1?1:2}));
     if(!choices.length)return missing('目前沒有足夠資料確認反覆的音準偏差。先照原譜慢練，再觀察。');
     return renderCandidate(choices[0]);
@@ -2953,6 +3001,30 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
           (pair?(crossing?'確認後，按原譜慢拉 '+pair+'；一音一弓，前音收尾放慢，換弓時平順換到下一弦的高度。':'確認後，按原譜慢拉 '+pair+'。'):'確認後，再慢拉譜上的這個音。'),
         sources:crossing?['crossing']:[],
         check:'回到原譜重測，看 '+string+' 空弦的 '+label(i)+' 是否更接近零線。'+settings};
+    }
+    if(type.startsWith('position-')){
+      const run=selected.run, first=run[0], last=run.at(-1);
+      const notes=run.map(j=>label(j)).join('、');
+      const where=modeName(first)+'：'+stringOf(first)+' 弦同一把位（'+notes+'）';
+      const lead=label(first)+' 的 '+slots[first].plan.finger+' 指';
+      const towards=sign<0?'往琴橋一點':'往琴枕一點';
+      if(type==='position-offset')return {kind:'note',
+        observation:where+'。整組一起'+landing+'，彼此的偏差接近。',
+        action:'先用調音器確認這條弦。若空弦準，對準這組的第一音 '+lead+'，保持指距不變，讓整手'+towards+'。先慢拉 '+shownPair(first,run[1])+'，再接回整組 '+notes+'。',
+        sources:['shift'],check:'重拉整組，看看各音是不是一起更接近零線。'};
+      if(type==='position-finger'){
+        const neighbor=run.find(j=>j===i-1)??run.find(j=>j===i+1);
+        const pair=shownPair(Math.min(i,neighbor),Math.max(i,neighbor));
+        const prep='先保留 '+label(neighbor)+' 的落點，不移整手。放鬆並試著讓 '+label(i)+' 的 '+slots[i].plan.finger+' 指'+towards+'。';
+        const lower=Math.min(i,neighbor),upper=Math.max(i,neighbor);
+        return {kind:'note',observation:where+'。其他音接近零線，只有 '+label(i)+' '+landing+'。',
+          action:prep+'慢拉 '+pair+'，一音一弓、弓聲不斷，穩了再接回整組 '+notes+'。',
+          slur:Math.abs(slots[i].midi-slots[neighbor].midi)<=2?prep+'慢拉 '+pair+'，只把這兩音放在同一弓裡。前後各用半弓，聽換指時弓是否平順。穩了再照原譜弓法接回整組。':undefined,
+          sources:['spacing','connected',...(first<lower||last>upper?['approach']:[])],check:'確認其他音仍準，再看 '+label(i)+' 是否更接近零線。'};
+      }
+      return {kind:'note',observation:where+'。越往高音，音準偏差'+(sign>0?'逐步往高走':'逐步往低走')+'，整組的音程可能'+(sign>0?'偏寬':'偏窄')+'。',
+        action:'先對準 '+lead+'，不要整手一起移。慢拉 '+shownPair(first,last)+' 聽兩端，再逐個接回相鄰的音。手保持放鬆，試著把這個把位的指距'+(sign>0?'收窄一點':'放寬一點')+'，不要沿用上一把位的固定手形。',
+        sources:['spacing','connected'],check:'比較每兩個相鄰音，不只看最後一個音。'};
     }
     if(type==='note'){
       const sources=[];
@@ -3084,6 +3156,37 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     return /^(?:上次量到的音：)?(上行|下行)：/.exec(line||'')?.[1]||'';
   }
 
+  function pitchAudit(packet){
+    const slots=packet?.slots;
+    if(!Array.isArray(slots)||!Array.isArray(packet?.rounds))return [];
+    const counts=new Map();
+    for(const r of packet.rounds){
+      if(r?.id!=null&&r.values?.length===slots.length)counts.set(r.id,counts.has(r.id)?null:r.values);
+    }
+    const rows=[...counts.values()].filter(Boolean);
+    const issues=[],slight={上行:[],下行:[]};
+    for(let i=0;i<slots.length;i++){
+      const raw=rows.map(row=>row[i]).filter(x=>Number.isFinite(x)&&Math.abs(x)<=50+1e-7);
+      if(!raw.length)continue;
+      const note=slots[i],direction=note.direction==='down'?'下行':'上行';
+      const p=packet.source==='confirmed/visible plan'&&note.plan?.reviewed===true?note.plan:null;
+      const label=(p?.string?(p.finger===0&&p.fingersReviewed?p.string+' 空弦的 ':p.string+' 弦上的 '):'')+(note.name||'這個音');
+      const highs=raw.filter(c=>c>=16), lows=raw.filter(c=>c<=-16);
+      const spread=values=>Math.round(Math.max(...values.map(Math.abs)))+'¢';
+      if(highs.length||lows.length){
+        const sides=[highs.length?'偏高最多 '+spread(highs):'',lows.length?'偏低最多 '+spread(lows):''].filter(Boolean);
+        issues.push(direction+'：'+label+'，'+sides.join('、')+'。');
+      }else{
+        const up=raw.some(c=>c>=8),down=raw.some(c=>c<=-8);
+        if(up||down)slight[direction].push(label+(up&&down?'（略有高低）':up?'（略高）':'（略低）'));
+      }
+    }
+    for(const direction of ['上行','下行'])
+      for(let i=0;i<slight[direction].length;i+=6)
+        issues.push(direction+'：下次稍留意 '+slight[direction].slice(i,i+6).join('、')+'。');
+    return issues;
+  }
+
   function practiceAdviceReport(packet){
     const single=()=>planSuggestion(packet);
     const all=packet?.rounds?.length?planSuggestion(packet,true):[];
@@ -3093,12 +3196,13 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     const pitch=candidates.filter(x=>x.type==='open-check'||
       (!tuned.has(x.slot)&&(x.type!=='note'||!covered.has(x.slot))));
     const timing=measuredTrendIssues(packet);
+    const measured=pitchAudit(packet);
     const observed=[...pitch,...timing];
     if(!observed.length){
       const fallback=single();
-      return {issues:[fallback.observation],drills:fallback.action?[(adviceDirection(fallback.observation)?adviceDirection(fallback.observation)+'：':'')+fallback.action]:[],drillSources:fallback.action?[fallback.sources||[]]:[]};
+      return {issues:measured.length?[...measured,...(fallback.action?[fallback.observation]:[])]:[fallback.observation],drills:fallback.action?[(adviceDirection(fallback.observation)?adviceDirection(fallback.observation)+'：':'')+fallback.action]:[],drillSources:fallback.action?[fallback.sources||[]]:[]};
     }
-    const issues=[...new Set(observed.map(x=>x.observation))];
+    const issues=[...new Set([...observed.map(x=>x.observation),...measured])];
     const drills=[],drillSources=[];
     const add=(text,sources=[],evidence=[])=>{
       const directions=new Set(evidence.map(x=>adviceDirection(x.observation)));
@@ -3115,8 +3219,14 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       else add('先用調音器，沿用'+(Number.isFinite(packet.reference)?' A4 '+packet.reference+' Hz':'原本的 A4')+
         '，單獨慢拉 '+strings.join('、')+' 空弦；調音器也確認偏差才調弦。調準後再回原譜練連接。',[],opens);
     }
+    const position=pitch.filter(x=>x.type.startsWith('position-'));
+    for(const item of position){
+      if(drills.length>=3)break;
+      if(item.slur&&!slur)slur={index:drills.length,text:item.slur,direction:adviceDirection(item.observation)};
+      add(item.action,item.sources,[item]);
+    }
     const bow=timing.filter(x=>!openSlots.has(x.slot));
-    if(bow.length){
+    if(bow.length&&drills.length<3){
       const first=bow[0];
       pin(first.type.slice(4),[first.slot],1);
       const similar=bow.filter(x=>x.type===first.type&&x.slot!==first.slot);
@@ -4012,6 +4122,14 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     const coachVisible=experimental&&['localhost','127.0.0.1','[::1]'].includes(globalThis.location?.hostname)&&new URLSearchParams(globalThis.location?.search||'').get('aiCoach')==='1';
     const localCoach=experimental&&!coachVisible?document.createElement('section'):null;
     let localAttempt=null, localComparison, comparisonRead=false, loudnessAdvice=null, localSlur=false;
+    function adviceCaution(){
+      const note=document.createElement('p');note.className='practice-advice-caution';
+      const title=document.createElement('strong');title.textContent='實驗功能・僅供參考';
+      const copy=document.createElement('span');
+      copy.textContent='這些建議由網站根據量到的音準自動整理，可能有誤。請以老師的指導和自己的聆聽為準，不必把每項建議都當成練習目標。';
+      note.append(title,copy);
+      return note;
+    }
     if(localCoach){
       localCoach.className='scale-practice-coach scale-practice-local-coach';
       localCoach.hidden=false;
@@ -4021,7 +4139,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       };
       const title=make('h3','scale-practice-local-coach-title','練習建議');
       const body=make('div','scale-practice-coach-tip','');body.setAttribute('role','status');
-      localCoach.append(title,body);
+      localCoach.append(title,adviceCaution(),body);
       let adviceState, advicePacket;
       localCoach.updateAdvice=(state,packet=null)=>{
         if(adviceState===state && advicePacket===packet)return;
@@ -4162,7 +4280,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       coachTyping.hidden=true;
       coachTyping.setAttribute('aria-hidden','true');
       coachTyping.append(mk('span'),mk('span'),mk('span'));
-      coachPanel.append(coachAction,coachNotice,coachStatus,coachTyping,coachTip,coachRaw,coachInput,coachTime);
+      coachPanel.append(adviceCaution(),coachAction,coachNotice,coachStatus,coachTyping,coachTip,coachRaw,coachInput,coachTime);
       function setCoachBusy(busy) {
         coachBusy=busy;
         coachAction.textContent=busy?'中斷':'練習建議';

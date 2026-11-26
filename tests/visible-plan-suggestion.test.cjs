@@ -155,7 +155,7 @@ test('actual partial C major take connects F3→G3, then restores its whole D-st
  for(const n of f.target.slice(0,12))f.play(n,n.midi===55?-27:0);
  await f.press();
  const tip=f.advise();
- a.match(tip,/上行：D 弦上的 F → G.*這次量到的音程偏窄.*先對準 F.*G 的 4 指落點往琴橋.*留寬一點.*慢拉 D 弦上的 F → G.*D、E、F、G/);
+ a.match(tip,/上行：D 弦同一把位.*其他音接近零線，只有 G 偏低.*先保留 F 的落點，不移整手.*G 的 4 指往琴橋.*慢拉 D 弦上的 F → G.*E、F、G/);
  a.doesNotMatch(tip.replace(/A4 \d+ Hz/g,''),/[A-G][2-5]|第 \d+ 音|中位|反覆|你手.*太/);
 });
 
@@ -391,7 +391,7 @@ test('actual recommendation cites only the rendered training recipe, at the very
  a.equal(recent.advice.v,4);a.deepEqual(recent.advice.drillSources,[['spacing','connected','approach']]);
  recent.advice.drillSources=[['javascript:alert(1)','crossing']];
  cache[k]=JSON.stringify(recent);
- const sanitized=setup(cache).advise();a.match(sanitized,/音程偏窄/);a.doesNotMatch(sanitized,/本次建議參考|javascript:/);
+ const sanitized=setup(cache).advise();a.match(sanitized,/只有 G 偏低/);a.doesNotMatch(sanitized,/本次建議參考|javascript:/);
  recent.advice.v=3;recent.advice.drillSources=[['shift']];cache[k]=JSON.stringify(recent);
  a.doesNotMatch(setup(cache).advise(),/本次建議參考|Katz/);
 });
@@ -542,4 +542,44 @@ test('an empty measured take keeps generic copy without inventing phase sections
  const f=setup({});await f.press();f.ready();await f.press();
  a.equal(f.panel.find('scale-practice-coach-phase'),undefined);
  a.doesNotMatch(f.advise(),/上行|下行/);
+});
+
+
+test('actual reviewed hand groups distinguish a shared offset, isolated finger, and interval drift, both directions',()=>{
+ const f=setup({}), plan=f.startPlan;
+ const report=marks=>f.practiceAdviceReport({...plan,reference:442,detector:'SwiftF0',rounds:[{id:1,values:plan.slots.map((_,i)=>marks[i]??null)}]});
+ const all=report({9:-21,10:-22,11:-26,17:20,18:21,19:24});
+ a.match(all.issues.join(' '),/上行：D 弦同一把位.*整組一起偏低.*下行：D 弦同一把位.*整組一起偏高/);
+ a.match(all.drills.join(' '),/保持指距不變，讓整手往琴橋.*保持指距不變，讓整手往琴枕/);
+ const single=report({9:1,10:27,11:-4});
+ a.match(single.issues.join(' '),/只有 F 偏高/);
+ a.match(single.drills.join(' '),/不移整手.*F 的 2 指往琴枕/);
+ const drift=report({9:0,10:-11,11:-27,17:28,18:14,19:0});
+ a.ok(drift.issues.some(x=>/^上行：.*偏窄/.test(x)));
+ a.ok(drift.issues.some(x=>/^下行：.*偏寬/.test(x)));
+ a.ok(drift.drills.some(x=>/^上行：.*指距放寬/.test(x)));
+ a.ok(drift.drills.some(x=>/^下行：.*指距收窄/.test(x)));
+ const partial=report({9:-25,10:-22,17:24});
+ a.doesNotMatch(partial.issues.join(' '),/整組|手形/);
+});
+test('complete pitch list includes both signs, one-off large errors, and mild reminders but not unplayed slots',()=>{
+ const f=setup({}),p=f.startPlan;
+ const values=Object.assign(Array(p.slots.length).fill(null),{0:-28,5:19,6:-32,7:9,17:-23,19:35});
+ const next=Object.assign(Array(p.slots.length).fill(null),{5:-18});
+ const r=f.practiceAdviceReport({...p,reference:442,detector:'SwiftF0',rounds:[{id:1,values},{id:2,values:next}]});
+ const text=r.issues.join(' ');
+ a.match(text,/C 空弦的 C.*偏低最多 28¢/);
+ a.match(text,/上行：G 弦上的 A，偏高最多 19¢、偏低最多 18¢/);
+ a.match(text,/上行：G 弦上的 B，偏低最多 32¢/);
+ a.match(text,/稍留意 G 弦上的 C（略高）/);
+ a.match(text,/下行：D 弦上的 G，偏低最多 23¢/);
+ a.match(text,/下行：D 弦上的 E，偏高最多 35¢/);
+ a.doesNotMatch(text,/下行：D 弦上的 F/);
+ a.match(r.drills[0],/先用調音器.*C 空弦/);a.ok(r.drills.length<=3);
+});
+
+test('the practice panel labels automatically generated advice as experimental before the result',()=>{
+ const f=setup({}); const note=f.panel.find('practice-advice-caution');
+ a.match(flatText(note),/實驗功能・僅供參考.*可能有誤.*老師的指導.*不必把每項建議都當成練習目標/);
+ a.ok(f.panel.children.indexOf(note)<f.panel.children.indexOf(f.panel.find('scale-practice-coach-tip')));
 });
