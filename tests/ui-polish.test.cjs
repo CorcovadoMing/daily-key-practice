@@ -1,8 +1,10 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs');
 const html=fs.readFileSync('index.html','utf8');
-test('tuner shows actionable status only when present and retains accessible details',()=>{
+test('tuner keeps diagnostics out of its layout and sends actionable errors to the toast',()=>{
  assert.match(html,/id="tuner-cents" class="audio-cents"/);
- assert.match(html,/id="tuner-status" class="audio-status" role="status"/);
+ assert.doesNotMatch(html,/id="tuner-status"/);
+ assert.match(html,/function tunerNotice\(message\)/);
+ assert.match(html,/id="toast" role="status"/);
  assert.ok(!html.includes('tuner-settings-close'));
  assert.ok(html.includes("$('tuner-preferences').addEventListener('keydown'"));
 });
@@ -44,9 +46,9 @@ test('practice completion circles remain hollow and use accessible contrasting s
  }
 });
 
-test('metronome and tuner stay in one nonwrapping row, with scroll only if controls exceed dock width',()=>{
+test('metronome and tuner stay in a nonwrapping dock; its tuner readout is out of flow',()=>{
   assert.match(html,/\.audio-buttons\{flex-wrap:nowrap;width:max-content;max-width:100%;min-width:0;overflow-x:auto/);
   assert.match(html,/\.audio-tool-pair\{flex:none\}/);
-  assert.match(html,/Math\.max\(buttons\.getBoundingClientRect\(\)\.width,buttons\.scrollWidth\)/);
-  assert.match(html,/\.audio-tools:has\(#tuner-panel:not\(\[hidden\]\)\) \.audio-controls\{flex-basis:100%\}/);
+  assert.match(html,/\.audio-tools\{[^}]*width:max-content/);
+  assert.match(html,/#tuner-panel\{\s*position:absolute;inset:auto auto/);
 });

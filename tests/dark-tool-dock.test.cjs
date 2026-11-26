@@ -18,7 +18,7 @@ test('dark tuner states and A4/settings read as foreground, not inherited light-
  const html=fs.readFileSync('index.html','utf8');
 a.match(html,/\[data-appearance=dark\] \.audio-tools\{color:var\(--ink\)/);
 a.match(html,/#tuner-note,#tuner-a\)\{color:#eef1f5/);
-a.match(html,/#tuner-status,\.audio-scale,\.a4-control span,\.tuner-readout #tuner-cents\)\{color:#b9c3cf/);
+a.match(html,/\.audio-scale,\.a4-control span,\.tuner-readout #tuner-cents\)\{color:#b9c3cf/);
 });
 
 test('dark classroom row removes only the shared backdrop, not buttons or join dialog',()=>{
