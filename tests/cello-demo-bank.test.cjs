@@ -15,3 +15,35 @@ test('sample bank and calibrations are the independently octave-verified pair',(
  }
  a.match(html,/fingerboard-editor\.js\?v=20261126-cello-audio-2/);
 });
+
+test('reference keeps cue spacing and pitch rate while tapering each bowed note',async()=>{
+ const vm=require('node:vm'),html=read('index.html'),f=html.slice(html.indexOf('  const celloDemoRoots'),html.indexOf('  function celloDemoPlayer'))+html.slice(html.indexOf('  function celloDemoPlayer'),html.indexOf('  function celloDemoPlayer')+html.slice(html.indexOf('  function celloDemoPlayer')).indexOf('\n  }\n')+5);
+ const make=vm.runInNewContext(f+'\ncelloDemoPlayer');
+ for(const [demoKind,step] of [['scale',.50],['arpeggio',.64]]){
+  const notes=[],envelopes=[],stops=[],states=[];
+  class AudioContext{
+   state='running';currentTime=8;destination={};
+   async decodeAudioData(){return {duration:21.45};}
+   createGain(){const marks=[];envelopes.push(marks);return {gain:{setValueAtTime:(v,t)=>marks.push([v,t]),linearRampToValueAtTime:(v,t)=>marks.push([v,t])},connect(){},disconnect(){}};}
+   createBufferSource(){return {playbackRate:{value:0},start(t,o,d){notes.push({t,o,d,r:this.playbackRate.value});},stop(t){stops.push(t);},connect(){}};}
+  }
+  const env={AudioContext,performance:{now:()=>8e3},fetch:async()=>({ok:true,text:async()=>read('fingerboard-editor.js')}),atob,setTimeout:()=>5,clearTimeout(){}};
+  const player=make(env,{reference:()=>442,isCapturing:()=>false,asset:'bank'});
+  const view={demoKind,target:[36,43,48].map(midi=>({midi})),demoUpdate:s=>states.push(s)};
+  await player.toggle(view);
+  a.deepEqual(states,['loading','playing']);a.equal(notes.length,3);
+  const near=(x,y)=>a.ok(Math.abs(x-y)<1e-9,[x,y].join(' vs '));
+  const table=JSON.parse(html.match(/const celloDemoRoots = (\[.*?\]);/)[1]);
+  for(let i=0;i<3;i++){
+   const m=view.target[i].midi, [hz]=table[Math.round((m-36)/3)];
+   near(notes[i].r,442*2**((m-69)/12)/hz);
+   near(notes[i].t,8.06+i*step);near(notes[i].d/notes[i].r,i===2?1.10:step+.009);
+   const gain=envelopes[i+1];
+   a.equal(gain[0][0],0);a.equal(gain.at(-1)[0],0);near(gain.at(-1)[1],stops[i]);
+   a.ok(gain.every(([v,t],n)=>v>=0&&v<=1&&(n===0||t>gain[n-1][1])));
+  }
+  a.ok(envelopes[2][2][0]>envelopes[1][2][0]);
+  await player.toggle(view);
+  a.equal(states.at(-1),'idle');a.equal(stops.filter(s=>s===undefined).length,3);
+ }
+});
