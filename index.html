@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261124-058-experimental">
+  <meta name="site-version" content="20261126-059-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -1246,7 +1246,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261124-058-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261126-059-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -2875,14 +2875,17 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     }
     const bow=timing.filter(x=>!openSlots.has(x.slot));
     if(bow.length){
-      const first=bow[0], kinds=new Set(bow.map(x=>x.type));
+      const first=bow[0];
       pin(first.type.slice(4),[first.slot],1);
-      const targets=[...new Set(bow.map(x=>x.label))];
-      const what=(kinds.has('bow-front')?'先把弓放穩再開始，':'')+
-        (kinds.has('bow-tail')?'弓到後半仍維持速度，':'')+
-        (kinds.has('bow-wobble')?'一弓慢拉，讓聲音均勻，':'');
+      const similar=bow.filter(x=>x.type===first.type&&x.slot!==first.slot);
+      const labels=[...new Set(similar.map(x=>x.label))].filter(label=>label!==first.label);
+      const what={
+        'bow-front':'弓毛先放穩再起音；對照走勢，聽起音和後面的音高有沒有更一致。',
+        'bow-tail':'弓到後半仍維持速度，不用刻意加重；對照走勢，聽尾音有沒有更接近音頭。',
+        'bow-wobble':'慢拉一弓，讓聲音盡量均勻；對照走勢，聽音高有沒有更平穩。'
+      }[first.type];
       add('拿「'+first.label+'」做一弓長音練習：'+what+
-        '比較音準走勢裡量到的前後段，看音高有沒有更平穩。'+(targets.length>1?'同樣練法可用在上面其他有走勢變化的音。':''));
+        (labels.length?'同樣練法也可用在「'+labels.slice(0,2).join('」、「')+'」。':''));
     }
     const active=pitch.filter(x=>x.type!=='open-check'&&!openSlots.has(x.slot)&&
       ((x.type==='note')||!openSlots.has(x.slot-1)));

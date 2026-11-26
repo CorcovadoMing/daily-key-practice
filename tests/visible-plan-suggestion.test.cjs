@@ -465,3 +465,41 @@ test('single natural completion automatically replaces the listening placeholder
  a.doesNotMatch(f.advise(),/練習結束後|上次保留/);
  a.equal(f.network,0);
 });
+test('mixed timing observations never assign another notes tail cue to the first note',()=>{
+ const f=setup({}), slots=f.startPlan.slots, values=slots.map((_,i)=>i>=1&&i<=3?0:null);
+ const seg=(slot,base,curve)=>curve.map((cents,i)=>({slot,segment:slot,lap:1,cents,ms:base+i*55}));
+ const front=[-25,-25,-25,3,3,3,3,3,3],tail=[1,1,1,1,1,1,23,24,25];
+ const ask=(curves)=>f.practiceAdviceReport({...f.startPlan,reference:443,detector:'SwiftF0',rounds:[{id:1,values}],trend:{start:0,end:2400,reference:443,data:curves.flatMap((v,i)=>seg(i+1,200+i*660,v))}});
+ const a1=ask([front,tail,front]);
+ a.equal(a1.issues.length,3);a.equal(a1.drills.length,1);a.equal(a1.metric.type,'front');
+ a.match(a1.drills[0],/弓毛先放穩再起音/);
+ a.doesNotMatch(a1.drills[0],/後半|上行：C 弦上的 E|其他有走勢/);
+ a.match(a1.drills[0],/同樣練法也可用在「上行：C 弦上的 F」/);
+ const a2=ask([tail,front,tail]);
+ a.equal(a2.issues.length,3);a.equal(a2.metric.type,'tail');a.match(a2.drills[0],/後半仍維持速度/);
+ a.doesNotMatch(a2.drills[0],/再起音|上行：C 弦上的 E|其他有走勢/);
+ a.match(a2.drills[0],/同樣練法也可用在「上行：C 弦上的 F」/);
+});
+
+test('actual mixed D/E/F tracing keeps every observation in report and suggests only matching-phase advice', async()=>{
+ const cache={},f=setup(cache);await f.press();f.ready();
+ f.play(f.target[0],0,25);
+ f.play(f.target[1],-24,14); f.play(f.target[1],0,28);
+ f.play(f.target[2],0,28); f.play(f.target[2],23,14);
+ f.play(f.target[3],-24,14); f.play(f.target[3],0,28);
+ f.play(f.target[4],0,24); await f.press();
+ const text=f.advise();
+ a.match(text,/上行：C 弦上的 D，量到的前段偏低.*上行：C 弦上的 E，量到的前段較接近零線，後段偏高.*上行：C 弦上的 F，量到的前段偏低/);
+ const drill=text.split('可以這樣練')[1];
+ a.ok(drill);
+ if(process.env.TIMING_BASE==='1'){
+   a.match(drill,/先把弓放穩再開始.*後半仍維持速度/);
+   a.match(drill,/其他有走勢變化的音/);
+ }else{
+   a.match(drill,/拿「上行：C 弦上的 D」.*弓毛先放穩再起音.*上行：C 弦上的 F/);
+   a.doesNotMatch(drill,/後半仍維持速度|上行：C 弦上的 E|其他有走勢變化的音/);
+ }
+ a.equal(f.network,0);
+ const restored=setup(cache).advise().replace('上次保留的建議 ','');
+ a.equal(restored,text);
+});
