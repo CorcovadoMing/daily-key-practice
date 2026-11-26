@@ -147,3 +147,7 @@ The local coach receives every score position, including those explicitly marked
 **手機練習統計（055 實驗）**：24 調長條圖保留固定縱軸和完整調名，在圖內左右滑動；近 30 天的熱圖單獨置中並標明起訖日期。統計方式不變。
 
 **頁首（056 實驗）**：主按鈕依情況顯示「開始練習」或「繼續上次」。已有未完成練習時，齒輪另提供「重新抽選」或「重新開始」，沿用原有紀錄保護。隨機與循序仍在主按鈕旁；課堂同步先收合，入房後只保留房號與退出。
+
+## 大提琴音階試聽
+
+「先聽一次」依音階或琶音譜位順序播放大提琴弓奏錄音，並沿用目前 A4 設定。素材來自 [Karoryfer × bigcat cello](https://github.com/sfzinstruments/karoryfer-bigcat.cello)，使用 [CC0 1.0 授權](https://github.com/sfzinstruments/karoryfer-bigcat.cello/blob/master/LICENSE)。取用 13 個中等音量的下弓延音，剪輯、校正音高並壓縮成同站音色素材；程式按譜組合，並非一段真人連續演奏的錄音。播放不啟動收音、不寫入練習結果；下載或解碼失敗時不以合成音替代。

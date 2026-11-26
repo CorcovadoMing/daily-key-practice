@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261126-059-experimental">
+  <meta name="site-version" content="20261126-060-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -551,7 +551,13 @@
     .scale-practice-coach .scale-practice-coach-elapsed{color:var(--muted);font-size:.8125rem}
     .scale-practice-status{font-size:12px;margin:0;max-width:100%;flex:1 1 230px}
     .scale-practice-latest{font-size:12px;white-space:nowrap}
-    .scale-practice-status:empty,.scale-practice-latest:empty,.scale-pitch-legend:empty{display:none}
+    .scale-practice-demo{min-block-size:44px}
+    .scale-practice-demo-status{flex-basis:100%;color:var(--muted);font-size:.8125rem}
+    .scale-practice-demo-status:empty,.scale-practice-status:empty,.scale-practice-latest:empty,.scale-pitch-legend:empty{display:none}
+    @media screen{
+      .scale-practice>.scale-practice-action>.scale-practice-demo{background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+      .scale-practice>.scale-practice-action>.scale-practice-demo:hover:not(:disabled){background:var(--soft);color:var(--ink)}
+    }
     .scale-practice,.cello-scale-score{--practice-green:#a9cba0;--practice-yellow:#e7cf85;--practice-red:#e4a798}
     .cello-scale-score [data-practice-band=center]{--practice-tone:var(--practice-green)}
     .cello-scale-score [data-practice-band=near]{--practice-tone:var(--practice-yellow)}
@@ -879,7 +885,7 @@
     .local-audio-note{color:var(--muted);font-size:11px;text-align:left;align-self:flex-start}
     .audio-tool-pair{display:inline-flex;align-items:center;gap:3px}
     .audio-buttons{gap:8px}
-    .scale-practice>.scale-practice-action{display:flex;flex-wrap:wrap;align-items:flex-start;min-width:0;gap:5px}
+    .scale-practice>.scale-practice-action{display:flex;flex:0 1 auto;flex-wrap:wrap;align-items:flex-start;min-width:0;max-inline-size:100%;gap:5px}
     .scale-practice-action>:is(.scale-practice-choice,.scale-practice-detector){min-height:44px;margin:0}
     :is(.scale-practice-choice,.scale-practice-detector):disabled{opacity:.64}
     :is(.scale-practice-choice,.scale-practice-detector):disabled :is(label,input){cursor:default}
@@ -1246,7 +1252,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261126-059-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261126-060-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -2944,6 +2950,94 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     };
   }
 
+  // Print-route demonstration is independent of the microphone and grade.
+  // Real CC0 mf down-bow roots, see README. Time offsets are in decoded MP3 seconds.
+  const celloDemoRoots = [[65.2979,0.08],[77.9395,1.73],[92.6284,3.38],[110.1247,5.03],[130.6289,6.68],[155.6515,8.33],[185.0467,9.98],[220.2112,11.63],[261.5625,13.28],[311.8097,14.93],[371.14,16.58],[440.4646,18.23],[524.9587,19.88]];
+  function celloDemoPlayer(env, {reference, isCapturing, asset}) {
+    let context, decoded, pending, active = null, quietUntil = -Infinity;
+    const clock=()=>env.performance.now();
+    const blocked=()=>Boolean(active)||clock()<quietUntil;
+    function stop() {
+      const take=active;
+      if(!take)return;
+      active=null;
+      if(take.endTimer!==undefined)env.clearTimeout(take.endTimer);
+      if(take.audible)quietUntil=clock()+600;
+      for(const source of take.nodes)try{source.stop();}catch{}
+      try{take.output?.disconnect();}catch{}
+      take.view.demoUpdate('idle');
+    }
+    async function prepare() {
+      if(decoded)return decoded;
+      if(!pending)pending=(async()=>{
+        const response=await env.fetch(asset,{credentials:'same-origin'});
+        if(!response.ok)throw new Error('sample response');
+        const encoded=(await response.text()).match(/\nCELLO_DEMO_MP3_START\n([A-Za-z0-9+/=]{1,240000})\nCELLO_DEMO_MP3_END\n/)?.[1];
+        if(!encoded)throw new Error('sample metadata');
+        const bytes=Uint8Array.from(env.atob(encoded),char=>char.charCodeAt(0));
+        const result=await context.decodeAudioData(bytes.buffer);
+        if(result.duration<21.1)throw new Error('sample incomplete');
+        return decoded=result;
+      })().finally(()=>{pending=null;});
+      return pending;
+    }
+    async function toggle(view) {
+      if(active?.view===view){stop();return;}
+      if(isCapturing()){view.demoUpdate('idle','請先停止收音，再播放示範。');return;}
+      stop();
+      const Context=env.AudioContext||env.webkitAudioContext;
+      if(!Context){view.demoUpdate('idle','這個瀏覽器無法播放大提琴錄音。');return;}
+      const a4=reference(), take={view,nodes:[],audible:false};
+      active=take;
+      view.demoUpdate('loading');
+      try{
+        if(!context)context=new Context();
+        // Resume synchronously in the button gesture, before loading the bank.
+        if(context.state!=='running')await context.resume();
+        if(active!==take)return;
+        const bank=await prepare();
+        if(active!==take)return;
+        if(isCapturing()||context.state!=='running')throw new Error('audio unavailable');
+        const t0=context.currentTime+.06, output=context.createGain();
+        take.output=output;output.gain.value=.86;output.connect(context.destination);
+        let at=t0;
+        for(let i=0;i<view.target.length;i++){
+          const {midi}=view.target[i];
+          if(!Number.isInteger(midi)||midi<36||midi>72)throw new Error('outside sample bank');
+          const root=Math.round((midi-36)/3), [hz,offset]=celloDemoRoots[root];
+          const rate=a4*Math.pow(2,(midi-69)/12)/hz;
+          const step=view.demoKind==='arpeggio'?.47:i===view.target.length-1?1.144:.286;
+          const length=step-.023;
+          const source=context.createBufferSource(), gain=context.createGain();
+          source.buffer=bank;source.playbackRate.value=rate;
+          gain.gain.setValueAtTime(0,at);gain.gain.linearRampToValueAtTime(1,at+.005);
+          gain.gain.setValueAtTime(1,at+length-.042);gain.gain.linearRampToValueAtTime(0,at+length);
+          source.connect(gain);gain.connect(output);
+          take.nodes.push(source);
+          source.start(at,offset,length*rate);
+          source.stop(at+length);
+          at+=step;
+        }
+        take.audible=true;
+        view.demoUpdate('playing');
+        const end=at-.023;
+        // Audio clock is authoritative: suspend and delayed timers cannot leave
+        // queued sample sound after the button or recording becomes available.
+        const finish=()=>{
+          if(active!==take)return;
+          if(context.state==='closed'){stop();return;}
+          const remaining=end-context.currentTime;
+          if(remaining<=.002){stop();return;}
+          take.endTimer=env.setTimeout(finish,Math.max(50,remaining*1000+25));
+        };
+        finish();
+      }catch{
+        if(active===take){stop();view.demoUpdate('idle','目前無法播放大提琴錄音，請再試一次。');}
+      }
+    }
+    return {toggle,stop,blocked,stopWithin:host=>{if(active&&host?.contains(active.view.element))stop();}};
+  }
+
   function manager(env, hooks) {
     let active = null;
     const idleMessage = '連續 2 分鐘未對上下一個譜音，已自動停止收音。';
@@ -3016,6 +3110,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         } else stop(null, session.stage === 'listening');
         return;
       }
+      if(hooks.demoBlocked?.()){view.demoUpdate?.('guard','請先停止示範，待聲音停止後再開始練習。');return;}
       const previous = active;
       const mode = modeValue(view.mode);
       const swiftSelected = view.detector === 'swift';
@@ -3228,7 +3323,8 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       // Do not interrupt shared capture while switching exercises, and never mix takes.
       finish(previous, '已切換到另一項練習。', false);
     }
-    return {toggle, stop, stopWithin: host => {
+    return {toggle, stop, isCapturing:()=>Boolean(active), stopWithin: host => {
+      hooks.stopDemoWithin?.(host);
       if (active && host.contains(active.view.element)) stop('已離開這張調性卡，收音已停止。');
     }};
   }
@@ -3441,6 +3537,19 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       }
       action.append(detector);
     }
+    const demoButton=document.createElement('button'), demoStatus=document.createElement('span');
+    demoButton.type='button';demoButton.className='scale-practice-demo';
+    demoStatus.className='scale-practice-demo-status';demoStatus.setAttribute('role','status');
+    function demoUpdate(state,message=''){
+      if(state!=='guard'){
+        demoButton.textContent=state==='idle'?'先聽一次':state==='loading'?'取消載入':'停止示範';
+        demoButton.setAttribute('aria-label',state==='idle'?'先聽一次'+name+'（大提琴）':demoButton.textContent);
+      }
+      demoStatus.textContent=message||(state==='loading'?'正在載入大提琴錄音…':'');
+    }
+    demoUpdate('idle');
+    demoButton.addEventListener('click',()=>globalThis.CelloScalePractice?.demo?.toggle(view));
+    action.append(demoButton);
     const status = document.createElement('p');
     status.className = 'scale-practice-status';
     status.setAttribute('role', 'status');
@@ -3847,7 +3956,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       if(chartOpen)updateCharts();
     };
     const label = (note, index) => note.name + note.octave + (index <= (target.length - 1) / 2 ? '↑' : '↓');
-    const view = {element, target, snapshotVisiblePlan, get mode() { return preference(); }, get detector() { return detectorValue; },
+    const view = {element, target, demoKind:kind, demoUpdate, snapshotVisiblePlan, get mode() { return preference(); }, get detector() { return detectorValue; },
       update(next, message, result, progress = 0, reference = 442, display) {
       if (historyButtons && next === 'idle' && !display?.restored && !display?.attemptHistory &&
           (!result || !display?.values?.some(Number.isFinite)) && ownsDraft()) {
@@ -3872,6 +3981,8 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       const summary = '已完成 ' + laps + ' 輪 · ' + (display?.passed || 0) + ' 輪通過';
       if (next !== phase) {
         phase = next;
+        demoButton.disabled=next!=='idle';
+        demoStatus.textContent='';
         element.dataset.phase = next;
         buttonText.textContent = next === 'idle' ? '開始練習' : next === 'pending' ? '取消收音' : '停止並看結果';
         button.setAttribute('aria-label', next === 'idle' ? '開始' + name + '練習'
@@ -4068,7 +4179,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       else updateCharts();
     }};
     button.addEventListener('click', () => toggle(view));
-    element.append(action,status,latest);
+    element.append(action,status,latest,demoStatus);
     if (historyButtons) element.append(historyButtons);
     if(localCoach)element.append(localCoach);
     if (coachPanel) element.append(coachPanel);
@@ -4083,7 +4194,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       card.syncPracticeCharts?.();
     }
   });
-  return {align, trackNotes, micCapture, metronomeClickGate, manager, card, chartPoint, centsText, scoreValues, monitorPitch, liveSlot, loopBoundary, resolveMidpoint, retainPracticeEvents, addHistory, createPitchTrend, trendSegments, pitchTrendSummary, timeCharts, sharedChartTime, chartSlotAt, planSuggestion, practiceAdviceReport, measuredTrendIssues, measuredTrendMetrics};
+  return {align, trackNotes, micCapture, metronomeClickGate, celloDemoPlayer, manager, card, chartPoint, centsText, scoreValues, monitorPitch, liveSlot, loopBoundary, resolveMidpoint, retainPracticeEvents, addHistory, createPitchTrend, trendSegments, pitchTrendSummary, timeCharts, sharedChartTime, chartSlotAt, planSuggestion, practiceAdviceReport, measuredTrendIssues, measuredTrendMetrics};
 });
 // SCALE_PRACTICE_END
   </script>
@@ -6038,7 +6149,13 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   const capture = window.CelloScalePractice.micCapture(window,detectPitch,tunerInputFloor,
     (frequency,now) => ignoreClick(frequency,now,clickIsAudible()), detectPitch,
     (frequency,now) => ignorePracticeClick(frequency,now,clickIsAudible()));
+  const demo = window.CelloScalePractice.celloDemoPlayer(window,{
+    reference:a4Reference,isCapturing:()=>scalePractice.isCapturing(),
+    asset:'./fingerboard-editor.js?v=20261126-cello-audio-1'
+  });
+  window.CelloScalePractice.demo=demo;
   const scalePractice = window.CelloScalePractice.manager(window, {
+    demoBlocked:demo.blocked,stopDemoWithin:demo.stopWithin,
     capture,
     swiftCapture:swiftPracticeCapture(window,capture,swift,swiftBatches,(frequency,now)=>practiceSwiftClick(frequency,now,clickIsAudible())),
     reference: a4Reference,
@@ -6135,8 +6252,8 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   };
   $('metronome-panel').addEventListener('keydown',e=>{if(e.key==='Escape'){showPanel('metronome',false);$('metro-settings').focus();}});
   $('tuner-panel').addEventListener('keydown',e=>{if(e.key==='Escape'){closeTool('tuner');$('tuner-open').focus();}});
-  document.addEventListener('visibilitychange',()=>{if(document.hidden){scalePractice?.stop('頁面已切換，收音已停止。');closeTool('tuner');closeTool('metronome');}});
-  window.addEventListener('pagehide', () => { scalePractice?.stop(); stopTuner(); stopMetro(); });
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){demo.stop();scalePractice?.stop('頁面已切換，收音已停止。');closeTool('tuner');closeTool('metronome');}});
+  window.addEventListener('pagehide', () => { demo.stop(); scalePractice?.stop(); stopTuner(); stopMetro(); });
 })();
 // AUDIO_TOOLS_END
 
