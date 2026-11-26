@@ -40,7 +40,7 @@ test('all 24 keys feed targets from the exact rendered scale and arpeggio staff'
    assert.ok(notes.every(note=>!note.children.some(x=>x.attributes.class==='scale-beam')),
      'shared beams cannot inherit the note highlight');
    const rows=staff.children[1].children;
-   const firstCount=arpeggio?7:15;
+   const firstCount=arpeggio?7:16;
    const rowsNotes=rows.map(staff=>staff.children.filter(x=>'data-midi' in x.attributes));
    assert.equal(rowsNotes[0].length,firstCount);
    assert.equal(rowsNotes[1].length,expected.length-firstCount);
@@ -51,7 +51,14 @@ test('all 24 keys feed targets from the exact rendered scale and arpeggio staff'
    assert.ok(rows.every(row=>row.children.filter(x=>x.attributes.class==='scale-key-signature').length===Math.abs(key[1])));
    const last=rowsNotes[1].at(-1);
    assert.ok(!last.children.some(x=>x.attributes.class==='scale-beam-local'));
-   if(!arpeggio)assert.equal(rowsNotes[1].at(-2).children.filter(x=>x.attributes.class==='scale-beam-local').length,2);
+   if(!arpeggio){
+     assert.deepEqual(rows.map(row=>row.children.filter(x=>x.attributes.class==='scale-beam').length),[8,6],
+       'the phone sustains all seven whole groups of four');
+     assert.ok(rows[0].attributes['aria-label'].includes('下行起點'));
+     assert.ok(rowsNotes.flat().slice(0,-1).every(head=>head.children.filter(x=>x.attributes.class==='scale-beam-local').length===2));
+     assert.ok(rowsNotes.flat().every(head=>!head.children.some(x=>x.attributes.class==='scale-beam-local'&&'d' in x.attributes)),
+       'breaking the score should never introduce lone flagged sixteenths for the site’s scale routes');
+   }
    const beams=staff.children[0].children.filter(x=>x.attributes.class==='scale-beam');
    assert.equal(beams.length,arpeggio?0:14);
    for(const [i,note] of notes.entries()){

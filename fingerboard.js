@@ -461,17 +461,22 @@
     wrap.append(makeStaff(mode,key,arpeggio,sequence,{apex,total:sequence.length}));
     const split=element('div',{class:'cello-score-split'});
     if(sequence.length>1){
-      split.append(makeStaff(mode,key,arpeggio,sequence.slice(0,apex),{apex,total:sequence.length,dir:'上行'}),
-        makeStaff(mode,key,arpeggio,sequence.slice(apex),{apex,total:sequence.length,dir:'下行',first:apex}));
+      // A narrow view may move the line break, not the musical grouping.
+      // Keep the four-note beams of the single-line score intact.
+      const splitAt=arpeggio?apex:Math.min(sequence.length-1,Math.ceil(apex/4)*4);
+      const rowCapacity=Math.max(splitAt,sequence.length-splitAt);
+      split.append(makeStaff(mode,key,arpeggio,sequence.slice(0,splitAt),{apex,total:sequence.length,dir:'上行',rowCapacity}),
+        makeStaff(mode,key,arpeggio,sequence.slice(splitAt),{apex,total:sequence.length,dir:'下行',first:splitAt,rowCapacity}));
     }
     wrap.append(split);return wrap;
   }
-  function makeStaff(mode,key,arpeggio,sequence,{apex,total,dir,first=0}){
+  function makeStaff(mode,key,arpeggio,sequence,{apex,total,dir,first=0,rowCapacity=apex}){
     const spacing=dir?(arpeggio?52:25):(arpeggio?64:29);
     const signature=key[1],startX=70+Math.abs(signature)*8;
-    const width=dir?startX+Math.max(0,apex-1)*spacing+23:928+Math.abs(signature)*8;
+    const width=dir?startX+Math.max(0,rowCapacity-1)*spacing+23:928+Math.abs(signature)*8;
     const accidentals=scoreAccidentals(sequence,signature);
-    const direction=dir||'上下行';
+    const startsDescent=Boolean(dir&&first===0&&sequence.length>apex);
+    const direction=startsDescent?'上行與下行起點':dir==='下行'&&first>apex?'續下行':dir||'上下行';
     const svg=svgNode('svg',{class:dir?'cello-score-row':'cello-score-wide',viewBox:`0 0 ${width} 185`,width,height:185,role:'img','aria-label':key[0]+(mode==='major'?'大調':'旋律小調')+(arpeggio?'琶音':'音階')+'，低音譜號，'+direction+(arpeggio?'，全部四分音符':'十六分音符，末音四分音符')});
     svg.append(svgNode('title',{},'調號與必要臨時記號'));
     for(let i=0;i<5;i++)svg.append(svgNode('line',{x1:14,x2:width-15,y1:110-i*10,y2:110-i*10,stroke:'#777','stroke-width':0.8}));
@@ -548,9 +553,12 @@
       start+=size;
     }
     svg.append(...noteGroups);
-    for(const [x,label] of (dir?[[startX,dir]]:[[startX,'上行'],[startX+apex*spacing,'下行']])){
+    for(const [x,label] of (dir?[[startX,startsDescent?'上行':direction]]:[[startX,'上行'],[startX+apex*spacing,'下行']])){
       svg.append(svgNode('text',{x,y:164,'font-size':12,fill:'#647461'},label));
       svg.append(svgNode('path',{d:`M${x+32} 160h14m-6-6 6 6-6 6`,fill:'none',stroke:'#647461','stroke-width':1.6,'stroke-linecap':'round','stroke-linejoin':'round','aria-hidden':'true'}));
+    }
+    if(startsDescent){
+      svg.append(svgNode('text',{x:width-17,y:164,'text-anchor':'end','font-size':12,fill:'#647461'},'下行開始'));
     }
     return svg;
   }
