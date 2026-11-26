@@ -438,8 +438,9 @@ test('native practice-mode selection persists and syncs scale/arpeggio without s
   const scale=api.card(score,target,()=>invoked++), arp=api.card(score,cMajorArpeggio,()=>invoked++,'arpeggio');
   const [action]=scale.element.children, [otherAction]=arp.element.children;
   const [button,choice,demo]=action.children, [otherBtn,otherChoice]=otherAction.children;
-  assert.equal(demo.tag,'button');
-  assert.equal(demo.className,'scale-practice-demo');
+  assert.equal(demo.className,'scale-demo-shell');
+  assert.equal(demo.children[0].tag,'button');
+  assert.equal(demo.children[0].dataset.demoState,'idle');
   const [single,loop]=choice.children.map(label=>label.children[0]);
   const [otherSingle,otherLoop]=otherChoice.children.map(label=>label.children[0]);
   assert.equal(action.attributes.role,'group');
