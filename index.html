@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261127-079-experimental">
+  <meta name="site-version" content="20261127-080-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -1224,10 +1224,10 @@
       .launch-count-label{color:var(--ink);font-size:.8125rem;white-space:nowrap}
       @media(max-width:26rem){.launch-count-sentence{row-gap:4px}}
     }
-    /* Same button and focus target throughout the playback morph. */
-    .scale-demo-shell{display:inline-grid;inline-size:82px;min-block-size:44px;max-inline-size:100%;justify-items:start}
+    /* Same button and focus target throughout playback. */
+    .scale-demo-shell{display:inline-grid;inline-size:72px;min-block-size:44px;max-inline-size:100%;justify-items:start}
     .scale-practice .scale-practice-action .scale-practice-demo{
-      position:relative;display:grid;place-items:center;inline-size:48px;max-inline-size:100%;
+      position:relative;display:grid;place-items:center;inline-size:72px;max-inline-size:100%;
       padding:0;min-block-size:44px;overflow:hidden;border:1px solid var(--line);
       border-radius:22px;background:#e5f1e8;color:#19392c;border-color:#718e7c;white-space:nowrap
     }
@@ -1239,31 +1239,28 @@
       background:#344e42
     }
     .scale-practice .scale-practice-action .scale-practice-demo:is([data-demo-state=loading],[data-demo-state=playing]){
-      inline-size:82px;background:#214638;color:#f5fff8;border-color:#214638
+      background:#214638;color:#f5fff8;border-color:#214638
     }
     [data-appearance=dark] .scale-practice .scale-practice-action .scale-practice-demo:is([data-demo-state=loading],[data-demo-state=playing]){
       background:#c9e9d0;color:#163427;border-color:#c9e9d0
     }
-    .scale-demo-caption,.scale-demo-playing,.scale-demo-loading{grid-area:1/1;display:flex;align-items:center;gap:9px;pointer-events:none}
-    .scale-demo-caption,.scale-demo-playing,.scale-demo-loading{visibility:hidden;opacity:0;translate:0 4px;scale:.96}
-    [data-demo-state=idle] .scale-demo-caption,[data-demo-state=playing] .scale-demo-playing,[data-demo-state=loading] .scale-demo-loading{
-      visibility:visible;opacity:1;translate:0 0;scale:1
-    }
-    .scale-demo-caption{gap:6px}
-    .scale-demo-ear{inline-size:21px;block-size:21px;flex:none}
+    .scale-demo-visual,.scale-demo-loading{grid-area:1/1;display:flex;align-items:center;gap:7px;pointer-events:none}
+    .scale-demo-loading{visibility:hidden;opacity:0}
+    [data-demo-state=loading] .scale-demo-visual{visibility:hidden;opacity:0}
+    [data-demo-state=loading] .scale-demo-loading{visibility:visible;opacity:1}
+    .scale-demo-toggle-symbol{display:grid;place-items:center;inline-size:12px;block-size:14px}
+    .scale-demo-play,.scale-demo-stop{grid-area:1/1;inline-size:12px;block-size:12px}
+    .scale-demo-play svg{display:block;inline-size:12px;block-size:12px}
+    .scale-demo-stop{inline-size:9px;block-size:9px;border-radius:2px;background:currentColor;opacity:0;scale:.72}
+    [data-demo-state=playing] .scale-demo-play{opacity:0;scale:.72}
+    [data-demo-state=playing] .scale-demo-stop{opacity:1;scale:1}
     .scale-demo-bars{display:flex;align-items:center;gap:3px;block-size:22px}
     .scale-demo-bar{inline-size:3px;block-size:20px;border-radius:2px;background:currentColor;transform:scaleY(var(--demo-level,.20))}
-    .scale-demo-stop{inline-size:9px;block-size:9px;border-radius:2px;background:currentColor}
     .scale-demo-spinner{inline-size:15px;block-size:15px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%}
     @media screen and (prefers-reduced-motion:no-preference){
-      .scale-practice .scale-practice-action .scale-practice-demo{
-        transition:inline-size 430ms cubic-bezier(.29,.12,.24,1),
-          scale 225ms cubic-bezier(.29,.12,.24,1)
-      }
-      .scale-demo-caption,.scale-demo-playing,.scale-demo-loading{
-        transition:opacity 170ms ease,translate 250ms cubic-bezier(.22,.8,.2,1),
-          scale 250ms cubic-bezier(.22,.8,.2,1),visibility 170ms
-      }
+      .scale-practice .scale-practice-action .scale-practice-demo{transition:scale 225ms cubic-bezier(.29,.12,.24,1)}
+      .scale-demo-play,.scale-demo-stop{transition:opacity 150ms ease,scale 215ms cubic-bezier(.22,.8,.2,1)}
+      .scale-demo-loading{transition:opacity 145ms ease}
       [data-demo-state=loading] .scale-demo-spinner{animation:demo-turn 760ms linear infinite}
       .scale-demo-bar{transition:transform 67ms linear}
       @keyframes demo-turn{to{transform:rotate(1turn)}}
@@ -1507,7 +1504,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261127-079-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261127-080-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -4032,15 +4029,18 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     demoShell.className='scale-demo-shell';
     demoStatus.className='scale-practice-demo-status';demoStatus.setAttribute('role','status');
     const demoPiece=className=>{const el=document.createElement('span');el.className=className;el.setAttribute('aria-hidden','true');return el;};
-    const demoCaption=demoPiece('scale-demo-caption'),demoPlaying=demoPiece('scale-demo-playing'),demoLoading=demoPiece('scale-demo-loading');
+    const demoVisual=demoPiece('scale-demo-visual'),demoLoading=demoPiece('scale-demo-loading');
     const demoBars=demoPiece('scale-demo-bars'),bars=Array.from({length:6},()=>demoPiece('scale-demo-bar'));
-    demoBars.append(...bars);
-    demoCaption.innerHTML='<svg class="scale-demo-ear" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" d="M6 9a6 6 0 1 1 12 0c0 4-3 4.7-4.4 6.4C12.4 17 12.5 20 9.3 20 7.5 20 6 18.6 6 16.8M9 9.6a3 3 0 1 1 5.6 1.5c-.8 1.3-2.3 1.6-3.4 3M9 12.6h.01"/></svg>';
-    demoPlaying.append(demoBars,demoPiece('scale-demo-stop'));
+    const demoSymbol=demoPiece('scale-demo-toggle-symbol'),demoPlay=demoPiece('scale-demo-play');
+    demoPlay.innerHTML='<svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5a.45.45 0 0 1 .67-.39l8.2 5.5a.45.45 0 0 1 0 .78l-8.2 5.5A.45.45 0 0 1 4 13.5z"/></svg>';
+    demoSymbol.append(demoPlay,demoPiece('scale-demo-stop'));
+    demoBars.append(...bars);demoVisual.append(demoSymbol,demoBars);
     demoLoading.append(demoPiece('scale-demo-spinner'));
-    demoButton.append(demoCaption,demoLoading,demoPlaying);demoShell.append(demoButton);
+    demoButton.append(demoVisual,demoLoading);demoShell.append(demoButton);
+    const demoStill=[.25,.45,.66,.52,.34,.21];
     function demoMeter(levels){
-      bars.forEach((bar,i)=>bar.style.setProperty('--demo-level',String(levels[i]??.13)));
+      const idle=demoButton.dataset.demoState!=='playing';
+      bars.forEach((bar,i)=>bar.style.setProperty('--demo-level',String(idle?demoStill[i]:(levels[i]??.13))));
     }
     function demoUpdate(state,message=''){
       if(state!=='guard'){

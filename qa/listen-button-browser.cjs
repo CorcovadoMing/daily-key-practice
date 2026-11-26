@@ -69,14 +69,17 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('n
    const line=await draw.evaluate(e=>{const text=e.querySelector('#draw-text');return {height:text.offsetHeight,line:parseFloat(getComputedStyle(text).lineHeight)};});
    assert.ok(line.height<line.line*1.5,JSON.stringify(line));
    await p.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));
-   await p.screenshot({path:path.join('..','modes-074-home-'+width+'-'+dark+'.png')});
+   await p.screenshot({path:path.join('..','listen-080-home-'+width+'-'+dark+'.png')});
    await resume.click();
    await p.locator('.key-title').first().waitFor({state:'visible'});
    if(!(await p.locator('.scale-practice[data-practice-kind=scale] .scale-practice-demo').first().isVisible()))
      await p.locator('.key-title').first().click();
    const demo=p.locator('.scale-practice[data-practice-kind=scale] .scale-practice-demo').filter({visible:true}).first();
-   await demo.waitFor({state:'visible'});assert.equal(await demo.locator('.scale-demo-caption').textContent(),'');assert.match(await demo.getAttribute('aria-label'),/先聽一次/);assert.equal(await demo.getAttribute('data-demo-state'),'idle');
-   assert.equal(await demo.locator('.scale-demo-ear').isVisible(),true);
+   await demo.waitFor({state:'visible'});assert.equal(await demo.locator('.scale-demo-visual').textContent(),'');assert.match(await demo.getAttribute('aria-label'),/先聽一次/);assert.equal(await demo.getAttribute('data-demo-state'),'idle');
+   assert.equal(await demo.locator('.scale-demo-play svg').isVisible(),true);
+   const levels=()=>demo.locator('.scale-demo-bar').evaluateAll(bars=>bars.map(b=>b.style.getPropertyValue('--demo-level')));
+   const still=await levels();await p.waitForTimeout(105);assert.deepEqual(await levels(),still);
+   assert.equal(await demo.locator('.scale-demo-stop').evaluate(el=>getComputedStyle(el).opacity),'0');
    const contrast=()=>demo.evaluate(el=>{
      const linear=x=>{x/=255;return x<=.04045?x/12.92:((x+.055)/1.055)**2.4;};
      const lum=s=>s.match(/[\d.]+/g).slice(0,3).map(Number).map(linear).reduce((n,x,i)=>n+[.2126,.7152,.0722][i]*x,0);
@@ -89,25 +92,26 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('n
      const box=e=>{const {x,y,width,height}=e.getBoundingClientRect();return {x,y,width,height};};
      return {box:box(el),launch:box(el.closest('.scale-practice-action').querySelector('.scale-practice-button'))};
    });
-   assert.ok(box.x+box.width<launch.x && Math.abs(box.y-launch.y)<3,JSON.stringify({box,launch}));
+   assert.ok(box.x+box.width<launch.x && launch.x-box.x-box.width<=10 && Math.abs(box.y-launch.y)<3,JSON.stringify({box,launch}));
    assert.ok(box.width>=44 && box.height>=44 && box.x>=0 && box.x+box.width<=width+1,JSON.stringify(box));
    assert.equal(served.filter(s=>s.endsWith('/fingerboard-editor.js')).length,before);
    await demo.click();
    await p.waitForFunction(()=>Boolean(document.querySelector('.scale-practice-demo[data-demo-state=playing]')));
    await p.waitForFunction(()=>[...document.querySelectorAll('.scale-practice-demo[data-demo-state=playing] .scale-demo-bar')].some(b=>parseFloat(b.style.getPropertyValue('--demo-level'))>.30));
    assert.match(await demo.getAttribute('aria-label'),/停止音階示範/);
-   await p.waitForFunction(()=>getComputedStyle(document.querySelector('.scale-practice-demo[data-demo-state=playing] .scale-demo-caption')).visibility==='hidden');
+   await p.waitForFunction(()=>getComputedStyle(document.querySelector('.scale-practice-demo[data-demo-state=playing] .scale-demo-stop')).opacity==='1');
+   assert.ok(await demo.locator('.scale-demo-play').evaluate(el=>Number(getComputedStyle(el).opacity)<.005));
+   assert.notDeepEqual(await levels(),still);
    assert.ok(await contrast()>=7,JSON.stringify({width,dark,contrast:await contrast()}));
-   await p.waitForFunction(()=>document.querySelector('.scale-practice-demo[data-demo-state=playing]').getBoundingClientRect().width>=81);
    const capsule=await demo.boundingBox();
-   assert.ok(capsule.width>box.width+7,JSON.stringify({box,capsule}));
+   assert.equal(capsule.width,box.width,JSON.stringify({box,capsule}));
    const played=await p.evaluate(()=>window.__qa);
    assert.deepEqual(played.decoded.map(x=>[x[0],x[2]]),[[172268,'running']]);
    assert.ok(Math.abs(played.decoded[0][1]-21.45)<.08);assert.equal(played.started.length,29);
    assert.equal(played.mic,0);
    await p.waitForFunction(()=>[...document.querySelectorAll('.scale-practice-demo[data-demo-state=playing]')].some(e=>getComputedStyle(e).borderRadius==='22px'));
    const collapse=await demo.evaluate(async el=>{
-     const c=()=>{const s=getComputedStyle(el),b=el.getBoundingClientRect();return {r:parseFloat(s.borderRadius),w:b.width,x:b.x,y:b.y};};
+     const c=()=>{const s=getComputedStyle(el),b=el.getBoundingClientRect();return {r:parseFloat(s.borderRadius),w:b.width,x:b.x,y:b.y+window.scrollY};};
      const from=c();el.click();const first=c();
      await new Promise(r=>setTimeout(r,155));const mid=c();
      await Promise.allSettled(el.getAnimations().map(m=>m.finished));const end=c();
@@ -115,7 +119,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('n
    });
    assert.ok(Object.values(collapse).every(x=>x.r===22),JSON.stringify(collapse));
    assert.ok(Math.abs(collapse.from.r-collapse.first.r)<.9,JSON.stringify(collapse));
-   assert.ok(Math.abs(collapse.mid.w-collapse.end.w)>1,JSON.stringify(collapse));
+   assert.ok(Object.values(collapse).every(x=>Math.abs(x.w-box.width)<.7),JSON.stringify(collapse));
+   assert.deepEqual(await levels(),still);
    for(const k of ['x','y'])assert.ok(Object.values(collapse).every(x=>Math.abs(x[k]-collapse.from[k])<.5),JSON.stringify(collapse));
    assert.equal(await demo.getAttribute('data-demo-state'),'idle');
    assert.ok((await p.evaluate(()=>window.__qa.stopped.filter(x=>x.length===0).length))>0);
