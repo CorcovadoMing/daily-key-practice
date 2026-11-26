@@ -583,3 +583,30 @@ test('the practice panel labels automatically generated advice as experimental b
  a.match(flatText(note),/實驗功能・僅供參考.*可能有誤.*老師的指導.*不必把每項建議都當成練習目標/);
  a.ok(f.panel.children.indexOf(note)<f.panel.children.indexOf(f.panel.find('scale-practice-coach-tip')));
 });
+
+test('same hand can span reviewed strings only when the captured shape is unchanged and both strings have reliable evidence',()=>{
+ const f=setup({}); const slots=[
+  {name:'D',midi:38,direction:'up',plan:{string:'C',finger:1}},
+  {name:'F',midi:41,direction:'up',plan:{string:'C',finger:4}},
+  {name:'A',midi:45,direction:'up',plan:{string:'G',finger:1}},
+  {name:'B',midi:47,direction:'up',plan:{string:'G',finger:3}},
+ ].map(s=>({...s,plan:{...s.plan,anchor:2,shape:'normal',reviewed:true,fingersReviewed:true}}));
+ const report=(values,use=slots)=>f.practiceAdviceReport({source:'confirmed/visible plan',slots:use,reference:442,detector:'SwiftF0',rounds:[{id:1,values}]});
+ const all=report([-24,-22,-22,-23]);
+ a.match(all.issues.join(' '),/C、G 弦同一把位.*整組一起偏低/);
+ a.match(all.drills.join(' '),/先用調音器確認 C、G 各弦.*保持指距不變/);
+ for (const values of [[-24,-22,1,2],[-24,-22,-22,null],[-24,-20,-8,2]]) {
+  a.doesNotMatch(report(values).issues.join(' '),/C、G 弦同一把位/);
+ }
+ const split=slots.map((n,i)=>i<2?n:{...n,plan:{...n.plan,shape:'extended'}});
+ a.doesNotMatch(report([-24,-22,-22,-23],split).issues.join(' '),/C、G 弦同一把位/);
+});
+test('real melodic E minor has the same anchor but not the same shape at its reviewed cross-string boundary',()=>{
+ const f=setup({}), key=['E',1,'E F♯ G A B C♯ D♯','E F♯ G A B C D'];
+ const plan=f.fb.visiblePlan('minor',key);
+ const a0=plan.slots[5].plan,b0=plan.slots[6].plan;
+ a.equal(a0.anchor,b0.anchor);a.notEqual(a0.string,b0.string);a.notEqual(a0.shape,b0.shape);
+ const marks=Object.assign(Array(plan.slots.length).fill(null),{3:-22,4:-23,5:-20,6:-29,7:-25});
+ const r=f.practiceAdviceReport({...plan,rounds:[{id:1,values:marks}]});
+ a.doesNotMatch(r.issues.join(' '),/G、D 弦同一把位/);
+});
