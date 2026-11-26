@@ -1,10 +1,10 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),room=fs.readFileSync('classroom.js','utf8');
-function harness(inRoom=true) {
+function harness(inRoom=true,launchMode="random") {
  const pending=[], buttons={}, notices=[];
  const state={preferences:{majorCount:1,minorCount:1}};
- const e={window:{},q:id=>(buttons[id]??={addEventListener(_,f){this.click=f;}}),state,
+ const e={launchMode,window:{},q:id=>(buttons[id]??={addEventListener(_,f){this.click=f;}}),state,
    sharedRoom:inRoom?{id:'sandbox',majorCount:1,minorCount:1}:null,visiblePreferences:()=>e.sharedRoom||state.preferences,
    ready:true,connected:true,roomRef:{},roomExpiresAt:null,
    practice:{showToast:s=>notices.push(s)},clamp:n=>Math.max(0,Math.min(12,n)),persist(){},renderControls(){},
@@ -24,3 +24,12 @@ test('two quick plus clicks with no readback both count',()=>{const h=harness();
 test('before readback, major and minor clicks preserve both changes',()=>{const h=harness();h.buttons['#major-plus'].click();h.buttons['#minor-plus'].click();h.settle();h.assertCounts(2,2);});
 test('transaction retries do not multiply the delta and preserve the unrelated field and limits',()=>{const h=harness();for(let i=0;i<20;i++){h.buttons['#major-plus'].click();h.buttons['#minor-minus'].click();}h.settle();h.assertCounts(12,0);});
 test('personal counts remain immediately editable without remote state',()=>{const h=harness(false);h.buttons['#major-plus'].click();h.buttons['#major-plus'].click();h.buttons['#minor-minus'].click();assert.deepEqual(h.state.preferences,{majorCount:3,minorCount:0});});
+test('sequential mode cannot write either personal counts or classroom counts',()=>{
+ for(const inRoom of [false,true]){
+  const h=harness(inRoom,'sequential');
+  h.buttons['#major-plus'].click();
+  h.buttons['#minor-minus'].click();
+  h.settle();h.assertCounts(1,1);
+  assert.deepEqual(h.state.preferences,{majorCount:1,minorCount:1});
+ }
+});

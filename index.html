@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261127-080-experimental">
+  <meta name="site-version" content="20261127-081-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -882,6 +882,12 @@
     .launch-resume{display:inline-flex;align-items:center;min-height:44px;margin-block-start:2px;color:var(--ink);text-decoration:underline;text-underline-offset:3px;font-size:.875rem}
     .launch-resume[hidden]{display:none}
     .launch-count-settings{min-width:0;align-self:center}
+    .launch-count-settings[data-locked=true] .launch-count-clause,
+    .launch-count-settings[data-locked=true] .count-output,
+    .launch-count-settings[data-locked=true] .stepper button:disabled{
+      color:color-mix(in srgb, var(--ink) 48%, var(--paper));opacity:1
+    }
+    .launch-count-settings[data-locked=true] .stepper button:disabled{cursor:default}
     .launch-settings .launch-selection-note{font-size:.75rem;color:var(--muted);white-space:pre-line;overflow-wrap:anywhere;margin:4px 0 8px}
     .launch-meta small{color:var(--muted);font-size:11px}
     .launch-settings{min-width:0;margin:0 0 8px}
@@ -1378,7 +1384,7 @@
       </div>
       <div class="session-launch" id="session-launch">
         <details class="launch-settings" id="mode-settings" data-expanded="false">
-          <summary id="mode-settings-toggle">模式設定</summary>
+          <summary id="mode-settings-toggle">練習設定</summary>
           <div class="launch-settings-body mode-settings-body" inert>
           <div class="pitch-detector-setting mode-setting-row">
         <span id="pitch-detector-label">音準偵測</span>
@@ -1504,7 +1510,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261127-080-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261127-081-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -5030,6 +5036,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       return new Intl.DateTimeFormat('zh-TW',{year:showYear?'numeric':undefined,month:'long',day:'numeric',weekday:'short'}).format(parsed);
     }
     function changeCount(kind,delta){
+      if(launchMode==='sequential')return;
       if(sharedRoom){window.classroomSync?.changeCount(kind,delta);return;}
       const field=kind+'Count';
       state.preferences[field]=clamp(state.preferences[field]+delta);
@@ -5076,7 +5083,13 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       draw.disabled=!available;
       launch.dataset.mode=launchMode;
       const counts=q('#launch-count-settings');
-      if(counts)counts.hidden=launchMode==='sequential';
+      const sequential=launchMode==='sequential';
+      if(counts)counts.dataset.locked=String(sequential);
+      for(const [kind,value] of [['major',options.majorCount],['minor',options.minorCount]]){
+        const minus=q('#'+kind+'-minus'),plus=q('#'+kind+'-plus');
+        if(minus)minus.disabled=sequential||value===0;
+        if(plus)plus.disabled=sequential||value===12;
+      }
       const warning=q('#filter-warning');
       if(warning)warning.hidden=launchMode==='sequential'||!warning.textContent;
       const names=mode=>eligible(mode).map(i=>keyName(mode,i)).join('、')||'無';
@@ -5106,10 +5119,6 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       const {majorCount,minorCount}=visiblePreferences();
       q('#major-count').textContent=majorCount;
       q('#minor-count').textContent=minorCount;
-      q('#major-minus').disabled=majorCount===0;
-      q('#major-plus').disabled=majorCount===12;
-      q('#minor-minus').disabled=minorCount===0;
-      q('#minor-plus').disabled=minorCount===12;
       renderKeyFilters();
       updateSessionLaunch();
     }
