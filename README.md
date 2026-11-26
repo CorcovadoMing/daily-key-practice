@@ -150,4 +150,4 @@ The local coach receives every score position, including those explicitly marked
 
 ## 大提琴音階試聽
 
-「先聽一次」依音階或琶音譜位順序播放大提琴弓奏錄音，並沿用目前 A4 設定。素材來自 [Karoryfer × bigcat cello](https://github.com/sfzinstruments/karoryfer-bigcat.cello)，使用 [CC0 1.0 授權](https://github.com/sfzinstruments/karoryfer-bigcat.cello/blob/master/LICENSE)。取用 13 個中等音量的下弓延音，剪輯、校正音高並壓縮成同站音色素材；程式按譜組合，並非一段真人連續演奏的錄音。播放不啟動收音、不寫入練習結果；下載或解碼失敗時不以合成音替代。
+「先聽一次」依音階或琶音譜位順序播放大提琴弓奏錄音，並沿用目前 A4 設定。素材來自 [Karoryfer × bigcat cello](https://github.com/sfzinstruments/karoryfer-bigcat.cello)，使用 [CC0 1.0 授權](https://github.com/sfzinstruments/karoryfer-bigcat.cello/blob/master/LICENSE)。取用 13 個中等音量的下弓延音，用不預設音名或八度的基頻量測核對取樣，再剪輯、校正音高並壓縮成同站音色素材；程式按譜組合，並非一段真人連續演奏的錄音。播放不啟動收音、不寫入練習結果；下載或解碼失敗時不以合成音替代。
