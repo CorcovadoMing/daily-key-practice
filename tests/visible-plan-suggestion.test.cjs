@@ -86,7 +86,7 @@ test('missing, partial and restored takes are honest and cannot reuse board or m
 });
 test('relative interval requires both accepted notes in each round and works on reverse',()=>{
  const {planSuggestion}=setup({});
- const p=(midi,finger)=>({midi,direction:'down',plan:{reviewed:true,string:'A',finger,fingersReviewed:true}});
+ const p=(midi,finger)=>({midi,direction:'down',plan:{reviewed:true,string:'A',finger,fingersReviewed:true,anchor:1,shape:'normal'}});
  const base={slots:[p(70,3),p(69,2)],source:'confirmed/visible plan',reference:442,detector:'SwiftF0'};
  const rounds=[{id:1,values:[-20,0]},{id:2,values:[-25,0]},{id:3,values:[null,25]}];
  a.match(planSuggestion({...base,rounds}).observation,/下行：A 弦上的.*多次量到的音程偏窄/);
@@ -609,4 +609,32 @@ test('real melodic E minor has the same anchor but not the same shape at its rev
  const marks=Object.assign(Array(plan.slots.length).fill(null),{3:-22,4:-23,5:-20,6:-29,7:-25});
  const r=f.practiceAdviceReport({...plan,rounds:[{id:1,values:marks}]});
  a.doesNotMatch(r.issues.join(' '),/G、D 弦同一把位/);
+});
+
+test('real C minor shape-change keeps audible interval fact without widening or narrowing a hand frame',()=>{
+ const f=setup({}),p=f.fb.visiblePlan('minor',['C',-3,'C D E♭ F G A B','C D E♭ F G A♭ B♭'],{},false);
+ const i=p.slots.findIndex((n,j)=>j>0&&n.name==='F'&&n.direction==='up'&&n.plan?.string==='D'&&
+   p.slots[j-1].plan?.string==='D'&&p.slots[j-1].plan?.shape==='backwardExtended'&&n.plan?.shape==='normal');
+ a.ok(i>0);
+ const values=p.slots.map((_,j)=>j===i-1?0:j===i?-28:null);
+ const packet={...p,rounds:[{id:1,values},{id:2,values}]};
+ const report=f.practiceAdviceReport(packet);
+ a.match(report.issues.join(' '),/D 弦上的 E♭ → F.*音程偏窄.*反覆偏低|反覆偏低.*D 弦上的 E♭ → F.*音程偏窄/);
+ a.match(report.drills[0],/先聽準 E♭.*F.*指.*一音一弓/);
+ a.doesNotMatch(report.drills.join(' '),/往琴橋|往琴枕|距離留寬|距離收窄|試伸指/);
+ const restored=f.planSuggestion({restored:true,slots:p.slots,currentPlan:p,values});
+ a.match(restored.action,/照目前指板.*先聽準 E♭/);a.doesNotMatch(restored.action,/往琴橋|往琴枕|距離留寬|距離收窄/);
+});
+
+test('unknown shape does not prescribe a distance; reviewed extension retains its distinct drill',()=>{
+ const f=setup({}),p=f.startPlan,i=11;
+ const values=p.slots.map((_,j)=>j===i-1?0:j===i?-28:null);
+ const packet={...p,rounds:[{id:1,values},{id:2,values}]};
+ const shapeOff=p.slots.map((n,j)=>j===i?{...n,plan:{...n.plan,shape:undefined}}:n);
+ const v=f.practiceAdviceReport({...packet,slots:shapeOff});
+ a.match(v.issues.join(' '),/音程偏窄/);
+ a.doesNotMatch(v.drills.join(' '),/往琴橋|手指的距離|距離留寬/);
+ const explicit=p.slots.map((n,j)=>j===i?{...n,edge:{reviewed:true,from:i-1,extension:true}}:n);
+ a.match(f.practiceAdviceReport({...packet,slots:explicit}).drills[0],/照指板提示.*不要硬撐/);
+ a.match(f.practiceAdviceReport(packet).drills[0],/往琴橋.*留寬一點/);
 });

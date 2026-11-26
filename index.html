@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261127-082-experimental">
+  <meta name="site-version" content="20261127-083-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -1512,7 +1512,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-082-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-083-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -2822,7 +2822,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         else if(edge?.extension)cue='依指板放鬆試伸指，先聽準 '+before+'，再確認 '+here+' 的 '+to.finger+' 指落點，不要硬撐';
         else{
           const start=values?.[i-1],last=values?.[i];
-          const sameFrame=Number.isInteger(from.anchor)&&from.anchor===to.anchor;
+          const sameFrame=sameAdviceFrame(from,to);
           if(from.finger!==to.finger&&sameFrame&&Number.isFinite(start)&&Math.abs(start)<=10&&
              Number.isFinite(last)&&Math.abs(last-start)>14&&Math.sign(last)===Math.sign(last-start)){
             const movement=last<start?'往琴橋一點':'往琴枕一點';
@@ -2836,6 +2836,12 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     }
     return openTuner+setup+'把 '+label+' 慢慢連拉幾次，一音一弓，中間不斷聲。'+more;
   }
+
+  // Diagnose a finger span only within the same reviewed hand shape.
+  // A change of shape or an unseen frame warrants a neutral connection drill.
+  const sameAdviceFrame=(from,to)=>Boolean(from&&to&&from.string===to.string&&
+    Number.isInteger(from.anchor)&&from.anchor===to.anchor&&
+    ['normal','extended','backwardExtended'].includes(from.shape)&&from.shape===to.shape);
 
   function planSuggestion(packet, collect=false) {
     const missing=(observation)=>({kind:'insufficient',observation});
@@ -2960,7 +2966,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       positionCandidates.push({...v,i,run,n:full.length,hits:best.length,median:full[0][i]});
     }
     const openCandidates=[];
-    const edgeCandidates=[], noteCandidates=[];
+    const edgeCandidates=[], noteCandidates=[], intervalContext=[];
     for(let i=0;i<slots.length;i++){
       const to=slots[i], from=slots[i-1];
       const bias=pattern(values.map(row=>row[i]).filter(finite));
@@ -2988,6 +2994,12 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         (x.finger===y.finger || (Number.isInteger(x.anchor)&&Number.isInteger(y.anchor)&&x.anchor!==y.anchor))){
         edgeCandidates.push({type:'relocation',i,...landing});
       }else if(relative&&x.fingersReviewed&&y.fingersReviewed&&x.finger>0&&y.finger>0&&x.finger!==y.finger){
+        if(!sameAdviceFrame(x,y)||explicit?.shift||explicit?.extension){
+          intervalContext.push({type:'interval-context',slot:i,minRounds:relative.n===1?1:2,
+            observation:modeName(i)+'：'+shownPair(i-1,i)+'。'+
+            (relative.n===1?'這次量到':'多次量到')+'的音程'+(relative.sign<0?'偏窄':'偏寬')+'。'});
+          continue;
+        }
         // Only suggest moving the landing finger when its own sign corroborates
         // the measured interval. Equal bias in both notes is not a spacing issue.
         const adjust=-relative.sign*Math.sign(to.midi-from.midi);
@@ -3002,7 +3014,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     const grouped=new Set(positionCandidates.flatMap(g=>g.run));
     const choices=[...openCandidates.sort(byEvidence),...positionCandidates.sort(byEvidence),
       ...edgeCandidates.filter(x=>!grouped.has(x.i)).sort(byEvidence),...noteCandidates.filter(x=>!grouped.has(x.i)).sort(byEvidence)];
-    if(collect)return choices.map(item=>({...renderCandidate(item),type:item.type,slot:item.i,minRounds:item.n===1?1:2}));
+    if(collect)return [...choices.map(item=>({...renderCandidate(item),type:item.type,slot:item.i,minRounds:item.n===1?1:2})),...intervalContext];
     if(!choices.length)return missing('目前沒有足夠資料確認反覆的音準偏差。先照原譜慢練，再觀察。');
     return renderCandidate(choices[0]);
     function renderCandidate(selected){
@@ -3216,7 +3228,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     const all=packet?.rounds?.length?planSuggestion(packet,true):[];
     const candidates=Array.isArray(all)?all:[];
     const tuned=new Set(candidates.filter(x=>x.type==='open-check').map(x=>x.slot));
-    const covered=new Set(candidates.filter(x=>!['note','fingers'].includes(x.type)).map(x=>x.slot));
+    const covered=new Set(candidates.filter(x=>!['note','fingers','interval-context'].includes(x.type)).map(x=>x.slot));
     const pitch=candidates.filter(x=>x.type==='open-check'||
       (!tuned.has(x.slot)&&(x.type!=='note'||!covered.has(x.slot))));
     const timing=measuredTrendIssues(packet);
