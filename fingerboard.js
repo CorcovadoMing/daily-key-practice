@@ -1083,6 +1083,8 @@
   }
 
   const DRAFT_KEY = PREFIX + 'latest-local';
+  const keyedSlot = key => key + ':latest';
+  const validKeyed = (key,count) => count<=64 && typeof key==='string' && key.length<=1000 && validKey(key,count);
   const validId = id => typeof id === 'string' && /^[a-zA-Z0-9-]{1,96}$/.test(id);
   const nonnegative = n => Number.isSafeInteger(n) && n >= 0;
   const sum = (a, b) => b > MAX_COUNT - a ? MAX_COUNT : a + b;
@@ -1270,9 +1272,9 @@
     }
   }
 
-  function saveDraft(storage, key, draft, options = {}) {
+  function saveDraftRecord(storage, key, draft, options, keyed) {
     const count = draft?.values?.length;
-    if (!validKey(key, count)) return {ok: false, reason: 'invalid-key'};
+    if (!(keyed?validKeyed:validKey)(key, count)) return {ok: false, reason: 'invalid-key'};
     if (!storage) return {ok: false, reason: 'unavailable'};
     let snapshot;
     try {
@@ -1291,17 +1293,21 @@
       return {ok: false, reason: 'invalid-draft'};
     }
     if (options.expectedId !== undefined) {
-      const latest = currentDraftId(storage);
+      const latest = keyed ? latestDraftId(storage,key,count) : currentDraftId(storage);
       if (!latest.ok) return latest;
       if (latest.id !== options.expectedId) return {ok:false,reason:'stale-draft'};
     }
     if (options.ifCurrent) {
-      const latest = loadDraft(storage, key, count);
+      const latest = keyed ? loadKeyDraft(storage,key,count) : loadDraft(storage,key,count);
       if (!latest.ok) return latest;
       if (!latest.exists || latest.draft.id !== snapshot.id) return {ok: false, reason: 'stale-draft'};
     }
     const hadTrend=Boolean(snapshot.trend), hadAdvice=Boolean(snapshot.advice);
-    const publish=()=>write(storage, DRAFT_KEY, {v: 1, scope: key, ...snapshot});
+    const publish=()=>{
+      const payload={v:1,scope:key,...snapshot};
+      if(keyed&&JSON.stringify(payload).length>128000)return {ok:false,reason:'write-failed'};
+      return write(storage,keyed?keyedSlot(key):DRAFT_KEY,payload);
+    };
     let saved=publish();
     // Optional coaching and trace must never prevent restoring the dot chart.
     if(!saved.ok&&hadTrend){delete snapshot.trend;saved=publish();}
@@ -1311,13 +1317,26 @@
     return saved;
   }
 
-  function loadDraft(storage, key, count) {
-    if (!validKey(key, count)) return {ok: false, reason: 'invalid-key'};
-    const item = read(storage, DRAFT_KEY);
+  function saveDraft(storage,key,draft,options={}){
+    return saveDraftRecord(storage,key,draft,options,false);
+  }
+  function saveKeyDraft(storage,key,draft,options={}){
+    return saveDraftRecord(storage,key,draft,options,true);
+  }
+
+  function loadDraftRecord(storage, key, count, keyed) {
+    if (!(keyed?validKeyed:validKey)(key, count)) return {ok: false, reason: 'invalid-key'};
+    let item=read(storage,keyed?keyedSlot(key):DRAFT_KEY);
+    const fallback=keyed&&item.ok&&item.raw===null;
+    if(fallback)item=read(storage,DRAFT_KEY);
     if (!item.ok) return item;
     if (item.raw === null) return {ok: true, exists: false};
     try {
       const snapshot = JSON.parse(item.raw);
+      if(keyed&&!fallback&&snapshot.cleared===true){
+        if(snapshot.v!==1||snapshot.scope!==key||!validId(snapshot.id))throw new Error();
+        return {ok:true,exists:false,revision:snapshot.id};
+      }
       if (snapshot.v !== 1 || !validKey(snapshot.scope, snapshot.values?.length)) throw new Error();
       if (snapshot.scope !== key) return {ok: true, exists: false};
       const draft = normalizeDraft(snapshot, count);
@@ -1338,6 +1357,48 @@
     }
   }
 
+  function loadDraft(storage,key,count){return loadDraftRecord(storage,key,count,false);}
+  function loadKeyDraft(storage,key,count){return loadDraftRecord(storage,key,count,true);}
+  function latestDraftId(storage,key,count){
+    const latest=loadKeyDraft(storage,key,count);
+    return latest.ok?{ok:true,id:latest.draft?.id??latest.revision??null}:latest;
+  }
+
+  // Pin terminal or recovered counts to the latest draft for this score.
+  // Commit counts and the replay marker together; a retry after interruption
+  // can never add the same current attempt twice.
+  function accumulate(storage,key,bins,attemptId){
+    if(!Array.isArray(bins)||!validId(attemptId))return {ok:false,reason:'invalid-attempt'};
+    const latest=loadKeyDraft(storage,key,bins.length);
+    if(!latest.ok)return latest;
+    if(!latest.exists||latest.draft.id!==attemptId)return {ok:false,reason:'stale-draft'};
+    const current=load(storage,key,bins.length);
+    if(!current.ok)return current;
+    if(current.lastDraftId===attemptId)return {...current,duplicate:true};
+    try{
+      if(!addBins(current.bins,bins))return {ok:false,reason:'empty-attempt'};
+    }catch{return {ok:false,reason:'invalid-attempt'};}
+    const saved=write(storage,key,{v:1,slots:sortedSlots(current.bins),lastDraftId:attemptId});
+    return saved.ok?{...current,exists:true,lastDraftId:attemptId}:saved;
+  }
+
+  // A small tombstone keeps old singleton data from reappearing on reload.
+  // Its opaque revision also invalidates optimistic writers from before clear.
+  function removeKeyDraft(storage,key,count){
+    if(!validKeyed(key,count))return {ok:false,reason:'invalid-key'};
+    return write(storage,keyedSlot(key),{v:1,scope:key,cleared:true,id:newDraftId()});
+  }
+
+  function clear(storage,key,count,{includeDraft=false}={}){
+    if(!validKeyed(key,count))return {ok:false,reason:'invalid-key'};
+    if(includeDraft){
+      const removed=removeKeyDraft(storage,key,count);
+      if(!removed.ok)return removed;
+    }
+    try{storage.removeItem(key);return {ok:true};}
+    catch{return {ok:false,reason:'write-failed',draftCleared:includeDraft};}
+  }
+
   function removeDraft(storage, key, count) {
     if (!validKey(key, count)) return {ok: false, reason: 'invalid-key'};
     const current = loadDraft(storage, key, count);
@@ -1350,7 +1411,8 @@
     }
   }
 
-  return {keyFor, bucket, appendPoints, load, save, newDraftId, currentDraftId, saveDraft, loadDraft, removeDraft};
+  return {keyFor, bucket, appendPoints, load, save, newDraftId, currentDraftId, saveDraft, loadDraft, removeDraft,
+    latestDraftId, loadKeyDraft, saveKeyDraft, removeKeyDraft, accumulate, clear};
 });
 /* END practice history module */
 /* Local-only comparison with the last fresh take used for practice advice. */
@@ -1506,7 +1568,16 @@
       return {status:Math.abs(delta)<3?'unchanged':delta<0?'improved':'worse',label:labelFor(packet,m),
         before:prior.sample.error,after:current.error,beforeRounds:prior.sample.rounds,afterRounds:current.rounds};
     }
-    return {pin,compare};
+    function clear(scope){
+      const key=scopePrefix(scope);
+      if(!key)return {ok:false,reason:'invalid-key'};
+      try{
+        const keys=Array.from({length:storage.length},(_,i)=>storage.key(i));
+        for(const name of keys)if(typeof name==='string'&&name.startsWith(key))storage.removeItem(name);
+        return {ok:true};
+      }catch{return {ok:false,reason:'write-failed'};}
+    }
+    return {pin,compare,clear};
   }
   return {create};
 });

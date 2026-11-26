@@ -126,8 +126,8 @@ test('actual arpeggio manager/card reveals its own measured coaching only after 
   assert.equal(panel.hidden,false,'an empty take restores existing measured draft without replacing it');
   assert.match(arp.element.find('scale-practice-status').textContent,/上次|未辨識/);
   await button.handlers.click();
-  assert.equal(p.requested.measured,0,'empty current take never sends old measured values');
-  assert.doesNotMatch(coachOutput(panel),/上次保留的音準圖|C2|E2/);
+  assert.ok(p.requested.measured>0,'explicit advice request acts on the displayed older graph');
+  assert.match(coachOutput(panel),/上次保留的音準圖/);
 
 });
 

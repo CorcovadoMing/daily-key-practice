@@ -156,3 +156,75 @@ test('a stale draft cannot merge again or replace the current draft even after a
   assert.equal(history.load(store, key, 3).bins[0].get(-19), 2);
   assert.ok(history.saveDraft(store, key, {...b, pending: false}, {ifCurrent: true}).ok);
 });
+
+const keyedDraft = (id,bins) => ({id,values:[-5,null,4],mode:'loop',laps:2,passed:1,progress:1,
+  pending:true,attemptHistory:bins});
+const altKey=history.keyFor('major-D♭','arpeggio',[37,39,37]);
+const samples=() => [new Map([[-5,3]]),new Map([[2,2]]),new Map([[4,1]])];
+test('separate keyed drafts keep ownership across alternating exercises and enforce matching expected IDs',()=>{
+  const s=storage(),bins=samples();
+  assert.deepEqual(history.latestDraftId(s,key,3),{ok:true,id:null});
+  assert.ok(history.saveKeyDraft(s,key,keyedDraft('scale-one',bins),{expectedId:null}).ok);
+  assert.ok(history.saveKeyDraft(s,altKey,keyedDraft('arp-one',bins),{expectedId:null}).ok);
+  assert.deepEqual(history.latestDraftId(s,key,3),{ok:true,id:'scale-one'});
+  assert.equal(history.saveKeyDraft(s,key,keyedDraft('new-one',bins),{expectedId:'arp-one'}).reason,'stale-draft');
+  assert.ok(history.saveKeyDraft(s,key,keyedDraft('new-one',bins),{expectedId:'scale-one'}).ok);
+  assert.ok(history.saveKeyDraft(s,altKey,keyedDraft('arp-one',bins),{ifCurrent:true}).ok);
+  assert.equal(history.loadKeyDraft(s,altKey,3).draft.id,'arp-one');
+});
+test('completed loops and final partial merge exactly once, including reload/retry and a superseded ID',()=>{
+  const s=storage(),bins=samples();
+  assert.ok(history.saveKeyDraft(s,key,keyedDraft('run-one',bins)).ok);
+  const saved=history.accumulate(s,key,bins,'run-one');assert.ok(saved.ok);
+  assert.equal(saved.bins[0].get(-5),3); // 2 rounds + partial, not just the last graph
+  const reopened=history.loadKeyDraft(s,key,3).draft;assert.equal(reopened.pending,false);
+  assert.equal(history.accumulate(s,key,reopened.attemptHistory,'run-one').duplicate,true);
+  assert.ok(history.saveKeyDraft(s,key,keyedDraft('run-two',bins),{expectedId:'run-one'}).ok);
+  assert.equal(history.accumulate(s,key,bins,'run-one').reason,'stale-draft');
+  assert.equal(history.accumulate(s,key,bins,'run-two').bins[0].get(-5),6);
+  assert.equal(history.load(s,altKey,3).exists,false);
+});
+test('legacy interrupted draft is recovered only for exact key; clear tombstone blocks resurrection and stale writes',()=>{
+  const s=storage(),bins=samples();
+  assert.ok(history.saveDraft(s,key,keyedDraft('legacy-one',bins)).ok);
+  assert.equal(history.loadKeyDraft(s,altKey,3).exists,false);
+  assert.equal(history.loadKeyDraft(s,key,3).draft.id,'legacy-one');
+  assert.ok(history.accumulate(s,key,history.loadKeyDraft(s,key,3).draft.attemptHistory,'legacy-one').ok);
+  assert.equal(history.accumulate(s,key,bins,'legacy-one').duplicate,true);
+  assert.ok(history.saveKeyDraft(s,altKey,keyedDraft('arp-keep',bins)).ok);
+  assert.ok(history.accumulate(s,altKey,bins,'arp-keep').ok);
+  assert.ok(history.clear(s,key,3,{includeDraft:true}).ok);
+  assert.equal(history.loadKeyDraft(s,key,3).exists,false);
+  assert.equal(history.load(s,key,3).exists,false);
+  assert.equal(history.loadDraft(s,key,3).draft.id,'legacy-one'); // no destructive migration
+  const tomb=history.latestDraftId(s,key,3).id;
+  assert.notEqual(tomb,'legacy-one');assert.ok(tomb);
+  assert.equal(history.saveKeyDraft(s,key,keyedDraft('bad-retry',bins),{expectedId:'legacy-one'}).reason,'stale-draft');
+  assert.ok(history.saveKeyDraft(s,key,keyedDraft('following-take',bins),{expectedId:tomb}).ok);
+  assert.equal(history.loadKeyDraft(s,altKey,3).draft.id,'arp-keep');
+  assert.equal(history.load(s,altKey,3).bins[0].get(-5),3);
+});
+test('storage failures cannot double count or report a partial clear successful',()=>{
+  const s=storage(),bins=samples(),w=s.setItem,r=s.removeItem;
+  assert.ok(history.saveKeyDraft(s,key,keyedDraft('a1',bins)).ok);
+  s.setItem=(k,v)=>{if(k===key)throw Error();w(k,v);};
+  assert.equal(history.accumulate(s,key,bins,'a1').reason,'write-failed');
+  s.setItem=w;
+  assert.equal(history.accumulate(s,key,bins,'a1').bins[0].get(-5),3);
+  s.removeItem=()=>{throw Error();};
+  assert.deepEqual(history.clear(s,key,3,{includeDraft:true}),{ok:false,reason:'write-failed',draftCleared:true});
+  assert.equal(history.load(s,key,3).exists,true);
+  assert.equal(history.loadKeyDraft(s,key,3).exists,false);
+  s.removeItem=r;
+  assert.ok(history.clear(s,key,3,{includeDraft:true}).ok);
+});
+test('comparison clear removes only the requested pitch-advice exercise',()=>{
+  const ptr=script.split('/* Local-only comparison with the last fresh take used for practice advice. */')[1];
+  const root={};vm.runInNewContext(ptr,{globalThis:root});
+  const s=storage(),prefix='daily-key-practice:experimental:practice-comparison:v1:';
+  for(const k of [prefix+'major-C:scale:one',prefix+'major-C:scale:two',prefix+'major-C:arpeggio:one','daily-key-practice:experimental:v1'])s.setItem(k,'fixture');
+  const api=root.CelloPracticeProgress.create({...s,get length(){return s.data.size;},key:i=>[...s.data.keys()][i]});
+  assert.equal(api.clear('major-C:scale').ok,true);
+  assert.deepEqual([...s.data.keys()],[prefix+'major-C:arpeggio:one','daily-key-practice:experimental:v1']);
+  assert.equal(api.clear('major-X:scale').reason,'invalid-key');
+});

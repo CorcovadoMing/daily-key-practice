@@ -18,7 +18,7 @@ class Node{
 }
 function memory(){
  const data=new Map(); const calls=[];
- return {data,calls,fail:false,getItem:key=>data.get(key)??null,setItem(key,value){
+ return {data,calls,fail:false,getItem:key=>data.get(key)??null,removeItem:key=>data.delete(key),setItem(key,value){
   if(this.fail)throw Error('quota');calls.push(key);data.set(key,value);
  }};
 }
@@ -50,108 +50,51 @@ function build(storage, scope='major-C', kind='scale', mode='loop', shared=realm
   play(midi,cents=0,frames=6){for(let i=0;i<frames;i++)callbacks.frame({now:now+=27,frequency:midi?442*2**((midi-69+cents/100)/12):null});},
   get prompts(){return prompts;}, get state(){return view.element.practiceHistory;}};
 }
-test('measured live draft survives reload, never restarts mic or auto-merges, and deferral preserves its graph',async()=>{
- const storage=memory(),f=build(storage);
- await f.start();
- assert.equal(storage.calls.length,0);
- f.play(36,7);
- const writes=storage.calls.length;
- assert.equal(writes,1);
- f.play(36,7,50);
- assert.equal(storage.calls.length,writes,'held frames do not rewrite same graph');
- assert.equal(f.history.load(storage,f.key,target.length).exists,false);
- const g=build(storage);
- assert.equal(g.prompts,0);
- assert.equal(g.view.element.dataset.phase,'idle');
- assert.equal(g.nodes[0].dataset.practice,'matched');
- assert.equal(g.state.hasUnsaved(),true);
- assert.equal(g.state.needsExitWarning(),false);
- assert.equal(g.state.discard(),true);
- assert.equal(g.state.hasUnsaved(),true);
- assert.equal(build(storage,'major-F').state.hasUnsaved(),false);
- assert.equal(build(storage,'major-C','arpeggio').state.hasUnsaved(),false);
- assert.ok(g.state.save());
- assert.ok(g.state.save(),'retry is harmless');
- const reloaded=build(storage);
- assert.equal(reloaded.state.hasUnsaved(),false);
- assert.equal(reloaded.nodes[0].dataset.practice,'matched');
- assert.deepEqual(Array.from(reloaded.history.load(storage,reloaded.key,target.length).bins[0],x=>Array.from(x)),[[7,1]]);
+const count=(api,store,key,i=0)=>Array.from(api.load(store,key,target.length).bins[i],x=>Array.from(x));
+test('live checkpoint does not count while active; stop automatically accumulates latest keyed result',async()=>{
+ const store=memory(), f=build(store,'major-C','scale','single');
+ await f.start();f.play(36,7);assert.equal(f.history.load(store,f.key,target.length).exists,false);
+ await f.stop();assert.deepEqual(count(f.history,store,f.key),[[7,1]]);
+ const after=build(store,'major-C','scale','single');
+ assert.equal(after.prompts,0);assert.equal(after.nodes[0].dataset.practice,'matched');
+ assert.deepEqual(count(f.history,store,f.key),[[7,1]]);
+ await after.start();after.play(36,7);await after.stop();
+ assert.deepEqual(count(f.history,store,f.key),[[7,2]]);
 });
-test('no-note trial preserves older draft and a storage failure asks for exit warning',async()=>{
- const storage=memory(),f=build(storage);
- await f.start(); f.play(36,8); await f.stop();
- const first=f.history.loadDraft(storage,f.key,target.length).draft;
- const g=build(storage);
- await g.start(); g.play(24,0); await g.stop();
- const after=g.history.loadDraft(storage,g.key,target.length).draft;
- assert.equal(after.id,first.id);
- assert.equal(g.state.hasUnsaved(),true);
- await g.start();
- storage.fail=true;g.play(36,15);
- assert.equal(g.state.needsExitWarning(),true);
- await g.stop();
- assert.equal(g.state.save(),false);
- assert.equal(g.state.hasUnsaved(),true);
- storage.fail=false;
- assert.equal(g.state.save(),true);
- assert.equal(g.state.needsExitWarning(),false);
+test('different keys and scale/arpeggio keep independent recent charts and historical counts',async()=>{
+ const store=memory(),shared=realm(store),c=build(store,'major-C','scale','single',shared),
+  f=build(store,'major-F','scale','single',shared), arp=build(store,'major-C','arpeggio','single',shared);
+ for(const [run,cents] of [[c,7],[f,-11],[arp,16]]){await run.start();run.play(36,cents);await run.stop();}
+ assert.deepEqual(count(c.history,store,c.key),[[7,1]]);
+ assert.deepEqual(count(f.history,store,f.key),[[-11,1]]);
+ assert.deepEqual(count(arp.history,store,arp.key),[[16,1]]);
+ for(const [key,kind] of [['major-C','scale'],['major-F','scale'],['major-C','arpeggio']])
+  assert.equal(build(store,key,kind).nodes[0].dataset.practice,'matched');
+ c.view.element.find('scale-practice-clear-history').handlers.click();
+ c.view.element.find('scale-practice-cancel-clear').handlers.click();
+ assert.deepEqual(count(c.history,store,c.key),[[7,1]]);
+ c.view.element.find('scale-practice-clear-history').handlers.click();
+ c.view.element.find('scale-practice-confirm-clear').handlers.click();
+ assert.equal(c.history.loadKeyDraft(store,c.key,target.length).exists,false);
+ assert.equal(c.history.load(store,c.key,target.length).exists,false);
+ assert.equal(c.nodes[0].dataset.practice,undefined);
+ assert.deepEqual(count(f.history,store,f.key),[[-11,1]]);
+ assert.deepEqual(count(arp.history,store,arp.key),[[16,1]]);
+ await c.start();c.play(36,26);await c.stop();
+ assert.deepEqual(count(c.history,store,c.key),[[26,1]]);
 });
-test('a completed loop draft does not invent a partial from only the carried tonic',async()=>{
- const storage=memory(),f=build(storage);
- await f.start();target.forEach(n=>f.play(n.midi,5));
- const restored=build(storage);
- const {draft}=restored.history.loadDraft(storage,restored.key,target.length);
- assert.equal(draft.laps,1);
- assert.deepEqual(Array.from(draft.attemptHistory[0],x=>Array.from(x)),[[5,1]]);
- assert.deepEqual(Array.from(draft.attemptHistory.at(-1),x=>Array.from(x)),[[5,1]]);
- assert.equal(draft.values.length,target.length);
+test('completed loop counts once at terminal and does not make a phantom carried tonic',async()=>{
+ const store=memory(),f=build(store);await f.start();target.forEach(n=>f.play(n.midi,5));await f.stop();
+ assert.deepEqual(count(f.history,store,f.key),[[5,1]]);
+ assert.deepEqual(count(f.history,store,f.key,target.length-1),[[5,1]]);
 });
-test('new measured scope supersedes singleton and hides stale mounted draft, but an empty scope does not',async()=>{
- const storage=memory(),shared=realm(storage);
- const c=build(storage,'major-C','scale','loop',shared),f=build(storage,'major-F','arpeggio','loop',shared);
- await c.start();c.play(36,8);await c.stop();
- assert.equal(c.state.hasUnsaved(),true);
- assert.equal(c.view.element.find('scale-pitch-chart').hidden,false);
- await f.start();f.play(24);await f.stop();
- assert.equal(c.state.hasUnsaved(),true);
- await f.start();f.play(36,9);await f.stop();
- assert.equal(c.state.hasUnsaved(),false);
- assert.equal(c.view.element.find('scale-pitch-chart').hidden,false);
- assert.equal(c.view.element.find('scale-pitch-cents').textContent,'—');
- assert.equal(f.state.hasUnsaved(),true);
- assert.equal(c.history.loadDraft(storage,c.key,target.length).exists,false);
- assert.equal(f.history.loadDraft(storage,f.key,target.length).exists,true);
-});
-test('a stale cross-tab merge does not store an aggregate or overwrite the newer singleton',async()=>{
- const storage=memory(),c=build(storage,'major-C'),f=build(storage,'major-F');
- await c.start();c.play(36,8);await c.stop();
- await f.start();f.play(36,9);await f.stop();
- assert.equal(c.state.save(),false,'stale state must not report save success');
- assert.equal(c.state.hasUnsaved(),false,'stale state should not trap navigation');
- assert.match(c.view.element.find('scale-practice-history-actions').children.at(-1).textContent,/被新的練習取代/);
- assert.equal(c.history.load(storage,c.key,target.length).exists,false);
- assert.equal(f.history.loadDraft(storage,f.key,target.length).exists,true);
-});
-test('stopping an inactive-for-progress older tab cannot overwrite a newly measured draft',async()=>{
- const storage=memory(),old=build(storage,'major-C'),latest=build(storage,'major-F');
- await old.start();old.play(36,8);
- await latest.start();latest.play(36,9);await latest.stop();
- await old.stop();
- assert.equal(old.state.hasUnsaved(),false);
- assert.equal(old.state.needsExitWarning(),false);
- assert.equal(latest.history.loadDraft(storage,latest.key,target.length).exists,true);
-});
-test('retry of a draft that failed to write cannot replace another tab’s newer durable draft',async()=>{
- const storage=memory(),a=build(storage,'major-C'),b=build(storage,'major-F');
- await a.start();
- storage.fail=true; a.play(36,12); await a.stop();
- assert.equal(a.state.needsExitWarning(),true);
- storage.fail=false;
- await b.start();b.play(36,9);await b.stop();
- assert.equal(a.state.save(),false);
- assert.equal(a.state.needsExitWarning(),false);
- assert.equal(a.history.load(storage,a.key,target.length).exists,false);
- assert.equal(b.history.loadDraft(storage,b.key,target.length).exists,true);
+test('discernible quota failure is inline and does not overwrite the durable last result',async()=>{
+ const store=memory(),f=build(store,'major-C','scale','single');await f.start();f.play(36,8);await f.stop();
+ const prior=f.history.loadKeyDraft(store,f.key,target.length).draft.id;
+ await f.start();store.fail=true;f.play(36,15);await f.stop();store.fail=false;
+ assert.match(f.view.element.find('scale-practice-history-actions').children.at(-1).textContent,/無法儲存/);
+ assert.equal(f.history.loadKeyDraft(store,f.key,target.length).draft.id,prior);
+ assert.deepEqual(count(f.history,store,f.key),[[8,1]]);
 });
 
 test('measured chart and coaching restore after reload without changing mic or inventing A4 metadata',async()=>{
@@ -159,32 +102,32 @@ test('measured chart and coaching restore after reload without changing mic or i
  assert.ok(!initial.view.element.find('scale-practice-coach').hidden);
  await initial.start();initial.play(36,8);await initial.stop();
  assert.ok(!initial.view.element.find('scale-practice-coach').hidden);
- const draft=initial.history.loadDraft(storage,initial.key,target.length).draft;
+ const draft=initial.history.loadKeyDraft(storage,initial.key,target.length).draft;
  assert.equal(draft.coach.engine,'SwiftF0');assert.equal(draft.coach.reference,442);
  const restored=build(storage,'major-C','scale','single',realm(storage,''));
  assert.equal(restored.prompts,0);
  assert.ok(!restored.view.element.find('scale-practice-coach').hidden);
  const legacy={...draft};delete legacy.coach;
- assert.equal(initial.history.saveDraft(storage,initial.key,legacy).ok,true);
- assert.equal(restored.history.loadDraft(storage,restored.key,target.length).draft.coach,undefined);
+ assert.equal(initial.history.saveKeyDraft(storage,initial.key,legacy).ok,true);
+ assert.equal(restored.history.loadKeyDraft(storage,restored.key,target.length).draft.coach,undefined);
  const old=build(storage,'major-C','scale','single',realm(storage,''));
  assert.equal(old.view.element.find('scale-practice-coach').hidden,false);
  const off=build(storage,'major-C','scale','single',realm(storage,'','/daily-key-practice/'));
  assert.equal(off.view.element.find('scale-practice-coach'),undefined);
 });
 
-test('a finished measured trace restores when expanded and never revives after an empty successor',async()=>{
+test('a finished measured trace restores when expanded and stays paired with its advice after an empty take',async()=>{
  const store=memory(), first=build(store,'major-C','scale','single');
  await first.start();first.play(36,21,32);first.play(null,0,5);first.play(38,-14,32);
- const checkpoint=first.history.loadDraft(store,first.key,target.length).draft;
+ const checkpoint=first.history.loadKeyDraft(store,first.key,target.length).draft;
  assert.equal(checkpoint.trend,undefined,'live draft checkpoints never store frames');
  const writes=store.calls.length;
- await first.stop();assert.equal(store.calls.length,writes+1);
- const finished=first.history.loadDraft(store,first.key,target.length).draft;
+ await first.stop();assert.equal(store.calls.length,writes+2);
+ const finished=first.history.loadKeyDraft(store,first.key,target.length).draft;
  assert.equal(finished.id,checkpoint.id);
  assert.equal(finished.trend.reference,442);
  assert.ok(finished.trend.data.length>=8);
- assert.equal(store.data.size,1,'no per-key/trace store');
+ assert.equal(store.data.size,2,'exactly one aggregate and latest snapshot');
  const fresh=build(store,'major-C','scale','single');
  assert.equal(fresh.view.element.find('scale-pitch-trend'),undefined,'collapsed cards stay lazy');
  fresh.view.element.showPracticeCharts(true);
@@ -196,8 +139,8 @@ test('a finished measured trace restores when expanded and never revives after a
  assert.equal(build(store,'major-C','arpeggio').view.element.find('scale-pitch-trend'),undefined);
  await fresh.start();fresh.play(null,0,10);await fresh.stop();
  assert.equal(fresh.view.element.children.filter(e=>e.className==='scale-pitch-trend'&&!e.hidden).length,2);
- assert.match(details.children[1].textContent,/尚無可顯示/);
- assert.equal(first.history.loadDraft(store,first.key,target.length).draft.id,finished.id);
+ assert.match(details.children[1].textContent,/上次保留/);
+ assert.equal(first.history.loadKeyDraft(store,first.key,target.length).draft.id,finished.id);
 });
 
 test('corrupt trace provenance is ignored, preserving the dot draft and leaving an honest missing-trace placeholder',async()=>{
@@ -208,7 +151,7 @@ test('corrupt trace provenance is ignored, preserving the dot draft and leaving 
   raw=>{raw.trend.reference=440;},raw=>{raw.trend.points[0][2]=999;}]){
   const raw=JSON.parse(valid);assert.ok(raw.trend);corrupt(raw);store.data.set(slot,JSON.stringify(raw));
   const next=build(store);
-  const draft=next.history.loadDraft(store,next.key,target.length).draft;
+  const draft=next.history.loadKeyDraft(store,next.key,target.length).draft;
   assert.equal(draft.trend,undefined);assert.equal(next.nodes[0].dataset.practice,'matched');
   next.view.element.showPracticeCharts(true);
   const details=next.view.element.find('scale-pitch-trend');
@@ -217,16 +160,14 @@ test('corrupt trace provenance is ignored, preserving the dot draft and leaving 
 });
 
 test('a stale tab cannot overwrite the newer draft during subsequent live frames or final trace write',async()=>{
- const store=memory(), a=build(store,'major-C'), b=build(store,'major-F');
+ const store=memory(), a=build(store,'major-C'), b=build(store,'major-C');
  await a.start();a.play(36,12,24);
  await b.start();b.play(36,-16,26);await b.stop();
- const recent=b.history.loadDraft(store,b.key,target.length).draft;
+ const recent=b.history.loadKeyDraft(store,b.key,target.length).draft;
  assert.ok(recent.trend.data.length>0);
  a.play(38,9,20);await a.stop();
- assert.equal(a.history.loadDraft(store,a.key,target.length).exists,false);
- assert.equal(b.history.loadDraft(store,b.key,target.length).draft.id,recent.id);
- assert.deepEqual(b.history.loadDraft(store,b.key,target.length).draft.trend,recent.trend);
- assert.equal(a.state.hasUnsaved(),false);
+ assert.equal(b.history.loadKeyDraft(store,b.key,target.length).draft.id,recent.id);
+ assert.deepEqual(b.history.loadKeyDraft(store,b.key,target.length).draft.trend,recent.trend);
 });
 
 test('trace quota pressure still updates the currently owned dot draft and never leaves invalid tuples',async()=>{
@@ -234,20 +175,18 @@ test('trace quota pressure still updates the currently owned dot draft and never
  const set=store.setItem;
  store.setItem=function(k,v){if(JSON.parse(v).trend)throw Error('trace quota');return set.call(this,k,v);};
  await a.start();a.play(36,14,30);await a.stop();
- const draft=a.history.loadDraft(store,a.key,target.length).draft;
+ const draft=a.history.loadKeyDraft(store,a.key,target.length).draft;
  assert.equal(draft.trend,undefined);
  assert.ok(Number.isFinite(draft.values[0]));
- assert.equal(a.state.needsExitWarning(),false);
- assert.equal(store.data.size,1);
+ assert.equal(store.data.size,2);
 });
 
-test('merging dots does not remove trace and old tabs cannot reopen a superseded trace',async()=>{
+test('auto accumulation preserves the trace and stale tabs cannot reopen a superseded trace',async()=>{
  const store=memory(), first=build(store,'major-C','scale','single');
  await first.start();first.play(36,18,30);await first.stop();
- const draft=first.history.loadDraft(store,first.key,target.length).draft;
+ const draft=first.history.loadKeyDraft(store,first.key,target.length).draft;
  assert.ok(draft.trend);
- assert.equal(first.state.save(),true);
- const merged=first.history.loadDraft(store,first.key,target.length).draft;
+ const merged=first.history.loadKeyDraft(store,first.key,target.length).draft;
  assert.equal(merged.id,draft.id);
  assert.equal(merged.pending,false);
  assert.deepEqual(merged.trend,draft.trend);

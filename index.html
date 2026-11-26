@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261126-075-experimental">
+  <meta name="site-version" content="20261126-076-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -543,7 +543,9 @@
       font-size:var(--ui-detail,.875rem);font-weight:750;line-height:1.4;color:var(--ink);
     }
     .scale-practice-slur-controls button{min-block-size:var(--ui-touch,44px);line-height:1.3}
-    .scale-practice-coach-tip h4{font-size:1rem;margin:.85rem 0 .2rem;line-height:1.35}
+    .scale-practice-coach-tip :is(h4,h5){font-size:1rem;margin:.85rem 0 .2rem;line-height:1.35}
+    .scale-practice-coach-phase + .scale-practice-coach-phase{border-top:1px solid var(--line);margin-top:.85rem;padding-top:.15rem}
+    .scale-practice-coach-phase h5{font-size:.875rem;font-weight:600;margin-top:.45rem}
     .scale-practice-coach-steps{font-size:.9375rem;line-height:1.55;margin:.25rem 0;padding-inline-start:1.5rem}
     .scale-practice-coach-tip .scale-practice-coach-context{color:var(--muted)}
     .scale-practice-coach .scale-practice-coach-elapsed{color:var(--muted);font-size:.8125rem}
@@ -1502,7 +1504,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261126-075-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261126-076-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -1517,16 +1519,7 @@
       <button type="button" class="cancel" data-history-choice="cancel">取消</button>
     </div>
   </dialog>
-  <dialog id="practice-save-dialog" class="history-choice-dialog" aria-labelledby="practice-save-title" aria-describedby="practice-save-description">
-    <h3 id="practice-save-title">要保留這次的音準嗎？</h3>
-    <p id="practice-save-description"></p>
-    <p id="practice-save-error" role="status" hidden>無法併入全部結果。可以重試，或先不併入剩下的結果。</p>
-    <div class="history-choice-actions">
-      <button type="button" id="practice-save-cancel" class="cancel" autofocus>取消</button>
-      <button type="button" id="practice-save-skip">先不併入</button>
-      <button type="button" id="practice-save-continue" class="primary">併入並繼續</button>
-    </div>
-  </dialog>
+
   <dialog id="history-unavailable-dialog" class="history-choice-dialog" aria-labelledby="history-unavailable-title">
     <h3 id="history-unavailable-title">課堂連線時無法繼續或重現練習</h3>
     <p>目前不支援在課堂連線期間使用「繼續這次練習」或「重現這次練習」。請先離開同步房間，再從練習紀錄開啟。</p>
@@ -2058,7 +2051,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
   const modeKey = 'daily-key-practice:experimental:practice-mode';
   const practiceModes = [['single','單次'],['loop','循環']];
   const modeValue = value => value === 'single' ? 'single' : 'loop';
-  let selectedMode, latestDraftToken, coachService, coachStorageAsked=false, methodControlSerial=0;
+  let selectedMode, coachService, coachStorageAsked=false, methodControlSerial=0;
   const methodFields=new WeakMap();
   if (globalThis.CelloPracticeCoach?.enabled(globalThis)) {
     // Backgrounding may suspend Safari's renderer, but does not cancel
@@ -3087,6 +3080,10 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     return [...found.values()];
   }
 
+  function adviceDirection(line){
+    return /^(?:上次量到的音：)?(上行|下行)：/.exec(line||'')?.[1]||'';
+  }
+
   function practiceAdviceReport(packet){
     const single=()=>planSuggestion(packet);
     const all=packet?.rounds?.length?planSuggestion(packet,true):[];
@@ -3099,20 +3096,24 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     const observed=[...pitch,...timing];
     if(!observed.length){
       const fallback=single();
-      return {issues:[fallback.observation],drills:fallback.action?[fallback.action]:[],drillSources:fallback.action?[fallback.sources||[]]:[]};
+      return {issues:[fallback.observation],drills:fallback.action?[(adviceDirection(fallback.observation)?adviceDirection(fallback.observation)+'：':'')+fallback.action]:[],drillSources:fallback.action?[fallback.sources||[]]:[]};
     }
     const issues=[...new Set(observed.map(x=>x.observation))];
     const drills=[],drillSources=[];
-    const add=(text,sources=[])=>{drills.push(text);drillSources.push(sources);};
+    const add=(text,sources=[],evidence=[])=>{
+      const directions=new Set(evidence.map(x=>adviceDirection(x.observation)));
+      const direction=directions.size===1?[...directions][0]:'';
+      drills.push((direction?direction+'：':'')+text);drillSources.push(sources);
+    };
     let metric,slur;
     const pin=(type,slots,minRounds)=>{metric??={type,slots,minRounds};};
     const opens=pitch.filter(x=>x.type==='open-check'), openSlots=new Set(opens.map(x=>x.slot));
     if(opens.length){
       pin('pitch',[opens[0].slot],opens[0].minRounds);
       const strings=[...new Set(opens.map(x=>packet.slots[x.slot].plan.string))];
-      if(strings.length===1)add(opens[0].action,opens[0].sources);
+      if(strings.length===1)add(opens[0].action,opens[0].sources,opens);
       else add('先用調音器，沿用'+(Number.isFinite(packet.reference)?' A4 '+packet.reference+' Hz':'原本的 A4')+
-        '，單獨慢拉 '+strings.join('、')+' 空弦；調音器也確認偏差才調弦。調準後再回原譜練連接。');
+        '，單獨慢拉 '+strings.join('、')+' 空弦；調音器也確認偏差才調弦。調準後再回原譜練連接。',[],opens);
     }
     const bow=timing.filter(x=>!openSlots.has(x.slot));
     if(bow.length){
@@ -3126,7 +3127,8 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         'bow-wobble':'慢拉一弓，讓聲音盡量均勻；對照走勢，聽音高有沒有更平穩。'
       }[first.type];
       add('拿「'+first.label+'」做一弓長音練習：'+what+
-        (labels.length?'同樣練法也可用在「'+labels.slice(0,2).join('」、「')+'」。':''));
+        (labels.length?'同樣練法也可用在「'+labels.slice(0,2).join('」、「')+'」。':''),[],
+        [first,...similar.filter(x=>labels.slice(0,2).includes(x.label))]);
     }
     const active=pitch.filter(x=>x.type!=='open-check'&&!openSlots.has(x.slot)&&
       ((x.type==='note')||!openSlots.has(x.slot-1)));
@@ -3138,8 +3140,8 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         const main=eligible[0];
         if(main.type==='fingers')pin('interval',[main.slot-1,main.slot],main.minRounds);
         else pin('pitch',[main.slot],main.minRounds);
-        if(main.slur)slur={index:drills.length,text:main.slur};
-        add(main.action+(eligible.length>1?'用同一種練法練清單上相同情況。':''),main.sources);
+        if(main.slur)slur={index:drills.length,text:main.slur,direction:adviceDirection(main.observation)};
+        add(main.action+(eligible.length>1?'用同一種練法練清單上相同情況。':''),main.sources,eligible);
       }
     }
     return {issues,drills,drillSources,metric,slur};
@@ -3430,7 +3432,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       const session = active;
       active = null;
       hooks.captureState?.(false);
-      finish(session, message, grade);
+      finish(session, message, grade&&session?.stage==='listening');
     }
     async function toggle(view) {
       if (active?.view === view) {
@@ -3710,11 +3712,11 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         error(message) { if (active === session) stop(message); }
       });
       // Do not interrupt shared capture while switching exercises, and never mix takes.
-      finish(previous, '已切換到另一項練習。', false);
+      finish(previous, '已切換到另一項練習。', previous?.stage==='listening');
     }
     return {toggle, stop, isCapturing:()=>Boolean(active), stopWithin: host => {
       hooks.stopDemoWithin?.(host);
-      if (active && host.contains(active.view.element)) stop('已離開這張調性卡，收音已停止。');
+      if (active && host.contains(active.view.element)) stop('已離開這張調性卡，收音已停止。',active.stage==='listening');
     }};
   }
 
@@ -3807,8 +3809,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     function update(frame) {
       const {values, history, live, progress, listening, final, mode}=frame??{};
       const liveLegend = listening ? '大點：即時 · ' : '';
-      const legendText = archived ? '' : mode === 'loop' ? liveLegend + '本輪：實色 · 先前：淡色'
-        : liveLegend + '實心：本次';
+      const legendText=archived?'':liveLegend+(history?.some(bin=>bin.size)?'實色：本次 · 淡色：累積':'實色：本次');
       if (legend.textContent !== legendText) legend.textContent = legendText;
       const historyChanged = history !== previousHistory;
       if (values !== previousValues || historyChanged || final !== previousFinal) {
@@ -3858,10 +3859,10 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     // Hide both marker styles until they have measured values.
     cells.forEach(cell => {cell.recorded.hidden = true;cell.current.hidden = true;});
     if (archived) chart.className += ' scale-practice-saved-history';
-    return {element:chart, update, select};
+    return {element:chart, header:head, update, select};
   }
 
-  function card(score, target, toggle, kind = 'scale', scope = null, snapshotVisiblePlan = null, adviceContext = null) {
+  function card(score, target, toggle, kind = 'scale', scope = null, snapshotVisiblePlan = null) {
     const name = kind === 'arpeggio' ? '琶音' : '音階';
     const element = document.createElement('div');
     element.className = 'scale-practice';
@@ -3931,129 +3932,81 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     latest.className = 'scale-practice-latest';
     const historyApi = globalThis.CelloPracticeHistory;
     const historyKey = historyApi?.keyFor(scope,kind,target);
-    let historyButtons = null, savedChart = null, canSave = null, hasSaved = false;
-    let merge, look, historyStatus, refreshHistoryActions, announceHistoryPending;
-    let newestDraft = null, draftId = null, draftDurable = true, observedValues = null, observedHistory = null, retryDraftFrom, expectedAttemptOwner, staleAttempt=false;
-    const ownsDraft = () => Boolean(newestDraft && latestDraftToken === newestDraft.id);
-    const restoredTrendIsCurrent = id => {
-      const latest=historyApi?.loadDraft?.(storage,historyKey,target.length);
-      return Boolean(latest?.ok && latest.exists && latest.draft.id===id && latest.draft.trend);
+    let historyButtons=null,cumulative=null,clear,clearConfirm,clearCancel,historyStatus;
+    let newestDraft=null,draftId=null,ownerToken=null,draftDurable=true,observedValues=null,observedHistory=null,expectedAttemptOwner,staleAttempt=false;
+    const ownsDraft=()=>Boolean(newestDraft&&ownerToken===newestDraft.id);
+    const restoredTrendIsCurrent=id=>{
+      const latest=historyApi.loadKeyDraft(storage,historyKey,target.length);
+      return Boolean(latest?.ok&&latest.exists&&latest.draft.id===id&&latest.draft.trend);
     };
-    const restoreGraph = (draft,withTrend=true) => draft && {values:draft.values,chartValues:draft.values,history:draft.history,
+    const restoreGraph=(draft,withTrend=true)=>draft&&{values:draft.values,chartValues:draft.values,history:draft.history,
       mode:draft.mode,laps:draft.laps,passed:draft.passed,progress:draft.progress,final:true,restored:true,
-      coachResult:draft.values.some(Number.isFinite)?(draft.coach||{}):null, practiceAdvice:draft.advice,
-      trend:withTrend?draft.trend:undefined,restoredDraftId:draft.id,
-      attemptHistory:draft.pending ? draft.attemptHistory : undefined};
+      coachResult:draft.values.some(Number.isFinite)?(draft.coach||{}):null,practiceAdvice:draft.advice,
+      trend:withTrend?draft.trend:undefined,restoredDraftId:draft.id};
     let storage;
     const progressScope=scope?scope+':'+kind:null;
-    if (historyKey) {
-      try { storage = globalThis.localStorage; } catch {} // Optional feature.
-      historyButtons = document.createElement('div');
-      historyButtons.className = 'scale-practice-history-actions';
-      historyButtons.setAttribute('role','group');
-      historyButtons.setAttribute('aria-label',name+'音準歷史');
-      merge = document.createElement('button');
-      merge.type = 'button'; merge.className = 'scale-practice-merge'; merge.textContent = '併入歷史';
-      merge.hidden = true;
-      look = document.createElement('button');
-      look.type = 'button'; look.className = 'scale-practice-history-toggle'; look.textContent = '查看歷史';
-      look.setAttribute('aria-expanded','false');
-      historyStatus = document.createElement('small');
-      historyStatus.setAttribute('role','status');
-      const initial = historyApi.load(storage,historyKey,target.length);
-      hasSaved = initial.ok && initial.exists;
-      const stored = historyApi.loadDraft?.(storage,historyKey,target.length);
-      if (stored?.ok && stored.exists) {
-        newestDraft = stored.draft;
-        latestDraftToken ??= newestDraft.id;
-      }
-      historyButtons.hidden = !hasSaved;
-      look.hidden = !hasSaved;
-      function showSaved(bins) {
-        if (!savedChart) {
-          savedChart = pitchChart(target,name,true);
-          element.append(savedChart.element);
-        }
-        savedChart.element.hidden = false;
-        savedChart.update({history:bins,final:true});
-        look.textContent = '收起歷史'; look.setAttribute('aria-expanded','true');
-      }
-      look.addEventListener('click',() => {
-        if (savedChart && !savedChart.element.hidden) {
-          savedChart.element.hidden = true;
-          look.textContent = '查看歷史'; look.setAttribute('aria-expanded','false');
-          return;
-        }
-        const data = historyApi.load(storage,historyKey,target.length);
-        if (data.ok && data.exists) showSaved(data.bins);
-        else historyStatus.textContent = data.ok ? '還沒有已儲存的歷史。' : '暫時無法讀取本機歷史。';
-      });
-      const announcePending = announceHistoryPending = () => {
-        if (typeof Event === 'function') element.dispatchEvent?.(new Event('practice-history-change',{bubbles:true}));
-      };
-      const refreshActions = refreshHistoryActions = () => {
-        look.hidden = !hasSaved && !canSave;
-        historyButtons.hidden = !hasSaved && merge.hidden && !historyStatus.textContent;
-      };
-      function savePending() {
-        if (!canSave) return true;
-        const reportStale = () => {
-          canSave = newestDraft = null; merge.hidden = true;
-          draftDurable = true; retryDraftFrom = undefined;
-          historyStatus.textContent = '這份暫存已被新的練習取代。';
-          refreshActions(); announcePending();
-          return false;
-        };
-        if (newestDraft && !ownsDraft()) return reportStale();
-        if (newestDraft && !draftDurable) {
-          if (retryDraftFrom === undefined) {
-            historyStatus.textContent = '無法確認本機暫存，尚未儲存。'; return false;
-          }
-          const retried = historyApi.saveDraft(storage,historyKey,newestDraft,{expectedId:retryDraftFrom});
-          if (!retried.ok) {
-            if (retried.reason === 'stale-draft') return reportStale();
-            historyStatus.textContent = '這次未儲存，請再試一次。'; return false;
-          }
-          draftDurable = true; announcePending();
-        }
-        const saved = historyApi.save(storage,historyKey,canSave,newestDraft?.id);
-        if (!saved.ok) {
-          if (saved.reason === 'stale-draft') return reportStale();
-          historyStatus.textContent = '這次未儲存，請再試一次。'; return false;
-        }
-        hasSaved = true; canSave = null; merge.disabled = true;
-        if (newestDraft) newestDraft = {...newestDraft,pending:false};
-        merge.textContent = '已併入歷史';
-        historyStatus.textContent = '本次音準已儲存在此瀏覽器。';
-        refreshActions(); announcePending();
-        if (savedChart && !savedChart.element.hidden) showSaved(saved.bins);
-        return true;
-      }
-      function deferPending() {
-        // Leaving without merging deliberately preserves the local graph
-        // and the option to merge it later.
-        return true;
-      }
-      element.practiceHistory = {hasUnsaved:()=>Boolean(canSave && (!newestDraft || ownsDraft())),save:savePending,discard:deferPending,
-        needsExitWarning:()=>Boolean(ownsDraft() && !draftDurable),
-        syncDraftOwner() {
-          if(!ownsDraft()||!draftDurable||phase!=='idle'||localAttempt?.freshEmpty)return;
-          const owner=historyApi.currentDraftId?.(storage);
-          if(owner?.ok&&owner.id!==newestDraft.id){
-            latestDraftToken=owner.id;
-            this.supersede();
-          }
-        },
-        supersede() {
-          if (!newestDraft || ownsDraft() || phase !== 'idle') return;
-          canSave = newestDraft = null; merge.hidden = true;
-          historyStatus.textContent = '';
-          view.update('idle');
-        }};
-      merge.addEventListener('click',savePending);
-      historyButtons.append(merge,look,historyStatus);
+    function updateHistoryActions(){
+      if(!historyButtons)return;
+      clear.hidden=!newestDraft&&!cumulative;
+      clear.disabled=phase!=='idle';
+      historyButtons.hidden=clear.hidden&&!historyStatus.textContent;
     }
-    const canRestoreAdvice = draft => !adviceContext || (draft?.adviceSession ? draft.adviceSession===adviceContext.id : adviceContext.replay);
+    function saveAccumulated(draft){
+      if(!draft?.pending||!draft.attemptHistory?.some(bin=>bin.size))return;
+      const saved=historyApi.accumulate(storage,historyKey,draft.attemptHistory,draft.id);
+      if(!saved.ok){
+        historyStatus.textContent='這次的音準暫時未能累積；保留本機暫存，稍後會再試。';
+        return;
+      }
+      cumulative=saved.bins;newestDraft={...draft,pending:false};
+      historyStatus.textContent='';
+    }
+    if(historyKey){
+      try{storage=globalThis.localStorage;}catch{}
+      historyButtons=document.createElement('div');historyButtons.className='scale-practice-history-actions';
+      historyButtons.setAttribute('role','group');historyButtons.setAttribute('aria-label',name+'音準紀錄');
+      const action=(className,text)=>{
+        const button=document.createElement('button');button.type='button';button.className=className;button.textContent=text;return button;
+      };
+      clear=action('scale-practice-clear-history','清空紀錄');
+      clearConfirm=action('scale-practice-confirm-clear','確認清空');clearConfirm.hidden=true;
+      clearCancel=action('scale-practice-cancel-clear','取消');clearCancel.hidden=true;
+      historyStatus=document.createElement('small');historyStatus.setAttribute('role','status');
+      const initial=historyApi.load(storage,historyKey,target.length);
+      cumulative=initial.ok&&initial.exists?initial.bins:null;
+      const stored=historyApi.loadKeyDraft(storage,historyKey,target.length);
+      if(stored.ok&&stored.exists){newestDraft=stored.draft;ownerToken=newestDraft.id;saveAccumulated(newestDraft);}
+      const closeClear=(focus=false)=>{
+        clearConfirm.hidden=clearCancel.hidden=true;
+        if(focus&&!clear.hidden)clear.focus?.();
+      };
+      clear.addEventListener('click',()=>{
+        if(phase!=='idle')return;
+        clearConfirm.hidden=clearCancel.hidden=false;
+        historyStatus.textContent='只清空這個調的'+name+'音準，不影響練習筆記或完成紀錄。';
+        clearConfirm.focus?.();
+      });
+      clearCancel.addEventListener('click',()=>{historyStatus.textContent='';closeClear(true);});
+      clearConfirm.addEventListener('click',()=>{
+        if(phase!=='idle')return;
+        const cleared=historyApi.clear(storage,historyKey,target.length,{includeDraft:true});
+        if(!cleared.ok){historyStatus.textContent='有部分音準紀錄未能清空，請再試一次。';return;}
+        const comparisonCleared=globalThis.CelloPracticeProgress?.create(storage)?.clear?.(progressScope);
+        newestDraft=draftId=ownerToken=null;cumulative=null;localComparison=undefined;loudnessAdvice=null;
+        closeClear();historyStatus.textContent=comparisonCleared?.ok===false?'已清空音準圖，但比較資料無法清除。':'已清空這個調的'+name+'音準紀錄。';
+        view.update('idle');updateHistoryActions();button.focus?.();
+      });
+      element.practiceHistory={syncDraftOwner(){
+        if(phase!=='idle')return;
+        const next=historyApi.loadKeyDraft(storage,historyKey,target.length);
+        if(next.ok&&(next.exists?next.draft.id:null)!==(newestDraft?.id??null)){
+          newestDraft=next.exists?next.draft:null;ownerToken=newestDraft?.id??null;draftDurable=true;
+          const data=historyApi.load(storage,historyKey,target.length);cumulative=data.ok&&data.exists?data.bins:null;
+          view.update('idle',null,null,0,442,restoreGraph(newestDraft));
+        }
+      }};
+      historyButtons.append(clear,clearConfirm,clearCancel,historyStatus);
+    }
     const coachAPI = globalThis.CelloPracticeCoach;
     const experimental=coachAPI?.enabled(globalThis);
     const coachVisible=experimental&&['localhost','127.0.0.1','[::1]'].includes(globalThis.location?.hostname)&&new URLSearchParams(globalThis.location?.search||'').get('aiCoach')==='1';
@@ -4082,14 +4035,6 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       };
       function showAdvice(restoreSlurFocus=false){
         if(!localAttempt)return;
-        if(ownsDraft()&&draftDurable&&!localAttempt?.freshEmpty){
-          const liveOwner=historyApi.currentDraftId?.(storage);
-          if(liveOwner?.ok&&liveOwner.id!==newestDraft.id){
-            latestDraftToken=liveOwner.id;
-            element.practiceHistory.supersede();
-            return;
-          }
-        }
         // An old pitch chart can guide today's drill, not attest to yesterday's fingering.
         const old=localAttempt?.restored;
         let saved=localAttempt?.practiceAdvice;
@@ -4103,23 +4048,40 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         const report=old?{...converted,issues:converted.issues.map(line=>line.replaceAll('這是一次讀數。',''))}:converted;
         body.textContent='';
         if(localAttempt?.restored)body.append(make('p','scale-practice-coach-context',saved?'上次保留的建議':'依上次保留的音準圖整理'));
-        const list=make('ul','scale-practice-coach-steps','');
         const issues=loudnessAdvice?[...report.issues,loudnessAdvice.observation]:report.issues;
         const drillCount=loudnessAdvice?Math.min(2,report.drills.length):report.drills.length;
         const actions=report.drills.slice(0,drillCount);
         const related=actions.map((_,idx)=>report.drillSources?.[idx]||[]);
+        const actionDirections=actions.map(adviceDirection);
         const alternative=!old&&report.slur?.index<drillCount?report.slur:null;
         if(alternative&&localSlur){
           actions[alternative.index]=alternative.text;
+          actionDirections[alternative.index]=alternative.direction||actionDirections[alternative.index];
           related[alternative.index]=['slur',...related[alternative.index].filter(id=>id!=='connected'&&id!=='approach')];
         }
-        if(loudnessAdvice)actions.push(loudnessAdvice.action+loudnessAdvice.check);
-        issues.forEach(text=>list.append(make('li','',text)));
-        body.append(make('h4','','這次觀察'),list);
+        if(loudnessAdvice){
+          actions.push(loudnessAdvice.action+loudnessAdvice.check);
+          actionDirections.push(adviceDirection(loudnessAdvice.observation));
+        }
+        const namedPhase=issues.some(adviceDirection)||actionDirections.some(Boolean);
+        const groups=namedPhase?['上行','下行','']:[''];
+        for(const phase of groups){
+          const observations=issues.filter(text=>adviceDirection(text)===phase);
+          const drills=actions.flatMap((text,i)=>actionDirections[i]===phase?[text.replace(/^(上行|下行)：/,'')]:[]);
+          if(!observations.length&&!drills.length)continue;
+          const group=namedPhase?make('section','scale-practice-coach-phase',''):body;
+          if(namedPhase){group.dataset.direction=phase||'shared';group.append(make('h4','',phase||'共同'));body.append(group);}
+          const subsection=namedPhase?'h5':'h4';
+          const appendList=(heading,items,tag)=>{
+            if(!items.length)return;
+            const list=make(tag,'scale-practice-coach-steps','');
+            items.forEach(text=>list.append(make('li','',text)));
+            group.append(make(subsection,'',heading),list);
+          };
+          appendList('這次觀察',observations,'ul');
+          appendList('可以這樣練',drills,'ol');
+        }
         if(actions.length){
-          const drills=make('ol','scale-practice-coach-steps','');
-          actions.forEach(text=>drills.append(make('li','',text)));
-          body.append(make('h4','','可以這樣練'),drills);
           if(alternative){
             const controls=make('div','scale-practice-slur-controls','');
             const option=make('button','scale-practice-slur-option','兩音一弓');
@@ -4305,10 +4267,11 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     // first microphone take, but never for every collapsed card at once.
     function mountCharts(){
       if(chart)return;
-      const anchor=historyButtons||localCoach||coachPanel||savedChart?.element;
+      const anchor=localCoach||coachPanel;
       traces=timeCharts(name,target,index=>chart?.select(index));
       chart=pitchChart(target,name,false,index=>traces.select(index));
       chart.element.hidden=false;
+      if(historyButtons)chart.header.append(historyButtons);
       for(const node of [chart.element,...traces.nodes]){
         if(anchor)element.insertBefore(node,anchor);
         else element.append(node);
@@ -4317,7 +4280,25 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     function updateCharts(){
       if(!chartOpen||!chart||!visual)return;
       const {next,display}=visual;
-      chart.update(display?.chartValues?{...display,values:display.chartValues}:display);
+      const values=display?.chartValues??display?.values;
+      let history=display?.history;
+      if(cumulative){
+        if(next==='listening'&&history)history=cumulative.map((bin,i)=>{
+          const combined=new Map(bin);
+          for(const [cents,count] of history[i]||[])combined.set(cents,(combined.get(cents)||0)+count);
+          return combined;
+        });
+        else if(next==='idle'&&newestDraft&&!newestDraft.pending&&values===newestDraft.values){
+          history=cumulative.map((bin,i)=>{
+            const cents=historyApi.bucket(values[i]);
+            if(cents===null||!bin.has(cents))return bin;
+            const past=new Map(bin), count=past.get(cents);
+            if(count<=1)past.delete(cents);else past.set(cents,count-1);
+            return past;
+          });
+        }else history=cumulative;
+      }
+      chart.update({...display,values,history});
       if(next==='pending'||next==='idle'&&!display?.final)traces.clear();
       const stale=Boolean(display?.restored&&display.trend&&!restoredTrendIsCurrent(display.restoredDraftId));
       const payload=next==='idle'&&display?.final
@@ -4336,10 +4317,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       update(next, message, result, progress = 0, reference = 442, display) {
       if (historyButtons && next === 'idle' && !display?.restored && !display?.attemptHistory &&
           (!result || !display?.values?.some(Number.isFinite)) && ownsDraft()) {
-        const noEvidence=display?.coachNoEvidence;
-        display = restoreGraph(newestDraft,false);
-        display.trendSuppressed=true;
-        if(noEvidence) display.coachNoEvidence=true;
+        display = restoreGraph(newestDraft);
         if (result && !result.pairs.length) result = null;
         message ||= '顯示上次保留的音準圖。';
       }
@@ -4397,70 +4375,41 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         text = laps ? (message ? message + ' ' : '') + summary
           : message || '';
       }
-      if (historyButtons) {
-        if (next === 'pending') {
-          draftId = historyApi.newDraftId?.();
-          const current=historyApi.currentDraftId?.(storage);
-          expectedAttemptOwner=current?.ok?current.id:undefined;
-          staleAttempt=false;
-          observedValues = observedHistory = null;
-          if (canSave || !merge.hidden) {
-            canSave = null; merge.hidden = true; historyStatus.textContent = '';
-            announceHistoryPending();
-          }
+      if(historyButtons){
+        if(next==='pending'){
+          draftId=historyApi.newDraftId();
+          const current=historyApi.latestDraftId(storage,historyKey,target.length);
+          expectedAttemptOwner=current.ok?current.id:undefined;
+          staleAttempt=false;observedValues=observedHistory=null;
+          clearConfirm.hidden=clearCancel.hidden=true;historyStatus.textContent='';
         }
-        let supersededAtStop = staleAttempt;
-        const liveCheckpoint = next === 'listening' && display && !display.openingRecovered && (display.values !== observedValues || display.history !== observedHistory);
-        if (!staleAttempt && !display?.restored && draftId && (liveCheckpoint || display?.attemptHistory)) {
-          observedValues = display.values; observedHistory = display.history;
-          const onlySharedTonic = liveCheckpoint && laps && display.progress <= 1;
-          const values = onlySharedTonic ? display.lastValues : display.values;
-          if (values?.some(Number.isFinite)) {
-            const attempts = display.attemptHistory || (onlySharedTonic ? display.history :
-              addHistory(display.history || emptyHistory(target.length),values));
-            const previousDraft = newestDraft;
-            newestDraft = {id:draftId,values,history:onlySharedTonic ? display.beforeLastHistory : display.history,
-              attemptHistory:attempts,pending:true,mode,laps,passed:display.passed || 0,progress:display.progress || 0,
-              adviceSession:adviceContext?.id,coach:display.coachResult||display.coachSource,trend:next==='idle'?display.trend:undefined,
+        const live=next==='listening'&&display&&!display.openingRecovered&&(display.values!==observedValues||display.history!==observedHistory);
+        if(!staleAttempt&&!display?.restored&&draftId&&(live||display?.attemptHistory)){
+          observedValues=display.values;observedHistory=display.history;
+          const onlySharedTonic=live&&laps&&display.progress<=1;
+          const values=onlySharedTonic?display.lastValues:display.values;
+          if(values?.some(Number.isFinite)){
+            const attempts=display.attemptHistory||(onlySharedTonic?display.history:addHistory(display.history||emptyHistory(target.length),values));
+            const draft={id:draftId,values,history:onlySharedTonic?display.beforeLastHistory:display.history,
+              attemptHistory:attempts,pending:next==='idle',mode,laps,passed:display.passed||0,progress:display.progress||0,
+              coach:display.coachResult||display.coachSource,trend:next==='idle'?display.trend:undefined,
               advice:next==='idle'&&display.planDiagnostics?practiceAdviceReport(display.planDiagnostics):onlySharedTonic?display.lastAdvice:undefined};
-            const changedOwner = latestDraftToken !== draftId;
-            latestDraftToken = draftId;
-            const durable = draftDurable;
-            const prior = historyApi.currentDraftId?.(storage);
-            let writeGuard;
-            if (previousDraft?.id === draftId && durable) writeGuard={ifCurrent:true};
-            else if (expectedAttemptOwner!==undefined) writeGuard={expectedId:expectedAttemptOwner};
-            const wrote = historyApi.saveDraft?.(storage,historyKey,newestDraft,writeGuard);
-            supersededAtStop = wrote?.reason === 'stale-draft';
-            if (supersededAtStop) {
-              staleAttempt=true;
-              latestDraftToken = prior?.id;
-              newestDraft = null;
-              historyStatus.textContent = '這份暫存已被新的練習取代。';
-            }
-            if(wrote?.trendSaved===false) delete newestDraft.trend;
-            if(wrote?.adviceSaved===false) delete newestDraft.advice;
-            draftDurable = supersededAtStop || Boolean(wrote?.ok);
-            retryDraftFrom = draftDurable ? undefined : prior?.ok ? prior.id : undefined;
-            if (changedOwner) {
-              for (const peer of document.querySelectorAll?.('.scale-practice') || []) {
-                if (peer !== element) peer.practiceHistory?.supersede();
-              }
-            }
-            if (changedOwner || durable !== draftDurable) announceHistoryPending();
+            const options=ownerToken===draftId&&draftDurable?{ifCurrent:true}:{expectedId:expectedAttemptOwner};
+            const wrote=historyApi.saveKeyDraft(storage,historyKey,draft,options);
+            staleAttempt=wrote.reason==='stale-draft';
+            draftDurable=wrote.ok;
+            if(wrote.ok){
+              if(wrote.trendSaved===false)delete draft.trend;
+              if(wrote.adviceSaved===false)delete draft.advice;
+              newestDraft=draft;ownerToken=draftId;saveAccumulated(draft);
+            }else if(next==='idle')historyStatus.textContent=staleAttempt?'另一個分頁已更新此調的音準，未覆寫。':'瀏覽器無法儲存這次音準。';
           }
         }
-        if (next === 'idle' && !supersededAtStop && display?.attemptHistory?.some(bin=>bin.size) && merge.hidden) {
-          canSave = display.attemptHistory; merge.disabled = false; merge.hidden = false;
-          merge.textContent = '併入歷史'; historyStatus.textContent = '';
-          announceHistoryPending();
-        }
-        refreshHistoryActions();
+        updateHistoryActions();
       }
-      const hiddenRestoredAdvice=Boolean(display?.restored&&!canRestoreAdvice(newestDraft));
       if(localCoach){
         if(next==='pending'||next==='listening')localCoach.updateAdvice('listening');
-        else if(next==='idle' && (staleAttempt||hiddenRestoredAdvice||display?.openingUnverified))localCoach.updateAdvice('empty');
+        else if(next==='idle' && (staleAttempt||display?.openingUnverified))localCoach.updateAdvice('empty');
         else if(next==='idle' && (display?.final || display?.coachNoEvidence)){
           const measured=!display.coachNoEvidence&&display.values?.some(Number.isFinite);
           const packet=display.planDiagnostics??{measured,restored:Boolean(display.restored&&!display.coachNoEvidence),
@@ -4470,7 +4419,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         }else if(next==='idle')localCoach.updateAdvice('empty');
       }
       if (coachPanel) {
-        if(next==='pending'||(next==='idle' && (hiddenRestoredAdvice||!display))) {
+        if(next==='pending'||(next==='idle' && !display)) {
           coachTicket++;coachAttempt=null;coachPanel.hidden=true;coachInput.open=false;
           coachBusy=false;coachAction.textContent='練習建議';coachTyping.hidden=true;
           coachStatus.className='scale-practice-coach-status';
@@ -4557,7 +4506,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     }};
     button.addEventListener('click', () => toggle(view));
     element.append(action,status,latest,demoStatus);
-    if (historyButtons) element.append(historyButtons);
+
     if(localCoach)element.append(localCoach);
     if (coachPanel) element.append(coachPanel);
     const restored = ownsDraft() ? restoreGraph(newestDraft) : null;
@@ -4575,7 +4524,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
 });
 // SCALE_PRACTICE_END
   </script>
-  <script src="fingerboard.js?v=20261126-075"></script>
+  <script src="fingerboard.js?v=20261126-076"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
@@ -4998,14 +4947,10 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       if(message.textContent!==selected)message.textContent=selected;
     }
     function launchPractice(){startPractice();}
-    function startPractice(mode=launchMode,historyHandled=false){
+    function startPractice(mode=launchMode){
       refreshDate();
       if(!canLaunch(mode,visiblePreferences())){updateSessionLaunch();return;}
       requestCardAction(()=>{
-        const source=[...cardInstances.values()].find(item=>item.opened);
-        if(!historyHandled&&source&&unsavedPracticeIn(source.card).length){
-          withPracticeSaveChoice(source,()=>startPractice(mode,true));return;
-        }
         if(mode==='sequential')void practiceInSignatureOrder();
         else void drawToday();
       });
@@ -5247,7 +5192,7 @@ function openStudentNote(id,button,storageKey=studentNoteKey(id)){
  dialog.addEventListener('close',()=>{button.focus({preventScroll:true});removeClosedNotesDialog(dialog);});
  actions.append(clear,cancel,save);dialog.append(heading,label,input,help,actions);document.body.append(dialog);dialog.showModal();input.focus();
 }
-function createCard(mode,index,doneIds,session=null){
+function createCard(mode,index,doneIds){
  const key=(mode==='major'?MAJOR_KEYS:MINOR_KEYS)[index],id=selectedId(mode,index),done=doneIds.includes(id);
  const card=document.createElement('div');card.className=`key-card${done?' done':''}`;card.dataset.keyId=id;card.dataset.keyMode=mode;
  const heading=document.createElement('div');heading.className='key-card-heading';
@@ -5283,15 +5228,10 @@ function createCard(mode,index,doneIds,session=null){
  });
  const panel=document.createElement('div');panel.className='fingering-section';panel.id='fingering-'+id;
  const note=visibleFingerings()[id]||{};
- const adviceTime=session?.adviceOriginAt??session?.createdAt;
- const practiceAdviceContext=Number.isSafeInteger(adviceTime)&&adviceTime>0 ? {
-  id:(sharedRoom?.id||session.adviceOriginRoom||'personal')+':'+adviceTime,
-  replay:Boolean(session.replayOf)
- } : null;
  const guide=window.CelloFingerboard.create(mode,key,note,
   (direction,map,original,resetAll)=>saveInlineFingering(id,direction,map,original,resetAll),
   draft=>sharedRoom?window.classroomSync?.setDraft(id,draft):null,
-  {practiceAdviceContext,annotations:(sharedRoom?sharedRoom.arpeggioFingerings:state.arpeggioFingerings)[id]||{},
+  {annotations:(sharedRoom?sharedRoom.arpeggioFingerings:state.arpeggioFingerings)[id]||{},
    onPreview:draft=>sharedRoom?window.classroomSync?.setArpeggioDraft(id,draft):null,
    onSave:(direction,map,original,resetAll)=>saveArpeggioFingering(id,map,original,resetAll)});
  boardInstances.set(id,guide);cardInstances.set(id,{card,button:complete,title,panel,expand,guide});
@@ -5355,45 +5295,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
  if(editing){editing.guide.requestLeave(()=>requestCardAction(action));return;}
  action();
 }
-    // PRACTICE_SAVE_NAV_START
-    const unsavedPracticeIn = host => [...(host?.querySelectorAll?.('.scale-practice') || [])]
-      .map(node=>node.practiceHistory).filter(api=>api?.hasUnsaved());
-    const needsPracticeExitWarning = () => [...document.querySelectorAll('.scale-practice')]
-      .some(node=>node.practiceHistory?.needsExitWarning?.());
-    let practiceExitWarning = false;
-    function warnBeforePracticeExit(event){
- const hasPending=needsPracticeExitWarning();
- if(!hasPending)return;
- event.preventDefault();
- event.returnValue='';
-}
-    document.addEventListener('practice-history-change',()=>{
- const hasPending=needsPracticeExitWarning();
- if(hasPending===practiceExitWarning)return;
- if(hasPending)window.addEventListener('beforeunload',warnBeforePracticeExit);
- else window.removeEventListener('beforeunload',warnBeforePracticeExit);
- practiceExitWarning=hasPending;
-});
-    function withPracticeSaveChoice(item, proceed){
- const pending=unsavedPracticeIn(item?.card);
- if(!pending.length){proceed();return;}
- const dialog=q('#practice-save-dialog');
- if(dialog.open)return;
- const detail=q('#practice-save-description'),error=q('#practice-save-error');
- detail.textContent='要把 '+item.title.textContent+' 這次的音準圖併入歷史嗎？';
- error.hidden=true;
- q('#practice-save-cancel').onclick=()=>dialog.close();
- q('#practice-save-skip').onclick=()=>{
-  pending.forEach(api=>api.discard());dialog.close();proceed();
- };
- q('#practice-save-continue').onclick=()=>{
-  const saved=pending.map(api=>api.save());
-  if(saved.some(ok=>!ok)){error.hidden=false;return;}
-  dialog.close();proceed();
- };
- dialog.showModal();
-}
-    // PRACTICE_SAVE_NAV_END
+
     function jumpOrder(){
  return [...q('#key-groups').querySelectorAll('.key-card')]
   .map(card=>card.dataset.keyId).filter(id=>cardInstances.has(id));
@@ -5401,16 +5303,13 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     let cardScrollRequest=0;
     for(const type of ['wheel','touchmove'])window.addEventListener(type,()=>cardScrollRequest++,{passive:true});
     window.addEventListener('keydown',event=>{if(['ArrowUp','ArrowDown','PageUp','PageDown','Home','End','Escape'].includes(event.key))cardScrollRequest++;});
-    function jumpToPractice(id,historyHandled=false){
+    function jumpToPractice(id){
  const session=currentSession();
  if(!cardInstances.has(id)||!session)return;
  requestCardAction(()=>{
   const item=cardInstances.get(id),current=currentSession();
   if(!item||!current)return;
   const previous=[...cardInstances.values()].find(entry=>entry.opened&&entry!==item);
-  if(!historyHandled&&previous&&unsavedPracticeIn(previous.card).length){
-   withPracticeSaveChoice(previous,()=>jumpToPractice(id,true));return;
-  }
   cardScrollRequest++; // A direct practice jump supersedes pending title alignment.
   expandedOverride=id;syncPracticeCards(current);
   item.title.focus({preventScroll:true});
@@ -5428,14 +5327,11 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   item.title.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});
  })));
 }
-    function toggleCardExpansion(id,historyHandled=false){
+    function toggleCardExpansion(id){
  const session=currentSession(),item=cardInstances.get(id);
  if(!session||!item)return;
  const opening=!item.opened;
  const previous=[...cardInstances.values()].find(entry=>entry.opened&&entry!==item);
- if(!historyHandled&&opening&&previous&&unsavedPracticeIn(previous.card).length){
-  withPracticeSaveChoice(previous,()=>toggleCardExpansion(id,true));return;
- }
  const request=++cardScrollRequest;
  const movingDown=opening&&previous&&Boolean(previous.card.compareDocumentPosition(item.card)&Node.DOCUMENT_POSITION_FOLLOWING);
  expandedOverride=opening?id:null;
@@ -5537,7 +5433,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         const heading=document.createElement('div');heading.className='key-group-title';
         heading.innerHTML=`<h3>依調號循序練習</h3><span>${all.length} 個調性</span>`;
         const grid=document.createElement('div');grid.className='key-grid';
-        all.forEach(item=>grid.append(createCard(item.mode,item.index,session.doneIds,session)));
+        all.forEach(item=>grid.append(createCard(item.mode,item.index,session.doneIds)));
         section.append(heading,grid);container.append(section);
         return;
       }
@@ -5547,7 +5443,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         const heading=document.createElement('div');heading.className='key-group-title';
         heading.innerHTML=`<h3><i class="key-dot${mode==='minor'?' minor':''}" aria-hidden="true"></i>${label}</h3><span>${indices.length} 個調性</span>`;
         const grid=document.createElement('div');grid.className='key-grid';
-        indices.forEach(i=>grid.append(createCard(mode,i,session.doneIds,session)));
+        indices.forEach(i=>grid.append(createCard(mode,i,session.doneIds)));
         section.append(heading,grid);container.append(section);
       }
     }
@@ -5581,12 +5477,9 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       renderGroups(session);
       syncPracticeCards(session);
     }
-    function toggleComplete(id,historyHandled=false){
+    function toggleComplete(id){
       const session=currentSession();if(!session)return;
       const item=cardInstances.get(id);
-      if(!historyHandled&&!session.doneIds?.includes(id)&&unsavedPracticeIn(item?.card).length){
-        withPracticeSaveChoice(item,()=>toggleComplete(id,true));return;
-      }
       if(sharedRoom){window.classroomSync?.toggleComplete(id);return;}
       const all=[...session.majorIds.map(i=>selectedId('major',i)),...session.minorIds.map(i=>selectedId('minor',i))];
       if(!all.includes(id))return;
@@ -5747,7 +5640,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       const valid=new Set(ids),done=new Set(storedDone.filter(id=>valid.has(id)));
       return {total:ids.length,count:done.size,done};
     }
-    function replayHistoricalScale(record,kind,jumpUnfinished=false,historyHandled=false){
+    function replayHistoricalScale(record,kind,jumpUnfinished=false){
       if(!record||!Array.isArray(record.majorIds)||!Array.isArray(record.minorIds))return;
       if(sharedRoom){
         const dialog=q('#history-unavailable-dialog');
@@ -5756,9 +5649,6 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       }
       requestCardAction(()=>{
         const source=[...cardInstances.values()].find(item=>item.opened);
-        if(jumpUnfinished&&!historyHandled&&source&&unsavedPracticeIn(source.card).length){
-          withPracticeSaveChoice(source,()=>replayHistoricalScale(record,kind,true,true));return;
-        }
         const progress=historyProgress(record),isComplete=progress.total>0&&progress.count===progress.total;
         const session={date:currentDate,majorIds:[...record.majorIds],minorIds:[...record.minorIds],
           doneIds:isComplete?[]:[...progress.done],createdAt:Date.now(),replayOf:record.id,
@@ -5965,14 +5855,8 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       }
     }
     function requestClassroomTransition(action,beforePrompt){
-      const cards=[...cardInstances.values()];
-      const guarded=cards.some(item=>item.guide?.isEditing?.()||unsavedPracticeIn(item.card).length);
-      if(guarded)beforePrompt?.();
-      requestCardAction(()=>{
-        const pending=[...cardInstances.values()].find(item=>unsavedPracticeIn(item.card).length);
-        if(pending)withPracticeSaveChoice(pending,action);
-        else action();
-      });
+      if([...cardInstances.values()].some(item=>item.guide?.isEditing?.()))beforePrompt?.();
+      requestCardAction(action);
     }
     window.DailyKeyPractice={setClassroomRoom,setClassroomDrafts,setClassroomArpeggioDrafts,
       getPreferences:()=>({...state.preferences}),showToast,requestClassroomTransition};
@@ -6644,7 +6528,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   $('metronome-panel').addEventListener('keydown',e=>{if(e.key==='Escape'){showPanel('metronome',false);$('metro-settings').focus();}});
   $('tuner-panel').addEventListener('keydown',e=>{if(e.key==='Escape'){closeTool('tuner');$('tuner-open').focus();}});
   document.addEventListener('visibilitychange',()=>{if(document.hidden){demo.stop();scalePractice?.stop('頁面已切換，收音已停止。');closeTool('tuner');closeTool('metronome');}});
-  window.addEventListener('pagehide', () => { demo.stop(); scalePractice?.stop(); stopTuner(); stopMetro(); });
+  window.addEventListener('pagehide', () => { demo.stop(); scalePractice?.stop(null,true); stopTuner(); stopMetro(); });
 })();
 // AUDIO_TOOLS_END
 

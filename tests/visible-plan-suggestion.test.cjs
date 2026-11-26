@@ -80,8 +80,8 @@ test('missing, partial and restored takes are honest and cannot reuse board or m
  const g=setup(cache);
  a.equal(g.advise().replace('上次保留的建議 ',''),f.advise());
  await g.press();g.ready();await g.press();
- a.match(g.advise(),/沒有辨識到可用音符/);
- a.doesNotMatch(g.advise(),/上次/);
+ a.match(g.advise(),/上次保留的建議/);
+ a.doesNotMatch(g.advise(),/沒有辨識到可用音符/);
  a.equal(g.network,0);
 });
 test('relative interval requires both accepted notes in each round and works on reverse',()=>{
@@ -103,8 +103,8 @@ test('old URL query cannot activate model on public Pages; opened string gets it
  a.equal(f.network,0);
 });
 
-const latestKey=cache=>Object.keys(cache).find(k=>k.endsWith('latest-local'));
-test('legacy and corrupted optional payloads use only signed saved downward note; replacing singleton invalidates prior advice',async()=>{
+const latestKey=cache=>Object.keys(cache).find(k=>k.endsWith(':latest'));
+test('legacy and corrupted optional payloads use only signed saved downward note; replacing the keyed chart recomputes advice',async()=>{
  const cache={},f=setup(cache);
  await f.press();f.ready();f.play(f.target[0],20);await f.press();
  const k=latestKey(cache), old=JSON.parse(cache[k]);
@@ -119,7 +119,7 @@ test('legacy and corrupted optional payloads use only signed saved downward note
  delete old.advice;cache[k]=JSON.stringify(old);
  a.doesNotMatch(setup(cache).advise(),/這是一次讀數/);
  cache[k]=JSON.stringify({...old,id:'replacement'});
- g.sync();a.match(g.advise(),/開始練習後/);a.ok(!g.panel.hidden);
+ g.sync();a.match(g.advise(),/下行：D，偏低/);a.ok(!g.panel.hidden);
  delete cache[k];
  a.ok(!setup(cache).panel.hidden);
 });
@@ -132,7 +132,7 @@ test('stale mounted view clears previously rendered advice when notified',async(
 });
 
 test('quota fallback keeps measured chart if optional advice does not fit',async()=>{
- const cache={}; const f=setup(cache,'',(k,v)=>k.endsWith('latest-local')&&Boolean(JSON.parse(v).advice));
+ const cache={}; const f=setup(cache,'',(k,v)=>k.endsWith(':latest')&&Boolean(JSON.parse(v).advice));
  await f.press();f.ready();f.play(f.target[0],-21);await f.press();
  const snapshot=JSON.parse(cache[latestKey(cache)]);
  a.equal(snapshot.advice,undefined);a.equal(snapshot.values[0],-21);
@@ -424,7 +424,7 @@ test('opt-in only decorates the next same-string pair; one drill changes, links 
  a.match(alt,/先用調音器.*D 弦上的 F → G，只把這兩音放在同一弓裡.*前後各用半弓.*原譜弓法/);
  a.match(alt,/McDonagh：練習連弓/);
  a.doesNotMatch(alt,/Feuermann|Mantel|一音一弓、弓聲不斷/);
- a.equal(body.children.find(n=>n.tag==='ol').children.length,2);
+ a.equal(body.find('scale-practice-coach-phase').children.find(n=>n.tag==='ol').children.length,2);
  a.equal(JSON.stringify(cache),defaults);
  button().events.click();a.equal(flatText(body),original);
  const reopened=setup(cache);
@@ -504,13 +504,13 @@ test('actual mixed D/E/F tracing keeps every observation in report and suggests 
  a.equal(restored,text);
 });
 
-test('same key newly drawn cannot inherit advice; same session and explicit old session still can',async()=>{
+test('advice follows actual keyed graph, including a redraw of the same key',async()=>{
  const cache={},old={id:'personal:111',replay:false},redraw={id:'personal:222',replay:false};
  const f=setup(cache,'',undefined,undefined,old);
  await f.press();f.ready();f.play(f.target[0],-26);await f.press();
  a.match(f.advise(),/這次觀察/);
  a.match(setup(cache,'',undefined,undefined,old).advise(),/上次保留的建議/);
- a.match(setup(cache,'',undefined,undefined,redraw).advise(),/開始練習後/);
+ a.match(setup(cache,'',undefined,undefined,redraw).advise(),/上次保留的建議/);
  a.match(setup(cache,'',undefined,undefined,redraw,'major-D').advise(),/開始練習後/);
  a.match(setup(cache,'',undefined,undefined,{...old,replay:true}).advise(),/上次保留的建議/);
  // Fresh advice on the redrawn key still has normal lifecycle and reloads.
@@ -518,5 +518,28 @@ test('same key newly drawn cannot inherit advice; same session and explicit old 
  await again.press();again.ready();again.play(again.target[0],26);await again.press();
  a.match(again.advise(),/這次觀察/);
  a.match(setup(cache,'',undefined,undefined,redraw).advise(),/上次保留的建議/);
- a.match(setup(cache,'',undefined,undefined,{...old,replay:true}).advise(),/開始練習後/);
+ a.match(setup(cache,'',undefined,undefined,{...old,replay:true}).advise(),/上次保留的建議/);
+});
+test('actual card shows only measured ascent and once-only shared drill when matching descending evidence arrives',async()=>{
+ const sections=f=>f.panel.find('scale-practice-coach-tip').children.filter(n=>n.className==='scale-practice-coach-phase');
+ const ascent=setup({});
+ await ascent.press();ascent.ready();for(const n of ascent.target.slice(0,8))ascent.play(n,n.midi===43?-27:0);
+ await ascent.press();
+ a.deepEqual(sections(ascent).map(n=>n.dataset.direction),['上行']);
+ a.match(flatText(sections(ascent)[0]),/上行.*G 空弦.*調音器/);
+ const cache={},both=setup(cache);
+ await both.press();both.ready();for(const n of both.target)both.play(n,n.midi===43?-27:0);
+ await both.press();
+ const result=sections(both);
+ a.deepEqual(result.map(n=>n.dataset.direction),['上行','下行','shared']);
+ a.match(flatText(result[0]),/上行.*G 空弦/);
+ a.match(flatText(result[1]),/下行.*G 空弦/);
+ a.equal(result[2].children.find(n=>n.tag==='ol').children.length,1);
+ a.match(flatText(result[2]),/調音器/);
+ a.deepEqual(sections(setup(cache)).map(n=>n.dataset.direction),['上行','下行','shared']);
+});
+test('an empty measured take keeps generic copy without inventing phase sections',async()=>{
+ const f=setup({});await f.press();f.ready();await f.press();
+ a.equal(f.panel.find('scale-practice-coach-phase'),undefined);
+ a.doesNotMatch(f.advise(),/上行|下行/);
 });

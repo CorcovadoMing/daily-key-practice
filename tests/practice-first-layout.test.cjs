@@ -55,7 +55,7 @@ test('resume chooses validated unfinished work, otherwise reuse prior draw optio
   assert.equal(nodes['#launch-resume'].hidden,true);
   assert.equal(nodes['#draw-text'].textContent,'開始練習');
 });
-test('prior resume preserves draft choice before replacing cards and starts first unfinished',()=>{
+test('prior resume starts first unfinished without a pitch-save prompt',()=>{
   const {env,calls,dialogs}=scope();
   env.cardInstances.set('major-0',{opened:true,card:{}});
   env.state.personalHistory=[
@@ -63,10 +63,7 @@ test('prior resume preserves draft choice before replacing cards and starts firs
     {id:'malformed',majorIds:[1,1],minorIds:[],drawnAt:60}
   ];
   env.resumePractice();
-  assert.equal(dialogs.length,1);
-  assert.deepEqual(calls,[]);
-  assert.equal(env.state.continuedSession,undefined);
-  dialogs[0].proceed();
+  assert.equal(dialogs.length,0);
   assert.equal(env.state.continuedSession.historyId,'valid');
   assert.deepEqual(calls,['minor-3']);
 });
@@ -77,17 +74,10 @@ test('classroom actions are behind a closed disclosure and other advanced contro
   assert.match(html,/<details[^>]+id="draw-settings"[^>]*>\s*<summary[^>]*><span[^>]*>調性設定<\/span>[\s\S]+id="session-launch-note"[\s\S]+?<\/summary>[\s\S]+id="signature-filters"[\s\S]+id="launch-count-settings"/);
 });
 
-test('start with a pending chart passes through the existing save choice instead of launching twice',()=>{
-  const {env,calls,dialogs}=scope();
-  env.cardInstances.set('major-0',{opened:true,card:{}});
-  env.startPractice('sequential');
-  assert.equal(dialogs.length,1);
-  assert.deepEqual(calls,[]);
-  env.setLaunchMode('random'); // Mode selection does not change the confirmed action already requested.
-  dialogs[0].proceed();
-  assert.deepEqual(calls,['sequential']);
+test('start with a pending chart does not ask whether to save',()=>{
+  const {env,calls,dialogs}=scope();env.cardInstances.set('major-0',{opened:true,card:{}});
+  env.startPractice('sequential');assert.equal(dialogs.length,0);assert.deepEqual(calls,['sequential']);
 });
-
 test('tuning settings are an inline disclosure, not a floating window',()=>{
   assert.doesNotMatch(html,/id="launch-options-toggle"|popovertarget="draw-settings"/);
   assert.match(html,/class="launch-settings-body" inert/);

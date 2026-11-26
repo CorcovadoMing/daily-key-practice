@@ -119,13 +119,13 @@ test('capture accepts the whole attempt, grades on stop and cleans every resourc
   assert.equal(f.resources.prompts,1);
   assert.equal(f.track.stopCalls,1);
 });
-test('hidden-card interruption stops rather than scoring a partial take',async()=>{
+test('hidden-card interruption automatically finalizes matched partial pitch',async()=>{
   const f=fixture(), starting=f.m.toggle(f.view);
   f.grant();await starting;
   f.play(36);
   f.m.stopWithin({contains:entry=>entry===f.view.element});
   assert.match(f.calls.at(-1)[1],/已離開/);
-  assert.equal(f.calls.at(-1)[2],null);
+  assert.ok(f.calls.at(-1)[2].pairs.length>0);
   assert.equal(f.track.stopCalls,1);
 });
 
@@ -258,10 +258,10 @@ test('switch scale ↔ arpeggio keeps one mic session but grades only selected s
   const arpeggio={target:cMajorArpeggio,mode:'single',element:{},update(...args){arpeggioCalls.push(args);}};
   const start=f.m.toggle(f.view);
   f.grant();await start;
-  f.play(38); // Must not be added to the succeeding arpeggio take.
+  f.play(36); f.play(38); // Must not be added to the succeeding arpeggio take.
   await f.m.toggle(arpeggio);
   assert.match(f.calls.at(-1)[1],/已切換到另一項練習/);
-  assert.equal(f.calls.at(-1)[2],null);
+  assert.equal(f.calls.at(-1)[2].pairs.length,2);
   assert.equal(f.track.stopCalls,0);
   assert.equal(f.resources.prompts,1);
   assert.equal(arpeggioCalls.at(-1)[0],'listening');

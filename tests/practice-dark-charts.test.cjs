@@ -84,7 +84,7 @@ test('actual practice view keeps the same measured active, partial, restored and
      assert.ok(red,'real single historic red point present on alternating lane '+i);
      assert.equal(red.style['--past-opacity'],.34);
    }
-   assert.match(view.element.find(n=>n.className==='scale-pitch-legend').textContent,/本輪：實色 · 先前：淡色/);
+   assert.match(view.element.find(n=>n.className==='scale-pitch-legend').textContent,/實色：本次 · 淡色：累積/);
    assert.match(line(pitch()),/^M/);assert.match(line(volume()),/^M/);
  }
  // The restored old note graph is valid, while a muted/unavailable volume must
