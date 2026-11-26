@@ -457,24 +457,26 @@
   }
   function makeScore(mode,key,arpeggio=false,sequence=scoreNotes(mode,key,arpeggio)){
     const apex=Math.ceil(sequence.length/2);
+    // The exercise is one unbarred phrase; changing the visual line does
+    // not reset accidentals for a pitch on that staff position.
+    const accidentals=scoreAccidentals(sequence,key[1]);
     const wrap=element('div',{class:'cello-scale-score',tabindex:'0','aria-label':(arpeggio?'琶音':'音階')+'上下行五線譜'});
-    wrap.append(makeStaff(mode,key,arpeggio,sequence,{apex,total:sequence.length}));
+    wrap.append(makeStaff(mode,key,arpeggio,sequence,{apex,total:sequence.length,accidentals}));
     const split=element('div',{class:'cello-score-split'});
     if(sequence.length>1){
       // A narrow view may move the line break, not the musical grouping.
       // Keep the four-note beams of the single-line score intact.
       const splitAt=arpeggio?apex:Math.min(sequence.length-1,Math.ceil(apex/4)*4);
       const rowCapacity=Math.max(splitAt,sequence.length-splitAt);
-      split.append(makeStaff(mode,key,arpeggio,sequence.slice(0,splitAt),{apex,total:sequence.length,dir:'上行',rowCapacity}),
-        makeStaff(mode,key,arpeggio,sequence.slice(splitAt),{apex,total:sequence.length,dir:'下行',first:splitAt,rowCapacity}));
+      split.append(makeStaff(mode,key,arpeggio,sequence.slice(0,splitAt),{apex,total:sequence.length,dir:'上行',rowCapacity,accidentals}),
+        makeStaff(mode,key,arpeggio,sequence.slice(splitAt),{apex,total:sequence.length,dir:'下行',first:splitAt,rowCapacity,accidentals}));
     }
     wrap.append(split);return wrap;
   }
-  function makeStaff(mode,key,arpeggio,sequence,{apex,total,dir,first=0,rowCapacity=apex}){
+  function makeStaff(mode,key,arpeggio,sequence,{apex,total,dir,first=0,rowCapacity=apex,accidentals}){
     const spacing=dir?(arpeggio?52:25):(arpeggio?64:29);
     const signature=key[1],startX=70+Math.abs(signature)*8;
     const width=dir?startX+Math.max(0,rowCapacity-1)*spacing+23:928+Math.abs(signature)*8;
-    const accidentals=scoreAccidentals(sequence,signature);
     const startsDescent=Boolean(dir&&first===0&&sequence.length>apex);
     const direction=startsDescent?'上行與下行起點':dir==='下行'&&first>apex?'續下行':dir||'上下行';
     const svg=svgNode('svg',{class:dir?'cello-score-row':'cello-score-wide',viewBox:`0 0 ${width} 185`,width,height:185,role:'img','aria-label':key[0]+(mode==='major'?'大調':'旋律小調')+(arpeggio?'琶音':'音階')+'，低音譜號，'+direction+(arpeggio?'，全部四分音符':'十六分音符，末音四分音符')});
@@ -506,7 +508,7 @@
       for(let ly=60;ly>=y;ly-=10)svg.append(svgNode('line',{x1:x-11,x2:x+11,y1:ly,y2:ly,stroke:'#444','stroke-width':1}));
       const g=svgNode('g',{'data-midi':note.midi,'data-score-index':first+i,'data-note':note.name,'data-duration':arpeggio||first+i===total-1?'4':'16'});
       g.append(svgNode('title',{},note.name+' · MIDI '+note.midi));
-      if(accidentals[i])g.append(svgNode('text',{class:'scale-accidental',x:x-18,y:y+5,'text-anchor':'middle','font-family':'Georgia, serif','font-size':18,fill:'#222'},accidentals[i]));
+      if(accidentals[first+i])g.append(svgNode('text',{class:'scale-accidental',x:x-18,y:y+5,'text-anchor':'middle','font-family':'Georgia, serif','font-size':18,fill:'#222'},accidentals[first+i]));
       g.append(svgNode('ellipse',{cx:x,cy:y,rx:5.8,ry:3.7,transform:'rotate(-20 '+x+' '+y+')',fill:'#222'}));
       noteGroups.push(g);
     });

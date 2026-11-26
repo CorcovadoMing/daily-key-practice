@@ -47,6 +47,9 @@ test('all 24 keys feed targets from the exact rendered scale and arpeggio staff'
    assert.deepEqual(rowsNotes.flat().map(x=>[x.attributes['data-score-index'],x.attributes['data-midi'],x.attributes['data-duration']]),
      notes.map(x=>[x.attributes['data-score-index'],x.attributes['data-midi'],x.attributes['data-duration']]),
      'mobile rows use the identical score positions with no duplicate top tonic');
+   const pickSign=head=>head.children.find(x=>x.attributes.class==='scale-accidental')?.textContent??'';
+   assert.deepEqual(rowsNotes.flat().map(pickSign),notes.map(pickSign),
+     mode+' '+key[0]+' must keep every accidental at the same score index across a visual system break');
    assert.ok(rows[0].attributes['aria-label'].includes('上行') && rows[1].attributes['aria-label'].includes('下行'));
    assert.ok(rows.every(row=>row.children.filter(x=>x.attributes.class==='scale-key-signature').length===Math.abs(key[1])));
    const last=rowsNotes[1].at(-1);
