@@ -40,7 +40,7 @@ function build(storage, scope='major-C', kind='scale', mode='loop', shared=realm
  const nodes=target.map(()=>new Node());
  let now=0, callbacks, prompts=0;
  const capture={subscribe(next){prompts++;callbacks=next;return ()=>{};}};
- const m=manager({performance:{now:()=>now}},{capture,swiftCapture:capture,
+ const m=manager({performance:{now:()=>now}},{capture,swiftCapture:capture,detector:()=>'swift',
   pitchReading,pitchName:String,reference:()=>442});
  const view=card({querySelectorAll:()=>nodes},target,v=>m.toggle(v),kind,scope);
  Object.defineProperty(view,'mode',{value:mode});

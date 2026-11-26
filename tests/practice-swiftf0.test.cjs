@@ -67,39 +67,18 @@ class Node{
  addEventListener(n,f){this.handlers[n]=f;}
  find(name){return this.className?.split(' ').includes(name)?this:this.children.map(x=>x.find(name)).find(Boolean);}
 }
-test('scale detector uses visible native segments and only explicit scope choices are saved',()=>{
- const saved=new Map(),writes=[];
- const localStorage={getItem:k=>saved.get(k),setItem(k,v){saved.set(k,v);writes.push(k);}};
- const fresh=()=>load('SCALE_PRACTICE',{document:{createElement:()=>new Node()},localStorage});
- const score={querySelectorAll:()=>[]}, {card}=fresh();
- let starts=0;
- const scale=card(score,[],()=>starts++,'scale','major-C'), arpeggio=card(score,[],()=>starts++,'arpeggio','major-C');
- const other=card(score,[],()=>starts++,'scale','minor-C');
- const segment=scale.element.find('scale-practice-detector');
- const [trad,smart]=segment.children.map(label=>label.children[0]);
- assert.deepEqual(segment.children.map(label=>label.children[1].textContent),['傳統','智慧']);
- assert.equal(trad.type,'radio');assert.equal(smart.checked,true);
- assert.equal(trad.name,smart.name);
- assert.notEqual(trad.name,other.element.find('scale-practice-detector').children[0].children[0].name);
- assert.equal(scale.detector,'swift');assert.equal(arpeggio.detector,'swift');
- const arpTrad=arpeggio.element.find('scale-practice-detector').children[0].children[0];
- assert.notEqual(arpTrad.name,trad.name);
+test('exercise cards no longer render or save local detector choices',()=>{
+ const writes=[];
+ const {card}=load('SCALE_PRACTICE',{document:{createElement:()=>new Node()},localStorage:{
+   getItem:k=>k.includes('scale-detector')?'existing':undefined,setItem:k=>writes.push(k)
+ }});
+ const score={querySelectorAll:()=>[]};
+ for(const [kind,key] of [['scale','major-C'],['scale','minor-C'],['arpeggio','major-C']]){
+   const v=card(score,[],()=>assert.fail('no capture expected'),kind,key);
+   assert.equal(v.element.find('scale-practice-detector'),undefined);
+   assert.equal(v.detector,undefined);
+ }
  assert.equal(writes.length,0);
- assert.equal(starts,0);
- scale.update('pending','正在準備智慧偵測…');assert.equal(segment.disabled,true);
- trad.checked=true;trad.handlers.change();assert.equal(scale.detector,'swift');assert.equal(writes.length,0);
- scale.update('idle');assert.equal(segment.disabled,false);
- assert.equal(trad.checked,false);assert.equal(smart.checked,true);
- trad.checked=true;smart.checked=false;trad.handlers.change();
- assert.equal(scale.detector,'existing');assert.equal(starts,0);assert.equal(writes.length,1);
- const reloaded=fresh().card;
- assert.equal(reloaded(score,[],()=>{},'arpeggio','major-C').detector,'swift');
- arpTrad.checked=true;arpTrad.handlers.change();
- assert.equal(writes.length,2);
- assert.ok(writes[0].endsWith(':major-C'));assert.ok(writes[1].endsWith(':arpeggio:major-C'));
- assert.equal(fresh().card(score,[],()=>{},'arpeggio','major-C').detector,'existing');
- assert.equal(reloaded(score,[],()=>{},'scale','major-C').detector,'existing');
- assert.equal(reloaded(score,[],()=>{},'scale','minor-C').detector,'swift');
 });
 test('lookahead grace admits already-captured exact next notes without making a fuzzy hop renew the clock',async()=>{
  for(const second of [43,45]){

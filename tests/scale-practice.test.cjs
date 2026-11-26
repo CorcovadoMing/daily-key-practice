@@ -437,11 +437,9 @@ test('native practice-mode selection persists and syncs scale/arpeggio without s
   let invoked=0;
   const scale=api.card(score,target,()=>invoked++), arp=api.card(score,cMajorArpeggio,()=>invoked++,'arpeggio');
   const [action]=scale.element.children, [otherAction]=arp.element.children;
-  const [button,choice,options]=action.children, [otherBtn,otherChoice]=otherAction.children;
-  assert.equal(options.tag,'fieldset');
-  assert.equal(options.attributes['aria-label'],'音高偵測模式');
-  assert.equal(options.children[0].children[1].textContent,'傳統');
-  assert.equal(options.children[1].children[1].textContent,'智慧');
+  const [button,choice,demo]=action.children, [otherBtn,otherChoice]=otherAction.children;
+  assert.equal(demo.tag,'button');
+  assert.equal(demo.className,'scale-practice-demo');
   const [single,loop]=choice.children.map(label=>label.children[0]);
   const [otherSingle,otherLoop]=otherChoice.children.map(label=>label.children[0]);
   assert.equal(action.attributes.role,'group');

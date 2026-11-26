@@ -456,12 +456,23 @@
     return [...up,...down.slice(1)];
   }
   function makeScore(mode,key,arpeggio=false,sequence=scoreNotes(mode,key,arpeggio)){
-    const peakIndex=(sequence.length+1)/2;
-    const spacing=arpeggio?64:29;
-    const signature=key[1],startX=70+Math.abs(signature)*8,width=928+Math.abs(signature)*8;
+    const apex=Math.ceil(sequence.length/2);
+    const wrap=element('div',{class:'cello-scale-score',tabindex:'0','aria-label':(arpeggio?'琶音':'音階')+'上下行五線譜'});
+    wrap.append(makeStaff(mode,key,arpeggio,sequence,{apex,total:sequence.length}));
+    const split=element('div',{class:'cello-score-split'});
+    if(sequence.length>1){
+      split.append(makeStaff(mode,key,arpeggio,sequence.slice(0,apex),{apex,total:sequence.length,dir:'上行'}),
+        makeStaff(mode,key,arpeggio,sequence.slice(apex),{apex,total:sequence.length,dir:'下行',first:apex}));
+    }
+    wrap.append(split);return wrap;
+  }
+  function makeStaff(mode,key,arpeggio,sequence,{apex,total,dir,first=0}){
+    const spacing=dir?(arpeggio?52:25):(arpeggio?64:29);
+    const signature=key[1],startX=70+Math.abs(signature)*8;
+    const width=dir?startX+Math.max(0,apex-1)*spacing+23:928+Math.abs(signature)*8;
     const accidentals=scoreAccidentals(sequence,signature);
-    const wrap=element('div',{class:'cello-scale-score',tabindex:'0','aria-label':(arpeggio?'琶音':'音階')+'上下行五線譜，可左右捲動'});
-    const svg=svgNode('svg',{viewBox:`0 0 ${width} 185`,width,height:185,role:'img','aria-label':key[0]+(mode==='major'?'大調':'旋律小調')+(arpeggio?'琶音':'音階')+(arpeggio?'，低音譜號，上下行，全部四分音符':'，低音譜號，上下行十六分音符，末音四分音符')});
+    const direction=dir||'上下行';
+    const svg=svgNode('svg',{class:dir?'cello-score-row':'cello-score-wide',viewBox:`0 0 ${width} 185`,width,height:185,role:'img','aria-label':key[0]+(mode==='major'?'大調':'旋律小調')+(arpeggio?'琶音':'音階')+'，低音譜號，'+direction+(arpeggio?'，全部四分音符':'十六分音符，末音四分音符')});
     svg.append(svgNode('title',{},'調號與必要臨時記號'));
     for(let i=0;i<5;i++)svg.append(svgNode('line',{x1:14,x2:width-15,y1:110-i*10,y2:110-i*10,stroke:'#777','stroke-width':0.8}));
     // Bass-clef curve and dots anchor the F3 line, avoiding music-font dependency.
@@ -488,7 +499,7 @@
       const x=startX+i*spacing,y=110-(staffStep(note)-18)*5;
       for(let ly=120;ly<=y;ly+=10)svg.append(svgNode('line',{x1:x-11,x2:x+11,y1:ly,y2:ly,stroke:'#444','stroke-width':1}));
       for(let ly=60;ly>=y;ly-=10)svg.append(svgNode('line',{x1:x-11,x2:x+11,y1:ly,y2:ly,stroke:'#444','stroke-width':1}));
-      const g=svgNode('g',{'data-midi':note.midi,'data-score-index':i,'data-note':note.name,'data-duration':arpeggio||i===sequence.length-1?'4':'16'});
+      const g=svgNode('g',{'data-midi':note.midi,'data-score-index':first+i,'data-note':note.name,'data-duration':arpeggio||first+i===total-1?'4':'16'});
       g.append(svgNode('title',{},note.name+' · MIDI '+note.midi));
       if(accidentals[i])g.append(svgNode('text',{class:'scale-accidental',x:x-18,y:y+5,'text-anchor':'middle','font-family':'Georgia, serif','font-size':18,fill:'#222'},accidentals[i]));
       g.append(svgNode('ellipse',{cx:x,cy:y,rx:5.8,ry:3.7,transform:'rotate(-20 '+x+' '+y+')',fill:'#222'}));
@@ -496,8 +507,9 @@
     });
     // Four-note visual groups; no meter or barlines are imposed on the exercise.
     const groupSize=arpeggio?1:4;
-    for(let start=0;start<sequence.length;start+=groupSize){
-      const group=sequence.slice(start,start+groupSize).map((note,j)=>({x:startX+(start+j)*spacing,y:110-(staffStep(note)-18)*5}));
+    for(let start=0;start<sequence.length;){
+      const size=!arpeggio&&first+start===total-1?1:Math.min(groupSize,sequence.length-start,!arpeggio?total-first-start-1:1);
+      const group=sequence.slice(start,start+size).map((note,j)=>({x:startX+(start+j)*spacing,y:110-(staffStep(note)-18)*5}));
       const down=group.reduce((sum,n)=>sum+n.y,0)/group.length<90;
       const beamY=down?Math.max(...group.map(n=>n.y))+32:Math.min(...group.map(n=>n.y))-32;
       const stemX=n=>n.x+(down?-5:5);
@@ -522,14 +534,25 @@
             noteGroups[start+j].append(svgNode('line',{class:'scale-beam-local','data-level':level+1,x1,x2,y1:yAt(x1),y2:yAt(x2),'stroke-width':3.5,stroke:'none','aria-hidden':'true'}));
           });
         }
+      } else if(!arpeggio&&first+start!==total-1){
+        // A system break can leave a lone sixteenth just before the final
+        // quarter. It still needs two flags even though there is no peer.
+        const n=group[0],x=stemX(n),y=beamAt(n),to=down?-1:1;
+        for(let flag=0;flag<2;flag++){
+          const at=y+to*flag*6;
+          noteGroups[start].append(svgNode('path',{class:'scale-beam-local',
+            d:`M${x} ${at}q 3 ${to*4} 8 ${to*6}q 5 ${to*3} 4 ${to*9}`,
+            fill:'none',stroke:'#222','stroke-width':1.6,'aria-hidden':'true'}));
+        }
       } // The final tonic keeps its stem but has no flags: a quarter note.
+      start+=size;
     }
     svg.append(...noteGroups);
-    for(const [x,label] of [[startX,'上行'],[startX+peakIndex*spacing,'下行']]){
+    for(const [x,label] of (dir?[[startX,dir]]:[[startX,'上行'],[startX+apex*spacing,'下行']])){
       svg.append(svgNode('text',{x,y:164,'font-size':12,fill:'#647461'},label));
       svg.append(svgNode('path',{d:`M${x+32} 160h14m-6-6 6 6-6 6`,fill:'none',stroke:'#647461','stroke-width':1.6,'stroke-linecap':'round','stroke-linejoin':'round','aria-hidden':'true'}));
     }
-    wrap.append(svg);return wrap;
+    return svg;
   }
 
   function create(mode,key,initialAnnotations={},onSave=null,onPreview=null,arpeggioOptions={}){
@@ -850,26 +873,14 @@
       element('p',{class:'fingering-note'},'琶音修改只儲存在此瀏覽器，不與教室同步。'));
     arpeggioSection.append(arpeggioScore,arpeggioBoard);
 
-    // Both sections remain mounted. Moving to the other score does not hide
-    // an active Stop button or discard a graph or a pending fingering edit.
-    const exerciseNav=element('nav',{class:'exercise-nav','aria-label':'切換譜面位置'});
-    const exerciseLinks={};
-    for(const [kind,label,section,score] of [['scale','音階',scaleBlock,scoreSection],['arpeggio','琶音',arpeggioSection,arpeggioScore]]){
-      const jump=element('button',{class:'exercise-jump',type:'button'},label);
-      jump.addEventListener('click',()=>{
-        const target=score.querySelector('.cello-scale-score');
-        target?.focus({preventScroll:true});
-        section.scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'});
-      });
-      exerciseLinks[kind]=jump;
-      exerciseNav.append(jump);
-    }
+    // Both scores remain mounted, with a shortcut only to stop active audio.
+    const exerciseNav=element('div',{class:'exercise-nav','aria-label':'收音控制'});
     const activeStop=element('button',{class:'exercise-jump exercise-active-stop',type:'button'},'停止目前收音');
     activeStop.addEventListener('click',()=>{
       const active=root.querySelector('.scale-practice:is([data-phase="listening"],[data-phase="pending"])');
       const button=active?.querySelector('.scale-practice-button');
       if(!button)return;
-      exerciseLinks[active.dataset.practiceKind]?.focus({preventScroll:true});
+      button.focus({preventScroll:true});
       button.click();
     });
     exerciseNav.append(activeStop);

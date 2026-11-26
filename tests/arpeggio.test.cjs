@@ -39,6 +39,19 @@ test('all 24 keys feed targets from the exact rendered scale and arpeggio staff'
      'every individual note owns its own stem, including repeated pitches and the final tonic');
    assert.ok(notes.every(note=>!note.children.some(x=>x.attributes.class==='scale-beam')),
      'shared beams cannot inherit the note highlight');
+   const rows=staff.children[1].children;
+   const firstCount=arpeggio?7:15;
+   const rowsNotes=rows.map(staff=>staff.children.filter(x=>'data-midi' in x.attributes));
+   assert.equal(rowsNotes[0].length,firstCount);
+   assert.equal(rowsNotes[1].length,expected.length-firstCount);
+   assert.deepEqual(rowsNotes.flat().map(x=>[x.attributes['data-score-index'],x.attributes['data-midi'],x.attributes['data-duration']]),
+     notes.map(x=>[x.attributes['data-score-index'],x.attributes['data-midi'],x.attributes['data-duration']]),
+     'mobile rows use the identical score positions with no duplicate top tonic');
+   assert.ok(rows[0].attributes['aria-label'].includes('上行') && rows[1].attributes['aria-label'].includes('下行'));
+   assert.ok(rows.every(row=>row.children.filter(x=>x.attributes.class==='scale-key-signature').length===Math.abs(key[1])));
+   const last=rowsNotes[1].at(-1);
+   assert.ok(!last.children.some(x=>x.attributes.class==='scale-beam-local'));
+   if(!arpeggio)assert.equal(rowsNotes[1].at(-2).children.filter(x=>x.attributes.class==='scale-beam-local').length,2);
    const beams=staff.children[0].children.filter(x=>x.attributes.class==='scale-beam');
    assert.equal(beams.length,arpeggio?0:14);
    for(const [i,note] of notes.entries()){

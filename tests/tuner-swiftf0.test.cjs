@@ -125,7 +125,7 @@ test('tuner and shared practice inference apply the same acoustic safeguard, onl
  assert.deepEqual(Array.from(await swift.infer(render(16000,true,7168),[11,13])),[null,null]);
 });
 
-function sharedTunerFixture(saved) {
+function sharedTunerFixture(saved,legacy) {
  const code=html.split('// AUDIO_TOOLS_START')[1].split('// AUDIO_TOOLS_END')[0];
  const lib=section('AUDIO_TOOLS'),practice=section('SCALE_PRACTICE');
  const subscribers=new Set(),renders=[],nodes=new Map();
@@ -141,7 +141,7 @@ function sharedTunerFixture(saved) {
  const clock={};
  const window={
   performance:{now:()=>now},
-  localStorage:{getItem(k){assert.match(k,/experimental:tuner-detector$/);return stored;},setItem(_,v){stored=v;}},
+  localStorage:{getItem(k){return k.endsWith(':pitch-detector')?stored:k.endsWith(':tuner-detector')?legacy:null;},setItem(k,v){assert.match(k,/experimental:pitch-detector$/);stored=v;}},
   CelloScalePractice:{...practice,micCapture:()=>capture}
  };
  const env={...lib,window,navigator:{},performance:window.performance,$,
@@ -162,13 +162,15 @@ function sharedTunerFixture(saved) {
   }
   await tick();
  }
- return {radios,choose,ready,frame,control:env.control,renders,controller:window.CelloScalePractice.controller,
+ return {radios,choose,ready,frame,control:env.control,renders,controller:window.CelloScalePractice.controller,field:$('pitch-detector'),lockHint:$('pitch-detector-locked'),
   get stored(){return stored;},get runs(){return runs;},get reads(){return reads;},get legacyReads(){return legacyReads;},
   get subscribers(){return subscribers.size;},get initialized(){return initialized;}};
 }
-test('actual settings radios default Smart, remember an explicit choice and switch without reopening the mic', async()=>{
+test('page-wide selector defaults Smart, saves one choice and switches the tuner without reopening the mic', async()=>{
  const f=sharedTunerFixture(), [traditional,smart]=f.radios;
- assert.match(html,/<fieldset id="tuner-detector"[^>]*>.*value="existing"><span>傳統<\/span>.*value="swift" checked><span>智慧/);
+ assert.match(html,/<fieldset id="pitch-detector"[^>]*>[\s\S]*?value="existing"><span>傳統<\/span>[\s\S]*?value="swift" checked><span>智慧/);
+ assert.equal(sharedTunerFixture(undefined,'existing').radios[0].checked,true);
+ assert.equal(sharedTunerFixture('swift','existing').radios[1].checked,true);
  assert.equal(smart.checked,true);assert.equal(f.initialized,0);
  f.control.startTuner();f.ready();await tick();await f.frame();
  assert.equal(f.renders.at(-1).pitch.midi,69,'shared A4 444, not default A4');
@@ -186,9 +188,12 @@ test('actual settings radios default Smart, remember an explicit choice and swit
 test('actual tuner and both exercise routes share each Swift batch while keeping score logic', async()=>{
  for(const kind of ['scale','arpeggio']){
   const f=sharedTunerFixture(), updates=[];
-  const view={kind,target:[{midi:69}],mode:'single',detector:'swift',update(...args){updates.push(args);}};
+  const view={kind,target:[{midi:69}],mode:'single',detector:'existing',update(...args){updates.push(args);}};
   f.control.startTuner();await f.controller.toggle(view);f.ready();await tick();
   assert.equal(f.subscribers,2);
+  assert.equal(f.field.disabled,true);assert.equal(f.lockHint.hidden,false);
+  f.choose(0);
+  assert.equal(f.radios[1].checked,true);assert.equal(f.stored,undefined);
   await f.frame();await f.frame();await f.frame();await f.frame();await f.frame();
   assert.equal(f.runs,f.reads,'exactly one PCM read and model invocation per eligible batch shared by both subscribers');
   assert.ok(f.runs>=3);
@@ -196,5 +201,19 @@ test('actual tuner and both exercise routes share each Swift batch while keeping
   assert.equal(f.renders.at(-1).pitch.midi,69);
   assert.ok(updates.some(x=>x[2]?.complete),'the same A reaches the actual practice aligner');
   f.control.stopTuner();
+ }
+});
+
+test('global Traditional selects the ordinary capture for both exercises and unlocks after stop',async()=>{
+ for(const demoKind of ['scale','arpeggio']){
+  const f=sharedTunerFixture();
+  f.choose(0);
+  const v={demoKind,target:[{midi:57}],mode:'single',detector:'swift',update(){}};
+  await f.controller.toggle(v);
+  assert.equal(f.field.disabled,true);
+  f.ready();await tick();await f.frame();
+  assert.equal(f.legacyReads,1);assert.equal(f.runs,0);assert.equal(f.initialized,0);
+  f.controller.stop();assert.equal(f.field.disabled,false);assert.equal(f.lockHint.hidden,true);
+  f.choose(1);assert.equal(f.stored,'swift');
  }
 });

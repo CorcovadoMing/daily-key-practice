@@ -70,7 +70,7 @@ function app(store=memory(), search='?aiCoach=1', response) {
   let callbacks, now=10, listens=0, requested, disposals=0, cancellations=0;
   const capture={subscribe(listener){listens++;callbacks=listener;return ()=>{};}};
   const manager=hooks.manager({performance:{now:()=>now}},{
-    capture,swiftCapture:capture,
+    capture,swiftCapture:capture,detector:()=>'swift',
     reference:()=>442,
     pitchReading:midi=>({midi,cents:midi===40?28:-12}),
     pitchName:String
