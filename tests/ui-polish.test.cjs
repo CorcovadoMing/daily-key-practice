@@ -46,9 +46,10 @@ test('practice completion circles remain hollow and use accessible contrasting s
  }
 });
 
-test('metronome and tuner stay in a nonwrapping dock; its tuner readout is out of flow',()=>{
+test('metronome and tuner stay in a nonwrapping dock; the expanded readout is in the same dock surface',()=>{
   assert.match(html,/\.audio-buttons\{flex-wrap:nowrap;width:max-content;max-width:100%;min-width:0;overflow-x:auto/);
   assert.match(html,/\.audio-tool-pair\{flex:none\}/);
-  assert.match(html,/\.audio-tools\{[^}]*width:max-content/);
-  assert.match(html,/#tuner-panel\{\s*position:absolute;inset:auto auto 0 calc/);
+  assert.match(html,/width:var\(--dock-compact-width,max-content\)/);
+  assert.match(html,/\.audio-tools\[data-tuner-open=true\]\{width:var\(--dock-wide-width\)\}/);
+  assert.match(html,/#tuner-panel\{\s*position:absolute;inset:0 var\(--dock-readout-end,8px\) 0 var/);
 });

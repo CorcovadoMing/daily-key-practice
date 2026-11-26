@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261126-068-experimental">
+  <meta name="site-version" content="20261126-069-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -894,19 +894,32 @@
     .launch-settings .fifths-pair .filter-key{min-height:24px;padding:1px}
     .launch-settings .fifths-pair .filter-key small{font-size:8px}
     .launch-settings .filter-status{margin-top:4px}
-    /* The fixed dock and its adjacent readout share a baseline, not a layout box. */
-    .audio-tools{--dock-gap:8px}
-    #tuner-panel{
-      position:absolute;inset:auto auto 0 calc(100% + var(--dock-gap));
-      width:min(292px,max(0px,calc(var(--tuner-available-right,calc(100vw - 192px)) - max(12px,env(safe-area-inset-right,0px)))));min-width:0;
-      height:100%;min-height:0;padding:6px clamp(6px,2vw,12px);overflow:hidden;container-type:inline-size;
-      border:1px solid var(--line);border-radius:16px;background:var(--paper);box-shadow:0 5px 22px #15231a24
+    /* Expand the same dock horizontally. The fixed controls define its
+       height; the readout occupies the continuous space to their right. */
+    .audio-tools{
+      --dock-gap:8px;
+      --dock-wide-width:calc(100vw - max(12px,env(safe-area-inset-left,0px)) - max(12px,env(safe-area-inset-right,0px)));
+      width:var(--dock-compact-width,max-content)
     }
-    #tuner-panel>.audio-meter-wrap{min-width:0;width:100%!important}
+    .audio-tools[data-tuner-open=true]{width:var(--dock-wide-width)}
+    #tuner-panel{
+      position:absolute;inset:0 var(--dock-readout-end,8px) 0 var(--dock-readout-start,196px);
+      width:auto;min-width:0;min-height:0;padding:0;overflow:hidden;
+      background:transparent;border:0;box-shadow:none
+    }
+    #tuner-panel>.audio-meter-wrap{
+      width:max(0px,calc(var(--dock-wide-width) - var(--dock-readout-start,196px) - var(--dock-readout-end,8px)))!important;
+      min-width:0;flex:0 0 auto;padding:0 2px 0 8px;border-inline-start:1px solid var(--line);
+      container-type:inline-size
+    }
     #tuner-panel .tuner-readout{gap:4px;margin-bottom:2px}
     @container (max-width:120px){
       #tuner-panel .tuner-readout :is(#tuner-note,#tuner-cents){font-size:.875rem}
       #tuner-panel .audio-scale{font-size:6px;letter-spacing:-.3px}
+    }
+    @media screen and (prefers-reduced-motion:no-preference){
+      .audio-tools{transition:width 350ms cubic-bezier(.29,.12,.24,1)}
+      .audio-tools[data-tuner-open=true]{transition-duration:420ms}
     }
     #metro-status{position:absolute;bottom:calc(100% + var(--dock-gap));left:0;width:max-content;max-width:min(250px,calc(100vw - 30px));
       background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:6px 10px;box-shadow:0 3px 10px #15231a18;pointer-events:none}
@@ -1418,7 +1431,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261126-068-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261126-069-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -6232,22 +6245,31 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     $('tuner-meter').querySelectorAll('.audio-band').forEach(band => band.classList.toggle('is-active', view.valid && band.dataset.segment === view.segment));
   }
   function sizeTools(){
-    const tools=document.querySelector('.audio-tools'),rail=$('floating-practice-nav');
+    const tools=document.querySelector('.audio-tools'),buttons=tools.querySelector('.audio-buttons'),rail=$('floating-practice-nav');
     const dock=tools.getBoundingClientRect(),style=getComputedStyle(tools);
+    const start=parseFloat(style.paddingLeft)||0,end=parseFloat(style.paddingRight)||0;
+    const leftBorder=parseFloat(style.borderLeftWidth)||0,rightBorder=parseFloat(style.borderRightWidth)||0;
+    const buttonsWidth=Math.max(buttons.offsetWidth,buttons.scrollWidth);
     const gap=parseFloat(style.getPropertyValue('--dock-gap'))||8;
-    // The CSS inset accounts for the device's right safe area independently.
-    // The absolutely positioned readout never affects the dock's own width.
-    tools.style.setProperty('--tuner-available-right',Math.max(0,Math.floor(innerWidth-dock.right-gap))+'px');
+    // Write only intrinsic and padding values. Never measure the animated dock
+    // width to compute itself; that would move the controls during the morph.
+    tools.style.setProperty('--dock-compact-width',Math.ceil(start+buttonsWidth+end+leftBorder+rightBorder)+'px');
+    tools.style.setProperty('--dock-readout-start',Math.ceil(start+buttonsWidth+gap)+'px');
+    tools.style.setProperty('--dock-readout-end',Math.ceil(end)+'px');
     if(rail)rail.style.setProperty('--practice-float-bottom',Math.ceil(Math.max(0,innerHeight-dock.top)+10)+'px');
   }
   const toolResize=new ResizeObserver(()=>requestAnimationFrame(sizeTools));
-  toolResize.observe(document.querySelector('.audio-tools'));
+  toolResize.observe(document.querySelector('.audio-buttons'));
   window.addEventListener('resize',sizeTools);requestAnimationFrame(sizeTools);
   function showPanel(name, visible) {
+    if(name==='tuner'){
+      const tools=document.querySelector('.audio-tools');
+      if(!tools.style.getPropertyValue('--dock-compact-width'))sizeTools();
+      tools.dataset.tunerOpen=String(visible);
+    }
     $(name+'-panel').hidden=!visible;
     $(name==='metronome'?'metro-settings':name+'-open').setAttribute('aria-expanded',String(visible));
     if(name==='metronome'){$('metro-settings').setAttribute('aria-label',visible?'收起節拍器設定':'展開節拍器設定');if(visible)tunerSettings(false);}
-    requestAnimationFrame(sizeTools);
   }
   const Context = window.AudioContext || window.webkitAudioContext;
   // +2.3 dB only on iOS Safari, with 15% digital headroom even at full volume.
