@@ -75,8 +75,7 @@ test('classroom actions are behind a closed disclosure and other advanced contro
   assert.match(html,/<details id="classroom-disclosure">\s*<summary>課堂同步<\/summary>/);
   assert.match(html,/<section[^>]+id="classroom-settings"[^>]*>[\s\S]*id="room-open-join"[\s\S]*id="room-create"[\s\S]*id="room-leave" hidden/);
   assert.match(html,/<details[^>]+id="history-settings"[^>]*>\s*<summary>/);
-  assert.match(html,/<button[^>]+id="launch-options-toggle"[^>]+aria-controls="draw-settings"/);
-  assert.match(html,/<section[^>]+id="draw-settings"[^>]+hidden>[\s\S]+id="signature-filters"[\s\S]+id="launch-count-settings"/);
+  assert.match(html,/<details[^>]+id="draw-settings"[^>]*>\s*<summary[^>]*>調性設定<\/summary>[\s\S]+id="signature-filters"[\s\S]+id="launch-count-settings"/);
 });
 
 test('start with a pending chart passes through the existing save choice instead of launching twice',()=>{
@@ -90,29 +89,17 @@ test('start with a pending chart passes through the existing save choice instead
   assert.deepEqual(calls,['sequential']);
 });
 
-test('popover placement fits a 320px screen by its anchor and prefers above a low or zoomed anchor',()=>{
-  const code=html.split('// LAUNCH_POPOVER_START')[1].split('// LAUNCH_POPOVER_END')[0];
-  const place=vm.runInNewContext(code+'\nlaunchPlacement');
-  const phone=place({right:307,top:75,bottom:119},{width:320,height:550,left:0,top:0});
-  assert.equal(phone.width,304);
-  assert.equal(phone.left,8);
-  assert.equal(phone.top,125);
-  assert.equal(phone.side,'below');
-  assert.ok(phone.top+phone.height<=542);
-  const keyboard=place({right:310,top:245,bottom:289},{width:320,height:260,left:30,top:58});
-  assert.equal(keyboard.side,'above');
-  assert.ok(keyboard.left>=38 && keyboard.left+keyboard.width<=342);
-  assert.ok(keyboard.top-keyboard.height>=66);
-  const scrolled=place({right:310,top:-130,bottom:-90},{width:320,height:280,left:0,top:0});
-  assert.ok(scrolled.top+scrolled.height<=272);
-  assert.match(html,/\.launch-settings\{position:fixed/);
-  assert.match(html,/popovertarget="draw-settings"/);
+test('tuning settings are an inline disclosure, not a floating window',()=>{
+  assert.doesNotMatch(html,/id="launch-options-toggle"|popovertarget="draw-settings"/);
+  assert.match(html,/class="launch-settings-body" inert/);
+  assert.match(html,/launchBody.animate\(\[\{height:from/);
+  assert.match(html,/max-inline-size:8\.25rem;min-block-size:3\.75rem/);
 });
 
-test('launch is Start, gear, direct order chooser; gear has one count sentence and no presets',()=>{
+test('launch is Start, direct order chooser, then an inline tuning disclosure',()=>{
   assert.match(html,/id="classroom-settings"[\s\S]*id="room-open-join"[\s\S]*id="session-launch"/);
   assert.match(html,/\.launch-controls #draw-button\{[^}]*min-height:54px/);
-  assert.match(html,/<div class="launch-controls"[\s\S]+?id="draw-button"[\s\S]+?id="launch-options-toggle"[\s\S]+?<fieldset class="launch-mode"/);
+  assert.match(html,/<div class="launch-controls"[\s\S]+?id="draw-button"[\s\S]+?<fieldset class="launch-mode"[\s\S]+?<details[^>]*id="draw-settings"/);
   assert.doesNotMatch(html,/id="presets"|大調練幾個|小調練幾個/);
   assert.match(html,/id="key-filter-title">已選調性/);
   assert.doesNotMatch(html,/<nav class="session-shortcuts"|id="resume-practice-note"/);

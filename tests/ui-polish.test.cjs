@@ -50,5 +50,5 @@ test('metronome and tuner stay in a nonwrapping dock; its tuner readout is out o
   assert.match(html,/\.audio-buttons\{flex-wrap:nowrap;width:max-content;max-width:100%;min-width:0;overflow-x:auto/);
   assert.match(html,/\.audio-tool-pair\{flex:none\}/);
   assert.match(html,/\.audio-tools\{[^}]*width:max-content/);
-  assert.match(html,/#tuner-panel\{\s*position:absolute;inset:auto auto/);
+  assert.match(html,/#tuner-panel\{\s*position:absolute;inset:auto auto 0 calc/);
 });
