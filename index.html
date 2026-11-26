@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261126-074-experimental">
+  <meta name="site-version" content="20261126-075-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -1502,7 +1502,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261126-074-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261126-075-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -3861,7 +3861,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     return {element:chart, update, select};
   }
 
-  function card(score, target, toggle, kind = 'scale', scope = null, snapshotVisiblePlan = null) {
+  function card(score, target, toggle, kind = 'scale', scope = null, snapshotVisiblePlan = null, adviceContext = null) {
     const name = kind === 'arpeggio' ? '琶音' : '音階';
     const element = document.createElement('div');
     element.className = 'scale-practice';
@@ -4053,6 +4053,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       merge.addEventListener('click',savePending);
       historyButtons.append(merge,look,historyStatus);
     }
+    const canRestoreAdvice = draft => !adviceContext || (draft?.adviceSession ? draft.adviceSession===adviceContext.id : adviceContext.replay);
     const coachAPI = globalThis.CelloPracticeCoach;
     const experimental=coachAPI?.enabled(globalThis);
     const coachVisible=experimental&&['localhost','127.0.0.1','[::1]'].includes(globalThis.location?.hostname)&&new URLSearchParams(globalThis.location?.search||'').get('aiCoach')==='1';
@@ -4165,6 +4166,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         }
       }
     }
+    const staleCoach = ticket => ticket !== coachTicket || element.isConnected === false;
     let coachPanel, coachAction, coachTyping, coachStatus, coachTime, coachTip, coachRaw, coachNotice,coachInput, coachAttempt, coachBusy=false, coachTicket=0;
     if (coachVisible) {
       const mk=(tag,klass,text)=>{
@@ -4206,7 +4208,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       }
       async function runCoach() {
         const attempt=coachAttempt;
-        if(!attempt||coachBusy) return;
+        if(!attempt||coachBusy||element.isConnected===false) return;
         const facts=attempt.restoredTrendId && !restoredTrendIsCurrent(attempt.restoredTrendId) ? attempt.factsWithoutTrend : attempt.facts;
         if(coachInput.open)showInput(facts);
         const ticket=++coachTicket, clicked=globalThis.performance.now();
@@ -4217,7 +4219,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         }
         setCoachBusy(true);coachTip.textContent=coachRaw.textContent=dataProgress.textContent='';
         const heartbeat=()=>{
-          if(ticket===coachTicket)coachTime.textContent='已等待 '+Math.floor((globalThis.performance.now()-clicked)/1000)+' 秒';
+          if(!staleCoach(ticket))coachTime.textContent='已等待 '+Math.floor((globalThis.performance.now()-clicked)/1000)+' 秒';
         };
         heartbeat();
         const ticker=globalThis.setInterval(heartbeat,1000);
@@ -4228,7 +4230,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
           working:'正在撰寫練習建議…'};
         let answer, usedDirect=false;
         const report=(phase,pct,done,total)=>{
-          if(ticket!==coachTicket) return;
+          if(staleCoach(ticket)) return;
           if(phase==='trace')dataProgress.textContent='本機模型已讀取 '+done+'／'+total+' 段時間資料。';
           coachTyping.hidden=phase!=='working';
           coachStatus.className='scale-practice-coach-status'+(phase==='working' && !usedDirect?' sr-only':'');
@@ -4238,7 +4240,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         };
         try {
           answer=await local.run(facts,report);
-          if(ticket===coachTicket && !answer.advice && !answer.raw?.trim() && ['context','empty','invalid','thinking_only'].includes(answer.reason)){
+          if(!staleCoach(ticket) && !answer.advice && !answer.raw?.trim() && ['context','empty','invalid','thinking_only'].includes(answer.reason)){
             const previous=answer;
             usedDirect=true;
             const direct=await local.run(facts,report,{direct:true});
@@ -4246,7 +4248,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
           }
         } catch {answer={reason:'error'};}
         finally {globalThis.clearInterval(ticker);}
-        if(ticket!==coachTicket) return;
+        if(staleCoach(ticket)) return;
         setCoachBusy(false);coachStatus.className='scale-practice-coach-status';coachTime.textContent='';
         if(answer.reason==='cancelled'){coachStatus.textContent='已中斷，不影響練習。';return;}
         const raw=typeof answer.raw==='string'&&answer.raw.trim()?answer.raw:'';
@@ -4419,7 +4421,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
             const previousDraft = newestDraft;
             newestDraft = {id:draftId,values,history:onlySharedTonic ? display.beforeLastHistory : display.history,
               attemptHistory:attempts,pending:true,mode,laps,passed:display.passed || 0,progress:display.progress || 0,
-              coach:display.coachResult||display.coachSource,trend:next==='idle'?display.trend:undefined,
+              adviceSession:adviceContext?.id,coach:display.coachResult||display.coachSource,trend:next==='idle'?display.trend:undefined,
               advice:next==='idle'&&display.planDiagnostics?practiceAdviceReport(display.planDiagnostics):onlySharedTonic?display.lastAdvice:undefined};
             const changedOwner = latestDraftToken !== draftId;
             latestDraftToken = draftId;
@@ -4455,9 +4457,10 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         }
         refreshHistoryActions();
       }
+      const hiddenRestoredAdvice=Boolean(display?.restored&&!canRestoreAdvice(newestDraft));
       if(localCoach){
         if(next==='pending'||next==='listening')localCoach.updateAdvice('listening');
-        else if(next==='idle' && (staleAttempt||display?.openingUnverified))localCoach.updateAdvice('empty');
+        else if(next==='idle' && (staleAttempt||hiddenRestoredAdvice||display?.openingUnverified))localCoach.updateAdvice('empty');
         else if(next==='idle' && (display?.final || display?.coachNoEvidence)){
           const measured=!display.coachNoEvidence&&display.values?.some(Number.isFinite);
           const packet=display.planDiagnostics??{measured,restored:Boolean(display.restored&&!display.coachNoEvidence),
@@ -4467,7 +4470,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         }else if(next==='idle')localCoach.updateAdvice('empty');
       }
       if (coachPanel) {
-        if(next==='pending') {
+        if(next==='pending'||(next==='idle' && (hiddenRestoredAdvice||!display))) {
           coachTicket++;coachAttempt=null;coachPanel.hidden=true;coachInput.open=false;
           coachBusy=false;coachAction.textContent='練習建議';coachTyping.hidden=true;
           coachStatus.className='scale-practice-coach-status';
@@ -4572,7 +4575,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
 });
 // SCALE_PRACTICE_END
   </script>
-  <script src="fingerboard.js?v=20261126-073"></script>
+  <script src="fingerboard.js?v=20261126-075"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
@@ -4751,7 +4754,8 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     function recordSnapshot(session,extra={}){
       return {...extra,date:session.date,createdAt:session.createdAt,drawnAt:session.drawnAt||session.createdAt,
         majorIds:[...session.majorIds],minorIds:[...session.minorIds],doneIds:[...(session.doneIds||[])],
-        ...(session.sequenceMode?{sequenceMode:session.sequenceMode}:{})};
+        ...(session.sequenceMode?{sequenceMode:session.sequenceMode}:{}),
+        ...(session.adviceOriginAt?{adviceOriginAt:session.adviceOriginAt,adviceOriginRoom:session.adviceOriginRoom}:{})};
     }
     function initializePersonalHistory(){
       let changed=false;
@@ -5243,7 +5247,7 @@ function openStudentNote(id,button,storageKey=studentNoteKey(id)){
  dialog.addEventListener('close',()=>{button.focus({preventScroll:true});removeClosedNotesDialog(dialog);});
  actions.append(clear,cancel,save);dialog.append(heading,label,input,help,actions);document.body.append(dialog);dialog.showModal();input.focus();
 }
-function createCard(mode,index,doneIds){
+function createCard(mode,index,doneIds,session=null){
  const key=(mode==='major'?MAJOR_KEYS:MINOR_KEYS)[index],id=selectedId(mode,index),done=doneIds.includes(id);
  const card=document.createElement('div');card.className=`key-card${done?' done':''}`;card.dataset.keyId=id;card.dataset.keyMode=mode;
  const heading=document.createElement('div');heading.className='key-card-heading';
@@ -5279,10 +5283,15 @@ function createCard(mode,index,doneIds){
  });
  const panel=document.createElement('div');panel.className='fingering-section';panel.id='fingering-'+id;
  const note=visibleFingerings()[id]||{};
+ const adviceTime=session?.adviceOriginAt??session?.createdAt;
+ const practiceAdviceContext=Number.isSafeInteger(adviceTime)&&adviceTime>0 ? {
+  id:(sharedRoom?.id||session.adviceOriginRoom||'personal')+':'+adviceTime,
+  replay:Boolean(session.replayOf)
+ } : null;
  const guide=window.CelloFingerboard.create(mode,key,note,
   (direction,map,original,resetAll)=>saveInlineFingering(id,direction,map,original,resetAll),
   draft=>sharedRoom?window.classroomSync?.setDraft(id,draft):null,
-  {annotations:(sharedRoom?sharedRoom.arpeggioFingerings:state.arpeggioFingerings)[id]||{},
+  {practiceAdviceContext,annotations:(sharedRoom?sharedRoom.arpeggioFingerings:state.arpeggioFingerings)[id]||{},
    onPreview:draft=>sharedRoom?window.classroomSync?.setArpeggioDraft(id,draft):null,
    onSave:(direction,map,original,resetAll)=>saveArpeggioFingering(id,map,original,resetAll)});
  boardInstances.set(id,guide);cardInstances.set(id,{card,button:complete,title,panel,expand,guide});
@@ -5528,7 +5537,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         const heading=document.createElement('div');heading.className='key-group-title';
         heading.innerHTML=`<h3>依調號循序練習</h3><span>${all.length} 個調性</span>`;
         const grid=document.createElement('div');grid.className='key-grid';
-        all.forEach(item=>grid.append(createCard(item.mode,item.index,session.doneIds)));
+        all.forEach(item=>grid.append(createCard(item.mode,item.index,session.doneIds,session)));
         section.append(heading,grid);container.append(section);
         return;
       }
@@ -5538,7 +5547,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         const heading=document.createElement('div');heading.className='key-group-title';
         heading.innerHTML=`<h3><i class="key-dot${mode==='minor'?' minor':''}" aria-hidden="true"></i>${label}</h3><span>${indices.length} 個調性</span>`;
         const grid=document.createElement('div');grid.className='key-grid';
-        indices.forEach(i=>grid.append(createCard(mode,i,session.doneIds)));
+        indices.forEach(i=>grid.append(createCard(mode,i,session.doneIds,session)));
         section.append(heading,grid);container.append(section);
       }
     }
@@ -5752,7 +5761,8 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         }
         const progress=historyProgress(record),isComplete=progress.total>0&&progress.count===progress.total;
         const session={date:currentDate,majorIds:[...record.majorIds],minorIds:[...record.minorIds],
-          doneIds:isComplete?[]:[...progress.done],createdAt:Date.now(),replayOf:record.id};
+          doneIds:isComplete?[]:[...progress.done],createdAt:Date.now(),replayOf:record.id,
+          adviceOriginAt:record.adviceOriginAt??record.createdAt,adviceOriginRoom:record.adviceOriginRoom??record.roomId};
         if(record.sequenceMode==='signature')session.sequenceMode='signature';
         expandedOverride=undefined;
         if(isComplete){

@@ -859,7 +859,7 @@
         const expected=sequence.map(note=>({...note,octave:Math.floor(staffStep(note)/7)}));
         const practice=window.CelloScalePractice.card(score,expected,
           view=>window.CelloScalePractice.controller?.toggle(view),arpeggio?'arpeggio':'scale',id,
-          ()=>edit.dir===null?visiblePlan(mode,key,arpeggio?arpeggioAnnotations:annotations,arpeggio):null);
+          ()=>edit.dir===null?visiblePlan(mode,key,arpeggio?arpeggioAnnotations:annotations,arpeggio):null,arpeggioOptions.practiceAdviceContext);
         parent.append(practice.element);
       }
     }
@@ -1199,6 +1199,7 @@
     });
     const result = {id: draft.id, values, mode: draft.mode, laps: draft.laps, passed: draft.passed,
       progress: draft.progress, pending: draft.pending};
+    if(typeof draft.adviceSession==='string'&&/^[a-zA-Z0-9-]{1,64}:[0-9]{1,16}$/.test(draft.adviceSession))result.adviceSession=draft.adviceSession;
     const coach=draft.coach;
     if(coach && ['SwiftF0','現有偵測'].includes(coach.engine) && Number.isFinite(coach.reference) &&
       coach.reference>=430 && coach.reference<=450) result.coach={engine:coach.engine,reference:coach.reference};

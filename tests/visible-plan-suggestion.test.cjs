@@ -13,7 +13,7 @@ class Node{
 }
 const key=['C',0,'C D E F G A B'];
 const flatText=n=>[n.textContent,...n.children.map(flatText)].join(' ');
-function setup(data,search='',reject=()=>false,configurePlan=x=>x){
+function setup(data,search='',reject=()=>false,configurePlan=x=>x,adviceContext=null,scope='major-C'){
  let now=0,reference=443,listener,network=0;
  const localStorage={get length(){return Object.keys(data).length;},key:i=>Object.keys(data)[i]??null,removeItem:k=>delete data[k],getItem:k=>data[k]??null,setItem:(k,v)=>{if(reject(k,v))throw Error('QuotaExceededError');data[k]=v;}};
  const mounted=[],events={};
@@ -30,7 +30,7 @@ function setup(data,search='',reject=()=>false,configurePlan=x=>x){
  const capture={subscribe(x){listener=x;return ()=>{};}};
  const m=manager({performance:{now:()=>now}},{capture,swiftCapture:capture,reference:()=>reference,
    pitchName:f=>String(f.midi),pitchReading:f=>f});
- const view=card({querySelectorAll:()=>target.map(()=>new Node('g'))},target,v=>m.toggle(v),'scale','major-C',()=>plan);
+ const view=card({querySelectorAll:()=>target.map(()=>new Node('g'))},target,v=>m.toggle(v),'scale',scope,()=>plan,adviceContext);
  const panel=view.element.find('scale-practice-local-coach');
  const press=()=>view.element.find('scale-practice-button').events.click();
  mounted.push(view.element);
@@ -502,4 +502,21 @@ test('actual mixed D/E/F tracing keeps every observation in report and suggests 
  a.equal(f.network,0);
  const restored=setup(cache).advise().replace('上次保留的建議 ','');
  a.equal(restored,text);
+});
+
+test('same key newly drawn cannot inherit advice; same session and explicit old session still can',async()=>{
+ const cache={},old={id:'personal:111',replay:false},redraw={id:'personal:222',replay:false};
+ const f=setup(cache,'',undefined,undefined,old);
+ await f.press();f.ready();f.play(f.target[0],-26);await f.press();
+ a.match(f.advise(),/這次觀察/);
+ a.match(setup(cache,'',undefined,undefined,old).advise(),/上次保留的建議/);
+ a.match(setup(cache,'',undefined,undefined,redraw).advise(),/開始練習後/);
+ a.match(setup(cache,'',undefined,undefined,redraw,'major-D').advise(),/開始練習後/);
+ a.match(setup(cache,'',undefined,undefined,{...old,replay:true}).advise(),/上次保留的建議/);
+ // Fresh advice on the redrawn key still has normal lifecycle and reloads.
+ const again=setup(cache,'',undefined,undefined,redraw);
+ await again.press();again.ready();again.play(again.target[0],26);await again.press();
+ a.match(again.advise(),/這次觀察/);
+ a.match(setup(cache,'',undefined,undefined,redraw).advise(),/上次保留的建議/);
+ a.match(setup(cache,'',undefined,undefined,{...old,replay:true}).advise(),/開始練習後/);
 });
