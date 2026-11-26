@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261126-063-experimental">
+  <meta name="site-version" content="20261126-064-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -1252,7 +1252,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261126-063-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261126-064-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -3000,33 +3000,37 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         if(isCapturing()||context.state!=='running')throw new Error('audio unavailable');
         const t0=context.currentTime+.06, output=context.createGain();
         take.output=output;output.gain.value=.86;output.connect(context.destination);
-        let at=t0, end=t0;
-        for(let i=0;i<view.target.length;i++){
+        let end=t0;
+        const count=view.target.length, transition=.024;
+        const beat=view.demoKind==='arpeggio'?.64:.50;
+        for(let i=0;i<count;i++){
           const {midi}=view.target[i];
           if(!Number.isInteger(midi)||midi<36||midi>72)throw new Error('outside sample bank');
           const root=Math.round((midi-36)/3), [hz,offset]=celloDemoRoots[root];
           const rate=a4*Math.pow(2,(midi-69)/12)/hz;
-          const last=i===view.target.length-1;
-          const step=last?1.10:view.demoKind==='arpeggio'?.64:.50;
-          // Keep the printed rhythm and the sample's pitch. A small phrase arch,
-          // the real bow attack and a tapered release avoid an identical chopped
-          // pulse at every note. Overlap only the quiet edge of adjacent notes.
-          const overlap=.009, length=step+(last?0:overlap);
-          const level=.86+.12*Math.sin(Math.PI*i/Math.max(1,view.target.length-1));
+          const first=i===0, last=i===count-1, cue=t0+i*beat;
+          const next=cue+(last?1.10:beat);
+          const start=first?cue:cue-transition;
+          end=last?next:next+transition;
+          // The phrase has one audible bow attack. Join the sustained part of
+          // each later recording to the previous one around the exact cue,
+          // without tapering every note to silence or sliding between pitches.
+          const level=.87+.10*Math.sin(Math.PI*i/Math.max(1,count-1));
           const source=context.createBufferSource(), gain=context.createGain();
           source.buffer=bank;source.playbackRate.value=rate;
-          gain.gain.setValueAtTime(0,at);
-          gain.gain.linearRampToValueAtTime(level*.43,at+.010);
-          gain.gain.linearRampToValueAtTime(level,at+.034);
-          gain.gain.linearRampToValueAtTime(level*.89,at+step*(last?.70:.80));
-          gain.gain.linearRampToValueAtTime(level*(last?.34:.16),at+step-(last?.10:0));
-          gain.gain.linearRampToValueAtTime(0,at+length);
+          gain.gain.setValueAtTime(0,start);
+          gain.gain.linearRampToValueAtTime(level,cue+(first?.034:transition));
+          if(last){
+            gain.gain.setValueAtTime(level,next-.24);
+            gain.gain.linearRampToValueAtTime(level*.23,next-.075);
+          }else{
+            gain.gain.setValueAtTime(level,next-transition);
+          }
+          gain.gain.linearRampToValueAtTime(0,end);
           source.connect(gain);gain.connect(output);
           take.nodes.push(source);
-          source.start(at,offset,length*rate);
-          end=at+length;
+          source.start(start,offset+(first?0:.115),(end-start)*rate);
           source.stop(end);
-          at+=step;
         }
         take.audible=true;
         view.demoUpdate('playing');

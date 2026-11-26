@@ -16,7 +16,7 @@ test('sample bank and calibrations are the independently octave-verified pair',(
  a.match(html,/fingerboard-editor\.js\?v=20261126-cello-audio-2/);
 });
 
-test('reference keeps cue spacing and pitch rate while tapering each bowed note',async()=>{
+test('reference crossfades sustained bows at every original cue and releases only the final note',async()=>{
  const vm=require('node:vm'),html=read('index.html'),f=html.slice(html.indexOf('  const celloDemoRoots'),html.indexOf('  function celloDemoPlayer'))+html.slice(html.indexOf('  function celloDemoPlayer'),html.indexOf('  function celloDemoPlayer')+html.slice(html.indexOf('  function celloDemoPlayer')).indexOf('\n  }\n')+5);
  const make=vm.runInNewContext(f+'\ncelloDemoPlayer');
  for(const [demoKind,step] of [['scale',.50],['arpeggio',.64]]){
@@ -35,14 +35,22 @@ test('reference keeps cue spacing and pitch rate while tapering each bowed note'
   const near=(x,y)=>a.ok(Math.abs(x-y)<1e-9,[x,y].join(' vs '));
   const table=JSON.parse(html.match(/const celloDemoRoots = (\[.*?\]);/)[1]);
   for(let i=0;i<3;i++){
-   const m=view.target[i].midi, [hz]=table[Math.round((m-36)/3)];
+   const m=view.target[i].midi, [hz,offset]=table[Math.round((m-36)/3)];
+   const cue=8.06+i*step, first=i===0, last=i===2;
+   const start=cue-(first?0:.024), end=cue+(last?1.10:step+.024);
    near(notes[i].r,442*2**((m-69)/12)/hz);
-   near(notes[i].t,8.06+i*step);near(notes[i].d/notes[i].r,i===2?1.10:step+.009);
+   near(notes[i].t,start);near(notes[i].d/notes[i].r,end-start);
+   near(notes[i].o,offset+(first?0:.115));near(stops[i],end);
    const gain=envelopes[i+1];
-   a.equal(gain[0][0],0);a.equal(gain.at(-1)[0],0);near(gain.at(-1)[1],stops[i]);
+   a.equal(gain[0][0],0);a.equal(gain.at(-1)[0],0);near(gain.at(-1)[1],end);
    a.ok(gain.every(([v,t],n)=>v>=0&&v<=1&&(n===0||t>gain[n-1][1])));
+   if(!last){
+    near(gain[2][1],cue+step-.024);
+    near(gain[2][0],gain[1][0]); // unchanged gain up to the handover
+    near(notes[i+1].t,gain[2][1]);
+    near(envelopes[i+2][1][1],end); // complementary crossfade at same boundary
+   }
   }
-  a.ok(envelopes[2][2][0]>envelopes[1][2][0]);
   await player.toggle(view);
   a.equal(states.at(-1),'idle');a.equal(stops.filter(s=>s===undefined).length,3);
  }
