@@ -505,8 +505,14 @@ async function changeRoom(update) {
   }
 }
 window.classroomSync = {
-  setCounts(major, minor) {
-    return changeRoom(current => ({...current, majorCount:major, minorCount:minor, updatedAt:Date.now()}));
+  changeCount(kind, delta) {
+    if((kind!=='major'&&kind!=='minor')||(delta!==1&&delta!==-1)) return Promise.resolve(false);
+    const field=kind+'Count';
+    return changeRoom(current=>{
+      const value=Number(current[field]??2);
+      const next=Math.min(12,Math.max(0,(Number.isFinite(value)?Math.trunc(value):2)+delta));
+      return {...current,[field]:next,updatedAt:Date.now()};
+    });
   },
   setExcludedKeys(excludedKeys) {
     const valid=Array.isArray(excludedKeys)?[...new Set(excludedKeys)].filter(id=>/^(major|minor)-(?:[0-9]|10|11)$/.test(id)):[];

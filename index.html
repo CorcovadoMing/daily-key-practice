@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261126-072-experimental">
+  <meta name="site-version" content="20261126-073-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -1460,7 +1460,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261126-072-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261126-073-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -4530,7 +4530,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
 });
 // SCALE_PRACTICE_END
   </script>
-  <script src="fingerboard.js?v=20261126-072"></script>
+  <script src="fingerboard.js?v=20261126-073"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
@@ -4897,10 +4897,10 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       const parsed=new Date(`${date}T12:00:00`);
       return new Intl.DateTimeFormat('zh-TW',{year:showYear?'numeric':undefined,month:'long',day:'numeric',weekday:'short'}).format(parsed);
     }
-    function setCounts(major,minor){
-      if(sharedRoom){window.classroomSync?.setCounts(clamp(major),clamp(minor));return;}
-      state.preferences.majorCount=clamp(major);
-      state.preferences.minorCount=clamp(minor);
+    function changeCount(kind,delta){
+      if(sharedRoom){window.classroomSync?.changeCount(kind,delta);return;}
+      const field=kind+'Count';
+      state.preferences[field]=clamp(state.preferences[field]+delta);
       persist();renderControls();
     }
     // SESSION_LAUNCH_START
@@ -5828,10 +5828,10 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       const next=getLocalDate();
       if(next!==currentDate){currentDate=next;replaySession=null;render();}
     }
-    q('#major-minus').addEventListener('click',()=>setCounts(visiblePreferences().majorCount-1,visiblePreferences().minorCount));
-    q('#major-plus').addEventListener('click',()=>setCounts(visiblePreferences().majorCount+1,visiblePreferences().minorCount));
-    q('#minor-minus').addEventListener('click',()=>setCounts(visiblePreferences().majorCount,visiblePreferences().minorCount-1));
-    q('#minor-plus').addEventListener('click',()=>setCounts(visiblePreferences().majorCount,visiblePreferences().minorCount+1));
+    q('#major-minus').addEventListener('click',()=>changeCount('major',-1));
+    q('#major-plus').addEventListener('click',()=>changeCount('major',1));
+    q('#minor-minus').addEventListener('click',()=>changeCount('minor',-1));
+    q('#minor-plus').addEventListener('click',()=>changeCount('minor',1));
     let closedForPrint=null;
     window.addEventListener('beforeprint',()=>{
       if(closedForPrint)return;
@@ -5922,7 +5922,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     render();
   </script>
   <script src="firebase-config.js?v=20261106-001"></script>
-  <script type="module" src="classroom.js?v=20261124-056"></script>
+  <script type="module" src="classroom.js?v=20261126-073"></script>
 <script>
 // AUDIO_TOOLS_START
 (function () {
