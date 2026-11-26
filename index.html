@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261126-071-experimental">
+  <meta name="site-version" content="20261126-072-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -873,9 +873,13 @@
     .theme-moon,[data-appearance=dark] .theme-sun{display:none}
     [data-appearance=dark] .theme-moon{display:block}
     .launch-meta{display:flex;align-items:center;flex-wrap:wrap;gap:2px 9px;margin-top:5px}
-    .launch-fresh{margin:0 0 7px;min-height:44px}
+    .launch-primary{min-width:0;align-self:center;display:flex;flex-direction:column;align-items:flex-start}
+    .launch-resume{display:inline-flex;align-items:center;min-height:44px;margin-block-start:2px;color:var(--ink);text-decoration:underline;text-underline-offset:3px;font-size:.875rem}
+    .launch-resume[hidden]{display:none}
+    .launch-count-settings{min-width:0;align-self:center}
+    .launch-settings .launch-selection-note{font-size:.75rem;color:var(--muted);white-space:pre-line;overflow-wrap:anywhere;margin:4px 0 8px}
     .launch-meta small{color:var(--muted);font-size:11px}
-    .launch-settings{min-width:0;margin:4px 0 0}
+    .launch-settings{min-width:0;margin:0 0 8px}
     .launch-settings>summary{display:list-item;min-block-size:44px;line-height:44px;width:fit-content;
       color:var(--muted);font-size:var(--ui-detail,.875rem);font-weight:650;cursor:pointer}
     .launch-settings-body{display:flow-root;min-width:0;max-width:460px;padding:5px 0 9px}
@@ -883,7 +887,7 @@
     .launch-settings[data-expanded=false]>.launch-settings-body{pointer-events:none}
     .launch-settings h3{font-size:13px;margin:4px 0}
     .launch-settings .key-filter{margin:0;padding:7px}
-    .launch-count-sentence{display:flex;flex-wrap:wrap;align-items:center;column-gap:3px;row-gap:0;font-size:13px;font-weight:700;padding:2px 0}
+    .launch-count-sentence{display:flex;flex-wrap:wrap;align-items:center;column-gap:12px;row-gap:0;font-size:13px;font-weight:700;padding:2px 0}
     .launch-count-clause{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
     .launch-count-sentence .stepper{display:inline-flex;align-items:center;gap:1px}
     .launch-count-sentence .stepper button{width:34px;min-width:34px;height:44px}
@@ -1015,7 +1019,7 @@
       :is(.session-intro>.classroom-access,.launch-meta){margin-block-start:.375rem}
       :is(.room-status,.room-join-status,.local-audio-note,.site-version,.launch-meta small,.scale-pitch-legend,.scale-practice-history-actions small){font-size:var(--ui-caption);line-height:1.45}
       :is(.local-audio-note,.site-version,.launch-meta small,.scale-pitch-legend){color:var(--ui-secondary)}
-      :is(.layout-disclosure>summary,.exercise-jump,.room-action,.launch-fresh,.scale-practice-button,.scale-practice-history-actions button,.scale-practice-coach button,.fingering-edit,.history-replay,.history-delete){font-size:var(--ui-control);line-height:1.35}
+      :is(.layout-disclosure>summary,.exercise-jump,.room-action,.scale-practice-button,.scale-practice-history-actions button,.scale-practice-coach button,.fingering-edit,.history-replay,.history-delete){font-size:var(--ui-control);line-height:1.35}
       :is(.room-join-label,.room-join-status,.scale-practice-status,.scale-practice-coach p,.filter-status,.scale-pitch-title,.a4-control span,.audio-panel label){font-size:var(--ui-detail);line-height:1.5}
       :is(.room-join-dialog h2,.history-access .history-heading h2){font-size:1.125rem;line-height:1.3}
       :is(.room-action,.room-dialog-actions button,.layout-disclosure>summary,.exercise-jump,.scale-practice-button,.scale-practice-history-actions button,.scale-practice-coach button,.cello-fb-button,.cello-inline-editor button,.teacher-tools button,.history-replay,.history-delete,.key-expand,.key-complete,.filter-all){
@@ -1028,6 +1032,8 @@
       .launch-count-sentence{font-size:var(--ui-detail)}
       .launch-count-sentence .stepper button{width:max(44px,var(--ui-touch));min-width:max(44px,var(--ui-touch));height:max(44px,var(--ui-touch))}
       .launch-count-sentence .count-output{font-size:var(--ui-body);font-variant-numeric:tabular-nums}
+      .launch-count-settings .filter-warning{margin:2px 0 0}
+      @media(max-width:26rem){.launch-count-sentence{display:grid;justify-content:start}}
       .launch-settings .fifths-pair .filter-key{min-height:26px}
       .launch-settings .fifths-pair .filter-key small{font-size:.5625rem}
       .room-join-dialog{max-block-size:min(calc(100% - 1.5rem),calc(100dvh - 1.5rem));overflow:auto;overscroll-behavior:contain}
@@ -1082,14 +1088,13 @@
       .scale-practice[data-phase=idle] .practice-stop-icon,
       .scale-practice:not([data-phase=idle]) .practice-play-icon{display:none}
       .launch-controls{
-        grid-template-columns:minmax(0,8.25rem) minmax(0,1fr);
+        grid-template-columns:clamp(6.5rem,27vw,8.25rem) minmax(0,1fr);
         justify-content:start;align-items:center
       }
       .launch-controls #draw-button{
         width:100%;max-inline-size:8.25rem;min-block-size:3.75rem;gap:.375rem;padding-inline:.5rem
       }
       .launch-meta>.launch-mode{min-block-size:44px;flex:none}
-      .launch-controls #session-launch-note{min-width:0;margin:0;font-size:.75rem;line-height:1.45;color:var(--muted);overflow-wrap:anywhere;white-space:pre-line}
       .practice-notes-open{min-height:44px;margin-block-start:.5rem}
       .practice-notes-overview{max-height:85dvh;overflow:auto}
       .practice-notes-head{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
@@ -1189,33 +1194,55 @@
         }
       }
     }
+    /* The setup reads top to bottom; quiet secondary controls stay grouped. */
+    @media screen{
+      .session-intro>.session-launch{margin-block-start:3px}
+      .launch-controls{align-items:center;column-gap:clamp(9px,2.4vw,22px)}
+      .launch-controls #draw-button{white-space:nowrap;font-size:clamp(.875rem,3.6vw,1rem)}
+      .launch-count-sentence{column-gap:14px;row-gap:5px}
+      .launch-count-clause{gap:7px;color:var(--muted);font-weight:650}
+      .launch-count-sentence .stepper{background:var(--soft);border-radius:13px;padding:0 2px}
+      .launch-count-sentence .stepper button{background:transparent;border:0;box-shadow:none;color:var(--ink);border-radius:10px}
+      .launch-count-sentence .stepper button:hover:not(:disabled){background:var(--paper);color:var(--ink)}
+      .launch-count-sentence .count-output{background:transparent;color:var(--ink);font-weight:750}
+      .launch-resume{font-weight:650;min-height:34px}
+      @media(max-width:26rem){.launch-count-sentence{row-gap:4px}}
+    }
     /* Same button and focus target throughout the playback morph. */
     .scale-demo-shell{display:inline-grid;inline-size:112px;min-block-size:44px;max-inline-size:100%;justify-items:start}
     .scale-practice .scale-practice-action .scale-practice-demo{
       position:relative;display:grid;place-items:center;inline-size:97px;max-inline-size:100%;
       padding:0;min-block-size:44px;overflow:hidden;border:1px solid var(--line);
-      border-radius:12px;background:var(--paper);color:var(--ink);white-space:nowrap
+      border-radius:22px;background:#e5f1e8;color:#19392c;border-color:#718e7c;white-space:nowrap
     }
-    .scale-practice .scale-practice-action .scale-practice-demo:hover:not(:disabled){background:var(--soft)}
+    .scale-practice .scale-practice-action .scale-practice-demo[data-demo-state=idle]:hover:not(:disabled){background:#d5eadb}
+    [data-appearance=dark] .scale-practice .scale-practice-action .scale-practice-demo{
+      background:#2a4037;color:#edf8ef;border-color:#8ba897
+    }
+    [data-appearance=dark] .scale-practice .scale-practice-action .scale-practice-demo[data-demo-state=idle]:hover:not(:disabled){
+      background:#344e42
+    }
     .scale-practice .scale-practice-action .scale-practice-demo:is([data-demo-state=loading],[data-demo-state=playing]){
-      inline-size:112px;border-radius:22px;background:#243c31;color:#f4faf5;border-color:#243c31
+      inline-size:112px;background:#214638;color:#f5fff8;border-color:#214638
     }
     [data-appearance=dark] .scale-practice .scale-practice-action .scale-practice-demo:is([data-demo-state=loading],[data-demo-state=playing]){
-      background:#b9d7bf;color:#16281f;border-color:#b9d7bf
+      background:#c9e9d0;color:#163427;border-color:#c9e9d0
     }
     .scale-demo-caption,.scale-demo-playing,.scale-demo-loading{grid-area:1/1;display:flex;align-items:center;gap:9px;pointer-events:none}
     .scale-demo-caption,.scale-demo-playing,.scale-demo-loading{visibility:hidden;opacity:0;translate:0 4px;scale:.96}
     [data-demo-state=idle] .scale-demo-caption,[data-demo-state=playing] .scale-demo-playing,[data-demo-state=loading] .scale-demo-loading{
       visibility:visible;opacity:1;translate:0 0;scale:1
     }
+    .scale-demo-caption{gap:6px}
+    .scale-demo-ear{inline-size:17px;block-size:17px;flex:none}
     .scale-demo-bars{display:flex;align-items:center;gap:3px;block-size:22px}
     .scale-demo-bar{inline-size:3px;block-size:20px;border-radius:2px;background:currentColor;transform:scaleY(var(--demo-level,.20))}
     .scale-demo-stop{inline-size:9px;block-size:9px;border-radius:2px;background:currentColor}
     .scale-demo-spinner{inline-size:15px;block-size:15px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%}
     @media screen and (prefers-reduced-motion:no-preference){
       .scale-practice .scale-practice-action .scale-practice-demo{
-        transition:inline-size 430ms cubic-bezier(.29,.12,.24,1),border-radius 430ms cubic-bezier(.29,.12,.24,1),
-          background-color 290ms ease,border-color 290ms ease,color 260ms ease,scale 225ms cubic-bezier(.29,.12,.24,1)
+        transition:inline-size 430ms cubic-bezier(.29,.12,.24,1),
+          scale 225ms cubic-bezier(.29,.12,.24,1)
       }
       .scale-demo-caption,.scale-demo-playing,.scale-demo-loading{
         transition:opacity 170ms ease,translate 250ms cubic-bezier(.22,.8,.2,1),
@@ -1321,9 +1348,39 @@
       </dialog>
       </div>
       <div class="session-launch" id="session-launch">
+        <details class="launch-settings" id="draw-settings" data-expanded="false">
+          <summary id="launch-settings-toggle">調性設定</summary>
+          <div class="launch-settings-body" inert>
+        <section class="key-filter" aria-labelledby="key-filter-title">
+          <div class="filter-heading">
+            <h3 id="key-filter-title">已選調性</h3>
+            <div class="key-pool-actions"><button type="button" id="filter-all" class="filter-all">全部選取</button><button type="button" id="filter-none" class="filter-all">全部取消</button></div>
+          </div>
+          <p class="filter-explain sr-only">預設 24 調全選。按亮的調性會進入抽籤池；灰色代表排除。依五度圈排列，每格上方為大調、下方為小調，可分別選取。F♯ 大調／E♭ 小調保留原本的等音調拼寫。</p>
+          <p id="session-launch-note" class="launch-selection-note"></p>
+          <div id="signature-filters" class="fifths-circle" aria-label="五度圈排列的 24 個候選調性，上方大調、下方小調"></div>
+          <div class="filter-status sr-only" role="group" aria-labelledby="key-filter-title"><span>大調 <b id="major-eligible">12 / 12</b></span><span>古典旋律小調 <b id="minor-eligible">12 / 12</b></span></div>
+        </section>
+          </div>
+        </details>
         <div class="launch-controls" role="group" aria-label="開始練習">
+          <div class="launch-primary">
           <button type="button" id="draw-button" class="draw-button" aria-describedby="session-launch-note"><span class="practice-action-icon" aria-hidden="true"><svg class="practice-play-icon" aria-hidden="true" focusable="false" viewBox="0 0 16 16"><path d="M4 2.5v11l9-5.5z"/></svg></span><span id="draw-text">開始練習</span></button>
-          <p id="session-launch-note" aria-live="polite"></p>
+          <a id="launch-resume" class="launch-resume" href="#results-title" hidden>繼續上次</a>
+          </div>
+          <section class="launch-count-settings" id="launch-count-settings" aria-label="抽取數量">
+            <div class="launch-count-sentence">
+              <span class="launch-count-clause">
+                <span class="stepper" role="group" aria-label="大調數量"><button type="button" id="major-minus" aria-label="減少大調數量">−</button><output class="count-output" id="major-count" aria-live="polite">1</output><button type="button" id="major-plus" aria-label="增加大調數量">+</button></span>
+                個大調
+              </span>
+              <span class="launch-count-clause">
+                <span class="stepper" role="group" aria-label="小調數量"><button type="button" id="minor-minus" aria-label="減少小調數量">−</button><output class="count-output" id="minor-count" aria-live="polite">1</output><button type="button" id="minor-plus" aria-label="增加小調數量">+</button></span>
+                個小調
+              </span>
+            </div>
+            <p id="filter-warning" class="filter-warning" role="status" hidden></p>
+          </section>
         </div>
         <div class="launch-meta">
           <fieldset class="launch-mode" aria-label="練習清單順序">
@@ -1331,34 +1388,6 @@
             <label><input type="radio" name="launch-mode" value="sequential"><span>循序</span></label>
           </fieldset>
         </div>
-        <details class="launch-settings" id="draw-settings" data-expanded="false">
-          <summary id="launch-settings-toggle">調性設定</summary>
-          <div class="launch-settings-body" inert>
-          <button type="button" id="launch-fresh" class="room-action launch-fresh" hidden>重新抽選</button>
-        <section class="key-filter" aria-labelledby="key-filter-title">
-          <div class="filter-heading">
-            <h3 id="key-filter-title">已選調性</h3>
-            <div class="key-pool-actions"><button type="button" id="filter-all" class="filter-all">全部選取</button><button type="button" id="filter-none" class="filter-all">全部取消</button></div>
-          </div>
-          <p class="filter-explain sr-only">預設 24 調全選。按亮的調性會進入抽籤池；灰色代表排除。依五度圈排列，每格上方為大調、下方為小調，可分別選取。F♯ 大調／E♭ 小調保留原本的等音調拼寫。</p>
-          <div id="signature-filters" class="fifths-circle" aria-label="五度圈排列的 24 個候選調性，上方大調、下方小調"></div>
-          <div class="filter-status sr-only" role="group" aria-labelledby="key-filter-title"><span>大調 <b id="major-eligible">12 / 12</b></span><span>古典旋律小調 <b id="minor-eligible">12 / 12</b></span></div>
-          <p id="filter-warning" class="filter-warning" role="status" hidden></p>
-        </section>
-          <section class="launch-count-settings" id="launch-count-settings" aria-label="抽取數量">
-            <div class="launch-count-sentence">
-              <span class="launch-count-clause">抽取
-                <span class="stepper" role="group" aria-label="大調數量"><button type="button" id="major-minus" aria-label="減少大調數量">−</button><output class="count-output" id="major-count" aria-live="polite">2</output><button type="button" id="major-plus" aria-label="增加大調數量">+</button></span>
-                個大調、
-              </span>
-              <span class="launch-count-clause">
-                <span class="stepper" role="group" aria-label="小調數量"><button type="button" id="minor-minus" aria-label="減少小調數量">−</button><output class="count-output" id="minor-count" aria-live="polite">2</output><button type="button" id="minor-plus" aria-label="增加小調數量">+</button></span>
-                個小調
-              </span>
-            </div>
-          </section>
-          </div>
-        </details>
       </div>
     </section>
 
@@ -1431,7 +1460,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261126-071-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><span class="site-version" aria-label="網站版本">20261126-072-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -3834,7 +3863,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     const demoCaption=demoPiece('scale-demo-caption'),demoPlaying=demoPiece('scale-demo-playing'),demoLoading=demoPiece('scale-demo-loading');
     const demoBars=demoPiece('scale-demo-bars'),bars=Array.from({length:6},()=>demoPiece('scale-demo-bar'));
     demoBars.append(...bars);
-    demoCaption.textContent='先聽一次';
+    demoCaption.innerHTML='<svg class="scale-demo-ear" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" d="M6 9a6 6 0 1 1 12 0c0 4-3 4.7-4.4 6.4C12.4 17 12.5 20 9.3 20 7.5 20 6 18.6 6 16.8M9 9.6a3 3 0 1 1 5.6 1.5c-.8 1.3-2.3 1.6-3.4 3M9 12.6h.01"/></svg>先聽一次';
     demoPlaying.append(demoBars,demoPiece('scale-demo-stop'));
     demoLoading.append(demoPiece('scale-demo-spinner'));
     demoButton.append(demoCaption,demoLoading,demoPlaying);demoShell.append(demoButton);
@@ -4501,7 +4530,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
 });
 // SCALE_PRACTICE_END
   </script>
-  <script src="fingerboard.js?v=20261126-071"></script>
+  <script src="fingerboard.js?v=20261126-072"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
@@ -4659,7 +4688,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         const raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
         if (raw && raw.version === 1 && typeof raw.sessions === 'object' && raw.sessions && typeof raw.preferences === 'object') return raw;
       } catch (_) { /* Private browsing or malformed saved data: start fresh. */ }
-      return {version:1, preferences:{majorCount:2,minorCount:2,showScale:false}, sessions:{},fingerings:{}};
+      return {version:1, preferences:{majorCount:1,minorCount:1,showScale:false}, sessions:{},fingerings:{}};
     }
     function persist() {
       try { localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); }
@@ -4908,14 +4937,11 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       const launch=q('#session-launch');
       if(!launch)return;
       const resume=resumeCandidate(),options=visiblePreferences();
-      const fresh=q('#launch-fresh'),draw=q('#draw-button'),caption=q('#draw-text'),message=q('#session-launch-note');
-      const available=canLaunch(launchMode,options),label=resume?'繼續上次':'開始練習';
-      fresh.hidden=!resume;
-      fresh.disabled=!available;
-      const freshLabel=launchMode==='sequential'?'重新開始':'重新抽選';
-      if(fresh.textContent!==freshLabel)fresh.textContent=freshLabel;
+      const link=q('#launch-resume'),draw=q('#draw-button'),caption=q('#draw-text'),message=q('#session-launch-note');
+      const available=canLaunch(launchMode,options),label=resume?'重新抽選':'開始練習';
+      link.hidden=!resume;
       if(caption.textContent!==label)caption.textContent=label;
-      draw.disabled=!resume&&!available;
+      draw.disabled=!available;
       launch.dataset.mode=launchMode;
       const counts=q('#launch-count-settings');
       if(counts)counts.hidden=launchMode==='sequential';
@@ -4925,14 +4951,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       const selected='大調：'+names('major')+'\n小調：'+names('minor');
       if(message.textContent!==selected)message.textContent=selected;
     }
-    function launchPractice(){
-      const resumeWasShown=q('#draw-text')?.textContent==='繼續上次';
-      refreshDate();
-      if(resumeCandidate()){resumePractice();return;}
-      // If a date or room update invalidated a visible resume, don't turn that click into a redraw.
-      if(resumeWasShown){updateSessionLaunch();return;}
-      startPractice();
-    }
+    function launchPractice(){startPractice();}
     function startPractice(mode=launchMode,historyHandled=false){
       refreshDate();
       if(!canLaunch(mode,visiblePreferences())){updateSessionLaunch();return;}
@@ -5867,9 +5886,9 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     }));
     launchMode=q('input[name="launch-mode"]:checked')?.value==='sequential'?'sequential':'random';
     q('#draw-button').addEventListener('click',launchPractice);
-    q('#launch-fresh').addEventListener('click',()=>{
-      showLaunchOptions(false,true);
-      startPractice();
+    q('#launch-resume').addEventListener('click',event=>{
+      event.preventDefault();
+      resumePractice();
     });
     q('#history-unavailable-dismiss').addEventListener('click',()=>q('#history-unavailable-dialog').close());
     q('#filter-all').addEventListener('click',()=>updateExclusions([]));
