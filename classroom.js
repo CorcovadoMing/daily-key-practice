@@ -6,17 +6,19 @@
 const practice = window.DailyKeyPractice;
 const el = id => document.getElementById(id);
 const status = el('room-status');
+const disclosure = el('classroom-disclosure');
 const createButton = el('room-create');
+const openJoinButton = el('room-open-join');
+const joinDialog = el('room-join-dialog');
+const joinCancel = el('room-join-cancel');
+const joinStatus = el('room-join-status');
+const roomDigits = [...joinDialog.querySelectorAll('[data-room-digit]')];
 const joinForm = el('room-join-form');
 const joinInput = el('room-code-input');
 const joinButton = el('room-join');
 const copyButton = el('room-copy');
 const leaveButton = el('room-leave');
-const roomCodeDisplay = el('room-code-display');
 const roomCodeNumber = el('room-code-number');
-const onlineCount=el('online-count');
-const onlineNumber=el('online-number');
-const copyCodeButton = el('room-copy-code');
 const shortCodePattern = /^[0-9]{6}$/;
 const legacyRoomPattern = /^[a-f0-9]{32}$/;
 const validRoom = id => shortCodePattern.test(id) || legacyRoomPattern.test(id);
@@ -26,6 +28,7 @@ const configured = Boolean(config && ['apiKey','authDomain','projectId','databas
   .every(key => typeof config[key] === 'string' && config[key].length > 0 && !config[key].includes('YOUR_')));
 
 let firebase = null;
+let firebaseLoading = null;
 let database = null;
 let ready = false;
 let connected = false;
@@ -34,9 +37,9 @@ let roomRef = null;
 let roomExpiresAt = null;
 let unsubscribeRoom = null;
 let unsubscribeConnection = null;
-let unsubscribePresence=null;
 let presenceConnectionRef=null;
 let joining = false;
+let joinAttempt = 0;
 let editorUserId = null;
 let ownDraftRef = null;
 let unsubscribeEdits = null;
@@ -51,36 +54,46 @@ let draftWriteQueueArpeggio=Promise.resolve();
 function setStatus(message) { status.textContent = message; }
 function updateButtons() {
   const inRoom = Boolean(activeId);
-  // Keep this button in the SAME position. Replacing it with "copy link" was confusing.
-  createButton.hidden = false;
-  createButton.textContent = inRoom ? '建立另一間房間' : '建立同步房間';
-  copyButton.hidden = !inRoom;
-  leaveButton.hidden = !inRoom;
-  joinForm.hidden = inRoom;
-  roomCodeDisplay.hidden = !ready || !shortCodePattern.test(activeId || '');
-  if(!roomCodeDisplay.hidden) roomCodeNumber.textContent = activeId;
-  createButton.disabled = !configured || joining;
-  joinButton.disabled = !configured || joining;
-  joinInput.disabled = joining;
-  copyButton.disabled = !ready;
-  onlineCount.hidden = !activeId || !ready;
-}
-function revealCreatedRoomCode(id) {
-  if(!shortCodePattern.test(id)) return;
-  roomCodeNumber.textContent = id;
-  roomCodeDisplay.hidden = false;
-  if(typeof roomCodeDisplay.scrollIntoView === 'function'){
-    roomCodeDisplay.scrollIntoView({behavior:'smooth',block:'nearest'});
+  if(disclosure) {
+    disclosure.toggleAttribute('data-active',inRoom);
+    if(inRoom) disclosure.open = true;
+  }
+  createButton.hidden = openJoinButton.hidden = inRoom;
+  copyButton.hidden = leaveButton.hidden = !inRoom;
+  createButton.disabled = openJoinButton.disabled = !configured || joining;
+  joinButton.disabled = joinCancel.disabled = joining;
+  joinInput.readOnly = joining;
+  // Even if the network drops, a member must still be able to exit or copy.
+  if(inRoom) {
+    roomCodeNumber.textContent = activeId;
+    copyButton.setAttribute('aria-label', '房間號碼 ' + activeId + '，複製課堂邀請連結');
   }
 }
-async function copyRoomCode() {
-  if(!activeId || !shortCodePattern.test(activeId)) return;
-  try {
-    await navigator.clipboard.writeText(activeId);
-    practice.showToast('六位數房號已複製');
-  } catch (_) {
-    window.prompt('這是六位數房號，請告訴對方：', activeId);
+function syncDigits() {
+  const index = Math.min(joinInput.selectionStart ?? joinInput.value.length, 5);
+  roomDigits.forEach((slot, i) => {
+    slot.textContent = joinInput.value[i] || '';
+    slot.toggleAttribute('data-room-current', index === i);
+  });
+}
+function setJoinStatus(message, invalid = false) {
+  joinStatus.textContent = message;
+  if(invalid) joinInput.setAttribute('aria-invalid', 'true');
+  else joinInput.removeAttribute('aria-invalid');
+}
+function normalizeCode(value) {
+  return value.replace(/[０-９]/g, digit => String(digit.charCodeAt(0) - 0xff10)).replace(/[^0-9]/g, '').slice(0, 6);
+}
+function reflectCode() {
+  const value = joinInput.value;
+  const caret = normalizeCode(value.slice(0, joinInput.selectionStart ?? value.length)).length;
+  const cleaned = normalizeCode(value);
+  if(cleaned !== value) {
+    joinInput.value = cleaned;
+    joinInput.setSelectionRange(caret, caret);
   }
+  setJoinStatus('');
+  syncDigits();
 }
 function roomURL(id) {
   const url = new URL(window.location.href);
@@ -97,29 +110,11 @@ function hashRoom() {
   return match ? match[1] : null;
 }
 function stopPresence(){
- if(unsubscribePresence)unsubscribePresence();
- unsubscribePresence=null;
  const old=presenceConnectionRef;
  presenceConnectionRef=null;
- onlineCount.hidden=true;
- onlineNumber.textContent='—';
  if(old && firebase){
    firebase.remove(old).then(()=>firebase.onDisconnect(old).cancel()).catch(error=>console.debug('Presence cleanup pending server disconnect:',error));
  }
-}
-
-function watchPresence(id){
- const ref=firebase.ref(database,'roomPresence/'+id);
- onlineNumber.textContent='…';
- unsubscribePresence=firebase.onValue(ref,snapshot=>{
-   if(activeId!==id)return;
-   const connections=snapshot.val();
-   onlineNumber.textContent=String(connections?Object.keys(connections).length:0);
- },error=>{
-   if(activeId!==id)return;
-   onlineNumber.textContent='未啟用';
-   console.warn('Realtime presence unavailable: update Firebase Rules.',error);
- });
 }
 
 async function markPresent(id){
@@ -300,6 +295,7 @@ function cleanupListeners() {
   unsubscribeConnection = null;
 }
 function leaveRoom() {
+  joinAttempt++; // A superseded room read may finish, but must not put us back into a room.
   cleanupListeners();
   activeId = null;
   roomRef = null;
@@ -310,25 +306,30 @@ function leaveRoom() {
   replaceHash(null);
   practice.setClassroomDrafts(activeId, {});
   practice.setClassroomRoom(null, null);
-  setStatus(configured ? '個人模式 · 可建立房間或輸入六位數房號' : '課堂同步尚未啟用：請檢查 Firebase 設定');
+  setStatus(configured ? '' : '課堂同步尚未啟用');
   updateButtons();
 }
 
 async function loadFirebase() {
   if(firebase) return;
   if(!configured) throw Error('Firebase 設定不完整');
-  const [appSdk, authSdk, dbSdk] = await Promise.all([
-    import('https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js'),
-    import('https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js'),
-    import('https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js')
-  ]);
-  const app = appSdk.initializeApp(config);
-  const auth = authSdk.getAuth(app);
-  await auth.authStateReady();
-  if(!auth.currentUser) await authSdk.signInAnonymously(auth);
-  editorUserId=auth.currentUser?.uid||null;
-  database = dbSdk.getDatabase(app);
-  firebase = dbSdk;
+  // Share pending initialization. Repeated clicks after a timeout cannot
+  // create several anonymous sessions or race the same SDK instance.
+  if(!firebaseLoading) firebaseLoading = (async () => {
+    const [appSdk, authSdk, dbSdk] = await Promise.all([
+      import('https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js'),
+      import('https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js'),
+      import('https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js')
+    ]);
+    const app = appSdk.initializeApp(config);
+    const auth = authSdk.getAuth(app);
+    await auth.authStateReady();
+    if(!auth.currentUser) await authSdk.signInAnonymously(auth);
+    editorUserId=auth.currentUser?.uid||null;
+    database = dbSdk.getDatabase(app);
+    firebase = dbSdk;
+  })().finally(() => { firebaseLoading = null; });
+  return firebaseLoading;
 }
 
 function updateConnectionState() {
@@ -337,28 +338,43 @@ function updateConnectionState() {
     setStatus('此房間已超過 24 小時，請建立新房間');
     return;
   }
-  setStatus(connected ? '已連線 · 抽籤與完成狀態即時同步中' : '等待網路連線 · 暫時無法同步');
+  setStatus(connected ? '' : '等待網路連線，暫時無法同步');
 }
 
+function readRoom(id) {
+  let timer;
+  const reading = (async () => {
+    await loadFirebase();
+    const ref = firebase.ref(database, 'rooms/' + id);
+    // A wrong code must NOT automatically create a new room.
+    return {ref, data:(await firebase.get(ref)).val()};
+  })();
+  return Promise.race([
+    reading,
+    new Promise((_, reject) => { timer = setTimeout(() => reject(Error('連線逾時，請確認網路後再試一次')), 15000); })
+  ]).finally(() => clearTimeout(timer));
+}
 async function joinRoom(id) {
   if(!validRoom(id)) { practice.showToast('請輸入正確的六位數房號'); return false; }
   if(activeId === id && ready) return true;
   if(joining) return false;
   joining = true;
-  ready = false;
-  connected = false;
-  setStatus('正在加入課堂房間…');
+  const attempt = ++joinAttempt;
+  if(joinDialog.open) setJoinStatus('正在加入…');
+  else {
+    if(disclosure) disclosure.open = true; // Direct invitation links also expose progress and errors.
+    setStatus('正在加入課堂房間…');
+  }
   updateButtons();
   try {
-    await loadFirebase();
-    const nextRef = firebase.ref(database, 'rooms/' + id);
-    // A wrong code must NOT automatically create a new room.
-    const existing = await firebase.get(nextRef);
-    const roomData = existing.val();
+    const {ref:nextRef, data:roomData} = await readRoom(id);
+    if(attempt !== joinAttempt) return false;
     if(!roomData) throw Error('找不到這個房號，請再次確認');
     if(roomData.expiresAt && roomData.expiresAt <= Date.now()) throw Error('房間已過期，請建立新房間');
 
     cleanupListeners();
+    ready = false;
+    connected = false;
     activeId = id;
     roomRef = nextRef;
     roomExpiresAt = roomData.expiresAt || null;
@@ -389,7 +405,6 @@ async function joinRoom(id) {
         ownDraftRef=null;
         ownDraftRefArpeggio=null;draftDisconnectRefArpeggio=null;
         draftDisconnectRef=null; // server removes prior ghost on disconnect
-        onlineNumber.textContent='離線';
       }
       else if(ready && !wasConnected){
         void markPresent(id);
@@ -397,20 +412,24 @@ async function joinRoom(id) {
       }
       updateConnectionState();
     });
-    watchPresence(id);
     watchEdits(id);watchEditsArpeggio(id);
     ready = true;
     if(connected){void markPresent(id);void registerDraftPresence(id);void registerDraftPresenceArpeggio(id);}
     updateConnectionState();
     return true;
   } catch(error) {
+    if(attempt !== joinAttempt) return false;
     console.error('Classroom join failed:', error);
-    if(!activeId) setStatus('加入失敗：' + (error.message || '請檢查 Firebase 設定'));
-    practice.showToast(error.message || '無法加入課堂房間');
+    const detail = error.message === '找不到這個房號，請再次確認' || error.message === '房間已過期，請建立新房間' || error.message === '連線逾時，請確認網路後再試一次'
+      ? error.message : '無法加入房間，請確認網路後再試一次';
+    if(joinDialog.open) setJoinStatus(detail, true);
+    else setStatus(detail);
     return false;
   } finally {
-    joining = false;
-    updateButtons();
+    if(attempt === joinAttempt) {
+      joining = false;
+      updateButtons();
+    }
   }
 }
 
@@ -421,19 +440,61 @@ function randomSixDigits() {
   do { crypto.getRandomValues(random); } while(random[0] >= limit);
   return String(random[0] % 1000000).padStart(6, '0');
 }
+function roomStartupDeadline(promise, code, ms) {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      timer = setTimeout(() => reject(Object.assign(new Error(code), {code})), ms);
+    })
+  ]).finally(() => clearTimeout(timer));
+}
+
+async function waitForRoomConnection() {
+  let unsubscribe;
+  try {
+    const connection = new Promise((resolve, reject) => {
+      unsubscribe = firebase.onValue(firebase.ref(database, '.info/connected'), snapshot => {
+        if(snapshot.val() === true) resolve();
+      }, reject);
+    });
+    await roomStartupDeadline(connection, 'classroom/database-offline', 9000);
+  } finally {
+    unsubscribe?.();
+  }
+}
+
+function roomCreationError(error) {
+  switch(String(error?.code || '').toLowerCase()){
+    case 'classroom/startup-timeout':
+    case 'auth/network-request-failed': return '無法連線到課堂服務，請確認網路後再試一次。';
+    case 'classroom/database-offline': return '尚未連上課堂服務，沒有建立房間。請確認網路後再試一次。';
+    case 'auth/operation-not-allowed':
+    case 'auth/admin-restricted-operation': return '課堂服務目前不接受匿名登入，無法建立房間。';
+    case 'auth/too-many-requests':
+    case 'auth/quota-exceeded': return '課堂服務暫時限制登入次數，請稍後再試。';
+    case 'permission_denied':
+    case 'permission-denied':
+    case 'database/permission-denied': return '課堂資料庫拒絕建立房間（Firebase Rules）。';
+    case 'classroom/codes-exhausted': return '暫時無法取得空房號，請再試一次。';
+    default: return '目前無法建立房間，請重新整理後再試。';
+  }
+}
+
 async function createRoom() {
   if(!configured) { practice.showToast('請先完成 Firebase 設定'); return; }
   if(joining) return;
-  if(activeId) {
-    if(!window.confirm('確定要建立新房間嗎？目前的房間仍存在，但你會離開原房間。')) return;
-    leaveRoom();
-  }
+  if(activeId) return;
   if(!window.crypto?.getRandomValues) { practice.showToast('需要 HTTPS 才能安全產生房號'); return; }
   joining = true;
-  setStatus('正在產生六位數房號…');
+  setStatus('正在連線到課堂服務…');
   updateButtons();
   try {
-    await loadFirebase();
+    await roomStartupDeadline(loadFirebase(), 'classroom/startup-timeout', 10000);
+    // RTDB queues transactions while offline. Check connection first so a
+    // failed preflight cannot silently create a room later after reconnecting.
+    await waitForRoomConnection();
+    setStatus('正在產生六位數房號…');
     const prefs = practice.getPreferences();
     for(let attempt = 0; attempt < 12; attempt++) {
       const id = randomSixDigits();
@@ -455,16 +516,17 @@ async function createRoom() {
       joining = false;
       const joined = await joinRoom(id);
       if(joined) {
-        revealCreatedRoomCode(id);
-        practice.showToast('已建立六位數房間，直接將號碼告訴老師或學生');
+        copyButton.focus();
+        practice.showToast('房間已建立');
       }
       return;
     }
-    throw Error('暫時無法取得空房號，請再試一次');
+    throw Object.assign(new Error('No available room code'), {code:'classroom/codes-exhausted'});
   } catch(error) {
     console.error('Classroom creation failed:', error);
-    setStatus('建立失敗：請確認 Firebase Rules 已發布，且匿名登入已啟用');
-    practice.showToast(error.message || '建立課堂房間失敗');
+    const message=roomCreationError(error);
+    setStatus(message);
+    practice.showToast(message);
   } finally {
     joining = false;
     updateButtons();
@@ -495,8 +557,14 @@ async function changeRoom(update) {
   }
 }
 window.classroomSync = {
-  setCounts(major, minor) {
-    return changeRoom(current => ({...current, majorCount:major, minorCount:minor, updatedAt:Date.now()}));
+  changeCount(kind, delta) {
+    if((kind!=='major'&&kind!=='minor')||(delta!==1&&delta!==-1)) return Promise.resolve(false);
+    const field=kind+'Count';
+    return changeRoom(current=>{
+      const value=Number(current[field]??2);
+      const next=Math.min(12,Math.max(0,(Number.isFinite(value)?Math.trunc(value):2)+delta));
+      return {...current,[field]:next,updatedAt:Date.now()};
+    });
   },
   setExcludedKeys(excludedKeys) {
     const valid=Array.isArray(excludedKeys)?[...new Set(excludedKeys)].filter(id=>/^(major|minor)-(?:[0-9]|10|11)$/.test(id)):[];
@@ -646,18 +714,55 @@ window.classroomSync = {
     });
   }
 };
-createButton.addEventListener('click', createRoom);
-copyCodeButton.addEventListener('click', copyRoomCode);
-joinInput.addEventListener('input', () => { joinInput.value = joinInput.value.replace(/[^0-9]/g, '').slice(0, 6); });
+function requestRoomAction(action, beforePrompt) {
+  if(typeof practice.requestClassroomTransition === 'function') return practice.requestClassroomTransition(action, beforePrompt);
+  return action();
+}
+createButton.addEventListener('click', () => requestRoomAction(createRoom));
+openJoinButton.addEventListener('click', () => {
+  if(joining || activeId || !configured) return;
+  setStatus('');
+  setJoinStatus('');
+  joinDialog.showModal();
+  joinInput.focus();
+  syncDigits();
+});
+joinCancel.addEventListener('click', () => { if(!joining) joinDialog.close(); });
+joinDialog.addEventListener('cancel', event => { if(joining) event.preventDefault(); });
+joinDialog.addEventListener('close', () => {
+  if(!document.querySelector?.('dialog[open]')) (activeId ? copyButton : openJoinButton).focus();
+});
+let composingCode = false;
+joinInput.addEventListener('compositionstart', () => { composingCode = true; });
+joinInput.addEventListener('compositionend', () => { composingCode = false; reflectCode(); });
+joinInput.addEventListener('input', event => { if(!composingCode && !event.isComposing) reflectCode(); });
+for(const name of ['click','keyup','select']) joinInput.addEventListener(name, syncDigits);
 joinForm.addEventListener('submit', async event => {
   event.preventDefault();
-  const code = joinInput.value.trim();
-  if(!shortCodePattern.test(code)) { practice.showToast('請輸入六位數字'); return; }
-  const joined = await joinRoom(code);
-  if(joined) joinInput.value = '';
+  if(joining || composingCode || activeId) return;
+  const code = normalizeCode(joinInput.value);
+  if(!shortCodePattern.test(code)) {
+    setJoinStatus('請輸入完整的六位數字。', true);
+    joinInput.focus();
+    return;
+  }
+  return requestRoomAction(async () => {
+    if(joining || activeId) return;
+    if(!joinDialog.open) {
+      joinDialog.showModal();
+      joinInput.focus();
+    }
+    const joined = await joinRoom(code);
+    if(joined) {
+      joinInput.value = '';
+      setJoinStatus('');
+      syncDigits();
+      joinDialog.close();
+    } else joinInput.focus();
+  }, () => joinDialog.close());
 });
 copyButton.addEventListener('click', async () => {
-  if(!activeId || !ready) return;
+  if(!activeId) return;
   const url = roomURL(activeId);
   try {
     await navigator.clipboard.writeText(url);
@@ -666,14 +771,19 @@ copyButton.addEventListener('click', async () => {
     window.prompt('複製邀請連結：', url);
   }
 });
-leaveButton.addEventListener('click', leaveRoom);
+leaveButton.addEventListener('click', () => requestRoomAction(() => {
+  leaveRoom();
+  openJoinButton.focus();
+}));
 window.addEventListener('hashchange', () => {
   const id = hashRoom();
-  if(id && id !== activeId) joinRoom(id);
-  else if(!id && activeId) leaveRoom();
+  if(id && id !== activeId) {
+    if(joinDialog.open && !joining) joinDialog.close();
+    joinRoom(id);
+  } else if(!id && activeId) leaveRoom();
 });
 window.addEventListener('focus', updateConnectionState);
 updateButtons();
 const room = hashRoom();
 if(room) joinRoom(room);
-else setStatus(configured ? '個人模式 · 建立房間或輸入六位數房號即可同步' : 'Firebase 設定尚未完成');
+else setStatus(configured ? '' : '課堂同步尚未啟用');

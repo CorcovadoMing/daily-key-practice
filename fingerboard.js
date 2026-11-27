@@ -19,7 +19,7 @@
     melodic:[0,2,3,5,7,9,11],
     natural:[0,2,3,5,7,8,10]
   };
-  const choices=new Map();
+  const PRACTICE_OCTAVES=2;
   let stringOrder='CGDA';
 
   function pitchClass(name){
@@ -180,7 +180,7 @@
     }
     aside.hidden=used.size===0;return aside;
   }
-  function chartSVG(mode,key,direction,octaves,annotations={},interaction=null,remoteDrafts=[],reverseStrings=false,arpeggio=false){
+  function plottedRoute(mode,key,direction,octaves,annotations,arpeggio){
     const scale=scaleNotes(mode,key,direction,octaves);
     const notes=arpeggio?arpeggioNotes(mode,key,direction):scale;
     const sourceDirection=arpeggio||mode==='major'?'up':direction;
@@ -192,6 +192,33 @@
       const position=notePlacement(note.midi,map,presets);
       return {...note,position,style:pointStyling(position),shiftCue:resolvedShiftCue(note.midi,map,presets)};
     });
+    return {notes,map,presets,plotted};
+  }
+
+  function visiblePlan(mode,key,annotations={},arpeggio=false) {
+    const up=plottedRoute(mode,key,'up',PRACTICE_OCTAVES,annotations,arpeggio).plotted;
+    // Major and arpeggio have a single visible board. The ascent is the source
+    // of truth for both, even if stale hidden major down edits exist.
+    const shared=arpeggio||mode==='major';
+    const down=shared?up.slice().reverse():plottedRoute(mode,key,'down',PRACTICE_OCTAVES,annotations,arpeggio).plotted;
+    const points=[...up,...down.slice(1)];
+    const slots=points.map((p,i)=>{
+      const v=p.position, previous=points[i-1], cue=previous?.shiftCue;
+      const known=v.group!=='unverified' && v.finger!==null && Number.isInteger(v.string);
+      const plan=known?{string:v.stringName,finger:v.finger,reviewed:true,
+        fingersReviewed:Number.isInteger(v.finger)&&!v.technique,
+        ...(!v.custom&&Number.isInteger(v.anchor)&&!v.technique?{anchor:v.anchor,shape:v.shape}:{}),source:v.custom?'confirmed-edit':'visible-board'}:null;
+      // Only a rendered explicit direction-specific cue, never inferred from
+      // anchor distance, color, or a digit change. No extension flag is invented.
+      const edge=known && (i<up.length || !shared) && i!==up.length && cue?.toMidi===p.midi
+        ? {from:i-1,reviewed:true,shift:true}:null;
+      return {midi:p.midi,name:p.name,octave:Math.floor(staffStep(p)/7),direction:i<up.length?'up':'down',plan,edge};
+    });
+    return {source:'confirmed/visible plan',revision:JSON.stringify([mode,key[0],arpeggio,slots]),slots};
+  }
+
+  function chartSVG(mode,key,direction,octaves,annotations={},interaction=null,remoteDrafts=[],reverseStrings=false,arpeggio=false){
+    const {notes,map,presets,plotted}=plottedRoute(mode,key,direction,octaves,annotations,arpeggio);
     // While editing, reveal nearby equivalent pitches on other strings.
     // Very high alternatives remain available in the buttons below.
     const editableMidi=interaction?.selectedMidi;
@@ -239,7 +266,7 @@
       viewBox:'0 0 370 '+height,
       role:'img',
       'aria-label':key[0]+(mode==='major'?'大調':'古典旋律小調')+
-        (arpeggio?'琶音':'音階')+(direction==='up'?'上行':'下行')+octaves+'個八度大提琴指板音位圖',
+        (arpeggio?'琶音':'音階')+(direction==='up'?'上行':'下行')+'大提琴指板音位圖',
       class:'cello-fb-svg'
     });
     svg.append(svgNode('title',{},key[0]+' '+(direction==='up'?'上行':'下行')+'指板音位'));
@@ -403,7 +430,7 @@
     return svg;
   }
 
-  // Fixed two-octave scale, independent of the fingerboard octave toggle.
+  // User practice always uses the complete two-octave route.
   // Key signatures apply globally; explicit accidentals carry per written octave
   // across this unbarred exercise, including melodic-minor descent cancellations. Sixteenth-note groups use four-note beams, without asserting a time signature.
   function staffStep(note){
@@ -423,16 +450,37 @@
       active.set(key,written);return written===previous?null:written;
     });
   }
-  function makeScore(mode,key,arpeggio=false){
-    const up=arpeggio?arpeggioNotes(mode,key,'up'):scaleNotes(mode,key,'up',2);
-    const down=arpeggio?arpeggioNotes(mode,key,'down'):scaleNotes(mode,key,'down',2);
-    const sequence=[...up,...down.slice(1)];
-    const spacing=arpeggio?64:29;
-    const signature=key[1],startX=70+Math.abs(signature)*8,width=928+Math.abs(signature)*8;
-    const accidentals=scoreAccidentals(sequence,signature);
-    const wrap=element('div',{class:'cello-scale-score',tabindex:'0','aria-label':(arpeggio?'琶音':'音階')+'兩個八度上下行五線譜，可左右捲動'});
-    const svg=svgNode('svg',{viewBox:`0 0 ${width} 185`,width,height:185,role:'img','aria-label':key[0]+(mode==='major'?'大調':'旋律小調')+(arpeggio?'琶音':'音階')+(arpeggio?'，低音譜號，兩個八度上下行，全部四分音符':'，低音譜號，兩個八度上下行十六分音符，末音四分音符')});
-    svg.append(svgNode('title',{},'兩個八度上行與下行，調號與必要臨時記號；窄螢幕可左右捲動'));
+  function scoreNotes(mode,key,arpeggio=false){
+    const up=arpeggio?arpeggioNotes(mode,key,'up'):scaleNotes(mode,key,'up',PRACTICE_OCTAVES);
+    const down=arpeggio?arpeggioNotes(mode,key,'down'):scaleNotes(mode,key,'down',PRACTICE_OCTAVES);
+    return [...up,...down.slice(1)];
+  }
+  function makeScore(mode,key,arpeggio=false,sequence=scoreNotes(mode,key,arpeggio)){
+    const apex=Math.ceil(sequence.length/2);
+    // The exercise is one unbarred phrase; changing the visual line does
+    // not reset accidentals for a pitch on that staff position.
+    const accidentals=scoreAccidentals(sequence,key[1]);
+    const wrap=element('div',{class:'cello-scale-score',tabindex:'0','aria-label':(arpeggio?'琶音':'音階')+'上下行五線譜'});
+    wrap.append(makeStaff(mode,key,arpeggio,sequence,{apex,total:sequence.length,accidentals}));
+    const split=element('div',{class:'cello-score-split'});
+    if(sequence.length>1){
+      // A narrow view may move the line break, not the musical grouping.
+      // Keep the four-note beams of the single-line score intact.
+      const splitAt=arpeggio?apex:Math.min(sequence.length-1,Math.ceil(apex/4)*4);
+      const rowCapacity=Math.max(splitAt,sequence.length-splitAt);
+      split.append(makeStaff(mode,key,arpeggio,sequence.slice(0,splitAt),{apex,total:sequence.length,dir:'上行',rowCapacity,accidentals}),
+        makeStaff(mode,key,arpeggio,sequence.slice(splitAt),{apex,total:sequence.length,dir:'下行',first:splitAt,rowCapacity,accidentals}));
+    }
+    wrap.append(split);return wrap;
+  }
+  function makeStaff(mode,key,arpeggio,sequence,{apex,total,dir,first=0,rowCapacity=apex,accidentals}){
+    const spacing=dir?(arpeggio?52:25):(arpeggio?64:29);
+    const signature=key[1],startX=70+Math.abs(signature)*8;
+    const width=dir?startX+Math.max(0,rowCapacity-1)*spacing+23:928+Math.abs(signature)*8;
+    const startsDescent=Boolean(dir&&first===0&&sequence.length>apex);
+    const direction=startsDescent?'上行與下行起點':dir==='下行'&&first>apex?'續下行':dir||'上下行';
+    const svg=svgNode('svg',{class:dir?'cello-score-row':'cello-score-wide',viewBox:`0 0 ${width} 185`,width,height:185,role:'img','aria-label':key[0]+(mode==='major'?'大調':'旋律小調')+(arpeggio?'琶音':'音階')+'，低音譜號，'+direction+(arpeggio?'，全部四分音符':'十六分音符，末音四分音符')});
+    svg.append(svgNode('title',{},'調號與必要臨時記號'));
     for(let i=0;i<5;i++)svg.append(svgNode('line',{x1:14,x2:width-15,y1:110-i*10,y2:110-i*10,stroke:'#777','stroke-width':0.8}));
     // Bass-clef curve and dots anchor the F3 line, avoiding music-font dependency.
     const clef=svgNode('g',{transform:'translate(4 16) scale(.8)'});
@@ -453,35 +501,68 @@
       }
       svg.append(mark);
     }
+    const noteGroups=[];
     sequence.forEach((note,i)=>{
       const x=startX+i*spacing,y=110-(staffStep(note)-18)*5;
       for(let ly=120;ly<=y;ly+=10)svg.append(svgNode('line',{x1:x-11,x2:x+11,y1:ly,y2:ly,stroke:'#444','stroke-width':1}));
       for(let ly=60;ly>=y;ly-=10)svg.append(svgNode('line',{x1:x-11,x2:x+11,y1:ly,y2:ly,stroke:'#444','stroke-width':1}));
-      const g=svgNode('g',{'data-midi':note.midi,'data-note':note.name,'data-duration':arpeggio||i===sequence.length-1?'4':'16'});
+      const g=svgNode('g',{'data-midi':note.midi,'data-score-index':first+i,'data-note':note.name,'data-duration':arpeggio||first+i===total-1?'4':'16'});
       g.append(svgNode('title',{},note.name+' · MIDI '+note.midi));
-      if(accidentals[i])g.append(svgNode('text',{class:'scale-accidental',x:x-18,y:y+5,'text-anchor':'middle','font-family':'Georgia, serif','font-size':18,fill:'#222'},accidentals[i]));
+      if(accidentals[first+i])g.append(svgNode('text',{class:'scale-accidental',x:x-18,y:y+5,'text-anchor':'middle','font-family':'Georgia, serif','font-size':18,fill:'#222'},accidentals[first+i]));
       g.append(svgNode('ellipse',{cx:x,cy:y,rx:5.8,ry:3.7,transform:'rotate(-20 '+x+' '+y+')',fill:'#222'}));
-      svg.append(g);
+      noteGroups.push(g);
     });
     // Four-note visual groups; no meter or barlines are imposed on the exercise.
     const groupSize=arpeggio?1:4;
-    for(let start=0;start<sequence.length;start+=groupSize){
-      const group=sequence.slice(start,start+groupSize).map((note,j)=>({x:startX+(start+j)*spacing,y:110-(staffStep(note)-18)*5}));
+    for(let start=0;start<sequence.length;){
+      const size=!arpeggio&&first+start===total-1?1:Math.min(groupSize,sequence.length-start,!arpeggio?total-first-start-1:1);
+      const group=sequence.slice(start,start+size).map((note,j)=>({x:startX+(start+j)*spacing,y:110-(staffStep(note)-18)*5}));
       const down=group.reduce((sum,n)=>sum+n.y,0)/group.length<90;
       const beamY=down?Math.max(...group.map(n=>n.y))+32:Math.min(...group.map(n=>n.y))-32;
       const stemX=n=>n.x+(down?-5:5);
       const slope=Math.max(-0.08,Math.min(0.08,(group.at(-1).y-group[0].y)/Math.max(1,group.at(-1).x-group[0].x)));
       const beamAt=n=>beamY+slope*(n.x-group[0].x)+(down?Math.max(0,-slope*(group.at(-1).x-group[0].x)):Math.min(0,-slope*(group.at(-1).x-group[0].x)));
-      for(const n of group)svg.append(svgNode('line',{class:'scale-stem',x1:stemX(n),x2:stemX(n),y1:n.y,y2:beamAt(n),stroke:'#222','stroke-width':1.25}));
+      // The stem belongs to the note rather than its shared neutral beam.
+      group.forEach((n,j)=>noteGroups[start+j].append(svgNode('line',
+        {class:'scale-stem',x1:stemX(n),x2:stemX(n),y1:n.y,y2:beamAt(n),stroke:'#222','stroke-width':1.25})));
       if(group.length>1){
-        for(let level=0;level<2;level++)svg.append(svgNode('line',{class:'scale-beam','data-level':level+1,x1:stemX(group[0]),x2:stemX(group[group.length-1]),y1:beamAt(group[0])+(down?-6:6)*level,y2:beamAt(group.at(-1))+(down?-6:6)*level,stroke:'#222','stroke-width':3.5}));
+        const left=stemX(group[0]),right=stemX(group.at(-1));
+        for(let level=0;level<2;level++){
+          const y=beamAt(group[0])+(down?-6:6)*level;
+          const yAt=x=>y+slope*(x-left);
+          svg.append(svgNode('line',{class:'scale-beam','data-level':level+1,x1:left,x2:right,y1:y,y2:yAt(right),stroke:'#222','stroke-width':3.5}));
+          // The two rails each give a note the area between adjacent stem
+          // midpoints. End notes own up to the edge of the beam. This keeps
+          // the accent visible without recoloring an adjacent note's area.
+          group.forEach((n,j)=>{
+            const x=stemX(n);
+            const x1=j?(stemX(group[j-1])+x)/2:left;
+            const x2=j+1<group.length?(x+stemX(group[j+1]))/2:right;
+            noteGroups[start+j].append(svgNode('line',{class:'scale-beam-local','data-level':level+1,x1,x2,y1:yAt(x1),y2:yAt(x2),'stroke-width':3.5,stroke:'none','aria-hidden':'true'}));
+          });
+        }
+      } else if(!arpeggio&&first+start!==total-1){
+        // A system break can leave a lone sixteenth just before the final
+        // quarter. It still needs two flags even though there is no peer.
+        const n=group[0],x=stemX(n),y=beamAt(n),to=down?-1:1;
+        for(let flag=0;flag<2;flag++){
+          const at=y+to*flag*6;
+          noteGroups[start].append(svgNode('path',{class:'scale-beam-local',
+            d:`M${x} ${at}q 3 ${to*4} 8 ${to*6}q 5 ${to*3} 4 ${to*9}`,
+            fill:'none',stroke:'#222','stroke-width':1.6,'aria-hidden':'true'}));
+        }
       } // The final tonic keeps its stem but has no flags: a quarter note.
+      start+=size;
     }
-    for(const [x,label] of [[startX,'上行'],[startX+up.length*spacing,'下行']]){
+    svg.append(...noteGroups);
+    for(const [x,label] of (dir?[[startX,startsDescent?'上行':direction]]:[[startX,'上行'],[startX+apex*spacing,'下行']])){
       svg.append(svgNode('text',{x,y:164,'font-size':12,fill:'#647461'},label));
       svg.append(svgNode('path',{d:`M${x+32} 160h14m-6-6 6 6-6 6`,fill:'none',stroke:'#647461','stroke-width':1.6,'stroke-linecap':'round','stroke-linejoin':'round','aria-hidden':'true'}));
     }
-    wrap.append(svg);return wrap;
+    if(startsDescent){
+      svg.append(svgNode('text',{x:width-17,y:164,'text-anchor':'end','font-size':12,fill:'#647461'},'下行開始'));
+    }
+    return svg;
   }
 
   function create(mode,key,initialAnnotations={},onSave=null,onPreview=null,arpeggioOptions={}){
@@ -494,7 +575,6 @@
     const sourceDir=dir=>dir==='arpeggio'?'up':dir;
     const root=element('div',{class:'cello-fingerboard'});
     const toolbar=element('div',{class:'cello-fb-toolbar'});
-    const octaveGroup=element('div',{class:'cello-fb-group','aria-label':'音階八度數'});
     const boards=element('div',{class:'cello-fb-two-up'});
     const panels={};
     let remoteDrafts=[],remoteArpeggioDrafts=[];
@@ -508,7 +588,7 @@
       return JSON.stringify(Object.entries(map).sort(([a],[b])=>Number(a)-Number(b)));
     }
     function isDirty(){return edit.dir!==null&&signature(edit.original)!==signature(edit.pending);}
-    function notes(dir){return dir==='arpeggio'?arpeggioNotes(mode,key,'up'):scaleNotes(mode,key,dir,choices.get(id)||2);}
+    function notes(dir){return dir==='arpeggio'?arpeggioNotes(mode,key,'up'):scaleNotes(mode,key,dir,PRACTICE_OCTAVES);}
     function defaultPosition(dir,midi){
       const ref=(window.CelloFingeringOptimizer||window.CelloFingeringPresets)?.get(mode,key,sourceDir(dir),notes(dir),dir==='arpeggio')||{};
       return notePlacement(midi,{},ref);
@@ -771,21 +851,50 @@
       panels[dir]={heading,viewport,editor,status,hint,stringChoices,
         fingerChoices,range,back,restoreSelected,reset,save,memo,legend,section};
     }
-    const scoreSection=element('section',{class:'score-section'});
-    scoreSection.append(element('h3',{class:'music-section-title'},'音階 · 兩個八度'),makeScore(mode,key));
-    const boardSection=element('section',{class:'fingerboard-section'});
-    boardSection.append(element('h3',{class:'music-section-title'},'指板 · 指法'),
+    function appendPlayableScore(parent, boardDisclosure, arpeggio=false){
+      const sequence=scoreNotes(mode,key,arpeggio);
+      const score=makeScore(mode,key,arpeggio,sequence);
+      parent.append(element('h3',{class:'music-section-title exercise-score-title'},(arpeggio?'琶音':'音階')),score);
+      if(window.CelloScalePractice){
+        const expected=sequence.map(note=>({...note,octave:Math.floor(staffStep(note)/7)}));
+        const practice=window.CelloScalePractice.card(score,expected,
+          view=>window.CelloScalePractice.controller?.toggle(view),arpeggio?'arpeggio':'scale',id,
+          ()=>edit.dir===null?visiblePlan(mode,key,arpeggio?arpeggioAnnotations:annotations,arpeggio):null,arpeggioOptions.practiceAdviceContext,boardDisclosure);
+        parent.append(practice.element);
+      }else parent.append(boardDisclosure);
+    }
+    const scaleBlock=element('section',{class:'music-exercise-block scale-exercise','aria-label':'音階'});
+    const scoreSection=element('div',{class:'score-section'});
+    const boardSection=element('details',{class:'fingerboard-section layout-disclosure exercise-disclosure'});
+    boardSection.append(element('summary',{},'音階指板與指法'),
       toolbar,boards);
-    const arpeggioSection=element('section',{class:'arpeggio-section fingerboard-section'});
+    appendPlayableScore(scoreSection,boardSection);
+    scaleBlock.append(scoreSection);
+
+    const arpeggioSection=element('section',{class:'music-exercise-block arpeggio-section','aria-label':'琶音'});
+    const arpeggioScore=element('div',{class:'score-section'});
+    const arpeggioBoard=element('details',{class:'arpeggio-fingerboard layout-disclosure exercise-disclosure'});
     const arpeggioBoards=element('div',{class:'cello-fb-two-up'});
-    arpeggioSection.append(element('h3',{class:'music-section-title'},'琶音 · 兩個八度'),
-      makeScore(mode,key,true),arpeggioBoards);
+    arpeggioBoard.append(element('summary',{},'琶音指板與指法'),arpeggioBoards);
     // Reuse the scale transaction UI, but give arpeggios independent storage.
     arpeggioBoards.append(panels.arpeggio.section);
-    if(arpeggioOptions.localOnly)arpeggioSection.append(
+    if(arpeggioOptions.localOnly)arpeggioBoard.append(
       element('p',{class:'fingering-note'},'琶音修改只儲存在此瀏覽器，不與教室同步。'));
+    appendPlayableScore(arpeggioScore,arpeggioBoard,true);
+    arpeggioSection.append(arpeggioScore);
 
-    root.append(scoreSection,boardSection,arpeggioSection,dialog);
+    // Both scores remain mounted, with a shortcut only to stop active audio.
+    const exerciseNav=element('div',{class:'exercise-nav','aria-label':'收音控制'});
+    const activeStop=element('button',{class:'exercise-jump exercise-active-stop',type:'button'},'停止目前收音');
+    activeStop.addEventListener('click',()=>{
+      const active=root.querySelector('.scale-practice:is([data-phase="listening"],[data-phase="pending"])');
+      const button=active?.querySelector('.scale-practice-button');
+      if(!button)return;
+      button.focus({preventScroll:true});
+      button.click();
+    });
+    exerciseNav.append(activeStop);
+    root.append(exerciseNav,scaleBlock,arpeggioSection,dialog);
 
     function renderDirection(dir){
       const pane=panels[dir],editing=edit.dir===dir,isArpeggio=dir==='arpeggio';
@@ -806,7 +915,7 @@
       pane.memo.textContent=memo||'';pane.memo.hidden=!memo;
       const value=editing?(Object.keys(edit.pending).length?JSON.stringify(edit.pending):''):
         mapFor(dir);
-      pane.viewport.replaceChildren(chartSVG(mode,key,sourceDir(dir),isArpeggio?2:choices.get(id)||2,
+      pane.viewport.replaceChildren(chartSVG(mode,key,sourceDir(dir),PRACTICE_OCTAVES,
         isArpeggio?{upMap:value}:{...annotations,[dir+'Map']:value},
         typeof saveFor(dir)==='function'&&!(asymmetric&&dir==='down')?{
           selectedMidi:editing?edit.midi:null,
@@ -869,26 +978,10 @@
       }
     }
     function render(){
-      const count=choices.get(id)||2;
-      one.setAttribute('aria-pressed',String(count===1));
-      two.setAttribute('aria-pressed',String(count===2));
       standardOrder.setAttribute('aria-pressed',String(stringOrder!=='ADGC'));
       reverseOrder.setAttribute('aria-pressed',String(stringOrder==='ADGC'));
       renderDirection('up');renderDirection('down');renderDirection('arpeggio');
     }
-    function addButton(label,count){
-      const btn=element('button',{type:'button',class:'cello-fb-button'},label);
-      btn.addEventListener('click',()=>{
-        // Switching octaves retains the current pending multi-note transaction.
-        choices.set(id,count);
-        if(edit.dir!==null&&edit.midi!==null&&!notes(edit.dir).some(n=>n.midi===edit.midi)){
-          edit.midi=null;
-        }
-        render();
-      });
-      octaveGroup.append(btn);return btn;
-    }
-    const one=addButton('1 八度',1),two=addButton('2 八度',2);
     const orderGroup=element('div',{class:'cello-fb-group','aria-label':'指板弦排列，由左至右'});
     function addOrder(order){
       const button=element('button',{type:'button',class:'cello-fb-button','aria-label':'弦排列由左至右 '+order},order);
@@ -899,8 +992,7 @@
       orderGroup.append(button);return button;
     }
     const standardOrder=addOrder('CGDA'),reverseOrder=addOrder('ADGC');
-    toolbar.append(octaveGroup,orderGroup);
-    if(!choices.has(id))choices.set(id,2);
+    toolbar.append(orderGroup);
     root.refreshStringOrder=()=>render();
     root.isEditing=()=>edit.dir!==null;
     root.requestLeave=next=>exitEditor(next);
@@ -935,6 +1027,557 @@
   window.CelloFingerboard={
     create,
     // Pure helpers exported for automated pitch and placement checks.
-    arpeggioNotes,chartSVG,scoreAccidentals,staffStep,makeScore,scaleNotes,positionFor,pitchClass,decodeMap,pointStyling,POSITION_COLORS,CHART_POSITIONS,contrastInk,makeLegend,notePlacement,resolvedShiftCue,bMinorAccent
+    arpeggioNotes,chartSVG,visiblePlan,scoreAccidentals,staffStep,makeScore,scoreNotes,scaleNotes,positionFor,pitchClass,decodeMap,pointStyling,POSITION_COLORS,CHART_POSITIONS,contrastInk,makeLegend,notePlacement,resolvedShiftCue,bMinorAccent
   };
 })();
+
+/* START practice history module */
+(function(root, factory) {
+  root.CelloPracticeHistory = factory();
+})(globalThis, function() {
+  'use strict';
+
+  const PREFIX = 'cello-practice-intonation:stable:v1:';
+  const LIMIT = 50;
+  const EPSILON = 1e-7;
+  const MAX_COUNT = Number.MAX_SAFE_INTEGER;
+  const validSlot = x => Number.isInteger(x) && Math.abs(x) <= LIMIT;
+  const validCount = x => Number.isSafeInteger(x) && x > 0;
+  const fresh = count => Array.from({length: count}, () => new Map());
+
+  function keyFor(scope, kind, target) {
+    if (typeof scope !== 'string' || !scope.trim() || !['scale', 'arpeggio'].includes(kind) ||
+        !Array.isArray(target) || !target.length) return null;
+    const ordered = Array.from(target, note => typeof note === 'number' ? note : note?.midi);
+    if (!ordered.every(midi => Number.isInteger(midi) && midi >= 0 && midi <= 127)) return null;
+    return PREFIX + JSON.stringify([scope, kind, ordered]);
+  }
+
+  // Quantize like the live lap histogram, without moving points across tuner color bands.
+  function bucket(cents) {
+    if (!Number.isFinite(cents) || Math.abs(cents) > LIMIT + EPSILON) return null;
+    const magnitude = Math.abs(cents);
+    const rounded = Math.min(LIMIT, Math.round(magnitude));
+    const bandFloor = magnitude > 20 + EPSILON ? 21 : magnitude > 10 + EPSILON ? 11 : 0;
+    return Math.max(rounded, bandFloor) * (cents < 0 ? -1 : 1);
+  }
+
+  function appendPoints(bins, points) {
+    const result = bins.map(slot => new Map(slot));
+    for (let i = 0; i < result.length; i++) {
+      const cent = bucket(points?.[i]);
+      if (cent === null) continue;
+      result[i].set(cent, Math.min(MAX_COUNT, (result[i].get(cent) || 0) + 1));
+    }
+    return result;
+  }
+
+  function validKey(key, count) {
+    if (typeof key !== 'string' || !key.startsWith(PREFIX) || !Number.isInteger(count) || count < 1) return false;
+    try {
+      const [scope, kind, target] = JSON.parse(key.slice(PREFIX.length));
+      return keyFor(scope, kind, target) === key && target.length === count;
+    } catch {
+      return false;
+    }
+  }
+
+  const DRAFT_KEY = PREFIX + 'latest-local';
+  const keyedSlot = key => key + ':latest';
+  const validKeyed = (key,count) => count<=64 && typeof key==='string' && key.length<=1000 && validKey(key,count);
+  const validId = id => typeof id === 'string' && /^[a-zA-Z0-9-]{1,96}$/.test(id);
+  const nonnegative = n => Number.isSafeInteger(n) && n >= 0;
+  const sum = (a, b) => b > MAX_COUNT - a ? MAX_COUNT : a + b;
+
+  function decodeSlots(slots, count) {
+    if (!Array.isArray(slots) || slots.length !== count) throw new Error();
+    return slots.map(slot => {
+      if (!Array.isArray(slot) || slot.length > LIMIT * 2 + 1) throw new Error();
+      const bin = new Map();
+      for (const pair of slot) {
+        if (!Array.isArray(pair) || pair.length !== 2) throw new Error();
+        const [cent, n] = pair;
+        if (!validSlot(cent) || !validCount(n) || bin.has(cent)) throw new Error();
+        bin.set(cent, n);
+      }
+      return bin;
+    });
+  }
+
+  function sortedSlots(bins) {
+    return bins.map(slot => Array.from(slot.entries()).sort((a, b) => a[0] - b[0]));
+  }
+
+  function addBins(target, source) {
+    if (!Array.isArray(source) || source.length !== target.length) throw new Error();
+    let any = false;
+    for (let i = 0; i < target.length; i++) {
+      if (!(source[i] instanceof Map)) throw new Error();
+      for (const [measured, count] of source[i]) {
+        const cent = bucket(measured);
+        if (cent === null || !validCount(count)) throw new Error();
+        const slot = target[i];
+        slot.set(cent, sum(slot.get(cent) || 0, count));
+        any = true;
+      }
+    }
+    return any;
+  }
+
+  function read(storage, key) {
+    try {
+      return {ok: true, raw: storage.getItem(key)};
+    } catch {
+      return {ok: false, reason: 'unavailable'};
+    }
+  }
+
+  function write(storage, key, payload) {
+    try {
+      storage.setItem(key, JSON.stringify(payload));
+      return {ok: true};
+    } catch {
+      return {ok: false, reason: 'write-failed'};
+    }
+  }
+
+  function load(storage, key, count) {
+    if (!validKey(key, count)) return {ok: false, reason: 'invalid-key'};
+    const item = read(storage, key);
+    if (!item.ok) return item;
+    if (item.raw === null) return {ok: true, bins: fresh(count), exists: false};
+    try {
+      const {v, slots, lastDraftId} = JSON.parse(item.raw);
+      if (v !== 1 || (lastDraftId !== undefined && !validId(lastDraftId))) throw new Error();
+      const bins = decodeSlots(slots, count);
+      return {ok: true, bins, exists: bins.some(slot => slot.size > 0), lastDraftId};
+    } catch {
+      return {ok: false, reason: 'invalid-data'};
+    }
+  }
+
+  function save(storage, key, bins, draftId) {
+    if (!Array.isArray(bins) || (draftId !== undefined && !validId(draftId))) {
+      return {ok: false, reason: 'invalid-attempt'};
+    }
+    const current = load(storage, key, bins.length);
+    if (!current.ok) return current;
+    if (draftId !== undefined && current.lastDraftId === draftId) return {...current, duplicate: true};
+    try {
+      if (!addBins(current.bins, bins)) return {ok: false, reason: 'empty-attempt'};
+    } catch {
+      return {ok: false, reason: 'invalid-attempt'};
+    }
+    // Refuse a stale tab once another exercise or attempt has replaced its draft.
+    // Read immediately before the write; localStorage has no cross-tab transaction.
+    if (draftId !== undefined) {
+      const latest = loadDraft(storage, key, bins.length);
+      if (!latest.ok) return latest;
+      if (!latest.exists || latest.draft.id !== draftId || !latest.draft.pending) {
+        return {ok: false, reason: 'stale-draft'};
+      }
+    }
+    const lastDraftId = draftId ?? current.lastDraftId;
+    const saved = write(storage, key, {v: 1, slots: sortedSlots(current.bins), lastDraftId});
+    return saved.ok ? {...current, exists: true, lastDraftId} : saved;
+  }
+
+  function newDraftId() {
+    try {
+      const id = globalThis.crypto?.randomUUID?.();
+      if (validId(id)) return id;
+    } catch {}
+    return Array.from({length: 4}, () => Math.random().toString(36).slice(2) || '0').join('-');
+  }
+
+  function normalizeDraft(draft, count) {
+    if (!draft || !validId(draft.id) || !Array.isArray(draft.values) || draft.values.length !== count ||
+        !['loop', 'single'].includes(draft.mode) || !nonnegative(draft.laps) || !nonnegative(draft.passed) ||
+        draft.passed > draft.laps || !nonnegative(draft.progress) || draft.progress > count ||
+        typeof draft.pending !== 'boolean') throw new Error();
+    const values = Array.from(draft.values, n => {
+      if (n !== null && bucket(n) === null) throw new Error();
+      return n;
+    });
+    const result = {id: draft.id, values, mode: draft.mode, laps: draft.laps, passed: draft.passed,
+      progress: draft.progress, pending: draft.pending};
+    if(typeof draft.adviceSession==='string'&&/^[a-zA-Z0-9-]{1,64}:[0-9]{1,16}$/.test(draft.adviceSession))result.adviceSession=draft.adviceSession;
+    const coach=draft.coach;
+    if(coach && ['SwiftF0','現有偵測'].includes(coach.engine) && Number.isFinite(coach.reference) &&
+      coach.reference>=430 && coach.reference<=450) result.coach={engine:coach.engine,reference:coach.reference};
+    return result;
+  }
+
+  // Store only the rendered deterministic result, never the plan or lap packet.
+  function normalizeAdvice(raw,draft,encoded=false) {
+    if(!raw||!draft.values.some(Number.isFinite)||
+       (encoded&&(![2,3,4].includes(raw.v)||raw.draftId!==draft.id||raw.mode!==draft.mode)))return;
+    const {kind,observation,action,check}=raw;
+    const bounded=(x,max)=>typeof x==='string'&&x.trim().length>0&&x.length<=max&&!/[\x00-\x1f\x7f]/.test(x);
+    if(Array.isArray(raw.issues)&&Array.isArray(raw.drills)&&(!encoded||[3,4].includes(raw.v))){
+      if(!raw.issues.length||raw.issues.length>256||raw.drills.length>3||
+         raw.issues.some(x=>!bounded(x,240))||raw.drills.some(x=>!bounded(x,350)))return;
+      const result={issues:[...raw.issues],drills:[...raw.drills]};
+      const ids=['connected','crossing','approach','spacing','shift','shiftFrames'];
+      if((!encoded||raw.v===4)&&Array.isArray(raw.drillSources)&&raw.drillSources.length===raw.drills.length&&
+         raw.drillSources.every(group=>Array.isArray(group)&&group.length<=ids.length&&group.every(id=>ids.includes(id)))){
+        result.drillSources=raw.drillSources.map(g=>[...new Set(g)]);
+      }
+      return encoded?result:{v:4,draftId:draft.id,mode:draft.mode,...result};
+    }
+    if(encoded&&raw.v!==2)return;
+    if(!['insufficient','note','crossing','fingers','shift','extension'].includes(kind)||!bounded(observation,240))return;
+    if(kind==='insufficient'?(action!==undefined||check!==undefined):(!bounded(action,180)||!bounded(check,180)))return;
+    const result=kind==='insufficient'?{kind,observation}:{kind,observation,action,check};
+    return encoded?result:{v:2,draftId:draft.id,mode:draft.mode,...result};
+  }
+
+  // Optional finalized trace is part of the single draft, never a separate
+  // storage key. Tuples store time/cents/score slot/lap/segment, not audio.
+  const TREND_MS = 120000, TREND_CAP = 2564;
+  function normalizeTrend(raw,draft,count,encoded=false) {
+    if(!raw || !draft.coach || !draft.values.some(Number.isFinite) ||
+      raw.reference!==draft.coach.reference || (encoded && (raw.draftId!==draft.id ||
+        raw.mode!==draft.mode || raw.engine!==draft.coach.engine))) return;
+    const {start,end}=raw, points=encoded?raw.points:raw.data;
+    if(!Number.isFinite(start)||!Number.isFinite(end)||start<0||end<start||
+      end-start>TREND_MS+1e-7||!Array.isArray(points)||!points.length||points.length>TREND_CAP) return;
+    const data=[];
+    let before=null;
+    for(const p of points){
+      if(encoded ? !Array.isArray(p)||p.length!==5 : !p) return;
+      const [ms,cents,slot,lap,segment]=encoded?p:[p.ms,p.cents,p.slot,p.lap,p.segment];
+      if(!Number.isFinite(ms)||ms<start||ms>end || !Number.isFinite(cents)||Math.abs(cents)>50+1e-7 ||
+        !nonnegative(slot)||slot>=count||!nonnegative(lap)||lap<1||lap-1>draft.laps||!nonnegative(segment)||!segment ||
+        (before&&(ms<=before.ms||lap<before.lap||segment<before.segment||
+          (segment===before.segment&&(lap!==before.lap||slot!==before.slot)))))return;
+      const point={ms,cents,slot,lap,segment};
+      data.push(point);before=point;
+    }
+    if(encoded)return {start,end,reference:raw.reference,data};
+    return {draftId:draft.id,mode:draft.mode,engine:draft.coach.engine,reference:raw.reference,start,end,
+      points:data.map(p=>[p.ms,p.cents,p.slot,p.lap,p.segment])};
+  }
+
+  function currentDraftId(storage) {
+    const item = read(storage, DRAFT_KEY);
+    if (!item.ok) return item;
+    if (item.raw === null) return {ok:true,id:null};
+    try {
+      const current = JSON.parse(item.raw);
+      if (current.v !== 1 || !validId(current.id) || !validKey(current.scope,current.values?.length)) throw new Error();
+      return {ok:true,id:current.id};
+    } catch {
+      return {ok:false,reason:'invalid-draft'};
+    }
+  }
+
+  function saveDraftRecord(storage, key, draft, options, keyed) {
+    const count = draft?.values?.length;
+    if (!(keyed?validKeyed:validKey)(key, count)) return {ok: false, reason: 'invalid-key'};
+    if (!storage) return {ok: false, reason: 'unavailable'};
+    let snapshot;
+    try {
+      snapshot = normalizeDraft(draft, count);
+      const trend=normalizeTrend(draft.trend,snapshot,count);
+      if(trend)snapshot.trend=trend;
+      const advice=normalizeAdvice(draft.advice,snapshot);
+      if(advice)snapshot.advice=advice;
+      for (const name of ['history', 'attemptHistory']) {
+        if (draft[name] == null) continue;
+        const bins = fresh(count);
+        addBins(bins, draft[name]);
+        snapshot[name] = sortedSlots(bins);
+      }
+    } catch {
+      return {ok: false, reason: 'invalid-draft'};
+    }
+    if (options.expectedId !== undefined) {
+      const latest = keyed ? latestDraftId(storage,key,count) : currentDraftId(storage);
+      if (!latest.ok) return latest;
+      if (latest.id !== options.expectedId) return {ok:false,reason:'stale-draft'};
+    }
+    if (options.ifCurrent) {
+      const latest = keyed ? loadKeyDraft(storage,key,count) : loadDraft(storage,key,count);
+      if (!latest.ok) return latest;
+      if (!latest.exists || latest.draft.id !== snapshot.id) return {ok: false, reason: 'stale-draft'};
+    }
+    const hadTrend=Boolean(snapshot.trend), hadAdvice=Boolean(snapshot.advice);
+    const publish=()=>{
+      const payload={v:1,scope:key,...snapshot};
+      if(keyed&&JSON.stringify(payload).length>128000)return {ok:false,reason:'write-failed'};
+      return write(storage,keyed?keyedSlot(key):DRAFT_KEY,payload);
+    };
+    let saved=publish();
+    // Optional coaching and trace must never prevent restoring the dot chart.
+    if(!saved.ok&&hadTrend){delete snapshot.trend;saved=publish();}
+    if(!saved.ok&&hadAdvice){delete snapshot.advice;saved=publish();}
+    if(saved.ok&&hadTrend)saved={...saved,trendSaved:Boolean(snapshot.trend)};
+    if(saved.ok&&hadAdvice)saved={...saved,adviceSaved:Boolean(snapshot.advice)};
+    return saved;
+  }
+
+  function saveDraft(storage,key,draft,options={}){
+    return saveDraftRecord(storage,key,draft,options,false);
+  }
+  function saveKeyDraft(storage,key,draft,options={}){
+    return saveDraftRecord(storage,key,draft,options,true);
+  }
+
+  function loadDraftRecord(storage, key, count, keyed) {
+    if (!(keyed?validKeyed:validKey)(key, count)) return {ok: false, reason: 'invalid-key'};
+    let item=read(storage,keyed?keyedSlot(key):DRAFT_KEY);
+    const fallback=keyed&&item.ok&&item.raw===null;
+    if(fallback)item=read(storage,DRAFT_KEY);
+    if (!item.ok) return item;
+    if (item.raw === null) return {ok: true, exists: false};
+    try {
+      const snapshot = JSON.parse(item.raw);
+      if(keyed&&!fallback&&snapshot.cleared===true){
+        if(snapshot.v!==1||snapshot.scope!==key||!validId(snapshot.id))throw new Error();
+        return {ok:true,exists:false,revision:snapshot.id};
+      }
+      if (snapshot.v !== 1 || !validKey(snapshot.scope, snapshot.values?.length)) throw new Error();
+      if (snapshot.scope !== key) return {ok: true, exists: false};
+      const draft = normalizeDraft(snapshot, count);
+      const trend=normalizeTrend(snapshot.trend,draft,count,true);
+      if(trend)draft.trend=trend;
+      const advice=normalizeAdvice(snapshot.advice,draft,true);
+      if(advice)draft.advice=advice;
+      for (const name of ['history', 'attemptHistory']) {
+        if (snapshot[name] !== undefined) draft[name] = decodeSlots(snapshot[name], count);
+      }
+      if (draft.pending) {
+        const saved = load(storage, key, count);
+        if (saved.ok && saved.lastDraftId === draft.id) draft.pending = false;
+      }
+      return {ok: true, exists: true, draft};
+    } catch {
+      return {ok: false, reason: 'invalid-draft'};
+    }
+  }
+
+  function loadDraft(storage,key,count){return loadDraftRecord(storage,key,count,false);}
+  function loadKeyDraft(storage,key,count){return loadDraftRecord(storage,key,count,true);}
+  function latestDraftId(storage,key,count){
+    const latest=loadKeyDraft(storage,key,count);
+    return latest.ok?{ok:true,id:latest.draft?.id??latest.revision??null}:latest;
+  }
+
+  // Pin terminal or recovered counts to the latest draft for this score.
+  // Commit counts and the replay marker together; a retry after interruption
+  // can never add the same current attempt twice.
+  function accumulate(storage,key,bins,attemptId){
+    if(!Array.isArray(bins)||!validId(attemptId))return {ok:false,reason:'invalid-attempt'};
+    const latest=loadKeyDraft(storage,key,bins.length);
+    if(!latest.ok)return latest;
+    if(!latest.exists||latest.draft.id!==attemptId)return {ok:false,reason:'stale-draft'};
+    const current=load(storage,key,bins.length);
+    if(!current.ok)return current;
+    if(current.lastDraftId===attemptId)return {...current,duplicate:true};
+    try{
+      if(!addBins(current.bins,bins))return {ok:false,reason:'empty-attempt'};
+    }catch{return {ok:false,reason:'invalid-attempt'};}
+    const saved=write(storage,key,{v:1,slots:sortedSlots(current.bins),lastDraftId:attemptId});
+    return saved.ok?{...current,exists:true,lastDraftId:attemptId}:saved;
+  }
+
+  // A small tombstone keeps old singleton data from reappearing on reload.
+  // Its opaque revision also invalidates optimistic writers from before clear.
+  function removeKeyDraft(storage,key,count){
+    if(!validKeyed(key,count))return {ok:false,reason:'invalid-key'};
+    return write(storage,keyedSlot(key),{v:1,scope:key,cleared:true,id:newDraftId()});
+  }
+
+  function clear(storage,key,count,{includeDraft=false}={}){
+    if(!validKeyed(key,count))return {ok:false,reason:'invalid-key'};
+    if(includeDraft){
+      const removed=removeKeyDraft(storage,key,count);
+      if(!removed.ok)return removed;
+    }
+    try{storage.removeItem(key);return {ok:true};}
+    catch{return {ok:false,reason:'write-failed',draftCleared:includeDraft};}
+  }
+
+  function removeDraft(storage, key, count) {
+    if (!validKey(key, count)) return {ok: false, reason: 'invalid-key'};
+    const current = loadDraft(storage, key, count);
+    if (!current.ok || !current.exists) return current;
+    try {
+      storage.removeItem(DRAFT_KEY);
+      return {ok: true};
+    } catch {
+      return {ok: false, reason: 'write-failed'};
+    }
+  }
+
+  return {keyFor, bucket, appendPoints, load, save, newDraftId, currentDraftId, saveDraft, loadDraft, removeDraft,
+    latestDraftId, loadKeyDraft, saveKeyDraft, removeKeyDraft, accumulate, clear};
+});
+/* END practice history module */
+/* Local-only comparison with the last fresh take used for practice advice. */
+(function (root, factory) {
+  const api=factory();
+  if(typeof module!=='undefined'&&module.exports)module.exports=api;
+  else root.CelloPracticeProgress=api;
+})(globalThis,function(){
+  'use strict';
+  const prefix='daily-key-practice:practice-comparison:v1:';
+  const not=reason=>({status:'unavailable',reason});
+  const own=(a,b)=>Object.prototype.hasOwnProperty.call(a,b);
+  const knownScopes={
+    major:new Set('C D♭ D E♭ E F F♯ G A♭ A B♭ B'.split(' ')),
+    minor:new Set('C C♯ D E♭ E F F♯ G G♯ A B♭ B'.split(' '))
+  };
+  const scopePrefix=scope=>{
+    const m=typeof scope==='string'&&/^(major|minor)-([A-G][♯♭]?):(scale|arpeggio)$/.exec(scope);
+    return m&&m[0]===scope&&knownScopes[m[1]].has(m[2])?prefix+scope+':':null;
+  };
+  const takeOf=p=>{
+    const t=p?.take;
+    return !p?.restored&&typeof t?.id==='string'&&/^[\w.:-]{1,120}$/.test(t.id)&&Number.isSafeInteger(t.beganAt)&&t.beganAt>0
+      ?{id:t.id,beganAt:t.beganAt}:null;
+  };
+  const metricArity={pitch:1,interval:2,front:1,tail:1,wobble:1};
+  function metricOf(m,len){
+    if(!m||!own(metricArity,m.type)||!Array.isArray(m.slots)||m.slots.length!==metricArity[m.type]||
+       !m.slots.every(i=>Number.isInteger(i)&&i>=0&&i<len)||
+       (m.slots.length===2&&m.slots[1]!==m.slots[0]+1)||![1,2].includes(m.minRounds))return null;
+    return {type:m.type,slots:[...m.slots],minRounds:m.minRounds};
+  }
+  function provenance(p){
+    if (p?.source!=='confirmed/visible plan'||!Array.isArray(p.slots)||p.slots.length<1||p.slots.length>64||
+        !Number.isFinite(p.reference)||p.reference<430||p.reference>450||!['SwiftF0','現有偵測'].includes(p.detector))return null;
+    const slots=p.slots.map(s=>{
+      if(!Number.isInteger(s?.midi)||s.midi<0||s.midi>127||!['up','down'].includes(s.direction))return null;
+      const v=s.plan, e=s.edge, known=v?.reviewed===true&&['C','G','D','A'].includes(v.string)&&Number.isInteger(v.finger)&&v.finger>=0&&v.finger<=4;
+      return [s.midi,s.direction,known?[v.string,v.finger,v.fingersReviewed===true,Number.isInteger(v.anchor)?v.anchor:null,
+        ['confirmed-edit','visible-board'].includes(v.source)?v.source:null]:null,
+        e?.reviewed===true&&Number.isInteger(e.from)?[e.from,e.shift===true,e.extension===true]:null];
+    });
+    if(slots.some(s=>!s))return null;
+    return {reference:p.reference,detector:p.detector,slots,route:JSON.stringify(slots)};
+  }
+  const isCents=c=>Number.isFinite(c)&&Math.abs(c)<=50+1e-7;
+  const boundedId=id=>(typeof id==='string'&&id.length>0&&id.length<=120)||Number.isInteger(id);
+  function measure(packet,metric,provenance){
+    const slots=metric.slots.map(i=>provenance.slots[i]);
+    if(slots.some(s=>!s[2])||(slots.length===2&&(slots[0][1]!==slots[1][1]||slots[0][0]===slots[1][0])))return null;
+    const rounds=packet.rounds;
+    if(!Array.isArray(rounds)||rounds.length>8)return null;
+    const counts=new Map(), accepted=new Map();
+    for(const r of rounds)if(boundedId(r?.id))counts.set(r.id,(counts.get(r.id)||0)+1);
+    for(const r of rounds){
+      if(counts.get(r?.id)!==1||!Array.isArray(r.values)||r.values.length!==provenance.slots.length)continue;
+      const row=metric.slots.map(i=>r.values[i]);
+      if(row.every(isCents))accepted.set(r.id,row);
+    }
+    let samples=[];
+    if(metric.type==='pitch'||metric.type==='interval'){
+      samples=[...accepted.values()].map(row=>Math.abs(row.length===1?row[0]:row[1]-row[0]));
+    }else{
+      const spans=packet.trendMetrics;
+      if(!Array.isArray(spans)||spans.length>2564)return null;
+      const laps=new Map();
+      const field=metric.type==='wobble'?'range':metric.type;
+      for(const s of spans){
+        if(s?.slot!==metric.slots[0]||!Number.isInteger(s.lap)||s.lap<1||!accepted.has(s.lap))continue;
+        const value=s[field];
+        const valid=field==='range'?Number.isFinite(value)&&value>=0&&value<=100+1e-7:isCents(value);
+        if(!valid)continue;
+        // Ambiguous disjoint valid segments from one lap aren't one repeat.
+        laps.set(s.lap,laps.has(s.lap)?null:Math.abs(value));
+      }
+      samples=[...laps.values()].filter(Number.isFinite).slice(-8);
+    }
+    if(samples.length<metric.minRounds)return null;
+    samples.sort((a,b)=>a-b);
+    const mid=Math.floor(samples.length/2);
+    return {error:samples.length%2?samples[mid]:(samples[mid-1]+samples[mid])/2,rounds:samples.length};
+  }
+  function labelFor(packet,metric){
+    const ns=metric.slots.map(i=>packet.slots[i]);
+    const name=s=>typeof s.name==='string'&&s.name.length<=16?s.name:'這個音';
+    const strings=ns.map(s=>s.plan.string);
+    const location=ns.map((s,i)=>i===0||strings[i]!==strings[i-1]?strings[i]+' 弦上的 '+name(s):name(s)).join(' → ');
+    const field={pitch:'音準偏差',interval:'音程偏差',front:'量到的前段偏差',tail:'量到的後段偏差',wobble:'量到的持音波動'}[metric.type];
+    return (ns[0].direction==='down'?'下行':'上行')+'：'+location+'的'+field;
+  }
+  function decode(raw,name,root){
+    if(typeof raw!=='string'||raw.length>10000)return null;
+    try{
+      const e=JSON.parse(raw);
+      if(!takeOf(e)||root+e.take.id!==name||typeof e.route!=='string'||e.route.length>8000||
+        !Number.isFinite(e.reference)||!['SwiftF0','現有偵測'].includes(e.detector)||
+        !Number.isFinite(e.sample?.error)||e.sample.error<0||e.sample.error>100+1e-7||
+        !Number.isInteger(e.sample.rounds)||e.sample.rounds<1||e.sample.rounds>8)return null;
+      return e;
+    }catch{return null;}
+  }
+  const latestFirst=(a,b)=>b.entry.take.beganAt-a.entry.take.beganAt||b.entry.take.id.localeCompare(a.entry.take.id);
+  function create(storage){
+    function read(key){
+      if(!storage)return null;
+      const found=[];
+      try{
+        // Snapshot keys so deleting stale records never shifts enumeration or
+        // removes an unseen concurrent write from a newer tab.
+        const keys=Array.from({length:storage.length},(_,i)=>storage.key(i));
+        for(const name of keys)if(typeof name==='string'&&name.startsWith(key)){
+          const entry=decode(storage.getItem(name),name,key);
+          if(entry)found.push({name,entry});
+        }
+      }catch{return null;}
+      return found.sort(latestFirst);
+    }
+    function pin(scope,packet,proposed){
+      const key=scopePrefix(scope),take=takeOf(packet),prov=provenance(packet);
+      if(!key||!take||!prov)return not('provenance');
+      const metric=metricOf(proposed,prov.slots.length);
+      const sample=metric&&measure(packet,metric,prov);
+      if(!sample)return not('insufficient');
+      const found=read(key);
+      if(!found)return not('storage');
+      if(found[0]?.entry.take.id===take.id)return {status:'pinned'};
+      if(found.length&&found[0].entry.take.beganAt>=take.beganAt)return not('stale');
+      const name=key+take.id;
+      try{storage.setItem(name,JSON.stringify({take,reference:prov.reference,detector:prov.detector,route:prov.route,metric,sample}));}
+      catch{return not('storage');}
+      const after=read(key);
+      if(after?.length){
+        for(const item of after.slice(1)){
+          try{storage.removeItem(item.name);}catch{}
+        }
+        if(after[0].name!==name)return not('stale');
+      }
+      return {status:'pinned'};
+    }
+    function compare(scope,packet){
+      const key=scopePrefix(scope),take=takeOf(packet),prov=provenance(packet);
+      if(!key||!take||!prov)return not('provenance');
+      const found=read(key),prior=found?.[0]?.entry;
+      if(!found)return not('storage');
+      if(!prior)return not('no-baseline');
+      if(prior.take.id===take.id || prior.take.beganAt>=take.beganAt)return not('same-or-older');
+      if(prior.reference!==prov.reference||prior.detector!==prov.detector)return not('settings');
+      if(prior.route!==prov.route)return not('route');
+      const m=metricOf(prior.metric,prov.slots.length);
+      const current=m&&measure(packet,m,prov);
+      if(!current||prior.sample.rounds<m.minRounds)return not('insufficient');
+      const delta=current.error-prior.sample.error;
+      return {status:Math.abs(delta)<3?'unchanged':delta<0?'improved':'worse',label:labelFor(packet,m),
+        before:prior.sample.error,after:current.error,beforeRounds:prior.sample.rounds,afterRounds:current.rounds};
+    }
+    function clear(scope){
+      const key=scopePrefix(scope);
+      if(!key)return {ok:false,reason:'invalid-key'};
+      try{
+        const keys=Array.from({length:storage.length},(_,i)=>storage.key(i));
+        for(const name of keys)if(typeof name==='string'&&name.startsWith(key))storage.removeItem(name);
+        return {ok:true};
+      }catch{return {ok:false,reason:'write-failed'};}
+    }
+    return {pin,compare,clear};
+  }
+  return {create};
+});

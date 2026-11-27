@@ -7,6 +7,9 @@ class PracticeMetronome extends AudioWorkletProcessor {
       if (data.type === 'stop') { this.running = false; this.clickStart = -Infinity; }
       if (data.type === 'configure' || data.type === 'start') {
         Object.assign(this.settings, data.settings);
+        if (Number.isInteger(data.settings?.accent) && data.settings.accentMask === undefined) {
+          delete this.settings.accentMask; // Support previous single-accent callers.
+        }
         if (data.resetBeat) this.beat = 0;
       }
       if (data.type === 'start') {
@@ -21,12 +24,14 @@ class PracticeMetronome extends AudioWorkletProcessor {
       const now = currentTime + i / sampleRate;
       if (this.running && now >= this.next) {
         // Do not replay missed beats after a suspended render context.
-        this.clickStart = now; this.frequency = this.beat + 1 === this.settings.accent ? 1200 : 850;
+        const {accentMask,accent}=this.settings;
+        const accented=Number.isInteger(accentMask)?Boolean(accentMask&(1<<this.beat)):this.beat+1===accent;
+        this.clickStart = now; this.frequency = accented ? 1200 : 850;
         // Bound the platform peak and slider even if a malformed message arrives.
         const level = Number(this.settings.peakLevel);
         const peakLevel = Number.isFinite(level) ? Math.max(0, Math.min(0.85, level)) : 0.65;
         this.peak = Math.max(0, Math.min(100, Number(this.settings.volume) || 0)) / 100 * peakLevel;
-        this.port.postMessage({ beat: this.beat + 1, count: this.settings.count });
+        this.port.postMessage({ beat: this.beat + 1, count: this.settings.count, accented, at: now });
         this.beat = (this.beat + 1) % this.settings.count;
         this.next = now + 60 / this.settings.bpm;
       }

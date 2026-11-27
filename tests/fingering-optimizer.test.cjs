@@ -75,7 +75,8 @@ test('Werner confirmed source remains separately available and unchanged',()=>{
 test('computed defaults are bundled in a deployed existing asset',()=>{
  a.ok(html.indexOf('fingering-presets.js')<html.indexOf('fingerboard.js'));
  a.ok(fs.readFileSync('fingering-presets.js','utf8').includes('window.CelloFingeringOptimizer='));
- a.match(html,/20261118-011/);
+ const version=html.match(/<meta name="site-version" content="(\d{8}-\d{3})">/)?.[1];
+ a.ok(version);a.ok(html.includes('aria-label="網站版本">'+version));
 });
 
 test('F major preserves GD 0124 and applies reviewed expanded124 then fourth-position12',()=>{
