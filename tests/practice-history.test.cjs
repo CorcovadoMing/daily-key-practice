@@ -228,3 +228,14 @@ test('comparison clear removes only the requested pitch-advice exercise',()=>{
   assert.deepEqual([...s.data.keys()],[prefix+'major-C:arpeggio:one','daily-key-practice:experimental:v1']);
   assert.equal(api.clear('major-X:scale').reason,'invalid-key');
 });
+
+test('the focused shift exercise preserves only its recognized source id on reload',()=>{
+  const s=storage();
+  const draft={id:'frames-source',values:[0,-25,null],mode:'single',laps:0,passed:0,progress:2,pending:false,
+    advice:{issues:['上行：音準偏低。'],drills:['先分開練兩個把位，再接起來。'],drillSources:[['shiftFrames']]}};
+  assert.ok(history.saveKeyDraft(s,key,draft).ok);
+  assert.deepEqual(history.loadKeyDraft(s,key,3).draft.advice.drillSources,[['shiftFrames']]);
+  const invalid={...draft,advice:{...draft.advice,drillSources:[['https://untrusted.invalid/']]}};
+  assert.ok(history.saveKeyDraft(s,key,invalid).ok);
+  assert.equal(history.loadKeyDraft(s,key,3).draft.advice.drillSources,undefined);
+});

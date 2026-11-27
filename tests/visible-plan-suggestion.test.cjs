@@ -655,3 +655,47 @@ test('unknown shape does not prescribe a distance; reviewed extension retains it
  a.match(f.practiceAdviceReport({...packet,slots:explicit}).drills[0],/照指板提示.*不要硬撐/);
  a.match(f.practiceAdviceReport(packet).drills[0],/往琴橋.*留寬一點/);
 });
+
+test('reviewed same-string shift first rehearses both written hand frames when both neighbors are known',()=>{
+ const f=setup({});
+ const pts={9:{finger:1,anchor:2},10:{finger:4,anchor:2},11:{finger:1,anchor:5},12:{finger:2,anchor:5}};
+ const slots=f.startPlan.slots.map((s,i)=>pts[i]?{...s,plan:{string:'D',reviewed:true,fingersReviewed:true,shape:'normal',...pts[i]},edge:i===11?{from:10,reviewed:true,shift:true}:null}:s);
+ const frame={...f.startPlan,slots};
+ const values=f.target.map((_,i)=>i===11?-25:null);
+ const go=currentPlan=>f.planSuggestion({restored:true,slots:f.target,values,currentPlan});
+ const note=i=>f.target[i].name;
+ const result=go(frame);
+ const measured=slots.map((_,i)=>i===10?0:i===11?-25:null);
+ const fresh=f.planSuggestion({...frame,reference:442,detector:'Traditional',rounds:[{id:1,values:measured}]});
+ a.equal(fresh.kind,'shift');
+ a.ok(fresh.action.includes('找到兩個把位的手形'));
+ a.ok(fresh.sources.includes('shiftFrames'));
+ a.doesNotMatch(fresh.observation,/手形|造成/);
+ a.ok(result.action.includes('先分開練 '+note(9)+'、'+note(10)+' 和 '+note(11)+'、'+note(12)+'，找到兩個把位的手形'));
+ a.ok(result.action.includes('再慢慢接起 '+note(10)+' → '+note(11)));
+ a.ok(result.sources.includes('shiftFrames'));
+ a.doesNotMatch(result.observation,/換把|指板/);
+ for(const patch of [{finger:0},{anchor:4},{reviewed:false},{string:'G'},{fingersReviewed:false},{shape:'extended'}]){
+  const missing=go({...frame,slots:slots.map((s,i)=>i===12?{...s,plan:{...s.plan,...patch}}:s)});
+  a.doesNotMatch(missing.action,/先分開練.*手形/);
+  a.ok(!missing.sources.includes('shiftFrames'));
+ }
+});
+
+test('default fingering corpus contains an applicable measured-note exercise',()=>{
+ const f=setup({});
+ const keys=vm.runInNewContext(html.slice(html.indexOf('    const MAJOR_KEYS ='),html.indexOf('    const MINOR_KEYS ='))+';MAJOR_KEYS');
+ const minor=vm.runInNewContext(html.slice(html.indexOf('    const MINOR_KEYS ='),html.indexOf('];',html.indexOf('    const MINOR_KEYS ='))+2)+';MINOR_KEYS');
+ const hits=[];
+ for(const [mode,list] of [['major',keys],['minor',minor]]){
+  for(const k of list){
+   const slots=f.fb.scoreNotes(mode,k),currentPlan=f.fb.visiblePlan(mode,k);
+   for(let i=1;i<slots.length-1;i++){
+    const values=slots.map((_,j)=>j===i?-25:null);
+    if(f.planSuggestion({restored:true,slots,values,currentPlan}).sources?.includes('shiftFrames'))hits.push([mode,k[0],i,slots.slice(i-2,i+2).map(x=>x.name)]);
+   }
+  }
+ }
+ a.ok(hits.length>0,JSON.stringify(hits));
+ a.ok(hits.some(([mode,k])=>mode==='major'&&k==='F'));
+});

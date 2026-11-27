@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261127-104-experimental">
+  <meta name="site-version" content="20261127-105-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -1654,7 +1654,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-104-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-105-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -3002,7 +3002,8 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     crossing:{title:'Ailbhe McDonagh：換弦基礎',url:'https://www.ailbhemcdonagh.com/cello-basics-17-string-crossings.html',reason:'慢速感受各弦的弓高，平順換到下一弦。'},
     approach:{title:'Gerhard Mantel：練習時把前音加回來',url:'https://cellobello.org/cello-blog/interviews/conversation-with-gerhard-mantel/',reason:'練完兩音，再把前面的譜音接回來。'},
     spacing:{title:'Seattle Public Schools：大提琴指距與音準',url:'https://www.seattleschools.org/wp-content/uploads/2021/07/EIM-Cello-4-5-Finger-Placement-and-Intonation.pdf',reason:'用耳朵核對同弦手指的落點與音程。'},
-    shift:{title:'Paul Katz：放慢並準備換把',url:'https://cellobello.org/cello-lessons/practicing/shifting-watch-the-speed-limit-2/',reason:'放慢準備手的移動，聽清楚到達音。'}
+    shift:{title:'Paul Katz：放慢並準備換把',url:'https://cellobello.org/cello-lessons/practicing/shifting-watch-the-speed-limit-2/',reason:'放慢準備手的移動，聽清楚到達音。'},
+    shiftFrames:{title:'Jamie Fiste：先熟悉換把前後的手形',url:'https://www.celloprofessor.com/clean-shifting-cello',reason:'先分開練習出發和到達把位的指法，再把換把前後的音接起來。'}
   });
   function connectionDrill(slots,i,{plan,values,restored=false,openTuner='',sources=[] }={}){
     const name=j=>slots[j]?.name||'這個音';
@@ -3033,7 +3034,16 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         if(stopped(to))cue+='，在換弦前就準備好 '+to.finger+' 指';
       }else if(stopped(from)&&stopped(to)){
         const shifts=edge?.shift||(Number.isInteger(from.anchor)&&Number.isInteger(to.anchor)&&from.anchor!==to.anchor);
-        if(shifts){sources.push('shift');cue='依指板慢練換把：讓前音先放鬆，手移到 '+here+' 的落點，用耳朵確認再連起來';}
+        if(shifts){
+          const frames=shiftFrameDrill(plan.slots,i);
+          if(frames){
+            sources.splice(sources.length-(addLeadIn?2:1),addLeadIn?2:1); // The grouped drill already covers both generic recipes.
+            sources.push('shiftFrames');
+            return openTuner+(restored?'照目前指板試練：':'照這次指板：')+frames+'。穩了，再照原譜接回這段。';
+          }else{
+            sources.push('shift');cue='依指板慢練換把：讓前音先放鬆，手移到 '+here+' 的落點，用耳朵確認再連起來';
+          }
+        }
         else if(edge?.extension)cue='依指板放鬆試伸指，先聽準 '+before+'，再確認 '+here+' 的 '+to.finger+' 指落點，不要硬撐';
         else{
           const start=values?.[i-1],last=values?.[i];
@@ -3057,6 +3067,18 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
   const sameAdviceFrame=(from,to)=>Boolean(from&&to&&from.string===to.string&&
     Number.isInteger(from.anchor)&&from.anchor===to.anchor&&
     ['normal','extended','backwardExtended'].includes(from.shape)&&from.shape===to.shape);
+
+  function shiftFrameDrill(slots,i){
+    const notes=[slots[i-2],slots[i-1],slots[i],slots[i+1]];
+    const [outer,from,to,inner]=notes;
+    if(!notes.every(n=>n?.name&&n.direction===to?.direction&&n.plan?.reviewed===true&&
+      n.plan?.fingersReviewed===true&&Number.isInteger(n.plan.finger)&&n.plan.finger>=1&&n.plan.finger<=4)||
+      notes.some((n,j)=>j>0&&n.midi===notes[j-1].midi)||
+      from.plan.string!==to.plan.string||from.plan.anchor===to.plan.anchor||
+      !sameAdviceFrame(outer.plan,from.plan)||!sameAdviceFrame(to.plan,inner.plan))return '';
+    return '先分開練 '+outer.name+'、'+from.name+' 和 '+to.name+'、'+inner.name+'，找到兩個把位的手形，再慢慢接起 '+
+      from.name+' → '+to.name+'，聽到達音是否一落指就對';
+  }
 
   function planSuggestion(packet, collect=false) {
     const missing=(observation)=>({kind:'insufficient',observation});
@@ -3336,10 +3358,13 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     const adjust=type==='extension'?'照指板提示放鬆手，再試著把 '+label(i)+' 的落點'+direction+'，不要硬撐。':
       type==='landing'?'聽準空弦，再準備下一指，試著把 '+label(i)+' 的落點'+direction+'。':
       '鬆開前音，讓手移到 '+label(i)+' 的落點，試著'+direction+'，不要硬拉開手指。';
+    const groupedShift=(type==='shift'||type==='relocation')?shiftFrameDrill(slots,i):'';
     return {kind:['landing','relocation'].includes(type)?'note':type,
       observation:pair+'（'+transition+'）。'+occurrence+' '+label(i)+landing+'。',
-      action:adjust+'再慢拉 '+short+'，一音一弓、弓聲不斷'+(continueRun(landingRun.left,landingRun.right,2)||'。'),
-      sources:['connected',...(type==='shift'?['shift']:[]),...(landingRun.left<i-1?['approach']:[])],
+      action:groupedShift?groupedShift+'。穩了，再照原譜接回這段。':
+        adjust+'再慢拉 '+short+'，一音一弓、弓聲不斷'+(continueRun(landingRun.left,landingRun.right,2)||'。'),
+      sources:groupedShift?['shiftFrames']:
+        ['connected',...(type==='shift'?['shift']:[]),...(landingRun.left<i-1?['approach']:[])],
       check:'再拉同一段，看 '+label(i)+' 有沒有更接近零線。'+settings};
     }
   }
@@ -5111,7 +5136,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
 });
 // SCALE_PRACTICE_END
   </script>
-  <script src="fingerboard.js?v=20261127-090"></script>
+  <script src="fingerboard.js?v=20261127-105"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.

@@ -1218,7 +1218,7 @@
       if(!raw.issues.length||raw.issues.length>256||raw.drills.length>3||
          raw.issues.some(x=>!bounded(x,240))||raw.drills.some(x=>!bounded(x,350)))return;
       const result={issues:[...raw.issues],drills:[...raw.drills]};
-      const ids=['connected','crossing','approach','spacing','shift'];
+      const ids=['connected','crossing','approach','spacing','shift','shiftFrames'];
       if((!encoded||raw.v===4)&&Array.isArray(raw.drillSources)&&raw.drillSources.length===raw.drills.length&&
          raw.drillSources.every(group=>Array.isArray(group)&&group.length<=ids.length&&group.every(id=>ids.includes(id)))){
         result.drillSources=raw.drillSources.map(g=>[...new Set(g)]);
