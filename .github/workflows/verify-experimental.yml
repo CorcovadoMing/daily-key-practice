@@ -11,11 +11,18 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: experimental
-      - name: Validate JavaScript and experimental audio
+          ref: ${{ github.sha }}
+      - name: Validate JavaScript and experimental behavior
         run: |
           node --check fingering-presets.js
           node --check fingerboard.js
           node --check fingerboard-editor.js
           node --check classroom.js
           node --test tests/*.test.cjs
+      - name: Install pinned UI test browser
+        run: |
+          npm install --prefix "$RUNNER_TEMP/daily-key-ui" --no-audit --no-fund --ignore-scripts playwright@1.57.0
+          "$RUNNER_TEMP/daily-key-ui/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Verify rendered UI on phone, tablet and desktop
+        run: |
+          PLAYWRIGHT_PATH="$RUNNER_TEMP/daily-key-ui/node_modules/playwright" node tests/ui-browser.cjs

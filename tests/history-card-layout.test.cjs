@@ -9,7 +9,8 @@ test('each record groups both actions on the header row and retains all key chip
  const ctx={state,document:{createElement:element},currentDate:date,q:s=>lists[s],renderPracticeStats(){},renderPracticeHeat(){},formatDate:()=>date,
   keyName:(mode,i)=>mode+'-'+i,selectedId:(mode,i)=>mode+'-'+i,replayHistoricalScale:(...args)=>replays.push(args),
   window:{confirm(){return false}}};
- vm.runInNewContext(html.slice(html.indexOf('    function historyProgress('),html.indexOf('    function replayHistoricalScale('))+
+ vm.runInNewContext(html.slice(html.indexOf('function createDialogNode('),html.indexOf('function createNoteActions('))+
+  html.slice(html.indexOf('    function historyProgress('),html.indexOf('    function replayHistoricalScale('))+
   html.slice(html.indexOf('    function formatHistoryTime('),html.indexOf('    function render(){'))+';renderHistory()',ctx);
  for(const [kind,record,n,label] of [['personal',fresh,2,'繼續'],['classroom',complete,24,'重練']]){
   const [date,actions,chips]=lists['#'+kind+'-history-list'].children[0].children;

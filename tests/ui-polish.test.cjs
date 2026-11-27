@@ -6,7 +6,7 @@ test('tuner keeps diagnostics out of its layout and sends actionable errors to t
  assert.match(html,/function tunerNotice\(message\)/);
  assert.match(html,/id="toast" role="status"/);
  assert.ok(!html.includes('tuner-settings-close'));
- assert.ok(html.includes("$('tuner-preferences').addEventListener('keydown'"));
+ assert.match(html, /dockSettings\('tuner-settings','tuner-preferences','tuner'\)/);
 });
 test('title and completion use distinct native button actions',()=>{
  assert.ok(html.includes("complete.addEventListener('click',()=>requestCardAction(()=>toggleComplete(id)))"));

@@ -4,7 +4,7 @@ test('the native radio fallback and sliding thumb share concentric track radii',
  assert.match(html,/--segment-inner-radius:calc\(var\(--segment-radius\) - var\(--segment-inset\) - var\(--segment-border\)\)/);
  assert.match(html,/\.launch-mode\{[^}]*border-radius:var\(--segment-radius\)/);
  assert.match(html,/\.launch-mode span\{[^}]*border-radius:var\(--segment-inner-radius\)/);
- assert.match(html,/\.launch-mode::before\{[^}]*border-radius:var\(--segment-inner-radius\)/);
+ assert.match(html,/\.launch-mode:has\(>label>input:checked\)::before\{[^}]*border-radius:var\(--segment-inner-radius\)/);
  assert.match(html,/\.launch-mode input:focus-visible\+span/);
 });
 test('the scale and arpeggio split renders action and arrow with shared phase paint',()=>{
@@ -26,5 +26,11 @@ test('audio dock hover is not mistaken for the semantic active signal',()=>{
  assert.doesNotMatch(html,/\.audio-tool-pair :is\(button,#metro-settings,#tuner-settings\):hover/);
  assert.doesNotMatch(html,/#metro-settings:hover|#tuner-settings:hover|:is\(#metro-settings,#tuner-settings\):hover/);
  assert.match(html,/\.audio-tool-pair :is\(#metronome-open,#tuner-open\)\[aria-pressed=true\]\{\s*background:var\(--ui-selected\)/);
- assert.match(html,/\.audio-tools button:focus-visible\{outline:/);
+ assert.match(html,/\:is\(\.session-launch,\.scale-practice,\.audio-tools,\.classroom-bar,dialog\) :is\(button,a,summary,input\):focus-visible/);
+});
+
+test('native modal chrome and primary actions share theme tokens without resetting layout',()=>{
+ assert.match(html,/dialog:is\(\.room-join-dialog,\.history-choice-dialog,\.student-note-dialog,\.finger-dialog,\.cello-leave-dialog\)\{\s*box-sizing:border-box;border:1px solid var\(--line\);border-radius:20px;box-shadow:var\(--ui-modal-shadow\)/);
+ assert.match(html,/:root dialog :is\(\.room-action\.primary,\.primary,\.save-btn,\.cello-leave-save\),/);
+ assert.match(html,/--ui-modal-limit:85dvh/);
 });

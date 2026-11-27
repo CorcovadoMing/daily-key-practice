@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261127-109-experimental">
+  <meta name="site-version" content="20261127-110-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -1132,7 +1132,7 @@
       }
       .launch-meta>.launch-mode{min-block-size:44px;flex:none}
       .practice-notes-open{min-height:44px;margin-block-start:.5rem}
-      .practice-notes-overview{max-height:85dvh;overflow:auto}
+      .practice-notes-overview{--ui-modal-limit:85dvh;max-height:85dvh;overflow:auto}
       .practice-notes-head{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
       .practice-note-summary{border-top:1px solid var(--line);padding-block:.55rem}
       .practice-note-summary h3{margin:.2rem 0}
@@ -1288,62 +1288,47 @@
       @keyframes demo-turn{to{transform:rotate(1turn)}}
     }
     @media print{.scale-demo-shell,.scale-start-chevron,.scale-action-popover{display:none!important}}
-    /* A shared two-option track. Native radios remain the real controls. */
-    @media screen and (forced-colors:none){
-      @supports selector(fieldset:has(input:checked)){
-        .launch-mode{
-          position:relative;display:grid;grid-template-columns:repeat(2,minmax(44px,1fr));
-          isolation:isolate;--segment-fill:var(--accent);--segment-edge:var(--line)
-        }
-        [data-appearance=dark] .launch-mode{--segment-fill:#445970;--segment-edge:#aec3dc}
-        .launch-mode::before{
-          content:"";position:absolute;z-index:-1;pointer-events:none;inset-block:var(--segment-inset);
-          inset-inline-start:var(--segment-inset);inline-size:calc(50% - var(--segment-inset));border-radius:var(--segment-inner-radius);
-          background:var(--segment-fill);border:1px solid var(--segment-edge)
-        }
-        .launch-mode:has(>label:last-child>input:checked)::before{translate:100% 0}
-        .launch-mode:has(>label>input:checked) input:checked+span{
-          background:transparent;border-color:transparent
-        }
-      }
-    }
-    /* Primary fills, grouped secondary controls, and quiet matching edges. */
-    @media screen and (forced-colors:none){
-      :root{--control-surface:#f7f7f6;--control-outline:#c7c9c8;--control-hover:#eeefed;
-        --control-main:#294b3b;--control-main-ink:#fbfffc;--control-main-hover:#345a47;
-        --control-segment:#c8ddce;--control-segment-ink:#173d2a;--control-focus:#426e58}
-      :root[data-appearance=dark]{--control-surface:#272f35;--control-outline:#424e57;--control-hover:#334049;
-        --control-main:#b5d4c0;--control-main-ink:#142b21;--control-main-hover:#cce7d4;
-        --control-segment:#435d51;--control-segment-ink:#f1faf4;--control-focus:#a9cdb6}
-      .session-launch #draw-button{background:var(--control-main);color:var(--control-main-ink);border:1px solid transparent;border-radius:15px}
-      .session-launch #draw-button:hover:not(:disabled){background:var(--control-main-hover)}
-      .session-launch :is(.launch-mode,.launch-count-sentence .stepper){background:var(--control-surface);border-color:var(--control-outline)}
-      .session-launch .launch-count-sentence .stepper{border:1px solid var(--control-outline);border-radius:13px}
-      .session-launch .launch-mode{--segment-fill:var(--control-segment);--segment-edge:transparent}
-      .session-launch .launch-mode input:checked+span{color:var(--control-segment-ink);font-weight:800}
-      .session-launch :is(button,a,summary):focus-visible,.scale-practice .scale-practice-demo:focus-visible{outline:2px solid var(--control-focus);outline-offset:3px}
-      .session-launch .launch-mode input:focus-visible+span{outline-color:var(--control-focus)}
-      .scale-practice .scale-practice-action .scale-practice-demo[data-demo-state=idle]{border-color:var(--control-outline)}
-      .audio-tools{border-color:var(--control-outline)}
-      .audio-tools .audio-tool-pair{gap:0;border:1px solid var(--control-outline);border-radius:13px;background:var(--control-surface)}
-      .audio-tools .audio-tool-pair :is(button,#metro-settings,#tuner-settings){
-        border:0;border-radius:10px;color:var(--ink);background:transparent}
-      .audio-tools .audio-tool-pair button[aria-pressed=true]{background:var(--control-segment);color:var(--control-segment-ink)}
-      .audio-tools button:focus-visible{outline:2px solid var(--control-focus);outline-offset:2px}
-    }
     @media screen and (forced-colors:none){
       :root{--ui-button-quiet:#f8f8f7;--ui-button-edge:#c9cbc9;--ui-button-hover:#eeefed;
         --ui-main:#315643;--ui-main-hover:#3e6651;--ui-main-text:#fbfffc;
         --ui-selected:#e6e7e5;--ui-selected-text:#262a28;--ui-veil:#18251b66;
-        --ui-raised:#f8f8f7;--ui-surface-tint:#eeefed}
+        --ui-raised:#f8f8f7;--ui-surface-tint:#eeefed;
+        --ui-dock-edge:#c7c9c8;--ui-modal-shadow:0 18px 60px #18251b40}
       :root[data-appearance=dark]{--ui-button-quiet:#2c3035;--ui-button-edge:#525960;--ui-button-hover:#3a4047;
         --ui-main:#d4dbe2;--ui-main-hover:#e4e9ef;--ui-main-text:#242b32;
         --ui-selected:#414951;--ui-selected-text:#f0f3f6;--ui-veil:#070b0db3;
-        --ui-raised:#242a2e;--ui-surface-tint:#2b3035}
-      .workspace :is(dialog,.scale-action-popover),dialog,.audio-tools .tuner-preferences{
+        --ui-raised:#242a2e;--ui-surface-tint:#2b3035;
+        --ui-dock-edge:#424e57;--ui-modal-shadow:0 18px 60px #0007}
+      .scale-action-popover,dialog,.audio-tools .tuner-preferences{
         background:var(--paper);color:var(--ink);border-color:var(--line);
       }
+      /* Native modal chrome is shared; width, content layout and lifecycle stay local. */
+      dialog:is(.room-join-dialog,.history-choice-dialog,.student-note-dialog,.finger-dialog,.cello-leave-dialog){
+        box-sizing:border-box;border:1px solid var(--line);border-radius:20px;box-shadow:var(--ui-modal-shadow);
+        max-block-size:var(--ui-modal-limit,calc(100dvh - 24px));overflow:auto;overscroll-behavior:contain;
+      }
       dialog::backdrop{background:var(--ui-veil)}
+      /* The same quiet and primary treatments are used regardless of which modal generated its actions. */
+      dialog :is(.room-action,.history-choice-actions>button,.finger-form-actions>button,.cello-leave-keep){
+        min-block-size:max(44px,var(--ui-touch));border-radius:10px;
+      }
+      :root dialog :is(.room-action:not(.primary),.history-choice-actions>button:not(.primary),
+        .finger-form-actions>button:not(.primary),.cello-leave-keep){
+        background:var(--ui-button-quiet);border:1px solid var(--ui-button-edge);color:var(--ink)
+      }
+      :root dialog :is(.room-action:not(.primary),.history-choice-actions>button:not(.primary),
+        .finger-form-actions>button:not(.primary),.cello-leave-keep):hover:not(:disabled){
+        background:var(--ui-button-hover)
+      }
+      .audio-tools{border-color:var(--ui-dock-edge)}
+      .audio-tools .audio-tool-pair{gap:0;border:1px solid var(--ui-button-edge);border-radius:13px}
+      .audio-tools .audio-tool-pair :is(button,#metro-settings,#tuner-settings){
+        border:0;border-radius:10px;color:var(--ink);background:transparent
+      }
+      .session-launch #draw-button{border:1px solid transparent;border-radius:15px}
+      .session-launch .launch-count-sentence .stepper{
+        background:var(--ui-button-quiet);border:1px solid var(--ui-button-edge);border-radius:13px
+      }
       :root .workspace :is(.result-panel,.key-card,.history-panel,.practice-float){
         background:var(--paper);color:var(--ink);border-color:var(--line);
       }
@@ -1353,44 +1338,43 @@
       :root .workspace :is(.history-empty,.history-chip,.teacher-memo){
         background:var(--ui-surface-tint);border-color:var(--line);
       }
-      :root .scale-practice .scale-practice-action
-       .scale-practice-demo:is([data-demo-state=loading],[data-demo-state=playing]){
-        background:var(--ui-selected);color:var(--ui-selected-text);border-color:var(--ui-selected);
-      }
       .session-launch #draw-button,:root .classroom-bar .room-action.primary,
-      :root dialog :is(.room-action.primary,.primary,.save-btn),
+      :root dialog :is(.room-action.primary,.primary,.save-btn,.cello-leave-save),
       .scale-practice[data-phase=idle]>.scale-practice-action .scale-start-shell>.scale-practice-button{
         background:var(--ui-main);color:var(--ui-main-text);border-color:var(--ui-main);
       }
       .session-launch #draw-button:hover:not(:disabled),:root .classroom-bar .room-action.primary:hover:not(:disabled),
-      :root dialog :is(.room-action.primary,.primary,.save-btn):hover:not(:disabled),
+      :root dialog :is(.room-action.primary,.primary,.save-btn,.cello-leave-save):hover:not(:disabled),
       .scale-practice[data-phase=idle]>.scale-practice-action .scale-start-shell>.scale-practice-button:hover:not(:disabled){
         background:var(--ui-main-hover);color:var(--ui-main-text);border-color:var(--ui-main-hover);
       }
       .classroom-bar .room-action:not(.primary),.scale-practice .scale-practice-action :is(.scale-demo-chevron,.scale-start-chevron),
       .scale-practice .scale-practice-action .scale-practice-demo[data-demo-state=idle],
-      .session-launch .launch-mode,.scale-action-popover .launch-mode,.audio-tools .audio-tool-pair{
+      .launch-mode,.audio-tools .audio-tool-pair{
         background:var(--ui-button-quiet);color:var(--ink);border-color:var(--ui-button-edge);
       }
       .classroom-bar .room-action:not(.primary):hover:not(:disabled),
       .scale-practice .scale-practice-action :is(.scale-demo-chevron,.scale-start-chevron):hover:not(:disabled),
       .scale-practice .scale-practice-action .scale-practice-demo[data-demo-state=idle]:hover:not(:disabled){background:var(--ui-button-hover);color:var(--ink)}
-      :is(.session-launch,.scale-action-popover) .launch-mode{--segment-fill:var(--ui-selected);--segment-edge:transparent}
-      :is(.session-launch,.scale-action-popover) .launch-mode input:checked+span{
-        background:var(--ui-selected);color:var(--ui-selected-text);border-color:transparent;
+      /* Radios handle semantics and the no-:has fallback; only the thumb animates. */
+      .launch-mode input:checked+span{
+        background:var(--ui-selected);color:var(--ui-selected-text);border-color:var(--ui-button-edge);font-weight:800;
       }
-      @supports selector(:has(*)){
-        :is(.session-launch,.scale-action-popover) .launch-mode:has(>label>input:checked) input:checked+span{
-          background:transparent;border-color:transparent;
+      @supports selector(fieldset:has(input:checked)){
+        .launch-mode{position:relative;display:grid;grid-template-columns:repeat(2,minmax(44px,1fr));isolation:isolate}
+        .launch-mode:has(>label>input:checked)::before{
+          content:"";position:absolute;z-index:-1;pointer-events:none;inset-block:var(--segment-inset);
+          inset-inline-start:var(--segment-inset);inline-size:calc(50% - var(--segment-inset));
+          border-radius:var(--segment-inner-radius);background:var(--ui-selected);border:1px solid var(--ui-button-edge)
         }
+        .launch-mode:has(>label:last-child>input:checked)::before{translate:100% 0}
+        .launch-mode:has(>label>input:checked) input:checked+span{background:transparent;border-color:transparent}
       }
-      .audio-tools .audio-tool-pair button[aria-pressed=true]{color:var(--ui-selected-text)}
-      .audio-tools .audio-tool-pair button[aria-pressed=true]{background:var(--ui-selected)}
       .scale-practice .scale-practice-action .scale-practice-demo:is([data-demo-state=loading],[data-demo-state=playing]){
         background:var(--ui-selected);color:var(--ui-selected-text);border-color:var(--ui-selected);
       }
       :is(.session-launch,.scale-practice,.audio-tools,.classroom-bar,dialog) :is(button,a,summary,input):focus-visible,
-      :is(.session-launch,.scale-action-popover) .launch-mode input:focus-visible+span{
+      .launch-mode input:focus-visible+span{
         outline:2px solid var(--ui-focus);outline-offset:2px;
       }
     }
@@ -1497,7 +1481,6 @@
       #classroom-disclosure{-webkit-text-size-adjust:100%;text-size-adjust:100%}
     }
     @media screen and (forced-colors:none){
-      :is(.session-launch,.scale-action-popover) .launch-mode{--segment-edge:var(--ui-button-edge)}
       .audio-tools .audio-tool-pair :is(#metronome-open,#tuner-open)[aria-pressed=true]{
         background:var(--ui-selected);color:var(--ui-selected-text);box-shadow:inset 0 0 0 1px var(--ui-button-edge)
       }
@@ -1508,12 +1491,12 @@
       /* Secondary controls use the same neutral surface, even in deeper panels. */
       :root:not([data-appearance=dark]) :is(.key-expand,.ordered-practice-button,
         .cello-inline-editor button:not(.cello-inline-save),.teacher-tools button,.scale-practice-history-actions button,
-        .scale-practice-slur-option,.scale-practice-merge,.scale-practice-coach-action,.history-choice-actions .cancel){
+        .scale-practice-slur-option,.scale-practice-merge,.scale-practice-coach-action){
         background:var(--ui-button-quiet);border-color:var(--ui-button-edge);color:var(--ink)
       }
       :root:not([data-appearance=dark]) :is(.key-expand,.ordered-practice-button,
         .cello-inline-editor button:not(.cello-inline-save),.teacher-tools button,.scale-practice-history-actions button,
-        .scale-practice-slur-option,.scale-practice-merge,.scale-practice-coach-action,.history-choice-actions .cancel):hover:not(:disabled){
+        .scale-practice-slur-option,.scale-practice-merge,.scale-practice-coach-action):hover:not(:disabled){
         background:var(--ui-button-hover);color:var(--ink)
       }
       :root:not([data-appearance=dark]) :is(.key-expand[aria-expanded=true],.cello-fb-button[aria-pressed=true],
@@ -1721,7 +1704,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-109-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-110-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -3716,15 +3699,19 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     return demoSpeed;
   }
   let activeActionPopover=null;
-  function anchoredActionPopover(trigger,panel,focusTarget){
+  function centeredSettingsLeft(box,width,viewport,x=0){
+    return Math.max(x+8,Math.min(box.left+box.width/2-width/2,x+viewport-width-8));
+  }
+  function anchoredActionPopover(trigger,panel,focusTarget,options={}){
     const document=globalThis.document;
-    const native=typeof panel.showPopover==='function'&&typeof panel.hidePopover==='function';
+    const native=options.native!==false&&typeof panel.showPopover==='function'&&typeof panel.hidePopover==='function';
     if(native)panel.setAttribute('popover','manual');
     panel.hidden=true;
     trigger.setAttribute('aria-controls',panel.id);
     trigger.setAttribute('aria-expanded','false');
     function position(){
       if(trigger.isConnected===false){close(false);return;}
+      if(options.position){options.position();return;}
       const box=trigger.getBoundingClientRect?.();
       if(!box)return;
       const viewport=globalThis.visualViewport;
@@ -3733,7 +3720,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       if(!Number.isFinite(vw)||!Number.isFinite(vh))return;
       const x=viewport?.offsetLeft||0,y=viewport?.offsetTop||0;
       const width=panel.offsetWidth,height=panel.offsetHeight;
-      const left=Math.max(x+8,Math.min(box.left+box.width/2-width/2,x+vw-width-8));
+      const left=centeredSettingsLeft(box,width,vw,x);
       panel.style.left=left+'px';
       panel.style.top=Math.max(y+8,Math.min(box.top-height-7,y+vh-height-8))+'px';
     }
@@ -3743,6 +3730,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       if(panel.hidden)return;
       if(native)try{panel.hidePopover();}catch{}
       panel.hidden=true;trigger.setAttribute('aria-expanded','false');
+      options.onChange?.(false);
       if(activeActionPopover===close)activeActionPopover=null;
       document.removeEventListener?.('pointerdown',outside,true);
       document.removeEventListener?.('keydown',key,true);
@@ -3752,12 +3740,14 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       if(focus)trigger.focus?.({preventScroll:true});
     }
     function open(){
+      if(!panel.hidden||trigger.disabled)return;
       activeActionPopover?.(false);
       panel.hidden=false;
       if(native)try{panel.showPopover();}catch{}
       trigger.setAttribute('aria-expanded','true');
       activeActionPopover=close;
-      position();focusTarget()?.focus?.({preventScroll:true});
+      options.onChange?.(true);
+      position();focusTarget?.()?.focus?.({preventScroll:true});
       document.addEventListener?.('pointerdown',outside,true);
       document.addEventListener?.('keydown',key,true);
       document.addEventListener?.('scroll',position,true);
@@ -3766,6 +3756,18 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     }
     trigger.addEventListener('click',()=>panel.hidden?open():close(false));
     return close;
+  }
+  const settingsChevron='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m3 6 5 5 5-5"/></svg>';
+  // Build only the common shell; the transport action and the settings
+  // content retain their own state and labels.
+  function practiceSplitControl(primary,{shellClass,buttonClass,settingsClass,id,label}){
+    const shell=document.createElement('span'),trigger=document.createElement('button'),panel=document.createElement('div');
+    shell.className=shellClass;
+    trigger.type='button';trigger.className=buttonClass;
+    trigger.setAttribute('aria-label',label);trigger.innerHTML=settingsChevron;
+    panel.className=settingsClass;panel.id=id;
+    shell.append(primary,trigger);
+    return {shell,trigger,panel};
   }
   const demoSpeedControls=new WeakMap();
   let demoSpeedSerial=0;
@@ -4524,9 +4526,8 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       methodInputs.push(input);
       segment.append(input,caption);choice.append(segment);
     }
-    const demoButton=document.createElement('button'),demoShell=document.createElement('span'),demoStatus=document.createElement('span');
+    const demoButton=document.createElement('button'),demoStatus=document.createElement('span');
     demoButton.type='button';demoButton.className='scale-practice-demo';
-    demoShell.className='scale-demo-shell';
     demoStatus.className='scale-practice-demo-status';demoStatus.setAttribute('role','status');
     const demoPiece=className=>{const el=document.createElement('span');el.className=className;el.setAttribute('aria-hidden','true');return el;};
     const demoVisual=demoPiece('scale-demo-visual'),demoLoading=demoPiece('scale-demo-loading');
@@ -4537,13 +4538,10 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     demoBars.append(...bars);demoVisual.append(demoSymbol,demoBars);
     demoLoading.append(demoPiece('scale-demo-spinner'));
     demoButton.append(demoVisual,demoLoading);
-    const demoChevron=document.createElement('button'), demoSettings=document.createElement('div');
-    demoChevron.type='button';demoChevron.className='scale-demo-chevron';
-    demoChevron.setAttribute('aria-label',name+'示範速度');
-    demoChevron.setAttribute('aria-expanded','false');
-    demoChevron.innerHTML='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m3 6 5 5 5-5"/></svg>';
-    demoSettings.className='scale-demo-settings scale-action-popover';demoSettings.hidden=true;demoSettings.id='demo-settings-'+(++demoSpeedSerial);
-    demoChevron.setAttribute('aria-controls',demoSettings.id);
+    const {shell:demoShell,trigger:demoChevron,panel:demoSettings}=practiceSplitControl(demoButton,{
+      shellClass:'scale-demo-shell',buttonClass:'scale-demo-chevron',settingsClass:'scale-demo-settings scale-action-popover',
+      id:'demo-settings-'+(++demoSpeedSerial),label:name+'示範速度'
+    });
     const speedRow=document.createElement('div'),speedLabel=document.createElement('label'),speedSlider=document.createElement('input'),
       speedOutput=document.createElement('output'),speedStatus=document.createElement('small');
     speedRow.className='scale-demo-speed-row';speedLabel.textContent='示範速度';
@@ -4552,19 +4550,17 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     speedOutput.setAttribute('for',speedSlider.id);speedOutput.setAttribute('aria-hidden','true');
     speedStatus.className='scale-demo-speed-status';speedStatus.textContent='從下一個可調整的音開始';speedStatus.hidden=true;
     speedRow.append(speedLabel,speedSlider,speedOutput);demoSettings.append(speedRow,speedStatus);
-    demoShell.append(demoButton,demoChevron);
     function syncDemoSpeed(value){
       const visible=value.toFixed(1)+'×';
       speedSlider.value=String(value);speedOutput.textContent=visible;
       speedSlider.setAttribute('aria-valuetext',value.toFixed(1)+' 倍');
     }
     const closeDemoSettings=anchoredActionPopover(demoChevron,demoSettings,()=>speedSlider);
-    const startShell=document.createElement('span'),startChevron=document.createElement('button'),startSettings=document.createElement('div');
-    startShell.className='scale-start-shell';startChevron.type='button';startChevron.className='scale-start-chevron';
-    startChevron.setAttribute('aria-label',name+'練習方式');
-    startChevron.innerHTML=demoChevron.innerHTML;
-    startSettings.className='scale-action-popover scale-start-settings';startSettings.id='practice-settings-'+methodGroup;
-    startSettings.append(choice);startShell.append(button,startChevron);
+    const {shell:startShell,trigger:startChevron,panel:startSettings}=practiceSplitControl(button,{
+      shellClass:'scale-start-shell',buttonClass:'scale-start-chevron',settingsClass:'scale-action-popover scale-start-settings',
+      id:'practice-settings-'+methodGroup,label:name+'練習方式'
+    });
+    startSettings.append(choice);
     const closeStartSettings=anchoredActionPopover(startChevron,startSettings,()=>methodInputs.find(x=>x.checked)||methodInputs[0]);
     demoSpeedControls.set(speedSlider,syncDemoSpeed);
     syncDemoSpeed(getDemoSpeed());
@@ -5201,7 +5197,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       card.syncPracticeCharts?.();
     }
   });
-  return {align, trackNotes, micCapture, metronomeClickGate, celloDemoPlayer, manager, card, chartPoint, centsText, scoreValues, monitorPitch, liveSlot, loopBoundary, resolveMidpoint, retainPracticeEvents, addHistory, createPitchTrend, trendSegments, pitchTrendSummary, timeCharts, sharedChartTime, chartSlotAt, planSuggestion, practiceAdviceReport, measuredTrendIssues, measuredTrendMetrics};
+  return {align, trackNotes, micCapture, metronomeClickGate, centeredSettingsLeft, anchoredActionPopover, celloDemoPlayer, manager, card, chartPoint, centsText, scoreValues, monitorPitch, liveSlot, loopBoundary, resolveMidpoint, retainPracticeEvents, addHistory, createPitchTrend, trendSegments, pitchTrendSummary, timeCharts, sharedChartTime, chartSlotAt, planSuggestion, practiceAdviceReport, measuredTrendIssues, measuredTrendMetrics};
 });
 // SCALE_PRACTICE_END
   </script>
@@ -5775,81 +5771,101 @@ function saveStudentNote(id,value,key=studentNoteKey(id)){
  if(value.trim())localStorage.setItem(key,value);else localStorage.removeItem(key);
  document.querySelectorAll('[data-note-key]').forEach(el=>{if(el.dataset.noteKey===id)refreshNoteButton(el,id);});
 }
+// Shared markup and interaction for the two native notes dialogs and their
+// three editing surfaces. Callers still own validation and draft policy.
+function createDialogNode(tag,text){
+ const node=document.createElement(tag);
+ if(text!==undefined)node.textContent=text;
+ return node;
+}
+function createActionButton(text,className='room-action'){
+ const node=createDialogNode('button',text);
+ node.type='button';node.className=className;
+ return node;
+}
+function createNoteActions(input,{sync, cancel:cancelEdit, save:saveEdit}){
+ const group=createDialogNode('div');group.className='student-note-actions';
+ const clear=createActionButton('清空內容'),cancel=createActionButton('取消'),save=createActionButton('儲存筆記','room-action primary');
+ clear.addEventListener('click',()=>{input.value='';sync?.();input.focus();});
+ cancel.addEventListener('click',cancelEdit);
+ save.addEventListener('click',saveEdit);
+ group.append(clear,cancel,save);
+ return {group,clear,save};
+}
+function commitNoteEdit(id,input,status,afterSave,key=studentNoteKey(id)){
+ try{saveStudentNote(id,input.value,key);afterSave();}
+ catch{status.textContent='無法儲存，請先複製筆記保留。';}
+}
+function showNoteDialog(dialog,opener,initialFocus,prepare){
+ dialog.addEventListener('close',()=>{opener.focus({preventScroll:true});removeClosedNotesDialog(dialog);});
+ document.body.append(dialog);prepare?.();dialog.showModal();initialFocus.focus();
+}
 function openPracticeNotes(opener){
- const create=(tag,text)=>{const node=document.createElement(tag);if(text!==undefined)node.textContent=text;return node;};
- const button=text=>{const node=create('button',text);node.type='button';node.className='room-action';return node;};
- const dialog=create('dialog');dialog.className='student-note-dialog practice-notes-overview';
+ const dialog=createDialogNode('dialog');dialog.className='student-note-dialog practice-notes-overview';
  dialog.setAttribute('aria-label','練習筆記');
- const head=create('header');head.className='practice-notes-head';
- const close=button('關閉');head.append(create('h2','練習筆記'),close);dialog.append(head);
- const body=create('div');dialog.append(body);
+ const head=createDialogNode('header');head.className='practice-notes-head';
+ const close=createActionButton('關閉');head.append(createDialogNode('h2','練習筆記'),close);dialog.append(head);
+ const body=createDialogNode('div');dialog.append(body);
  let dirty=()=>false;
- const closeNotice=create('p');closeNotice.setAttribute('role','status');dialog.append(closeNotice);
+ const closeNotice=createDialogNode('p');closeNotice.setAttribute('role','status');dialog.append(closeNotice);
  const all=['major','minor'].flatMap(mode=>Array.from({length:12},(_,i)=>({id:selectedId(mode,i),label:keyName(mode,i)+(mode==='major'?' 大調':' 小調')})));
  function render(active=null){
   const rows=all.map(key=>({...key,value:readStudentNote(key.id)}));
   dirty=()=>false;closeNotice.textContent='';body.replaceChildren();
   function editor(key){
-   const group=create('div'),label=create('label',key.label+' 練習筆記'),input=create('textarea');
+   const group=createDialogNode('div'),label=createDialogNode('label',key.label+' 練習筆記'),input=createDialogNode('textarea');
    input.id='practice-note-overview-editor';label.htmlFor=input.id;input.rows=5;input.value=key.value;
    dirty=()=>input.value!==key.value;
-   const actions=create('div');actions.className='student-note-actions';
-   const clear=button('清空內容'),cancel=button('取消'),save=button('儲存筆記'),status=create('p');
-   save.className='room-action primary';
-   clear.addEventListener('click',()=>{input.value='';input.focus();});
-   status.setAttribute('role','status');
-   cancel.addEventListener('click',()=>{render();close.focus();});
-   save.addEventListener('click',()=>{
-    try{saveStudentNote(key.id,input.value);render();close.focus();}
-    catch{status.textContent='無法儲存，請先複製筆記保留。';}
+   const status=createDialogNode('p');status.setAttribute('role','status');
+   const closeEditor=()=>{render();close.focus();};
+   const actions=createNoteActions(input,{
+    cancel:closeEditor,save:()=>commitNoteEdit(key.id,input,status,closeEditor)
    });
-   actions.append(clear,cancel,save);group.append(label,input,actions,status);
+   group.append(label,input,actions.group,status);
    return {group,input};
   }
   let focused;const editButtons=[];
   for(const key of rows.filter(key=>key.value.trim())){
-   const entry=create('section');entry.className='practice-note-summary';
-   entry.append(create('h3',key.label));
+   const entry=createDialogNode('section');entry.className='practice-note-summary';
+   entry.append(createDialogNode('h3',key.label));
    if(active===key.id){const edit=editor(key);entry.append(edit.group);focused=edit.input;}
    else{
-    const edit=button('編輯');edit.disabled=Boolean(active);edit.setAttribute('aria-label','編輯 '+key.label+' 筆記');
-    editButtons.push(edit);edit.addEventListener('click',()=>render(key.id));entry.append(create('p',key.value),edit);
+    const edit=createActionButton('編輯');edit.disabled=Boolean(active);edit.setAttribute('aria-label','編輯 '+key.label+' 筆記');
+    editButtons.push(edit);edit.addEventListener('click',()=>render(key.id));entry.append(createDialogNode('p',key.value),edit);
    }
    body.append(entry);
   }
-  const add=create('section');add.className='practice-note-summary';
+  const add=createDialogNode('section');add.className='practice-note-summary';
   const available=rows.filter(key=>!key.value.trim());
   if(!active&&available.length){
-   const start=button('新增筆記');start.setAttribute('aria-expanded','false');start.setAttribute('aria-controls','practice-note-add-form');add.append(start);
+   const start=createActionButton('新增筆記');start.setAttribute('aria-expanded','false');start.setAttribute('aria-controls','practice-note-add-form');add.append(start);
    start.addEventListener('click',()=>{
     start.setAttribute('aria-expanded','true');start.hidden=true;
     editButtons.forEach(edit=>edit.disabled=true);
-    const form=create('div');form.id='practice-note-add-form';form.className='practice-note-add-form';
-    const label=create('label','調性'),select=create('select'),input=create('textarea');
+    const form=createDialogNode('div');form.id='practice-note-add-form';form.className='practice-note-add-form';
+    const label=createDialogNode('label','調性'),select=createDialogNode('select'),input=createDialogNode('textarea');
     select.id='practice-note-add-key';label.htmlFor=select.id;
-    const option=(value,text)=>{const node=create('option',text);node.value=value;return node;};
+    const option=(value,text)=>{const node=createDialogNode('option',text);node.value=value;return node;};
     select.append(option('','請選擇調性'),...available.map(key=>option(key.id,key.label)));
     input.rows=5;input.value='';input.setAttribute('aria-label','練習筆記內容');input.placeholder='輸入練習筆記…';
     dirty=()=>Boolean(input.value);
-    const actions=create('div');actions.className='student-note-actions';
-    const clear=button('清空內容'),cancel=button('取消'),save=button('儲存筆記'),status=create('p');
-    save.className='room-action primary';status.setAttribute('role','status');
+    const status=createDialogNode('p');status.setAttribute('role','status');
+    const closeEditor=()=>{render();close.focus();};
+    const actions=createNoteActions(input,{
+     sync,cancel:closeEditor,
+     save:()=>{
+      const key=available.find(entry=>entry.id===select.value);
+      if(key&&input.value.trim())commitNoteEdit(key.id,input,status,closeEditor);
+     }
+    });
     function sync(){
-     input.disabled=!select.value;clear.disabled=input.disabled;
-     save.disabled=input.disabled||!input.value.trim();
+     input.disabled=!select.value;actions.clear.disabled=input.disabled;
+     actions.save.disabled=input.disabled||!input.value.trim();
      // A new draft never silently moves to another key once typing begins.
      select.disabled=Boolean(input.value);
     }
     select.addEventListener('change',sync);input.addEventListener('input',sync);
-    clear.addEventListener('click',()=>{input.value='';sync();input.focus();});
-    cancel.addEventListener('click',()=>{render();close.focus();});
-    save.addEventListener('click',()=>{
-     const key=available.find(entry=>entry.id===select.value);
-     if(!key||!input.value.trim())return;
-     try{saveStudentNote(key.id,input.value);render();close.focus();}
-     catch{status.textContent='無法儲存，請先複製筆記保留。';}
-    });
-    actions.append(clear,cancel,save);form.append(label,select,input,actions,status);add.append(form);sync();select.focus();
+    form.append(label,select,input,actions.group,status);add.append(form);sync();select.focus();
    });start.dataset.noteAdd='true';
   }
   body.append(add);focused?.focus();
@@ -5857,8 +5873,7 @@ function openPracticeNotes(opener){
  const blockClose=event=>{if(!dirty())return false;event.preventDefault?.();closeNotice.textContent='請先儲存或取消編輯。';return true;};
  close.addEventListener('click',event=>{if(!blockClose(event))dialog.close();});
  dialog.addEventListener('cancel',blockClose);
- dialog.addEventListener('close',()=>{opener.focus({preventScroll:true});removeClosedNotesDialog(dialog);});
- document.body.append(dialog);render();dialog.showModal();close.focus();
+ showNoteDialog(dialog,opener,close,render);
 }
 function removeClosedNotesDialog(dialog){
  const motion=!globalThis.matchMedia?.('(prefers-reduced-motion:reduce)').matches;
@@ -5870,20 +5885,16 @@ function removeClosedNotesDialog(dialog){
  fade.finished.then(done,done);
 }
 function openStudentNote(id,button,storageKey=studentNoteKey(id)){
- const dialog=document.createElement('dialog');dialog.className='student-note-dialog';
- const heading=document.createElement('h2');heading.textContent=button.dataset.noteTitle?button.dataset.noteTitle+'練習筆記':'我的練習筆記';heading.id='student-note-heading';
+ const dialog=createDialogNode('dialog');dialog.className='student-note-dialog';
+ const heading=createDialogNode('h2',button.dataset.noteTitle?button.dataset.noteTitle+'練習筆記':'我的練習筆記');heading.id='student-note-heading';
  dialog.setAttribute('aria-labelledby',heading.id);
- const label=document.createElement('label');label.htmlFor='student-note-text';label.textContent='這個調想記住的事';
- const input=document.createElement('textarea');input.id='student-note-text';input.rows=6;input.value=readStudentNote(id,storageKey);input.placeholder='例如：換把前放鬆左手、下次從慢速開始…';
- const help=document.createElement('p');help.className='caption';help.textContent='只保存在這個瀏覽器，不會同步給老師或其他學生。共用裝置上的其他人仍可看見。';
- const actions=document.createElement('div');actions.className='student-note-actions';
- const cancel=document.createElement('button');cancel.type='button';cancel.textContent='取消';cancel.className='room-action';
- const save=document.createElement('button');save.type='button';save.textContent='儲存筆記';save.className='room-action primary';
- const clear=document.createElement('button');clear.type='button';clear.textContent='清空內容';clear.className='room-action';
- clear.addEventListener('click',()=>{input.value='';input.focus();});cancel.addEventListener('click',()=>dialog.close());
- save.addEventListener('click',()=>{try{saveStudentNote(id,input.value,storageKey);dialog.close();}catch{help.textContent='無法儲存，請先複製筆記保留。';}});
- dialog.addEventListener('close',()=>{button.focus({preventScroll:true});removeClosedNotesDialog(dialog);});
- actions.append(clear,cancel,save);dialog.append(heading,label,input,help,actions);document.body.append(dialog);dialog.showModal();input.focus();
+ const label=createDialogNode('label','這個調想記住的事');label.htmlFor='student-note-text';
+ const input=createDialogNode('textarea');input.id='student-note-text';input.rows=6;input.value=readStudentNote(id,storageKey);input.placeholder='例如：換把前放鬆左手、下次從慢速開始…';
+ const help=createDialogNode('p','只保存在這個瀏覽器，不會同步給老師或其他學生。共用裝置上的其他人仍可看見。');help.className='caption';
+ const close=()=>dialog.close();
+ const actions=createNoteActions(input,{cancel:close,save:()=>commitNoteEdit(id,input,help,close,storageKey)});
+ dialog.append(heading,label,input,help,actions.group);
+ showNoteDialog(dialog,button,input);
 }
 function createCard(mode,index,doneIds){
  const key=(mode==='major'?MAJOR_KEYS:MINOR_KEYS)[index],id=selectedId(mode,index),done=doneIds.includes(id);
@@ -6507,14 +6518,11 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
             chips.append(chip);
           });
         }
-        const replay=document.createElement('button');replay.type='button';
         const canContinue=progress.count<progress.total;
-        replay.className='history-replay';
-        replay.textContent=canContinue?'繼續':'重練';
+        const replay=createActionButton(canContinue?'繼續':'重練','history-replay');
         replay.setAttribute('aria-label',(canContinue?'繼續這次練習':'重練這次練習')+'：'+dateText+timeLabel);
         replay.addEventListener('click',()=>replayHistoricalScale(record,kind));
-        const remove=document.createElement('button');remove.type='button';
-        remove.className='history-delete';
+        const remove=createActionButton(undefined,'history-delete');
         remove.title='刪除紀錄';
         remove.innerHTML='<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path class="history-delete-lid" d="M4.5 7h15M9 7V4.8h6V7"/><path d="M6.2 7l.9 13h9.8l.9-13M10 10.5v6m4-6v6"/></svg>';
         remove.setAttribute('aria-label','刪除 '+dateText+timeLabel+' 的'+
@@ -7078,7 +7086,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     if(panel.hidden||!tools)return;
     const box=tools.getBoundingClientRect(),button=trigger.getBoundingClientRect(),width=panel.offsetWidth;
     const viewport=document.documentElement.clientWidth||window.innerWidth;
-    const left=Math.max(8,Math.min(button.left+button.width/2-width/2,viewport-width-8));
+    const left=window.CelloScalePractice.centeredSettingsLeft(button,width,viewport);
     const border=parseFloat(getComputedStyle(tools).borderLeftWidth)||0;
     panel.style.setProperty(kind==='tuner'?'--tuner-settings-left':'--metro-settings-left',left-box.left-border+'px');
   }
@@ -7106,9 +7114,9 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       if(!tools.style.getPropertyValue('--dock-compact-width'))sizeTools();
       tools.dataset.tunerOpen=String(visible);
     }
+    if(name==='metronome'){if(!visible)closeMetroSettings(false);return;}
     $(name+'-panel').hidden=!visible;
-    $(name==='metronome'?'metro-settings':name+'-open').setAttribute('aria-expanded',String(visible));
-    if(name==='metronome'){$('metro-settings').setAttribute('aria-label',visible?'收起節拍器設定':'展開節拍器設定');if(visible){tunerSettings(false);alignTunerSettings(undefined,'metro');}}
+    $(name+'-open').setAttribute('aria-expanded',String(visible));
   }
   const Context = window.AudioContext || window.webkitAudioContext;
   // +2.3 dB only on iOS Safari, with 15% digital headroom even at full volume.
@@ -7434,18 +7442,20 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     if(name==='tuner')stopTuner();else stopMetro();
     showPanel(name,false);
   }
-  function tunerSettings(open){if(open)showPanel('metronome',false);$('tuner-preferences').hidden=!open;if(open)alignTunerSettings();$('tuner-settings').setAttribute('aria-expanded',String(open));}
-  $('tuner-settings').onclick=()=>tunerSettings($('tuner-preferences').hidden);
-  $('tuner-preferences').addEventListener('keydown',e=>{if(e.key==='Escape'){tunerSettings(false);$('tuner-settings').focus();}});
-  document.addEventListener('pointerdown',e=>{if(!$('tuner-preferences').hidden&&!$('tuner-preferences').contains(e.target)&&!$('tuner-settings').contains(e.target))tunerSettings(false);});
+  function dockSettings(triggerId,panelId,kind,onChange){
+    return window.CelloScalePractice.anchoredActionPopover($(triggerId),$(panelId),null,{
+      native:false,position:()=>alignTunerSettings(undefined,kind),onChange
+    });
+  }
+  dockSettings('tuner-settings','tuner-preferences','tuner');
+  const closeMetroSettings=dockSettings('metro-settings','metronome-panel','metro',open=>{
+    $('metro-settings').setAttribute('aria-label',open?'收起節拍器設定':'展開節拍器設定');
+  });
   $('metronome-open').onclick=startMetro;
-  $('metro-settings').onclick=()=>{showPanel('metronome',$('metronome-panel').hidden);};
-  document.addEventListener('pointerdown',e=>{if(!$('metronome-panel').hidden&&!$('metronome-panel').contains(e.target)&&!$('metro-settings').contains(e.target))showPanel('metronome',false);});
   $('tuner-open').onclick=()=>{
     if(!$('tuner-panel').hidden){closeTool('tuner');return;}
     showPanel('tuner',true);startTuner();
   };
-  $('metronome-panel').addEventListener('keydown',e=>{if(e.key==='Escape'){showPanel('metronome',false);$('metro-settings').focus();}});
   $('tuner-panel').addEventListener('keydown',e=>{if(e.key==='Escape'){closeTool('tuner');$('tuner-open').focus();}});
   document.addEventListener('visibilitychange',()=>{if(document.hidden){demo.stop();scalePractice?.stop('頁面已切換，收音已停止。');closeTool('tuner');closeTool('metronome');}});
   window.addEventListener('pagehide', () => { demo.stop(); scalePractice?.stop(null,true); stopTuner(); stopMetro(); });
