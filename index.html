@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261127-101-experimental">
+  <meta name="site-version" content="20261127-102-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -384,19 +384,27 @@
     .history-choice-actions button.cancel{grid-column:1/-1;border:0;color:#75847a;background:#f3f6f2}
     @media(max-width:700px){.history-columns{grid-template-columns:1fr}.history-panel{padding:16px}}
     .history-empty{border:1px dashed #d8ded6;border-radius:14px;padding:22px 23px;color:#8b948d;font-size:13px;background:#fbfbf8;line-height:1.8}
-    .history-row{background:#fafaf9;border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"meta replay" "keys keys" ". remove";align-items:start;gap:10px}
-    .history-date{grid-area:meta;font-weight:750;font-size:12px;min-width:0}
-    .history-date small{display:block;color:#909894;font-size:11px;font-weight:500;margin-top:4px}
-    .history-keys{grid-area:keys;display:flex;gap:6px;justify-content:flex-start;flex-wrap:wrap;min-width:0}
-    .history-replay{grid-area:replay;justify-self:end;max-width:155px;border:1px solid #bad0ee;background:#eef5ff;color:#315d91;border-radius:9px;padding:8px 10px;font-size:11px;font-weight:800;line-height:1.5;text-align:center}
-    .history-replay:hover{background:#e1edff;border-color:#8bb1df}
-    .history-delete{grid-area:remove;justify-self:end;background:#fafaf9;color:#a45454;border:1px solid #ead2d2;padding:7px 10px;border-radius:9px;font-size:11px;font-weight:750}
-    .history-delete:hover{background:#fdf1f1;border-color:#dba7a7}
-    .history-delete:focus-visible{outline:3px solid #bb8181;outline-offset:2px}
-    @media(max-width:480px){.history-row{gap:8px;padding:11px}.history-replay{max-width:136px;padding:7px 6px;font-size:10px}}
-    .history-chip{border-radius:6px;padding:6px 9px;background:#e9f2e8;color:#395843;font-weight:750;font-size:12px}
+    .history-search{display:flex;align-items:center;flex-wrap:wrap;gap:4px 9px;margin:0 0 10px}
+    .history-search input{flex:0 1 16rem;width:100%;min-width:0;min-height:44px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);font:inherit;font-size:1rem}
+    .history-search input::placeholder{color:var(--muted)}
+    .history-search-status{font-size:.75rem;color:var(--muted)}
+    .history-row{background:var(--ui-raised,var(--paper));color:var(--ink);border:1px solid var(--line);border-radius:13px;padding:7px 9px 9px;display:grid;
+      grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"meta actions" "keys keys";align-items:center;gap:3px 7px;min-width:0}
+    .history-date{grid-area:meta;min-width:0;color:var(--ink);font-size:.875rem;font-weight:750;line-height:1.35;overflow-wrap:anywhere}
+    .history-date-sub{display:flex;align-items:center;flex-wrap:wrap;gap:2px 7px;margin-top:2px;color:var(--muted);font-size:.6875rem;font-weight:550;font-variant-numeric:tabular-nums}
+    .history-count{padding:1px 5px;border-radius:5px;background:var(--soft);color:var(--ink);white-space:nowrap}
+    .history-actions{grid-area:actions;display:flex;align-items:center;gap:2px}
+    .history-replay,.history-delete{display:inline-grid;place-items:center;padding:0;border-radius:8px;color:var(--ink);white-space:nowrap}
+    .history-actions .history-replay{padding:0 8px;background:var(--ui-button-quiet,var(--soft));border:1px solid var(--line);font-size:.75rem;font-weight:750}
+    .history-actions .history-replay:hover{background:var(--ui-selected,var(--accent));color:var(--ui-selected-text,var(--ink))}
+    .history-delete{background:transparent;border:1px solid transparent;color:var(--muted)}
+    .history-delete:hover{background:#faeaea;color:#883c3b;border-color:#ebc2bd}
+    [data-appearance=dark] .history-delete:hover{background:#513636;color:var(--theme-red);border-color:#a7655d}
+    .history-delete>.ui-icon{width:16px;height:16px}
+    .history-keys{grid-area:keys;display:flex;gap:4px;justify-content:flex-start;flex-wrap:wrap;min-width:0}
+    .history-chip{border-radius:5px;padding:3px 6px;background:#e9f2e8;color:#395843;font-weight:700;font-size:.6875rem;line-height:1.35;white-space:nowrap}
     .history-chip.minor{background:#f0eaf8;color:#655178}
-    .history-chip.done{background:#eef1ef;color:#77847c;border:1px solid #d9e0db}
+    .history-chip.done{background:#eef1ef;color:#4d6054;border:1px solid #d9e0db}
     .history-choice-actions:has(> button:only-child){grid-template-columns:1fr}
     footer{border-top:1px solid var(--line);padding:24px 0 33px;color:#a1a8a1;font-size:12px;display:flex;justify-content:space-between;gap:18px}
     .footer-feedback{align-self:flex-start;color:var(--ink);font-size:.8125rem;line-height:1.4;text-decoration:underline;text-underline-offset:3px}
@@ -405,7 +413,7 @@
     .toast{position:fixed;left:50%;bottom:25px;transform:translate(-50%,20px);opacity:0;pointer-events:none;border-radius:12px;padding:12px 18px;background:#283a2d;color:#fafaf9;font-weight:700;font-size:13px;box-shadow:0 15px 40px rgba(0,0,0,.15);transition:opacity .2s,transform .2s;z-index:50}
     .toast.active{opacity:1;transform:translate(-50%,0)}
     @media(max-width:810px){.intro{padding-top:35px;grid-template-columns:1fr;gap:18px}.workspace{grid-template-columns:1fr}.result-panel{min-height:0}.history-section{padding-top:31px}}
-    @media(max-width:450px){.container{width:calc(100% - 26px)}.intro{padding-top:28px;padding-bottom:28px}.intro p{font-size:13px}.panel{padding:20px;border-radius:18px}.counter-item{padding:16px 12px}.counter-name{font-size:13px}.stepper{gap:3px}.stepper button{width:31px;height:31px}.count-output{min-width:26px;font-size:22px}.key-grid{gap:8px}.key-card-main{padding:13px 10px;gap:8px}.fingering-section{padding:10px 8px}.key-primary{font-size:24px}.key-secondary{font-size:10px}.history-row{align-items:start;gap:11px}.history-keys{justify-content:flex-start}footer{flex-direction:column;gap:7px}}
+    @media(max-width:450px){.container{width:calc(100% - 26px)}.intro{padding-top:28px;padding-bottom:28px}.intro p{font-size:13px}.panel{padding:20px;border-radius:18px}.counter-item{padding:16px 12px}.counter-name{font-size:13px}.stepper{gap:3px}.stepper button{width:31px;height:31px}.count-output{min-width:26px;font-size:22px}.key-grid{gap:8px}.key-card-main{padding:13px 10px;gap:8px}.fingering-section{padding:10px 8px}.key-primary{font-size:24px}.key-secondary{font-size:10px}footer{flex-direction:column;gap:7px}}
     @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 
     /* Experiments-only practice tools: modeless and local to this device. */
@@ -497,12 +505,19 @@
     .setup-stack>.panel>.panel-head{grid-column:1/-1;margin-bottom:16px}
     .setup-stack .key-filter{grid-column:1;grid-row:2/8;margin:0;padding:12px;min-width:0}
     .setup-stack>.panel>:not(.key-filter):not(.panel-head){grid-column:2}
-    .fifths-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px 6px;margin:7px 0 0;padding:2px;min-width:0}
-    .fifths-pair{display:grid;gap:3px;min-width:0}
-    .fifths-pair .filter-key{width:100%;min-height:44px;padding:3px 2px;display:flex;flex-direction:row;flex-wrap:wrap;align-content:center;align-items:center;justify-content:center;gap:1px 2px;border-radius:8px}
+    .fifths-circle{
+      --fifths-inset-x:clamp(25px,8.75%,29px);--fifths-inset-y:33px;
+      position:relative;width:100%;max-width:340px;height:326px;margin:6px auto 0;min-width:0
+    }
+    .fifths-circle::before{content:"";position:absolute;inset:var(--fifths-inset-y) var(--fifths-inset-x);border:1px solid var(--line);border-radius:50%;pointer-events:none}
+    .fifths-pair{position:absolute;left:calc(var(--fifths-inset-x) + (100% - 2 * var(--fifths-inset-x)) * var(--fifths-x));
+      top:calc(var(--fifths-inset-y) + (100% - 2 * var(--fifths-inset-y)) * var(--fifths-y));
+      transform:translate(-50%,-50%);display:grid;gap:2px;width:clamp(48px,16.9%,55px);min-width:0}
+    .fifths-pair:focus-within{z-index:1}
+    .fifths-pair .filter-key{width:100%;min-height:30px;padding:1px;display:flex;flex-direction:row;flex-wrap:wrap;align-content:center;align-items:center;justify-content:center;gap:0 1px;border-radius:8px;line-height:1.1}
     .fifths-pair .filter-key strong,.fifths-pair .filter-key small{white-space:nowrap}
-    .fifths-pair .filter-key strong{font-size:.75rem}.fifths-pair .filter-key small{font-size:.625rem}
-    @media(max-width:23.125em){.fifths-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+    .fifths-pair .filter-key strong{font-size:.75rem}.fifths-pair .filter-key small{font-size:.5625rem}
+    @media(max-width:300px){.fifths-circle{height:414px}}
     .fifths-pair .filter-key[aria-pressed="true"]{background:#3d634b;color:#fafaf9;border-color:#3d634b;border-style:solid;opacity:1}
     .fifths-pair .filter-key.minor[aria-pressed="true"]{background:#705582;color:#fafaf9;border-color:#705582}
     .fifths-pair .filter-key[aria-pressed="false"]{background:#fafaf9;color:#697269;border-color:#9da99a;border-style:dashed;opacity:1}
@@ -683,19 +698,19 @@
     @media(max-width:810px){.display-settings{flex-direction:row;align-items:center;justify-content:space-between}}
     @media screen{
       :root[data-appearance=dark]{color-scheme:dark;--page:#16191d;--paper:#21252b;--ink:#eef1f5;--muted:#b9c3cf;--line:#515c69;--accent:#37414d;--accent-ink:#dce7f3;--minor:#3c414a;--minor-ink:#dbe3ed;--soft:#292e36;--shadow:none;--theme-high:#323a43;--theme-green:#b5e6bd;--theme-blue:#b9dcf7;--theme-gold:#ffe0a3;--theme-red:#ffb9ad}
-      [data-appearance=dark] :is(.experiment-roadmap,.experiment-roadmap-items li,.classroom-bar,.key-filter,.counter-item,.room-code-display,.room-action,.room-join-line input,.practice-stat,.signature-card,.key-card,.key-group,.history-panel,.history-row,.history-choice-dialog,.practice-float,.finger-dialog,.cello-leave-dialog,.cello-scale-score,.cello-fb-direction,.teacher-fingerboard,.scale-practice-coach,.scale-pitch-chart,.student-note-dialog textarea){background:var(--paper);border-color:var(--line);color:var(--ink)}
+      [data-appearance=dark] :is(.experiment-roadmap,.experiment-roadmap-items li,.classroom-bar,.key-filter,.counter-item,.room-code-display,.room-action,.room-join-line input,.practice-stat,.signature-card,.key-card,.key-group,.history-panel,.history-choice-dialog,.practice-float,.finger-dialog,.cello-leave-dialog,.cello-scale-score,.cello-fb-direction,.teacher-fingerboard,.scale-practice-coach,.scale-pitch-chart,.student-note-dialog textarea){background:var(--paper);border-color:var(--line);color:var(--ink)}
       [data-appearance=dark] :is(.key-card.is-expanded,.music-exercise-block,.counter-list,.cello-inline-editor,.cello-fb-viewport,.teacher-fb-scroll,.teacher-memo,.room-join-form,.ordered-practice,.history-chip,.scale-practice-action,.scale-pitch-track){background:var(--soft);border-color:var(--line);color:var(--ink)}
       [data-appearance=dark] :is(.scale-pitch-track,.scale-pitch-slot:nth-child(even) .scale-pitch-track,.scale-pitch-slot:last-child .scale-pitch-track){border-color:#73859a}
       [data-appearance=dark] :is(.result-summary,.key-card.done,.cello-fb-group,.cello-fb-legend,.fingering-note,.teacher-note-status,.online-count,.history-empty,.empty-graphic){background:var(--soft);color:var(--ink);border-color:var(--line)}
       [data-appearance=dark] :is(button,select,input:not([type=range]):not([type=checkbox]),textarea){color:var(--ink);border-color:var(--line)}
-      [data-appearance=dark] :is(.room-action,.icon-button,.stepper button,.filter-all,.filter-key,.show-scales,.history-replay,.history-delete,.practice-jump,.practice-quick-list button,.cello-fb-button,.cello-inline-editor button,.teacher-tools button,.student-note-button,.scale-practice button,.scale-practice select,.audio-tools button,.audio-tools input,.audio-tools select){background:var(--theme-high);border-color:#6d7a8a;color:var(--ink)}
+      [data-appearance=dark] :is(.room-action,.icon-button,.stepper button,.filter-all,.filter-key,.show-scales,.practice-jump,.practice-quick-list button,.cello-fb-button,.cello-inline-editor button,.teacher-tools button,.student-note-button,.scale-practice button,.scale-practice select,.audio-tools button,.audio-tools input,.audio-tools select){background:var(--theme-high);border-color:#6d7a8a;color:var(--ink)}
       [data-appearance=dark] :is(.filter-key[aria-pressed=false],.fifths-pair .filter-key[aria-pressed=false],.ordered-practice-button,.key-expand,.fingering-edit,.history-choice-actions button,.finger-form-actions button,.teacher-finger-button,.cello-leave-keep){background:var(--theme-high);color:var(--ink);border-color:#6d7a8a}
       [data-appearance=dark] :is(.filter-key[aria-pressed=true],.fifths-pair .filter-key[aria-pressed=true],.key-expand[aria-expanded=true],.cello-fb-button[aria-pressed=true],.cello-inline-choice[aria-pressed=true],.cello-inline-finger[aria-pressed=true],.teacher-note-pill[aria-pressed=true],.teacher-finger-button[aria-pressed=true],.history-choice-actions button.primary,.finger-form-actions button.primary,.practice-jump.is-active){background:#445970;color:#eff5fd}
       [data-appearance=dark] .teacher-note-pill[aria-pressed=true]{background:#445970;color:#eff5fd}
       [data-appearance=dark] .fifths-pair .filter-key.minor[aria-pressed=true]{background:#4b596b;color:#eaf0f8}
       [data-appearance=dark] :is(.history-chip.done,.practice-jump.is-done){background:#363e47;color:var(--muted)}
-      [data-appearance=dark] :is(.history-replay,.cello-inline-undo,.cello-inline-range,.cello-inline-range[aria-pressed=true]){background:#2e4354;color:var(--theme-blue);border-color:#7192aa}
-      [data-appearance=dark] :is(.cello-inline-reset,.cello-inline-restore-selected,.cello-leave-discard,.history-delete:hover){background:#513636;color:var(--theme-red);border-color:#a7655d}
+      [data-appearance=dark] :is(.cello-inline-undo,.cello-inline-range,.cello-inline-range[aria-pressed=true]){background:#2e4354;color:var(--theme-blue);border-color:#7192aa}
+      [data-appearance=dark] :is(.cello-inline-reset,.cello-inline-restore-selected,.cello-leave-discard){background:#513636;color:var(--theme-red);border-color:#a7655d}
       [data-appearance=dark] :is(.history-choice-actions button.cancel,.scale-practice-button:hover,.icon-button:hover,.ordered-practice-button:hover:not(:disabled),.fingering-edit:hover,.practice-jump:hover){background:#435268;color:var(--ink)}
       [data-appearance=dark] .empty-graphic::before,[data-appearance=dark] .empty-graphic::after{background:#75889e}
       [data-appearance=dark] :is(.cello-legend-title,.cello-inline-status,.cello-inline-label,.cello-inline-open,.cello-inline-hint,.cello-fb-sequence,.cello-leave-dialog p,.finger-form p,.finger-form label,.fingering-pattern,.teacher-memo summary){color:var(--muted)}
@@ -717,7 +732,7 @@
       [data-appearance=dark] .scale-pitch-trend .trend-line{stroke-width:2.2}
       [data-appearance=dark] .scale-pitch-trend .trend-selection{opacity:.23}
       [data-appearance=dark] .scale-pitch-track::before{border-color:#a3b1c3}
-      [data-appearance=dark] :is(.experiment-roadmap,.experiment-roadmap-heading span,.experiment-roadmap-scope,.experiment-roadmap-items small,.intro .eyebrow,h1 em,.classroom-bar p,.room-status,.room-join-form label,.online-count,.code-caption,.section-number,.filter-explain,.filter-status,.filter-subhead,.counter-desc,.control-note,.key-secondary,.key-relative,.signature-label,.history-date,.history-empty,.practice-float-title,.fingering-title,.fingering-remark,.cello-fb-caption,.cello-fb-direction-heading,.cello-legend-note,.teacher-open-label,.teacher-finger-label,.teacher-editor-help,.scale-practice-status,.scale-practice-latest,.scale-pitch-title,.scale-pitch-slot,.scale-pitch-legend,.audio-scale,.a4-control span,.tuner-readout #tuner-cents){color:var(--muted)}
+      [data-appearance=dark] :is(.experiment-roadmap,.experiment-roadmap-heading span,.experiment-roadmap-scope,.experiment-roadmap-items small,.intro .eyebrow,h1 em,.classroom-bar p,.room-status,.room-join-form label,.online-count,.code-caption,.section-number,.filter-explain,.filter-status,.filter-subhead,.counter-desc,.control-note,.key-secondary,.key-relative,.signature-label,.history-empty,.practice-float-title,.fingering-title,.fingering-remark,.cello-fb-caption,.cello-fb-direction-heading,.cello-legend-note,.teacher-open-label,.teacher-finger-label,.teacher-editor-help,.scale-practice-status,.scale-practice-latest,.scale-pitch-title,.scale-pitch-slot,.scale-pitch-legend,.audio-scale,.a4-control span,.tuner-readout #tuner-cents){color:var(--muted)}
       [data-appearance=dark] :is(.filter-key.minor,.history-chip.minor){background:var(--minor);color:var(--minor-ink)}
       [data-appearance=dark] :is(.draw-button,.room-action.primary,.filter-key[aria-pressed=true],.stepper button:hover,.audio-tools button[aria-pressed=true],.scale-practice-button,.scale-practice-merge,.scale-practice-coach-action,.cello-inline-save,.cello-leave-save){background:#445970;color:#eff5fd;border-color:#7d93ad}
       [data-appearance=dark]{--completion-outline:#a8b7c5;--completion-green:#93dca8}
@@ -1540,8 +1555,8 @@
             <h3 id="key-filter-title">已選調性</h3>
             <div class="key-pool-actions"><button type="button" id="filter-all" class="filter-all">全部選取</button><button type="button" id="filter-none" class="filter-all">全部取消</button></div>
           </div>
-          <p class="filter-explain sr-only">預設 24 調全選。按亮的調性會進入抽籤池；灰色代表排除。依五度順序排列，每組上方為大調、下方為小調，可分別選取。F♯ 大調／E♭ 小調保留原本的等音調拼寫。</p>
-          <div id="signature-filters" class="fifths-grid" role="group" aria-label="依五度順序排列的 24 個候選調性，每組上方大調、下方小調"></div>
+          <p class="filter-explain sr-only">預設 24 調全選。按亮的調性會進入抽籤池；灰色代表排除。依五度圈順時針排列，每組上方為大調、下方為小調，可分別選取。F♯ 大調／E♭ 小調保留原本的等音調拼寫。</p>
+          <div id="signature-filters" class="fifths-circle" role="group" aria-label="依五度圈順時針排列的 24 個候選調性，每組上方大調、下方小調"></div>
           <div class="filter-status sr-only" role="group" aria-labelledby="key-filter-title"><span>大調 <b id="major-eligible">12 / 12</b></span><span>古典旋律小調 <b id="minor-eligible">12 / 12</b></span></div>
         </section>
           </div>
@@ -1610,6 +1625,11 @@
       <summary>練習紀錄與累積次數</summary>
       <section class="history-section" aria-labelledby="history-title">
       <div class="history-heading"><h2 id="history-title">最近的練習紀錄</h2><span class="caption">兩種紀錄分開保存於目前瀏覽器</span></div>
+      <div class="history-search">
+        <label class="sr-only" for="history-search">搜尋練習紀錄</label>
+        <input id="history-search" type="search" placeholder="搜尋日期或調性" aria-controls="personal-history-list classroom-history-list">
+        <span class="history-search-status" id="history-search-status" role="status">近 3 天</span>
+      </div>
       <div class="history-columns">
         <section class="history-panel" aria-labelledby="personal-history-title">
           <h3 class="history-panel-heading" id="personal-history-title"><i class="key-dot" aria-hidden="true"></i>個人練習紀錄</h3>
@@ -1637,7 +1657,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-101-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-102-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -5359,8 +5379,15 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       // Preserve each of the existing 24 IDs. The tritone slot keeps F♯ major
       // and E♭ minor rather than inventing or merging enharmonic pool entries.
       const signatures=[0,1,2,3,4,5,6,-5,-4,-3,-2,-1];
-      signatures.forEach(sig=>{
+      // Clock positions sit on an inset ellipse. Widen the first two
+      // horizontal steps so adjacent two-button pairs clear at narrow widths.
+      const sites=[[.5,0],[.72,.067],[.94,.25],[1,.5],[.94,.75],[.72,.933],
+        [.5,1],[.28,.933],[.06,.75],[0,.5],[.06,.25],[.28,.067]];
+      signatures.forEach((sig,slot)=>{
         const pair=document.createElement('div');pair.className='fifths-pair';
+        const [x,y]=sites[slot];
+        pair.style.setProperty('--fifths-x',x);
+        pair.style.setProperty('--fifths-y',y);
         for(const mode of ['major','minor']){
           const arr=mode==='major'?MAJOR_KEYS:MINOR_KEYS;
           const actualSignature=mode==='minor'&&sig===6?-6:sig;
@@ -6293,20 +6320,55 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       if(!Number.isFinite(timestamp)||timestamp<=0||!Number.isFinite(date.getTime()))return ' · 時間未記錄';
       return ' · '+String(date.getHours()).padStart(2,'0')+':'+String(date.getMinutes()).padStart(2,'0');
     }
+    function historyRecordVisible(record,today,rawQuery){
+      // Date-only comparison uses UTC arithmetic on the stored local civil date.
+      const raw=String(rawQuery||'').trim().normalize('NFKC').toLowerCase().replace(/\s/g,'');
+      if(!raw){
+        const end=Date.parse(today+'T00:00:00Z'), start=new Date(end-2*86400000).toISOString().slice(0,10);
+        return record.date>=start&&record.date<=today;
+      }
+      const dateSearch=raw.replace(/[年/月.]/g,'-').replace(/日$/,'').replace(/-$/,'');
+      if(/^\d+(?:-\d+){0,2}$/.test(dateSearch)){
+        const parts=dateSearch.split('-'), [year,month,day]=record.date.split('-');
+        const pad=value=>value.padStart(2,'0');
+        if(parts[0].length===4)return parts[0]===year&&(!parts[1]||pad(parts[1])===month)&&(!parts[2]||pad(parts[2])===day);
+        if(parts.length===2)return pad(parts[0])===month&&pad(parts[1])===day;
+        return false;
+      }
+      const key=value=>value.normalize('NFKC').toLowerCase().replace(/\s/g,'')
+        .replace(/^(升|降|#|♯|♭)([a-g])/,'$2$1').replace(/[升♯]/g,'#').replace(/[降♭]/g,'b');
+      const query=key(raw);
+      return ['major','minor'].some(mode=>record[mode+'Ids'].some(index=>{
+        const name=(mode==='major'?MAJOR_KEYS:MINOR_KEYS)[index]?.[0];
+        if(!name)return false;
+        const note=key(name),suffix=mode==='major'?'大調':'小調';
+        return query===note||query===suffix||query===note+suffix||(mode==='minor'&&query===note+'古典旋律小調');
+      }));
+    }
     function renderHistory(){
       renderPracticeStats();
       renderPracticeHeat();
+      renderHistoryLists();
+    }
+    function renderHistoryLists(){
+      const query=q('#history-search')?.value.trim()||'';
+      let shows=0;
       function createRow(record,kind){
         const row=document.createElement('div');row.className='history-row';
         const meta=document.createElement('div');meta.className='history-date';
         const dateText=formatDate(record.date,record.date.slice(0,4)!==currentDate.slice(0,4));
         const timeLabel=formatHistoryTime(record.drawnAt||record.createdAt);
-        meta.textContent=dateText+timeLabel;
-        const sum=document.createElement('small');
+        meta.textContent=dateText;
+        const dateSub=document.createElement('div');dateSub.className='history-date-sub';
+        const time=document.createElement('span');time.textContent=timeLabel.replace(/^ · /,'');
+        const sum=document.createElement('span');sum.className='history-count';
         const progress=historyProgress(record);
-        sum.textContent='已完成 '+progress.count+' / '+progress.total;
+        sum.textContent=progress.count+'／'+progress.total;
+        sum.setAttribute('aria-hidden','true');
+        const audibleCount=document.createElement('span');audibleCount.className='sr-only';
+        audibleCount.textContent='已完成 '+progress.count+' 調，共 '+progress.total+' 調';
         // Keep room codes private: only show date, time and completed notes.
-        meta.append(sum);row.append(meta);
+        dateSub.append(time,sum,audibleCount);meta.append(dateSub);row.append(meta);
         const chips=document.createElement('div');chips.className='history-keys';
         for(const [mode,indices] of [['major',record.majorIds],['minor',record.minorIds]]){
           indices.forEach(i=>{
@@ -6320,11 +6382,13 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         const replay=document.createElement('button');replay.type='button';
         const canContinue=progress.count<progress.total;
         replay.className='history-replay';
-        replay.textContent=canContinue?'繼續這次練習':'重現這次練習';
-        replay.setAttribute('aria-label',replay.textContent+'：'+dateText+timeLabel);
+        replay.textContent=canContinue?'繼續':'重練';
+        replay.setAttribute('aria-label',(canContinue?'繼續這次練習':'重練這次練習')+'：'+dateText+timeLabel);
         replay.addEventListener('click',()=>replayHistoricalScale(record,kind));
         const remove=document.createElement('button');remove.type='button';
-        remove.className='history-delete';remove.textContent='刪除';
+        remove.className='history-delete';
+        remove.title='刪除紀錄';
+        remove.innerHTML='<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 7h15M9 7V4.8h6V7m-8.8 0 .9 13h9.8l.9-13M10 10.5v6m4-6v6"/></svg>';
         remove.setAttribute('aria-label','刪除 '+dateText+timeLabel+' 的'+
           (kind==='personal'?'個人':'課堂')+'練習紀錄');
         remove.addEventListener('click',()=>{
@@ -6353,25 +6417,29 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
           if(!sharedRoom&&(wasContinuing||(kind==='personal'&&record.date===currentDate)))renderResults();
           showToast('已刪除這筆練習紀錄');
         });
-        row.append(replay,chips,remove);
+        const actions=document.createElement('div');actions.className='history-actions';
+        actions.append(replay,remove);row.append(actions,chips);
         return row;
       }
-      for(const [kind,id,emptyMessage] of [
-        ['personal','personal-history-list','還沒有個人練習紀錄。'],
-        ['classroom','classroom-history-list','還沒有課堂連線紀錄。與其他人連線抽籤後，這裡會自動保存。']
+      for(const [kind,id] of [
+        ['personal','personal-history-list'],['classroom','classroom-history-list']
       ]){
         const list=q('#'+id);list.replaceChildren();
         const records=(kind==='personal'?state.personalHistory:state.classroomHistory)
           .filter(record=>record&&Array.isArray(record.majorIds)&&
-            Array.isArray(record.minorIds)&&/^\d{4}-\d{2}-\d{2}$/.test(record.date))
+            Array.isArray(record.minorIds)&&/^\d{4}-\d{2}-\d{2}$/.test(record.date)&&
+            historyRecordVisible(record,currentDate,query))
           .sort((a,b)=>(b.drawnAt||b.createdAt||0)-(a.drawnAt||a.createdAt||0));
         if(!records.length){
           const empty=document.createElement('div');
-          empty.className='history-empty';empty.textContent=emptyMessage;
+          empty.className='history-empty';empty.textContent=query?'沒有符合的紀錄。':'近 3 天沒有紀錄。';
           list.append(empty);continue;
         }
+        shows+=records.length;
         records.forEach(record=>list.append(createRow(record,kind)));
       }
+      const status=q('#history-search-status'),text=query?'找到 '+shows+' 筆紀錄':'近 3 天';
+      if(status&&status.textContent!==text)status.textContent=text;
     }
     function render(){
       renderControls();renderResults();renderHistory();
@@ -6380,6 +6448,13 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       const next=getLocalDate();
       if(next!==currentDate){currentDate=next;replaySession=null;render();}
     }
+    const historySearch=q('#history-search');
+    historySearch.addEventListener('input',renderHistoryLists);
+    historySearch.addEventListener('keydown',event=>{
+      if(event.key==='Escape'&&!event.isComposing&&historySearch.value){
+        event.preventDefault();historySearch.value='';renderHistoryLists();
+      }
+    });
     q('#major-minus').addEventListener('click',()=>changeCount('major',-1));
     q('#major-plus').addEventListener('click',()=>changeCount('major',1));
     q('#minor-minus').addEventListener('click',()=>changeCount('minor',-1));
