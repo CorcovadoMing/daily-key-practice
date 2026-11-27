@@ -122,7 +122,9 @@ test('phone shares one 24-slot axis with upright note names, and heat legend has
  assert.match(html,/\.practice-stats-scroll\{[^}]*overflow-x:auto[^}]*contain:inline-size/);
  assert.match(html,/\.practice-stats-bars\{[^}]*grid-template-columns:repeat\(24,minmax\(0,1fr\)\)/);
  assert.match(html,/@media\(max-width:680px\)\{[\s\S]*?\.practice-statistics\{[^}]*grid-template-columns:minmax\(0,1fr\)/);
- assert.match(html,/\.practice-stats-key\{[^}]*flex-direction:column/);
+ assert.match(html,/\.practice-stats-bars\{[^}]*container-type:inline-size/);
+ assert.match(html,/\.practice-stats-key\{[^}]*font-size:min\(\.75rem,2\.68cqi\)[^}]*white-space:nowrap/);
+ assert.doesNotMatch(html,/\.practice-stats-key\{[^}]*flex-direction:column/);
  assert.doesNotMatch(html,/\.practice-stats-key\{[^}]*writing-mode:vertical/);
  assert.match(html,/\.practice-heat-legend\{display:grid;grid-template-columns:repeat\(3,max-content\)/);
  assert.doesNotMatch(html,/practice-stats-band-label/);

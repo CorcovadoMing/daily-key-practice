@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261127-102-experimental">
+  <meta name="site-version" content="20261127-103-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -384,10 +384,11 @@
     .history-choice-actions button.cancel{grid-column:1/-1;border:0;color:#75847a;background:#f3f6f2}
     @media(max-width:700px){.history-columns{grid-template-columns:1fr}.history-panel{padding:16px}}
     .history-empty{border:1px dashed #d8ded6;border-radius:14px;padding:22px 23px;color:#8b948d;font-size:13px;background:#fbfbf8;line-height:1.8}
-    .history-search{display:flex;align-items:center;flex-wrap:wrap;gap:4px 9px;margin:0 0 10px}
-    .history-search input{flex:0 1 16rem;width:100%;min-width:0;min-height:44px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);font:inherit;font-size:1rem}
-    .history-search input::placeholder{color:var(--muted)}
-    .history-search-status{font-size:.75rem;color:var(--muted)}
+    .history-filters{display:flex;align-items:center;flex-wrap:wrap;gap:4px 6px;margin:0 0 10px}
+    .history-filters label{display:flex;align-items:center;gap:4px;min-width:0;font-size:.75rem;color:var(--ink)}
+    .history-filters select{min-width:0;max-width:100%;min-height:44px;padding:4px 3px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);font:inherit}
+    .history-filters .history-filter-reset{min-height:44px;padding:4px 8px;font-size:.75rem}
+    .history-filter-status{font-size:.75rem;color:var(--muted)}
     .history-row{background:var(--ui-raised,var(--paper));color:var(--ink);border:1px solid var(--line);border-radius:13px;padding:7px 9px 9px;display:grid;
       grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"meta actions" "keys keys";align-items:center;gap:3px 7px;min-width:0}
     .history-date{grid-area:meta;min-width:0;color:var(--ink);font-size:.875rem;font-weight:750;line-height:1.35;overflow-wrap:anywhere}
@@ -980,14 +981,14 @@
     .practice-stats-axis,.practice-stats-bars{position:relative;margin:0;padding:0;list-style:none}
     .practice-stats-axis{position:sticky;left:0;z-index:1;background:var(--paper);font-size:.75rem}
     .practice-stats-axis span{position:absolute;bottom:calc(var(--stats-labels) + var(--stats-height) * var(--level));right:.2rem;transform:translateY(50%);font-variant-numeric:tabular-nums}
-    .practice-stats-bars{display:grid;grid-template-columns:repeat(24,minmax(0,1fr));isolation:isolate}
+    .practice-stats-bars{display:grid;grid-template-columns:repeat(24,minmax(0,1fr));isolation:isolate;container-type:inline-size}
     .practice-stats-bars::before{content:"";position:absolute;inset:0 0 var(--stats-labels);border-bottom:1px solid var(--line);z-index:-1;background:var(--grid-lines,none)}
     .practice-stats-col{min-width:0;display:grid;grid-template-rows:var(--stats-height) var(--stats-labels);text-align:center}
     .practice-stats-bar-slot{position:relative}
     .practice-stats-bar{position:absolute;inset-inline:24%;bottom:0;height:var(--bar-height);background:var(--stats-bar);border-radius:3px 3px 0 0}
     .practice-stats-value{position:absolute;inset-inline:0;bottom:var(--bar-height);font-size:.6875rem;font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1.05}
     .practice-stats-value.long{inset-inline:auto;left:50%;transform:translateX(-50%);writing-mode:vertical-rl;text-orientation:sideways}
-    .practice-stats-key{display:flex;justify-content:center;align-items:flex-start;font-size:.75rem;font-weight:700;padding-top:.3rem;color:var(--ink);white-space:nowrap}
+    .practice-stats-key{display:flex;justify-content:center;align-items:baseline;font-size:.4375rem;font-size:min(.75rem,2.68cqi);font-weight:700;padding-top:.3rem;color:var(--ink);white-space:nowrap}
     .practice-heat{--heat-0:#e6ebe5;--heat-1:#b8d6b8;--heat-2:#87b58c;--heat-3:#528557;--heat-4:#286037}
     [data-appearance=dark] .practice-heat{--heat-0:#333d3a;--heat-1:#3b5b46;--heat-2:#4d8059;--heat-3:#72a978;--heat-4:#a0cda1}
     .practice-heat [data-level="0"]{--heat-color:var(--heat-0)}
@@ -1016,8 +1017,9 @@
       .practice-stats-plot{--stats-labels:1.65rem;grid-template-columns:1.4rem minmax(0,1fr)}
       .practice-stats-axis{font-size:.625rem}
       .practice-stats-axis span:not(:first-child):not(:last-child){display:none}
-      .practice-stats-key,.practice-stats-value{font-size:.625rem}
-      .practice-stats-key{flex-direction:column;align-items:center;justify-content:flex-start;padding:.2rem 0 0;line-height:1}
+      .practice-stats-value{font-size:.625rem}
+      .practice-stats-key{padding-top:.3rem;line-height:1.15}
+      .practice-stats-accidental{font-size:.72em}
     }
     @media(max-width:380px){
       .launch-mode span{padding:0 5px}
@@ -1625,10 +1627,14 @@
       <summary>練習紀錄與累積次數</summary>
       <section class="history-section" aria-labelledby="history-title">
       <div class="history-heading"><h2 id="history-title">最近的練習紀錄</h2><span class="caption">兩種紀錄分開保存於目前瀏覽器</span></div>
-      <div class="history-search">
-        <label class="sr-only" for="history-search">搜尋練習紀錄</label>
-        <input id="history-search" type="search" placeholder="搜尋日期或調性" aria-controls="personal-history-list classroom-history-list">
-        <span class="history-search-status" id="history-search-status" role="status">近 3 天</span>
+      <div class="history-filters">
+        <label>日期範圍<select id="history-filter-date" aria-controls="personal-history-list classroom-history-list">
+          <option value="3">近 3 天</option><option value="7">近 7 天</option><option value="30">近 30 天</option>
+          <option value="90">近 90 天</option><option value="all">全部紀錄</option>
+        </select></label>
+        <label>調性<select id="history-filter-key" aria-controls="personal-history-list classroom-history-list"><option value="">不限調性</option></select></label>
+        <button type="button" class="room-action history-filter-reset" id="history-filter-reset" disabled>清除</button>
+        <span class="history-filter-status" id="history-filter-status" role="status">近 3 天</span>
       </div>
       <div class="history-columns">
         <section class="history-panel" aria-labelledby="personal-history-title">
@@ -1657,7 +1663,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-102-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-103-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -6320,38 +6326,45 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       if(!Number.isFinite(timestamp)||timestamp<=0||!Number.isFinite(date.getTime()))return ' · 時間未記錄';
       return ' · '+String(date.getHours()).padStart(2,'0')+':'+String(date.getMinutes()).padStart(2,'0');
     }
-    function historyRecordVisible(record,today,rawQuery){
-      // Date-only comparison uses UTC arithmetic on the stored local civil date.
-      const raw=String(rawQuery||'').trim().normalize('NFKC').toLowerCase().replace(/\s/g,'');
-      if(!raw){
-        const end=Date.parse(today+'T00:00:00Z'), start=new Date(end-2*86400000).toISOString().slice(0,10);
-        return record.date>=start&&record.date<=today;
+    function validHistoryRecord(record){
+      if(!record||!Array.isArray(record.majorIds)||!Array.isArray(record.minorIds)||
+        typeof record.date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(record.date))return false;
+      const time=Date.parse(record.date+'T00:00:00Z');
+      return Number.isFinite(time)&&new Date(time).toISOString().slice(0,10)===record.date;
+    }
+    function historyRangeStart(today,range){
+      // Arithmetic on the stored local civil date in UTC avoids DST jumps.
+      if(range==='all')return '';
+      const days=['3','7','30','90'].includes(range)?Number(range):3;
+      const end=Date.parse(today+'T00:00:00Z');
+      return new Date(end-(days-1)*86400000).toISOString().slice(0,10);
+    }
+    function historyRecordVisible(record,today,start,key=''){
+      if(record.date<start||record.date>today)return false;
+      return !key||['major','minor'].some(mode=>record[mode+'Ids'].some(index=>key===selectedId(mode,index)));
+    }
+    function syncHistoryFilterKeys(){
+      const key=q('#history-filter-key');
+      if(!key||key.options.length!==1)return;
+      for(const mode of ['major','minor']){
+        const group=document.createElement('optgroup'),caption=mode==='major'?'大調':'小調';
+        group.label=caption;
+        for(let index=0;index<12;index++){
+          const element=document.createElement('option');element.value=selectedId(mode,index);
+          element.textContent=keyName(mode,index)+' '+caption;group.append(element);
+        }
+        key.append(group);
       }
-      const dateSearch=raw.replace(/[年/月.]/g,'-').replace(/日$/,'').replace(/-$/,'');
-      if(/^\d+(?:-\d+){0,2}$/.test(dateSearch)){
-        const parts=dateSearch.split('-'), [year,month,day]=record.date.split('-');
-        const pad=value=>value.padStart(2,'0');
-        if(parts[0].length===4)return parts[0]===year&&(!parts[1]||pad(parts[1])===month)&&(!parts[2]||pad(parts[2])===day);
-        if(parts.length===2)return pad(parts[0])===month&&pad(parts[1])===day;
-        return false;
-      }
-      const key=value=>value.normalize('NFKC').toLowerCase().replace(/\s/g,'')
-        .replace(/^(升|降|#|♯|♭)([a-g])/,'$2$1').replace(/[升♯]/g,'#').replace(/[降♭]/g,'b');
-      const query=key(raw);
-      return ['major','minor'].some(mode=>record[mode+'Ids'].some(index=>{
-        const name=(mode==='major'?MAJOR_KEYS:MINOR_KEYS)[index]?.[0];
-        if(!name)return false;
-        const note=key(name),suffix=mode==='major'?'大調':'小調';
-        return query===note||query===suffix||query===note+suffix||(mode==='minor'&&query===note+'古典旋律小調');
-      }));
     }
     function renderHistory(){
       renderPracticeStats();
       renderPracticeHeat();
+      syncHistoryFilterKeys();
       renderHistoryLists();
     }
     function renderHistoryLists(){
-      const query=q('#history-search')?.value.trim()||'';
+      const range=q('#history-filter-date')?.value||'3',key=q('#history-filter-key')?.value||'';
+      const filtered=range!=='3'||Boolean(key), start=historyRangeStart(currentDate,range);
       let shows=0;
       function createRow(record,kind){
         const row=document.createElement('div');row.className='history-row';
@@ -6426,19 +6439,18 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       ]){
         const list=q('#'+id);list.replaceChildren();
         const records=(kind==='personal'?state.personalHistory:state.classroomHistory)
-          .filter(record=>record&&Array.isArray(record.majorIds)&&
-            Array.isArray(record.minorIds)&&/^\d{4}-\d{2}-\d{2}$/.test(record.date)&&
-            historyRecordVisible(record,currentDate,query))
+          .filter(record=>validHistoryRecord(record)&&historyRecordVisible(record,currentDate,start,key))
           .sort((a,b)=>(b.drawnAt||b.createdAt||0)-(a.drawnAt||a.createdAt||0));
         if(!records.length){
           const empty=document.createElement('div');
-          empty.className='history-empty';empty.textContent=query?'沒有符合的紀錄。':'近 3 天沒有紀錄。';
+          empty.className='history-empty';empty.textContent=filtered?'沒有符合的紀錄。':'近 3 天沒有紀錄。';
           list.append(empty);continue;
         }
         shows+=records.length;
         records.forEach(record=>list.append(createRow(record,kind)));
       }
-      const status=q('#history-search-status'),text=query?'找到 '+shows+' 筆紀錄':'近 3 天';
+      const reset=q('#history-filter-reset');if(reset)reset.disabled=!filtered;
+      const status=q('#history-filter-status'),text=filtered?'找到 '+shows+' 筆紀錄':'近 3 天';
       if(status&&status.textContent!==text)status.textContent=text;
     }
     function render(){
@@ -6448,12 +6460,11 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       const next=getLocalDate();
       if(next!==currentDate){currentDate=next;replaySession=null;render();}
     }
-    const historySearch=q('#history-search');
-    historySearch.addEventListener('input',renderHistoryLists);
-    historySearch.addEventListener('keydown',event=>{
-      if(event.key==='Escape'&&!event.isComposing&&historySearch.value){
-        event.preventDefault();historySearch.value='';renderHistoryLists();
-      }
+    const historyDate=q('#history-filter-date'),historyKey=q('#history-filter-key');
+    [historyDate,historyKey].forEach(select=>select.addEventListener('change',renderHistoryLists));
+    q('#history-filter-reset').addEventListener('click',()=>{
+      historyDate.value='3';historyKey.value='';
+      renderHistoryLists();historyDate.focus({preventScroll:true});
     });
     q('#major-minus').addEventListener('click',()=>changeCount('major',-1));
     q('#major-plus').addEventListener('click',()=>changeCount('major',1));

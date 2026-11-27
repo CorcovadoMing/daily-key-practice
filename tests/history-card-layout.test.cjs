@@ -24,16 +24,20 @@ test('each record groups both actions on the header row and retains all key chip
  }
 });
 
-test('history presents three local civil dates by default and searches original older records',()=>{
- const fn=html.slice(html.indexOf('    function historyRecordVisible('),html.indexOf('    function renderHistory(){'));
- const ctx={MAJOR_KEYS:[['F♯'],['D♭']],MINOR_KEYS:[['C♯']]};vm.runInNewContext(fn,ctx);
- const record=(date)=>({date,majorIds:[0,1],minorIds:[0]}), check=(date,today,query='')=>ctx.historyRecordVisible(record(date),today,query);
+test('history presets use local civil dates; range and key filters intersect',()=>{
+ const fn=html.slice(html.indexOf('    function validHistoryRecord('),html.indexOf('    function syncHistoryFilterKeys('));
+ const ctx={selectedId:(mode,i)=>mode+'-'+i};vm.runInNewContext(fn,ctx);
+ const record=date=>({date,majorIds:[0,1],minorIds:[0]});
+ const check=(date,today,preset='3',key='')=>ctx.validHistoryRecord(record(date))&&ctx.historyRecordVisible(record(date),today,ctx.historyRangeStart(today,preset),key);
  for(const date of ['2025-12-30','2025-12-31','2026-01-01'])assert.equal(check(date,'2026-01-01'),true);
  for(const date of ['2025-12-29','2026-01-02'])assert.equal(check(date,'2026-01-01'),false);
  assert.equal(check('2024-02-29','2024-03-02'),true);
  assert.equal(check('2024-02-28','2024-03-02'),false);
- for(const query of ['2024-02-29','2024/2/29','2月29日','2024年2月29日','2/29','2024-2','F#','升 F 大調','Db','降D','C♯ 小調','小調']){
-  assert.equal(check('2024-02-29','2026-01-01',query),true,query);
- }
- for(const query of ['2024-02-28','2025-02','D 大調','F# 小調','C♯ 大調','xyz'])assert.equal(check('2024-02-29','2026-01-01',query),false,query);
+ assert.equal(check('2024-02-30','2024-03-02','all'),false);
+ assert.equal(check('2026-01-02','2026-01-01','all'),false);
+ assert.equal(check('2024-02-29','2026-01-01','30'),false);
+ assert.equal(check('2024-02-29','2026-01-01','all','minor-0'),true);
+ assert.equal(check('2024-02-29','2026-01-01','all','minor-1'),false);
+ assert.equal(check('2026-03-01','2026-03-07','7','major-1'),true);
+ assert.equal(check('2026-02-28','2026-03-07','7','major-1'),false);
 });
