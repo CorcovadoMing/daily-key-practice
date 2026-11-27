@@ -18,6 +18,7 @@ test('each record groups both actions on the header row and retains all key chip
   assert.equal(replay.textContent,label);assert.match(replay.attrs['aria-label'],/這次練習/);
   assert.match(remove.attrs['aria-label'],/刪除.+練習紀錄/);
   assert.match(remove.innerHTML,/<svg[^>]+aria-hidden="true"/);
+  assert.match(remove.innerHTML,/class="history-delete-lid"/);
   assert.match(date.children[0].children[2].textContent,/已完成 \d+ 調，共 \d+ 調/);
   replay.listeners.click();assert.deepEqual(replays.at(-1),[record,kind]);
   remove.listeners.click();assert.equal(state[kind==='personal'?'personalHistory':'classroomHistory'][0],record);
@@ -53,8 +54,8 @@ test('resetting history filters retains an accessible focus target with no recor
  const date={value:'30',addEventListener(){},focus(){assert.fail('date picker should not receive focus');}};
  const key={value:'major-6',addEventListener(){},focus(){assert.fail('key picker should not receive focus');}};
  const reset={inactive:'false',getAttribute(){return this.inactive;},focus(o){assert.equal(o.preventScroll,true);calls.push('focus');},addEventListener(k,f){click=f;}};
- const ctx={q:id=>({'#history-filter-date':date,'#history-filter-key':key,'#history-filter-reset':reset})[id],renderHistoryLists(){calls.push('render');reset.inactive='true';}};
+ const ctx={q:id=>({'#history-filter-date':date,'#history-filter-key':key,'#history-filter-reset':reset})[id],renderHistoryLists(){calls.push('render');reset.inactive='true';},playHistoryIcon(button,selector,frames,duration){assert.equal(button,reset);assert.equal(selector,'svg');assert.equal(frames[1].transform,'rotate(-360deg)');assert.equal(duration,420);calls.push('animate');}};
  vm.runInNewContext(body,ctx);
- click();assert.deepEqual(calls,['focus','render']);assert.equal(date.value,'3');assert.equal(key.value,'');
- click();assert.deepEqual(calls,['focus','render']);
+ click();assert.deepEqual(calls,['focus','render','animate']);assert.equal(date.value,'3');assert.equal(key.value,'');
+ click();assert.deepEqual(calls,['focus','render','animate']);
 });
