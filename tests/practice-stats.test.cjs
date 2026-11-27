@@ -56,12 +56,12 @@ test('24 ordered accessible counts share one linear axis, including zeros and la
  assert.match(html,/\.practice-stats-scroll\{[^}]*overflow-x:auto/);
 });
 
-test('heat uses valid local civil record dates, exactly 30 dates through today and unique completed keys each day',()=>{
+test('heat uses valid local civil record dates, exactly 84 dates through today and unique completed keys each day',()=>{
  const dated=(date,id,doneIds)=>({...row(id,doneIds),date});
  const records=[
   dated('2026-04-30','earlier',['major-0']),
-  dated('2026-04-13','opening',['major-0']),
-  dated('2026-04-12','one-day-too-old',['major-0']),
+  dated('2026-02-18','opening',['major-0']),
+  dated('2026-02-17','one-day-too-old',['major-0']),
   dated('2026-05-01','a',['major-0','major-0','minor-2','major-9']),
   dated('2026-05-01','b',['major-0','major-1']),
   dated('2026-05-12','today',['minor-2']),
@@ -72,11 +72,11 @@ test('heat uses valid local civil record dates, exactly 30 dates through today a
  ];
  const classRows=[dated('2026-05-01','mirror',['major-1']),dated('2026-05-12','fresh',['major-0','minor-2'])];
  const days=c.heat(records,classRows,'2026-05-12'),get=date=>days.find(d=>d.date===date);
- assert.equal(days.length,30);
- assert.equal(days[0].date,'2026-04-13');
- assert.equal(get('2026-04-13').count,1);assert.equal(get('2026-04-12'),undefined);
+ assert.equal(days.length,84);
+ assert.equal(days[0].date,'2026-02-18');
+ assert.equal(get('2026-02-18').count,1);assert.equal(get('2026-02-17'),undefined);
  assert.equal(days.at(-1).date,'2026-05-12');
- assert.equal(new Set(days.map(d=>d.date)).size,30);
+ assert.equal(new Set(days.map(d=>d.date)).size,84);
  assert.equal(get('2026-05-12').weekday,1);
  assert.equal(get('2026-04-30').count,1);assert.equal(get('2026-05-01').count,3);
  assert.equal(get('2026-05-02').count,0);assert.equal(get('2026-05-12').count,2);
@@ -86,8 +86,8 @@ test('heat uses valid local civil record dates, exactly 30 dates through today a
  const leap=c.heat([],[],'2024-03-12');
  for(const day of ['2024-02-29','2024-03-09','2024-03-10','2024-03-11'])assert.ok(leap.some(d=>d.date===day));
  assert.match(html,/class="practice-stats-scroll" role="region" aria-label="每日完成調數，可左右捲動" tabindex="0"/);
- assert.match(html,/\.practice-statistics\{[^}]*grid-template-columns:minmax\(0,1fr\) minmax\(0,11rem\)/);
- assert.match(html,/最近 30 天，含今天/);
+ assert.match(html,/\.practice-statistics\{[^}]*grid-template-columns:minmax\(0,1fr\) minmax\(14\.75rem,33%\)/);
+ assert.match(html,/最近 12 週（84 天），含今天/);
 });
 
 test('actual heat render outputs date/count per cell and consistent green thresholds without a Tab stop per day',()=>{
@@ -99,19 +99,19 @@ test('actual heat render outputs date/count per cell and consistent green thresh
   dated('2026-06-01',1),dated('2026-06-02',2),dated('2026-06-03',4),dated('2026-06-04',6)],classroomHistory:[]},currentDate:'2026-06-04'};
  vm.runInNewContext(html.slice(html.indexOf('    function practiceCompletionRows('),html.indexOf('    const cumulativeNoteKey='))+';renderPracticeHeat()',box);
  const cells=host.chart.children.filter(x=>x.className==='practice-heat-cell');
- assert.equal(cells.length,30);
+ assert.equal(cells.length,84);
  assert.equal(cells[0].dataset.count,'0');
  assert.deepEqual(cells.slice(-4).map(cell=>cell.dataset.level),['1','2','3','4']);
  assert.equal(cells.at(-1).children[0].textContent,'2026-06-04，完成 6 調');
  assert.ok(cells.every(x=>x.attrs.role==='listitem'&&x.attrs.tabindex==null));
- assert.deepEqual(host.chart.children.filter(x=>x.className==='practice-heat-month').map(x=>x.textContent),['5月','6月']);
- assert.equal(host.chart.attrs['aria-label'],'最近 30 天，含今天');
- assert.equal(range.textContent,'5/6–6/4');
+ assert.deepEqual(host.chart.children.filter(x=>x.className==='practice-heat-month').map(x=>x.textContent),['3月','4月','5月','6月']);
+ assert.equal(host.chart.attrs['aria-label'],'最近 12 週（84 天），含今天');
+ assert.equal(range.textContent,'3/13–6/4');
  box.currentDate='2027-01-08';box.renderPracticeHeat();
- assert.equal(range.textContent,'2026/12/10–2027/1/8');
+ assert.equal(range.textContent,'2026/10/17–2027/1/8');
  assert.deepEqual(cells.filter(x=>x.attrs['aria-current']==='date').map(x=>x.dataset.date),['2026-06-04']);
- assert.equal(cells[0].style.gridArea,'4 / 2');
- assert.equal(cells.at(-1).style.gridArea,'5 / 6');
+ assert.equal(cells[0].style.gridArea,'6 / 2');
+ assert.equal(cells.at(-1).style.gridArea,'5 / 14');
  assert.ok(cells.every((x,i)=>i===0||x.dataset.date>cells[i-1].dataset.date));
 });
 
@@ -119,11 +119,11 @@ test('phone shares one 24-slot axis with rotated note names, and heat legend has
  assert.match(html,/\.practice-statistics\{[^}]*grid-template-columns:minmax\(0,1fr\)/);
  assert.match(html,/\.practice-stats-scroll\{[^}]*overflow-x:auto[^}]*contain:inline-size/);
  assert.match(html,/\.practice-stats-bars\{[^}]*grid-template-columns:repeat\(24,minmax\(0,1fr\)\)/);
- assert.match(html,/@media\(max-width:820px\)\{[\s\S]*?\.practice-statistics\{[^}]*grid-template-columns:minmax\(0,1fr\)/);
+ assert.match(html,/@media\(max-width:680px\)\{[\s\S]*?\.practice-statistics\{[^}]*grid-template-columns:minmax\(0,1fr\)/);
  assert.match(html,/\.practice-stats-key\{[^}]*writing-mode:vertical-rl/);
  assert.match(html,/\.practice-heat-legend\{display:grid;grid-template-columns:repeat\(3,max-content\)/);
  assert.doesNotMatch(html,/practice-stats-band-label/);
  assert.match(html,/id="practice-stats-grid" class="practice-stats-chart"/);
  assert.match(html,/id="practice-heat-range"[^>]*><\/span><\/div>[\s\S]*?id="practice-heat-grid"/);
- assert.match(html,/\.practice-heat-grid\{--heat-cell:\.85rem;gap:\.2rem;margin-inline:auto/);
+ assert.match(html,/\.practice-heat-grid\{--heat-cell:clamp\([^}]*margin-inline:auto/);
 });

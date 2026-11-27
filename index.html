@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261127-095-experimental">
+  <meta name="site-version" content="20261127-096-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -948,7 +948,10 @@
     .scale-practice-choice:disabled :is(label,input){cursor:default}
     .history-access>.practice-stats{box-shadow:none}
     .practice-stats{min-width:0}
-    .practice-statistics{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,11rem);gap:.75rem;min-width:0}
+    .practice-statistics{display:grid;grid-template-columns:minmax(0,1fr) minmax(14.75rem,33%);gap:.9rem;align-items:start;min-width:0}
+    .practice-statistics>.practice-stats{margin:0;min-width:0}
+    .practice-statistics h3{margin:0 0 .45rem;font-size:.95rem;line-height:1.35}
+    .practice-statistics .practice-heat-head h3{margin:0}
     .practice-stats-legend{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin:.75rem 0;font-size:.8125rem}
     .practice-stats-legend span{display:inline-flex;align-items:center;gap:.35rem}
     .practice-stats-legend i{width:.65rem;height:.65rem;border-radius:2px;background:var(--stats-bar)}
@@ -960,7 +963,7 @@
     .practice-stats-scroll:focus-visible{outline:2px solid #4c81b3;outline-offset:-2px}
     .practice-stats-plot{--stats-height:5rem;--stats-labels:1.35rem;display:grid;grid-template-columns:2.15rem minmax(0,1fr);min-width:0;padding-block:2.35rem .1rem}
     .practice-stats-axis,.practice-stats-bars{position:relative;margin:0;padding:0;list-style:none}
-    .practice-stats-axis{position:sticky;left:0;z-index:1;background:var(--page);font-size:.75rem}
+    .practice-stats-axis{position:sticky;left:0;z-index:1;background:var(--paper);font-size:.75rem}
     .practice-stats-axis span{position:absolute;bottom:calc(var(--stats-labels) + var(--stats-height) * var(--level));right:.2rem;transform:translateY(50%);font-variant-numeric:tabular-nums}
     .practice-stats-bars{display:grid;grid-template-columns:repeat(24,minmax(0,1fr));isolation:isolate}
     .practice-stats-bars::before{content:"";position:absolute;inset:0 0 var(--stats-labels);border-bottom:1px solid var(--line);z-index:-1;background:var(--grid-lines,none)}
@@ -978,27 +981,28 @@
     .practice-heat [data-level="3"]{--heat-color:var(--heat-3)}
     .practice-heat [data-level="4"]{--heat-color:var(--heat-4)}
     .practice-heat [data-level]{background:var(--heat-color)}
-    .practice-heat-grid{--heat-cell:1rem;display:grid;width:max-content;grid-template-columns:1.75rem repeat(var(--weeks),var(--heat-cell));grid-template-rows:1rem repeat(7,var(--heat-cell));gap:.25rem;padding:.25rem .2rem .5rem;align-items:center}
+    #practice-heat-grid{container-type:inline-size}
+    .practice-heat-grid{--heat-cell:clamp(.53rem,calc((100cqw - 4.3rem) / 13),1.08rem);display:grid;width:max-content;
+      grid-template-columns:1.1rem repeat(var(--weeks),var(--heat-cell));grid-template-rows:1.05rem repeat(7,var(--heat-cell));
+      gap:.19rem;padding:.2rem .2rem .35rem;align-items:center;margin-inline:auto}
     .practice-heat-month,.practice-heat-weekday{font-size:.6875rem;white-space:nowrap}
-    .practice-heat-weekday{position:sticky;left:0;background:var(--page);z-index:1}
+    .practice-heat-weekday{position:sticky;left:0;background:var(--paper);z-index:1}
     .practice-heat-cell{display:block;width:.72rem;height:.72rem;border-radius:2px}
     .practice-heat-grid .practice-heat-cell{width:100%;height:100%;border-radius:4px}
     .practice-heat-grid .practice-heat-cell[aria-current=date]{outline:1px solid var(--ink);outline-offset:1px}
-    .practice-heat-legend{display:grid;grid-template-columns:repeat(3,max-content);align-items:center;justify-content:end;gap:.25rem .55rem;font-size:.6875rem;margin:.45rem 0 0}
+    .practice-heat-legend{display:grid;grid-template-columns:repeat(3,max-content);align-items:center;justify-content:center;gap:.3rem .75rem;font-size:.6875rem;margin:.55rem 0 0}
     .practice-heat-legend span{display:inline-flex;align-items:center;gap:.25rem}
-    .practice-heat-head{display:flex;align-items:baseline;flex-wrap:wrap;justify-content:space-between;gap:.25rem .75rem}
-    .practice-heat-range{font-size:.8125rem;color:var(--ink);font-variant-numeric:tabular-nums}
-    @media(max-width:820px){
-      .practice-statistics{gap:.5rem;grid-template-columns:minmax(0,1fr)}
-      .practice-heat{justify-self:end;inline-size:min(100%,11rem)}
+    .practice-heat-head{display:flex;align-items:baseline;flex-wrap:wrap;justify-content:space-between;gap:.25rem .75rem;margin-block-end:.45rem}
+    .practice-heat-range{font-size:.75rem;color:var(--muted);font-variant-numeric:tabular-nums}
+    @media(max-width:680px){
+      .practice-statistics{gap:1.25rem;grid-template-columns:minmax(0,1fr)}
+    }
+    @media(max-width:1020px){
       .practice-stats-plot{--stats-labels:1.65rem;grid-template-columns:1.4rem minmax(0,1fr)}
       .practice-stats-axis{font-size:.625rem}
       .practice-stats-axis span:not(:first-child):not(:last-child){display:none}
       .practice-stats-key,.practice-stats-value{font-size:.625rem}
       .practice-stats-key{padding:0;justify-self:center;writing-mode:vertical-rl;text-orientation:sideways;padding-block:0;padding-inline-start:.2rem}
-      .practice-heat-head{justify-content:flex-end}
-      .practice-heat-head h3{margin-block-end:0}
-      .practice-heat-grid{--heat-cell:.85rem;gap:.2rem;margin-inline:auto}
     }
     @media(max-width:380px){
       .launch-mode span{padding:0 5px}
@@ -1635,7 +1639,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-095-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-096-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -6093,7 +6097,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       };
       const end=civil(today);
       if(!Number.isFinite(end))return [];
-      const numberOfDays=30, first=end-(numberOfDays-1)*day;
+      const numberOfDays=12*7, first=end-(numberOfDays-1)*day;
       const byDate=new Map();
       for(const {date,completed} of practiceCompletionRows(personal,classroom)){
         const ms=civil(date);
@@ -6119,7 +6123,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       }
       if(!days.length){host.replaceChildren();return;}
       const item=(cls,text)=>{const el=document.createElement('span');el.className=cls;if(text)el.textContent=text;return el;};
-      const chart=document.createElement('div');chart.className='practice-heat-grid';chart.setAttribute('role','list');chart.setAttribute('aria-label','最近 30 天，含今天');
+      const chart=document.createElement('div');chart.className='practice-heat-grid';chart.setAttribute('role','list');chart.setAttribute('aria-label','最近 12 週（84 天），含今天');
       chart.style.setProperty('--weeks',String(days.at(-1).week+1));
       for(const [row,label] of [[2,'一'],[4,'三'],[6,'五'],[8,'日']]){
         const weekday=item('practice-heat-weekday',label);weekday.style.gridArea=row+' / 1';weekday.setAttribute('aria-hidden','true');chart.append(weekday);
