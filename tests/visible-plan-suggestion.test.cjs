@@ -607,7 +607,8 @@ test('complete pitch list includes both signs, one-off large errors, and mild re
 
 test('the practice panel labels automatically generated advice as experimental before the result',()=>{
  const f=setup({}); const note=f.panel.find('practice-advice-caution');
- a.match(flatText(note),/實驗功能・僅供參考.*由測量到的音準和收音走勢整理，可能有誤。請以老師的指導和自己的聆聽為準/);
+ a.match(flatText(note),/實驗功能・僅供參考.*由測量到的音準和收音走勢整理，可能有誤。/);
+ a.doesNotMatch(flatText(note),/請以老師的指導和自己的聆聽為準/);
  a.ok(f.panel.children.indexOf(note)<f.panel.children.indexOf(f.panel.find('scale-practice-coach-tip')));
 });
 

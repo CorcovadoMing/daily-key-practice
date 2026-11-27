@@ -70,6 +70,12 @@ async function noteCheck(p, width, errors){
      const replay=actions.locator('.history-replay'),trash=actions.locator('.history-delete');
      assert.deepEqual(await replay.evaluate(dimensions),noteSize);
      await assertSingleLayer(replay);
+     if((await replay.getAttribute('aria-label')).startsWith('繼續')){
+       assert.equal(await replay.innerText(),'');
+       assert.equal(await replay.locator('.history-resume-icon[aria-hidden=true]').count(),1);
+     }else{
+       assert.equal(await replay.innerText(),'重練');
+     }
      const checkTrash=async()=>{
        const v=await trash.evaluate(e=>{const s=getComputedStyle(e),svg=e.querySelector('svg'),b=e.getBoundingClientRect();return {w:b.width,h:b.height,border:s.borderTopWidth,bg:s.backgroundColor,shadow:s.boxShadow,color:getComputedStyle(svg).color,text:e.textContent.trim()};});
        assert.equal(v.w,44);assert.equal(v.h,44);assert.equal(v.border,'0px');
@@ -86,7 +92,7 @@ async function noteCheck(p, width, errors){
      assert.equal(await actions.count(),1);
    }
    const noteKey='daily-key-practice:experimental:key-note:major-0';
-   async function checkNoteTrash(dialog){
+   async function checkNoteEraser(dialog){
       const trash=dialog.getByRole('button',{name:'清空內容',exact:true});
       const cancel=dialog.getByRole('button',{name:'取消',exact:true}),save=dialog.getByRole('button',{name:'儲存筆記',exact:true});
       const paint=await trash.evaluate(e=>{
@@ -94,7 +100,9 @@ async function noteCheck(p, width, errors){
         return {x:r.x,w:r.width,h:r.height,bg:s.backgroundColor,border:s.borderTopWidth,shadow:s.boxShadow,color:getComputedStyle(icon).color,svg:icon.outerHTML};
       });
       const shared=await p.locator('.history-delete').first().locator('svg').evaluate(e=>e.outerHTML);
-      assert.equal(paint.svg,shared);
+      assert.match(paint.svg,/note-clear-eraser/);
+      assert.doesNotMatch(paint.svg,/history-delete-lid/);
+      assert.match(shared,/history-delete-lid/);
       assert.equal(paint.color,dark?'rgb(255, 157, 166)':'rgb(168, 49, 58)');
       assert.deepEqual([paint.bg,paint.border,paint.shadow,paint.w,paint.h],['rgba(0, 0, 0, 0)','0px','none',44,44]);
       assert.ok(paint.x+paint.w+10<(await cancel.boundingBox()).x);
@@ -105,7 +113,7 @@ async function noteCheck(p, width, errors){
       await cancel.click();
    }
    await cards.first().locator('.student-note-button').click();
-   await checkNoteTrash(p.locator('.student-note-dialog:not(.practice-notes-overview)'));
+   await checkNoteEraser(p.locator('.student-note-dialog:not(.practice-notes-overview)'));
    await p.locator('.student-note-dialog:not(.practice-notes-overview)').waitFor({state:'detached'});
    await statsNotes.click();
    const overview=p.locator('.practice-notes-overview');
@@ -114,7 +122,7 @@ async function noteCheck(p, width, errors){
    assert.equal(await close.innerText(),'');
    assert.deepEqual(await close.evaluate(e=>[getComputedStyle(e,'::before').content,getComputedStyle(e,'::after').content]),['""','""']);
    await overview.getByRole('button',{name:'編輯 C 大調 筆記',exact:true}).click();
-   await checkNoteTrash(overview);
+   await checkNoteEraser(overview);
    await overview.getByRole('button',{name:'新增筆記',exact:true}).click();
    const picker=overview.getByRole('combobox',{name:'調性'}),textarea=overview.getByRole('textbox',{name:'練習筆記內容'});
    assert.equal(await overview.locator('input[type=search]').count(),0);
@@ -215,6 +223,21 @@ async function adviceOrderCheck(page){
    const bow=result.locator('.scale-practice-coach-phase').last();
    assert.match(await bow.innerText(),/後段偏低[\s\S]*一弓長音/);
    assert.doesNotMatch(await bow.innerText(),/偏低最多|對準 C/);
+   const paint=await result.evaluate(e=>{
+      const color=n=>getComputedStyle(n).color;
+      return {dark:document.documentElement.dataset.appearance==='dark', drills:[...e.querySelectorAll('.scale-practice-coach-drill, .scale-practice-coach-drill li')].map(color),
+        observation:color(e.querySelector('ul.scale-practice-coach-steps li')),caution:color(e.querySelector('.practice-advice-caution')),
+        contrastBackground:getComputedStyle(e).backgroundColor};
+   });
+   const blue=paint.dark?'rgb(168, 203, 255)':'rgb(36, 93, 170)';
+   assert.ok(paint.drills.length>=6);
+   assert.ok(paint.drills.every(c=>c===blue));
+   assert.notEqual(paint.observation,blue);
+   assert.notEqual(paint.caution,blue);
+   const luminance=c=>c.match(/\d+/g).slice(0,3).map(Number).map(v=>v/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((sum,v,i)=>sum+v*[.2126,.7152,.0722][i],0);
+   const v=[luminance(blue),luminance(paint.contrastBackground)].sort((a,b)=>b-a);
+   assert.ok((v[0]+.05)/(v[1]+.05)>=4.5);
+
  }
 }
 async function resultButtonCheck(page){

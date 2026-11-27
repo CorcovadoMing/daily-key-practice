@@ -84,7 +84,8 @@ test('all-notes modal lists only saved keys, edits inline, guards unsaved edits 
  const actions=deep(modal,n=>n.className==='student-note-actions');
  a.deepEqual(actions.children.map(x=>x.textContent),[undefined,'取消','儲存筆記']);
  a.equal(actions.children[0].attrs['aria-label'],'清空內容');
- a.match(actions.children[0].innerHTML,/history-delete-lid/);
+ a.match(actions.children[0].innerHTML,/note-clear-eraser/);
+ a.doesNotMatch(actions.children[0].innerHTML,/history-delete-lid/);
  a.equal(actions.children[2].className,'room-action primary');
  actions.children[0].click();
  a.equal(deep(modal,n=>n.tag==='textarea').value,'');

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261127-119-experimental">
+  <meta name="site-version" content="20261127-120-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -405,10 +405,10 @@
     .history-date-sub{display:flex;align-items:center;flex-wrap:wrap;gap:2px 7px;margin-top:2px;color:var(--muted);font-size:.6875rem;font-weight:550;font-variant-numeric:tabular-nums}
     .history-count{padding:1px 5px;border-radius:5px;background:var(--soft);color:var(--ink);white-space:nowrap}
     .history-actions{grid-area:actions;display:flex;align-items:center;gap:2px}
-    .history-replay,.ui-trash-button,.ui-close-button{display:inline-grid;place-items:center;padding:0;border-radius:8px;color:var(--ink);white-space:nowrap}
+    .history-replay,.ui-trash-button,.ui-clear-button,.ui-close-button{display:inline-grid;place-items:center;padding:0;border-radius:8px;color:var(--ink);white-space:nowrap}
     .history-actions .history-replay{border:1px solid var(--line);font-size:.75rem;font-weight:750}
-    .ui-trash-button,.ui-close-button{background:none;border:0;box-shadow:none;min-inline-size:44px;min-block-size:44px;position:relative;flex:none}
-    .ui-trash-button>.ui-icon{width:16px;height:16px;color:var(--ui-danger,#a8313a)}
+    .ui-trash-button,.ui-clear-button,.ui-close-button{background:none;border:0;box-shadow:none;min-inline-size:44px;min-block-size:44px;position:relative;flex:none}
+    :is(.ui-trash-button,.ui-clear-button)>.ui-icon{width:16px;height:16px;color:var(--ui-danger,#a8313a)}
     .ui-close-button::before,.ui-close-button::after{content:"";grid-area:1/1;inline-size:16px;border-block-start:1.7px solid currentColor;transform:rotate(45deg);pointer-events:none}
     .ui-close-button::after{transform:rotate(-45deg)}
     .ui-dialog-titlebar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px}
@@ -588,6 +588,8 @@
     .scale-practice-coach-phase + .scale-practice-coach-phase{border-top:1px solid var(--line);margin-top:.85rem;padding-top:.15rem}
     .scale-practice-coach-phase h5{font-size:.875rem;font-weight:600;margin-top:.45rem}
     .scale-practice-coach-steps{font-size:.9375rem;line-height:1.55;margin:.25rem 0;padding-inline-start:1.5rem}
+    .scale-practice-coach-tip .scale-practice-coach-drill{color:#245daa}
+    @media screen{[data-appearance=dark] .scale-practice-coach-tip .scale-practice-coach-drill{color:#a8cbff}}
     .scale-practice-coach-tip .scale-practice-coach-context{color:var(--muted)}
     .scale-practice-coach .scale-practice-coach-elapsed{color:var(--muted);font-size:.8125rem}
     .scale-practice-status{font-size:12px;margin:0;max-width:100%;flex:1 1 230px}
@@ -1756,7 +1758,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-119-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-120-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -4752,7 +4754,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       const note=document.createElement('p');note.className='practice-advice-caution';
       const title=document.createElement('strong');title.textContent='實驗功能・僅供參考';
       const copy=document.createElement('span');
-      copy.textContent='這些建議由測量到的音準和收音走勢整理，可能有誤。請以老師的指導和自己的聆聽為準。';
+      copy.textContent='這些建議由測量到的音準和收音走勢整理，可能有誤。';
       note.append(title,copy);
       return note;
     }
@@ -4813,9 +4815,10 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         const fallbackDirection=activeDirections[0]||'';
         const appendList=(parent,level,heading,items,tag)=>{
           if(!items.length)return;
-          const list=make(tag,'scale-practice-coach-steps','');
+          const drillClass=tag==='ol'?'scale-practice-coach-drill':'';
+          const list=make(tag,('scale-practice-coach-steps '+drillClass).trim(),'');
           items.forEach(text=>list.append(make('li','',text)));
-          parent.append(make(level,'',heading),list);
+          parent.append(make(level,drillClass,heading),list);
         };
         for(const line of issues){
           const group=groups.get(advicePhase(line));
@@ -5840,10 +5843,16 @@ function playTrashIcon(button){
   {transform:'rotate(0)'},{transform:'translateY(-1px) rotate(22deg)',offset:.44},{transform:'rotate(0)'}
  ],260);
 }
+function createClearNoteButton(){
+ const button=createActionButton(undefined,'ui-clear-button ui-icon-plain note-clear-content');
+ button.setAttribute('aria-label','清空內容');button.title='清空內容';
+ button.innerHTML='<svg class="ui-icon note-clear-eraser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 14.5 13 6a2 2 0 0 1 2.8 0l4.2 4.2a2 2 0 0 1 0 2.8l-5.7 5.7H9l-4.5-4.2Z"/><path d="m9 10 7 7M14 18.7h6.5"/></svg>';
+ return button;
+}
 function createNoteActions(input,{sync, cancel:cancelEdit, save:saveEdit}){
  const group=createDialogNode('div');group.className='student-note-actions';
- const clear=createTrashButton('清空內容','note-clear-content'),cancel=createActionButton('取消'),save=createActionButton('儲存筆記','room-action primary');
- clear.addEventListener('click',()=>{if(input.value)playTrashIcon(clear);input.value='';sync?.();input.focus();});
+ const clear=createClearNoteButton(),cancel=createActionButton('取消'),save=createActionButton('儲存筆記','room-action primary');
+ clear.addEventListener('click',()=>{if(input.value)playHistoryIcon(clear,'.note-clear-eraser',[{transform:'translateX(0)'},{transform:'translateX(-2px) rotate(-8deg)',offset:.32},{transform:'translateX(2px) rotate(3deg)',offset:.68},{transform:'translateX(0)'}],280);input.value='';sync?.();input.focus();});
  cancel.addEventListener('click',cancelEdit);
  save.addEventListener('click',saveEdit);
  group.append(clear,cancel,save);
@@ -6586,7 +6595,11 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
           });
         }
         const canContinue=progress.count<progress.total;
-        const replay=createActionButton(canContinue?'繼續':'重練','history-replay compact-action compact-action-square');
+        const replay=createActionButton(canContinue?undefined:'重練','history-replay compact-action compact-action-square');
+        if(canContinue){
+          replay.title='繼續這次練習';
+          replay.innerHTML='<svg class="ui-icon history-resume-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" focusable="false"><path d="M4 2.5a.45.45 0 0 1 .67-.39l8.2 5.5a.45.45 0 0 1 0 .78l-8.2 5.5A.45.45 0 0 1 4 13.5z"/></svg>';
+        }
         replay.setAttribute('aria-label',(canContinue?'繼續這次練習':'重練這次練習')+'：'+dateText+timeLabel);
         replay.addEventListener('click',()=>replayHistoricalScale(record,kind));
         const remove=createTrashButton('刪除 '+dateText+timeLabel+' 的'+

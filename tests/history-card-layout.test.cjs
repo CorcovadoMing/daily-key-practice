@@ -16,7 +16,15 @@ test('each record groups both actions on the header row and retains all key chip
   const [date,actions,chips]=lists['#'+kind+'-history-list'].children[0].children;
   assert.equal(actions.className,'history-actions');assert.equal(chips.children.length,n);
   const [replay,remove]=actions.children;
-  assert.equal(replay.textContent,label);assert.match(replay.attrs['aria-label'],/這次練習/);
+  assert.ok(replay.attrs['aria-label'].startsWith(label+'這次練習'));
+  if(kind==='personal'){
+   assert.equal(replay.textContent,undefined);
+   assert.equal(replay.title,'繼續這次練習');
+   assert.match(replay.innerHTML,/<svg class="ui-icon history-resume-icon"[^>]+aria-hidden="true"/);
+  }else{
+   assert.equal(replay.textContent,'重練');
+   assert.equal(replay.innerHTML,undefined);
+  }
   assert.match(remove.attrs['aria-label'],/刪除.+練習紀錄/);
   assert.match(remove.innerHTML,/<svg[^>]+aria-hidden="true"/);
   assert.match(remove.innerHTML,/class="history-delete-lid"/);
