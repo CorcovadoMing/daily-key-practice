@@ -7,6 +7,8 @@ function seed(page,config){
   const p='daily-key-practice:experimental:',d=new Date(),day=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
   if(!localStorage.getItem(p+'v1'))localStorage.setItem(p+'v1',JSON.stringify({version:1,
    sessions:resume?{[day]:{date:day,createdAt:Date.now(),majorIds:notes?[0,1]:[0],minorIds:notes?[]:[0],doneIds:[]}}:{},
+   personalHistory:notes?[{id:'ui-personal',date:day,drawnAt:Date.now(),majorIds:[0],minorIds:[0],doneIds:['major-0']}]:[],
+   classroomHistory:notes?[{id:'ui-class',date:day,drawnAt:Date.now(),majorIds:[0],minorIds:[],doneIds:['major-0']}]:[],
    fingerings:{},preferences:{majorCount:notes?2:1,minorCount:notes?0:1}}));
   if(notes&&!localStorage.getItem(p+'key-note:major-0'))localStorage.setItem(p+'key-note:major-0','既有 C 練習');
  },config);
@@ -47,7 +49,35 @@ async function noteCheck(p, width, errors){
    const perCard=p.locator('.student-note-dialog');assert.equal(await perCard.evaluate(e=>e.open),true);
    await p.keyboard.press('Escape');await perCard.waitFor({state:'detached'});
    await p.locator('#history-settings summary').click();
-   await p.locator('#practice-stats-note-open').click();
+   const statsNotes=p.locator('#practice-stats-note-open');
+   const dimensions=e=>{const s=getComputedStyle(e,'::before'),b=e.getBoundingClientRect();
+     return {w:b.width,h:b.height,visibleHeight:b.height-parseFloat(s.top)-parseFloat(s.bottom),
+       visibleWidth:b.width-parseFloat(s.left)-parseFloat(s.right),radius:s.borderRadius};};
+   const noteSize=await newNote.evaluate(dimensions),overviewSize=await statsNotes.evaluate(dimensions);
+   assert.equal(overviewSize.h,noteSize.h);assert.equal(overviewSize.visibleHeight,noteSize.visibleHeight);
+   await assertSingleLayer(statsNotes);
+   const dark=await p.locator('html').getAttribute('data-appearance')==='dark';
+   for(const id of ['personal','classroom']){
+     const actions=p.locator('#'+id+'-history-list .history-actions').first();
+     const replay=actions.locator('.history-replay'),trash=actions.locator('.history-delete');
+     assert.deepEqual(await replay.evaluate(dimensions),noteSize);
+     await assertSingleLayer(replay);
+     const checkTrash=async()=>{
+       const v=await trash.evaluate(e=>{const s=getComputedStyle(e),svg=e.querySelector('svg'),b=e.getBoundingClientRect();return {w:b.width,h:b.height,border:s.borderTopWidth,bg:s.backgroundColor,shadow:s.boxShadow,color:getComputedStyle(svg).color,text:e.textContent.trim()};});
+       assert.equal(v.w,44);assert.equal(v.h,44);assert.equal(v.border,'0px');
+       assert.equal(v.bg,'rgba(0, 0, 0, 0)');assert.equal(v.shadow,'none');
+       assert.equal(v.color,dark?'rgb(255, 157, 166)':'rgb(168, 49, 58)');assert.equal(v.text,'');
+     };
+     await checkTrash();
+     if(width>=500){await trash.hover();await checkTrash();}
+     await trash.focus();
+     await p.keyboard.press('Tab');await p.keyboard.press('Shift+Tab');
+     assert.equal(await trash.evaluate(e=>e.matches(':focus-visible')&&getComputedStyle(e).outlineStyle==='solid'),true);
+     const dismissed=p.waitForEvent('dialog').then(async dialog=>{assert.equal(dialog.type(),'confirm');await dialog.dismiss();});
+     await Promise.all([dismissed,trash.click()]);
+     assert.equal(await actions.count(),1);
+   }
+   await statsNotes.click();
    const overview=p.locator('.practice-notes-overview');
    assert.ok((await overview.innerText()).includes('既有 C 練習'));
    await overview.getByRole('button',{name:'新增筆記',exact:true}).click();

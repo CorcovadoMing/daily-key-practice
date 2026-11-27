@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261127-111-experimental">
+  <meta name="site-version" content="20261127-112-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -216,7 +216,6 @@
     .key-title-row{display:flex;flex-wrap:wrap;align-items:center;gap:0 6px;min-width:0}
     .key-title-row>.key-title{max-width:100%;white-space:normal;overflow-wrap:anywhere}
     .key-details-row{display:grid;grid-template-columns:44px minmax(0,1fr);align-items:center;gap:8px;min-width:0}
-    .key-details-row>.student-note-button{min-inline-size:44px;min-block-size:44px}
     .key-title-row>.key-relative{margin:0;color:var(--muted);font-size:var(--ui-caption,.8125rem);overflow-wrap:anywhere}
     .key-details-row .key-secondary{margin:0;overflow-wrap:anywhere}
     .key-complete{display:grid;place-items:center;flex:none;min-width:44px;min-height:44px;padding:0;border:0;background:transparent;border-radius:50%;color:inherit}
@@ -400,12 +399,9 @@
     .history-count{padding:1px 5px;border-radius:5px;background:var(--soft);color:var(--ink);white-space:nowrap}
     .history-actions{grid-area:actions;display:flex;align-items:center;gap:2px}
     .history-replay,.history-delete{display:inline-grid;place-items:center;padding:0;border-radius:8px;color:var(--ink);white-space:nowrap}
-    .history-actions .history-replay{padding:0 8px;background:var(--ui-button-quiet,var(--soft));border:1px solid var(--line);font-size:.75rem;font-weight:750}
-    .history-actions .history-replay:hover{background:var(--ui-selected,var(--accent));color:var(--ui-selected-text,var(--ink))}
-    .history-delete{background:transparent;border:1px solid transparent;color:var(--muted)}
-    .history-delete:hover{background:#faeaea;color:#883c3b;border-color:#ebc2bd}
-    [data-appearance=dark] .history-delete:hover{background:#513636;color:var(--theme-red);border-color:#a7655d}
-    .history-delete>.ui-icon{width:16px;height:16px}
+    .history-actions .history-replay{border:1px solid var(--line);font-size:.75rem;font-weight:750}
+    .history-delete{background:none;border:0;box-shadow:none}
+    .history-delete>.ui-icon{width:16px;height:16px;color:var(--ui-danger,#a8313a)}
     .history-keys{grid-area:keys;display:flex;gap:4px;justify-content:flex-start;flex-wrap:wrap;min-width:0}
     .history-chip{border-radius:5px;padding:3px 6px;background:#e9f2e8;color:#395843;font-weight:700;font-size:.6875rem;line-height:1.35;white-space:nowrap}
     .history-chip.minor{background:#f0eaf8;color:#655178}
@@ -1131,7 +1127,7 @@
         width:100%;max-inline-size:8.25rem;min-block-size:3.75rem;gap:.375rem;padding-inline:.5rem
       }
       .launch-meta>.launch-mode{min-block-size:44px;flex:none}
-      .practice-notes-open{min-height:44px;margin-block-start:.5rem}
+      .practice-notes-open{margin-block-start:.5rem}
       .practice-notes-overview{--ui-modal-limit:85dvh;max-height:85dvh;overflow:auto}
       .practice-notes-head{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
       .practice-note-summary{border-top:1px solid var(--line);padding-block:.55rem}
@@ -1420,25 +1416,30 @@
       .history-chip-done{margin-inline-end:.25em}
       .practice-stats-col .practice-stats-key{color:color-mix(in srgb,var(--stats-bar) 68%,var(--ink))}
     }
-    /* Keep the touch area full-size; draw the smaller note control inside it. */
+    /* The same compact surface sits inside the full touch area on notes and history. */
     @media screen{
       button:is(.room-action,.icon-button,.cello-fb-button,.ordered-practice-button){padding-block:6px}
       .session-launch #draw-button{padding-block:8px}
       .scale-practice-action .scale-start-shell>.scale-practice-button{min-block-size:max(44px,var(--ui-touch))}
+      button.compact-action{box-sizing:border-box;min-inline-size:max(44px,var(--ui-touch));min-block-size:max(44px,var(--ui-touch))}
+      button.compact-action-square{inline-size:max(44px,var(--ui-touch));block-size:max(44px,var(--ui-touch));padding:0}
+      button.compact-action-label{padding-inline:.75rem}
     }
     @media screen and (forced-colors:none){
-      :root .key-details-row>.student-note-button,
-      :root[data-appearance=dark] .key-details-row>.student-note-button{
+      :root{--ui-danger:#a8313a}
+      :root[data-appearance=dark]{--ui-danger:#ff9da6}
+      :root body button.compact-action,
+      :root[data-appearance=dark] body button.compact-action{
         background:transparent;border-color:transparent;position:relative;isolation:isolate;box-shadow:none;
         color:var(--ink)
       }
-      :root .key-details-row>.student-note-button::before{
+      :root button.compact-action::before{
         content:"";position:absolute;z-index:-1;inset:4px 2px;border:1px solid var(--ui-button-edge,var(--line));border-radius:8px;
         background:var(--ui-button-quiet,var(--paper));pointer-events:none
       }
-      :root .key-details-row>.student-note-button:hover::before{background:var(--ui-button-hover,var(--soft))}
-      :root .key-details-row>.student-note-button.has-note::before{background:#fff1c7;border-color:#d9b663}
-      :root[data-appearance=dark] .key-details-row>.student-note-button.has-note::before{background:#493a24;border-color:#867044}
+      :root button.compact-action:hover::before{background:var(--ui-button-hover,var(--soft))}
+      :root button.student-note-button.has-note::before{background:#fff1c7;border-color:#d9b663}
+      :root[data-appearance=dark] button.student-note-button.has-note::before{background:#493a24;border-color:#867044}
     }
     .tuner-stop-icon,[aria-pressed=true]>.tuner-idle-icon{display:none}
     #tuner-open[aria-pressed=true] .tuner-stop-icon{display:block}
@@ -1485,7 +1486,7 @@
         background:var(--ui-selected);color:var(--ui-selected-text);box-shadow:inset 0 0 0 1px var(--ui-button-edge)
       }
       :root:not([data-appearance=dark]) :is(.audio-tools .tuner-preferences,.key-filter,.room-digits span,
-        .launch-count-sentence .stepper,.filter-all,.cello-fb-button,.fingering-edit,.history-replay,.practice-jump){
+        .launch-count-sentence .stepper,.filter-all,.cello-fb-button,.fingering-edit,.practice-jump){
         background:var(--ui-button-quiet);border-color:var(--ui-button-edge)
       }
       /* Secondary controls use the same neutral surface, even in deeper panels. */
@@ -1694,7 +1695,7 @@
 
         <div class="practice-stats-legend" aria-hidden="true"><span data-kind="major"><i></i>大調</span><span data-kind="minor"><i></i>小調</span><span>次數</span></div>
         <div id="practice-stats-grid" class="practice-stats-chart" role="region" aria-label="24 調的練習次數"></div>
-        <button type="button" class="room-action practice-notes-open" id="practice-stats-note-open">練習筆記</button>
+        <button type="button" class="room-action practice-notes-open compact-action compact-action-label" id="practice-stats-note-open">練習筆記</button>
         </section>
         <section class="practice-stats practice-heat" aria-labelledby="practice-heat-title">
         <div class="practice-heat-head"><h3 id="practice-heat-title">每日練習熱圖</h3><span id="practice-heat-range" class="practice-heat-range"></span></div>
@@ -1704,7 +1705,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-111-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-112-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -5917,7 +5918,7 @@ function createCard(mode,index,doneIds){
   const row=document.createElement('div');row.textContent=line;details.append(row);
  }
  const detailsRow=document.createElement('div');detailsRow.className='key-details-row';content.append(detailsRow);
- const noteButton=document.createElement('button');noteButton.type='button';noteButton.className='student-note-button';
+ const noteButton=document.createElement('button');noteButton.type='button';noteButton.className='student-note-button compact-action compact-action-square';
  noteButton.innerHTML=NOTE_ICON;
  noteButton.dataset.noteTitle=title.textContent;noteButton.dataset.noteLabel=title.textContent+'，';
  titleRow.append(title,relative);detailsRow.append(noteButton,details);
@@ -6519,7 +6520,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
           });
         }
         const canContinue=progress.count<progress.total;
-        const replay=createActionButton(canContinue?'繼續':'重練','history-replay');
+        const replay=createActionButton(canContinue?'繼續':'重練','history-replay compact-action compact-action-square');
         replay.setAttribute('aria-label',(canContinue?'繼續這次練習':'重練這次練習')+'：'+dateText+timeLabel);
         replay.addEventListener('click',()=>replayHistoricalScale(record,kind));
         const remove=createActionButton(undefined,'history-delete');

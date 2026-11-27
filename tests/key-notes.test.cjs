@@ -101,6 +101,6 @@ test('the card note hit target has no painted shell under its single inset face'
  const surface=html.slice(html.indexOf('/* Secondary controls use the same neutral surface'),html.indexOf(':root:not([data-appearance=dark]) :is(.key-expand[aria-expanded=true]'));
  a.ok(surface.includes('.key-expand'));
  a.doesNotMatch(surface,/\.student-note-button/);
- a.match(html, /\.key-details-row>\.student-note-button\{\s*background:transparent;border-color:transparent;position:relative;isolation:isolate;box-shadow:none/);
- a.match(html, /\.key-details-row>\.student-note-button::before\{\s*content:"";position:absolute;z-index:-1;inset:4px 2px/);
+ a.match(html, /body button\.compact-action\{\s*background:transparent;border-color:transparent;position:relative;isolation:isolate;box-shadow:none/);
+ a.match(html, /button\.compact-action::before\{\s*content:"";position:absolute;z-index:-1;inset:4px 2px/);
 });
