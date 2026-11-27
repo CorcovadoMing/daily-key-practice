@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261127-113-experimental">
+  <meta name="site-version" content="20261127-114-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -381,7 +381,6 @@
     .history-choice-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
     .history-choice-actions button{border:1px solid #cbdccd;background:#fafaf9;color:#31573b;border-radius:10px;padding:12px 7px;font-weight:800;font-size:12px}
     .history-choice-actions button.primary{background:#2f523a;color:#fafaf9;border-color:#2f523a}
-    .history-choice-actions button.cancel{grid-column:1/-1;border:0;color:#75847a;background:#f3f6f2}
     @media(max-width:700px){.history-columns{grid-template-columns:1fr}.history-panel{padding:16px}}
     .history-empty{border:1px dashed #d8ded6;border-radius:14px;padding:22px 23px;color:#8b948d;font-size:13px;background:#fbfbf8;line-height:1.8}
     .history-filters{display:flex;align-items:center;flex-wrap:wrap;gap:4px 6px;margin:0 0 10px}
@@ -712,7 +711,7 @@
       [data-appearance=dark] :is(.history-chip.done,.practice-jump.is-done){background:#363e47;color:var(--muted)}
       [data-appearance=dark] :is(.cello-inline-undo,.cello-inline-range,.cello-inline-range[aria-pressed=true]){background:#2e4354;color:var(--theme-blue);border-color:#7192aa}
       [data-appearance=dark] :is(.cello-inline-reset,.cello-inline-restore-selected,.cello-leave-discard){background:#513636;color:var(--theme-red);border-color:#a7655d}
-      [data-appearance=dark] :is(.history-choice-actions button.cancel,.scale-practice-button:hover,.icon-button:hover,.ordered-practice-button:hover:not(:disabled),.fingering-edit:hover,.practice-jump:hover){background:#435268;color:var(--ink)}
+      [data-appearance=dark] :is(.scale-practice-button:hover,.icon-button:hover,.ordered-practice-button:hover:not(:disabled),.fingering-edit:hover,.practice-jump:hover){background:#435268;color:var(--ink)}
       [data-appearance=dark] .empty-graphic::before,[data-appearance=dark] .empty-graphic::after{background:#75889e}
       [data-appearance=dark] :is(.cello-legend-title,.cello-inline-status,.cello-inline-label,.cello-inline-open,.cello-inline-hint,.cello-fb-sequence,.cello-leave-dialog p,.finger-form p,.finger-form label,.fingering-pattern,.teacher-memo summary){color:var(--muted)}
       [data-appearance=dark] :is(.fingering-changed,.cello-fb-changed){color:var(--theme-red)}
@@ -1705,22 +1704,12 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-113-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-114-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
   </nav>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <dialog id="draw-choice-dialog" class="history-choice-dialog" aria-labelledby="draw-choice-title">
-    <h3 id="draw-choice-title">這次要如何保存練習紀錄？</h3>
-    <p>今天已有練習紀錄。你可以覆蓋目前這筆，或保留它並新增另一筆紀錄。</p>
-    <div class="history-choice-actions">
-      <button type="button" data-history-choice="overwrite">覆蓋本次紀錄</button>
-      <button type="button" class="primary" data-history-choice="new">新增一筆紀錄</button>
-      <button type="button" class="cancel" data-history-choice="cancel">取消</button>
-    </div>
-  </dialog>
-
   <dialog id="history-unavailable-dialog" class="history-choice-dialog" aria-labelledby="history-unavailable-title">
     <h3 id="history-unavailable-title">課堂連線時無法繼續或重現練習</h3>
     <p>目前不支援在課堂連線期間使用「繼續這次練習」或「重現這次練習」。請先離開同步房間，再從練習紀錄開啟。</p>
@@ -5428,17 +5417,11 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       if(index<0)state.classroomHistory.push(next);else state.classroomHistory[index]=next;
       persist();return true;
     }
-    function storePersonalSession(session,action){
-      const history=state.personalHistory.filter(item=>item.date===session.date)
-        .sort((a,b)=>(b.drawnAt||b.createdAt||0)-(a.drawnAt||a.createdAt||0));
-      const previous=state.sessions[session.date];
-      const target=action==='overwrite'?(previous?.historyId||history[0]?.id):null;
-      const id=target||'p:'+Date.now()+':'+Math.random().toString(36).slice(2,10);
+    function storeNewPersonalSession(session){
+      const id='p:'+session.createdAt+':'+Math.random().toString(36).slice(2,10);
       session.historyId=id;
       state.sessions[session.date]=session;
-      const index=state.personalHistory.findIndex(item=>item.id===id);
-      const snapshot=recordSnapshot(session,{id});
-      if(index>=0)state.personalHistory[index]=snapshot;else state.personalHistory.push(snapshot);
+      state.personalHistory.push(recordSnapshot(session,{id}));
       persist();
     }
     // Follow the exact ascending-signature progression displayed in the filters:
@@ -5679,76 +5662,41 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       }
       return arr.slice(0,n);
     }
-    const drawDialog=q('#draw-choice-dialog');
-    function requestDrawAction(){
-      return new Promise(resolve=>{
-        if(drawDialog.open){resolve(null);return;}
-        let settled=false;
-        const finish=value=>{
-          if(settled)return;
-          settled=true;
-          drawDialog.removeEventListener('close',closed);
-          if(drawDialog.open)drawDialog.close();
-          resolve(value);
-        };
-        const closed=()=>finish(null);
-        drawDialog.addEventListener('close',closed);
-        drawDialog.querySelectorAll('[data-history-choice]').forEach(button=>{
-          button.onclick=()=>finish(button.dataset.historyChoice==='cancel'?
-            null:button.dataset.historyChoice);
-        });
-        drawDialog.showModal();
-      });
-    }
-    function planDraw(){
-      // A continuation from a previous date is not a new record for today.
-      // Never silently overwrite the original historical entry.
-      const previous=sharedRoom?sharedRoom.session:state.sessions[currentDate];
-      return previous&&previous.date===currentDate?
-        requestDrawAction():Promise.resolve('new');
-    }
     function showStartedList(){
       showLaunchOptions(false);
       const title=q('#results-title');
       scrollToPracticeLanding(title.closest('.result-panel'),++cardScrollRequest,()=>title.focus({preventScroll:true}));
     }
-    async function drawToday(){
+    function startNewSession(session,toast,sequenceMode){
+      if(sharedRoom){
+        window.classroomSync?.draw(session,'new');
+        return;
+      }
+      if(sequenceMode)session.sequenceMode=sequenceMode; // Local-only; room schema unchanged.
+      replaySession=null;state.continuedSession=null;
+      storeNewPersonalSession(session);
+      render();showStartedList();showToast(toast);
+    }
+    function newDrawTime(){
+      // Preserve a distinct room history key even if these two draws share a clock tick.
+      return Math.max(Date.now(),(Number(currentSession()?.createdAt)||0)+1);
+    }
+    function drawToday(){
       refreshDate();
       const {majorCount,minorCount}=visiblePreferences();
       if(majorCount+minorCount===0||majorCount>eligible('major').length||
         minorCount>eligible('minor').length)return;
-      const previous=currentSession();
-      const action=await planDraw();
-      if(!action)return;
-      const session={date:currentDate,majorIds:chooseDistinct(majorCount,'major'),
-        minorIds:chooseDistinct(minorCount,'minor'),doneIds:[],createdAt:Date.now()};
-      if(sharedRoom){
-        window.classroomSync?.draw(session,action,previous?.createdAt);
-        return;
-      }
-      replaySession=null;state.continuedSession=null;
-      storePersonalSession(session,action);
-      render();showStartedList();showToast('新的練習清單已準備好！');
+      startNewSession({date:currentDate,majorIds:chooseDistinct(majorCount,'major'),
+        minorIds:chooseDistinct(minorCount,'minor'),doneIds:[],createdAt:newDrawTime()},'新的練習清單已準備好！');
     }
-    async function practiceInSignatureOrder(){
+    function practiceInSignatureOrder(){
       refreshDate();
       const selected=orderedSelections();
       if(!selected.length)return;
-      const previous=currentSession();
-      const action=await planDraw();
-      if(!action)return;
-      const session={date:currentDate,
+      startNewSession({date:currentDate,
         majorIds:selected.filter(v=>v.mode==='major').map(v=>v.index),
         minorIds:selected.filter(v=>v.mode==='minor').map(v=>v.index),
-        doneIds:[],createdAt:Date.now()};
-      if(sharedRoom){
-        window.classroomSync?.draw(session,action,previous?.createdAt);
-        return;
-      }
-      session.sequenceMode='signature'; // local-only; Firebase room schema unchanged
-      replaySession=null;state.continuedSession=null;
-      storePersonalSession(session,action);
-      render();showStartedList();showToast('已依調號排好全部選取的調性！');
+        doneIds:[],createdAt:newDrawTime()},'已依調號排好全部選取的調性！','signature');
     }
 // Student notes stay on this browser, separate from shared classroom state.
 const studentNoteKey=id=>'daily-key-practice:experimental:key-note:'+id;

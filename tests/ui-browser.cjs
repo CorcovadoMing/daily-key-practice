@@ -100,6 +100,33 @@ async function noteCheck(p, width, errors){
    assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth-innerWidth),0);
    assert.deepEqual(errors,[]);
 }
+async function redrawCheck(page,mode){
+  const saved=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('daily-key-practice:experimental:v1')));
+  const draw=page.locator('#draw-button'),resume=page.locator('#launch-resume');
+  if(mode==='sequential'){
+    await page.locator('#mode-settings-toggle').click();
+    await page.locator('input[name="launch-mode"][value="sequential"]').check();
+  }
+  const before=await saved(),original=before.personalHistory;
+  assert.ok(original.length>0);
+  assert.match(await draw.innerText(),/重新抽選/);
+  await resume.click();
+  assert.deepEqual((await saved()).personalHistory,original,'continuing is not a new record');
+  for(let i=1;i<=2;i++){
+    await draw.click();
+    assert.equal(await page.locator('dialog[open]').count(),0);
+    const after=await saved(),latest=after.personalHistory.at(-1);
+    assert.equal(after.personalHistory.length,original.length+i);
+    assert.deepEqual(after.personalHistory.slice(0,original.length),original,'keep old keys, identity and progress');
+    assert.equal(new Set(after.personalHistory.map(r=>r.id)).size,after.personalHistory.length);
+    assert.deepEqual(latest.doneIds,[]);
+    assert.equal(after.sessions[latest.date].historyId,latest.id);
+    assert.equal(latest.sequenceMode,mode==='sequential'?'signature':undefined);
+  }
+  const expected=(await saved()).personalHistory;
+  await page.reload();
+  assert.deepEqual((await saved()).personalHistory,expected,'reload keeps all separately saved draws');
+}
 async function extras(page,width){
  const q=s=>page.locator(s);
  // The dock's settings must be mutually exclusive and not start a microphone.
@@ -172,7 +199,7 @@ async function extras(page,width){
     await seed(page,{resume,notes:kind==='notes'});
     await page.goto(base+'/experimental/');
     if(dark&&kind==='notes')await page.locator('#appearance-toggle').click();
-    if(kind==='notes'){await noteCheck(page,width,errors);await extras(page,width);}
+    if(kind==='notes'){await noteCheck(page,width,errors);await extras(page,width);await redrawCheck(page,dark?'sequential':'random');}
     else await modeCheck(page,width,dark,resume);
     assert.deepEqual(errors,[]);
     await page.close();

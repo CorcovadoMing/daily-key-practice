@@ -60,3 +60,25 @@ test('resetting history filters retains an accessible focus target with no recor
  click();assert.deepEqual(calls,['focus','render','animate']);assert.equal(date.value,'3');assert.equal(key.value,'');
  click();assert.deepEqual(calls,['focus','render','animate']);
 });
+
+test('redrawing a classroom session always uses the new-record route, even twice in one clock tick',()=>{
+ const day='2026-11-27',previous={date:day,createdAt:1000,majorIds:[0],minorIds:[0],doneIds:['major-0']};
+ const state={sessions:{},classroomHistory:[],personalHistory:[],deletedClassroomHistoryIds:[]};
+ const room={session:previous,majorCount:1,minorCount:1},calls=[];
+ const context={sharedRoom:room,currentSession:()=>room.session,currentDate:day,state,persist(){},showToast(){},
+  Date:{now:()=>1000},refreshDate(){},visiblePreferences:()=>room,eligible:()=>[0,1],chooseDistinct:()=>[1],
+  orderedSelections:()=>[{mode:'major',index:0},{mode:'minor',index:1}],
+  window:{classroomSync:{draw(session,type){calls.push([session,type]);room.session=session;}}}};
+ vm.runInNewContext(html.slice(html.indexOf('    function recordSnapshot('),html.indexOf('    function storeNewPersonalSession('))+
+   html.slice(html.indexOf('    function startNewSession('),html.indexOf('// Student notes stay')),context);
+ for(const start of ['drawToday','practiceInSignatureOrder']){
+   context.archiveClassroomSession('123456',{session:room.session,updatedAt:room.session.createdAt});
+   context[start]();
+ }
+ context.archiveClassroomSession('123456',{session:room.session,updatedAt:room.session.createdAt});
+ assert.deepEqual(calls.map(x=>x[1]),['new','new']);
+ assert.deepEqual(state.classroomHistory.map(r=>r.createdAt),[1000,1001,1002]);
+ assert.deepEqual([...state.classroomHistory[0].doneIds],['major-0']);
+ assert.equal(state.personalHistory.length,0);
+ assert.doesNotMatch(html,/draw-choice-dialog|data-history-choice=/);
+});
