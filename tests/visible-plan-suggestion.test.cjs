@@ -13,6 +13,8 @@ class Node{
 }
 const key=['C',0,'C D E F G A B'];
 const flatText=n=>[n.textContent,...n.children.map(flatText)].join(' ');
+const sections=f=>f.panel.find('scale-practice-coach-tip').children.filter(n=>n.className==='scale-practice-coach-phase');
+const phaseNames=f=>sections(f).map(n=>n.children[0].textContent);
 function setup(data,search='',reject=()=>false,configurePlan=x=>x,adviceContext=null,scope='major-C',selection={mode:'major',key}){
  let now=0,reference=443,listener,network=0;
  const localStorage={get length(){return Object.keys(data).length;},key:i=>Object.keys(data)[i]??null,removeItem:k=>delete data[k],getItem:k=>data[k]??null,setItem:(k,v)=>{if(reject(k,v))throw Error('QuotaExceededError');data[k]=v;}};
@@ -259,7 +261,12 @@ test('real manager shows timing from measured same-take tail alongside observati
  f.play(f.target[2],0,9);
  await f.press();
  const tip=f.advise();
- a.match(tip,/這次觀察.*C 空弦.*量到的前段較接近零線，後段偏高.*可以這樣練.*先用調音器.*一弓長音.*後半仍維持速度/);
+ a.deepEqual(phaseNames(f),['上行','運弓建議']);
+ const [pitch,bow]=sections(f).map(flatText);
+ a.match(pitch,/這次觀察.*C 空弦.*先用調音器/);
+ a.doesNotMatch(pitch,/後段偏高|一弓長音/);
+ a.match(bow,/上行：C 弦上的 D.*後段偏高.*一弓長音.*後半仍維持速度/);
+ a.doesNotMatch(bow,/先用調音器/);
  a.doesNotMatch(tip,/再拉一次|運弓造成|第 \d+ 音/);
  a.equal(setup(cache).advise().replace('上次保留的建議 ',''),tip);
 });
@@ -424,7 +431,10 @@ test('opt-in only decorates the next same-string pair; one drill changes, links 
  a.match(alt,/先用調音器.*D 弦上的 F → G，只把這兩音放在同一弓裡.*前後各用半弓.*原譜弓法/);
  a.match(alt,/McDonagh：練習連弓/);
  a.doesNotMatch(alt,/Feuermann|Mantel|一音一弓、弓聲不斷/);
- a.equal(body.find('scale-practice-coach-phase').children.find(n=>n.tag==='ol').children.length,2);
+ a.deepEqual(phaseNames(f),['上行','運弓建議']);
+ a.equal(sections(f)[0].children.find(n=>n.tag==='ol').children.length,1);
+ a.equal(sections(f)[1].children.find(n=>n.tag==='ol').children.length,1);
+ a.equal(sections(f)[1].find('scale-practice-slur-option'),button());
  a.equal(JSON.stringify(cache),defaults);
  button().events.click();a.equal(flatText(body),original);
  const reopened=setup(cache);
@@ -490,7 +500,7 @@ test('actual mixed D/E/F tracing keeps every observation in report and suggests 
  f.play(f.target[4],0,24); await f.press();
  const text=f.advise();
  a.match(text,/上行：C 弦上的 D，量到的前段偏低.*上行：C 弦上的 E，量到的前段較接近零線，後段偏高.*上行：C 弦上的 F，量到的前段偏低/);
- const drill=text.split('可以這樣練')[1];
+ const drill=flatText(sections(f).find(n=>n.dataset.direction==='運弓建議')).split('可以這樣練')[1];
  a.ok(drill);
  if(process.env.TIMING_BASE==='1'){
    a.match(drill,/先把弓放穩再開始.*後半仍維持速度/);
@@ -521,7 +531,6 @@ test('advice follows actual keyed graph, including a redraw of the same key',asy
  a.match(setup(cache,'',undefined,undefined,{...old,replay:true}).advise(),/上次保留的建議/);
 });
 test('actual card shows only measured ascent and once-only shared drill when matching descending evidence arrives',async()=>{
- const sections=f=>f.panel.find('scale-practice-coach-tip').children.filter(n=>n.className==='scale-practice-coach-phase');
  const ascent=setup({});
  await ascent.press();ascent.ready();for(const n of ascent.target.slice(0,8))ascent.play(n,n.midi===43?-27:0);
  await ascent.press();
@@ -531,12 +540,13 @@ test('actual card shows only measured ascent and once-only shared drill when mat
  await both.press();both.ready();for(const n of both.target)both.play(n,n.midi===43?-27:0);
  await both.press();
  const result=sections(both);
- a.deepEqual(result.map(n=>n.dataset.direction),['上行','下行','shared']);
+ a.deepEqual(phaseNames(both),['上行','下行']);
  a.match(flatText(result[0]),/上行.*G 空弦/);
  a.match(flatText(result[1]),/下行.*G 空弦/);
- a.equal(result[2].children.find(n=>n.tag==='ol').children.length,1);
- a.match(flatText(result[2]),/調音器/);
- a.deepEqual(sections(setup(cache)).map(n=>n.dataset.direction),['上行','下行','shared']);
+ a.equal(result[0].children.find(n=>n.tag==='ol').children.length,1);
+ a.match(flatText(result[0]),/上、下行皆適用。.*調音器/);
+ a.doesNotMatch(flatText(result[1]),/調音器/);
+ a.deepEqual(phaseNames(setup(cache)),['上行','下行']);
 });
 test('an empty measured take keeps generic copy without inventing phase sections',async()=>{
  const f=setup({});await f.press();f.ready();await f.press();
@@ -709,7 +719,7 @@ test('each drill retains its evidence direction and does not reuse a shift presc
  a.match(report.issues.join(' '),/A♭ → G（換把提示）/);
  a.match(report.issues.join(' '),/G → F。多次量到的音程偏寬/);
  a.match(report.issues.join(' '),/F → E♭。多次量到的音程偏窄/);
- a.ok(report.drills.every(x=>/^下行：/.test(x)));
+ a.ok(report.drills.every(x=>/^(?:運弓建議：)?下行：/.test(x)));
  a.doesNotMatch(report.drills.join(' '),/用同一種練法/);
  await f.press();f.ready();
  for(let round=0;round<2;round++)for(let i=round;i<f.target.length;i++)f.play(f.target[i],values[i]);
@@ -722,4 +732,25 @@ test('each drill retains its evidence direction and does not reuse a shift presc
  const brief=f.practiceAdviceReport({...packet,rounds:[{id:1,values:values.map((v,i)=>i<4?v:null)}]});
  a.doesNotMatch(brief.issues.join(' '),/換把提示/);
  a.doesNotMatch(brief.drills.join(' '),/用同一種練法/);
+});
+
+
+test('all three advice groups retain fixed order and legacy saved bow items stay separate',async()=>{
+ const cache={},f=setup(cache);
+ await f.press();f.ready();
+ for(let i=0;i<f.target.length;i++){
+   if(i===1){f.play(f.target[i],0,28);f.play(f.target[i],24,16);}
+   else f.play(f.target[i],i===0||i===f.target.length-1?22:0,10);
+ }
+ await f.press();
+ const expected=['上行','下行','運弓建議'];
+ a.deepEqual(phaseNames(f),expected);
+ a.deepEqual(phaseNames(setup(cache)),expected);
+ const key=Object.keys(cache).find(k=>JSON.parse(cache[k])?.advice?.drills?.some(x=>x.startsWith('運弓建議：')));
+ a.ok(key);
+ const draft=JSON.parse(cache[key]);
+ for(const field of ['issues','drills'])draft.advice[field]=draft.advice[field].map(x=>x.replace(/^運弓建議：/,'')).reverse();
+ draft.advice.drillSources.reverse();
+ cache[key]=JSON.stringify(draft);
+ a.deepEqual(phaseNames(setup(cache)),expected,'older unordered text is categorized on restore');
 });

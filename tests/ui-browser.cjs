@@ -156,6 +156,32 @@ async function checkCompletion(page,reduced){
   assert.equal(await glyph.evaluate(e=>getComputedStyle(e).visibility),'visible');
   assert.deepEqual(await animations(),[],'restoring an already-complete key does not replay the effect');
 }
+async function adviceOrderCheck(page){
+ const root=page.locator('#advice-test-cards');
+ await page.evaluate(()=>{
+   const history=window.CelloPracticeHistory,scale=window.CelloScalePractice;
+   const mount=document.createElement('div');mount.id='advice-test-cards';
+   document.body.append(mount);
+   for(const [kind,expected] of [['scale',['上行','下行','運弓建議']],['arpeggio',['下行','運弓建議']]]){
+     const target=[{midi:36,name:'C',octave:2},{midi:38,name:'D',octave:2},{midi:36,name:'C',octave:2}];
+     const scope='browser-advice-'+kind, key=history.keyFor(scope,kind,target);
+     // Deliberately use reverse order from a legacy saved report.
+     const issues=['下行：C，偏低最多 21¢。','下行：C，量到的前段較接近零線，後段偏低。'];
+     if(expected.includes('上行'))issues.push('上行：D，偏高最多 19¢。');
+     const written=history.saveKeyDraft(localStorage,key,{id:history.newDraftId(),mode:'single',values:[0,19,-21],laps:0,passed:0,progress:3,pending:false,
+        advice:{issues,drills:['下行：拿「下行：C」做一弓長音練習：保持弓速。','下行：聽上一音再對準 C。']}});
+     if(!written.ok||!written.adviceSaved)throw Error('Advice fixture was not saved: '+JSON.stringify(written));
+     mount.append(scale.card(document.createElement('div'),target,()=>{},kind,scope).element);
+   }
+ });
+ for(const [kind,headings] of [['scale',['上行','下行','運弓建議']],['arpeggio',['下行','運弓建議']]]){
+   const result=root.locator('[data-practice-kind="'+kind+'"] .scale-practice-local-coach');
+   assert.deepEqual(await result.locator('.scale-practice-coach-phase > h4').allTextContents(),headings);
+   const bow=result.locator('.scale-practice-coach-phase').last();
+   assert.match(await bow.innerText(),/後段偏低[\s\S]*一弓長音/);
+   assert.doesNotMatch(await bow.innerText(),/偏低最多|對準 C/);
+ }
+}
 async function resultButtonCheck(page){
  const first=page.locator('.key-card').first();
  await first.locator('.key-title').click();
@@ -343,6 +369,7 @@ async function extras(page,width){
     await page.goto(base+'/experimental/');
     if(dark)await page.locator('#appearance-toggle').click();
     await resultButtonCheck(page);
+    await adviceOrderCheck(page);
     assert.deepEqual(errors,[]);
     console.log(JSON.stringify({kind:'result-button',width,dark,passed:true}));
     await page.close();
