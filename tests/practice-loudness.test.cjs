@@ -77,6 +77,25 @@ test('one lap reports only a measured short interruption, rough join, or local d
     assert.equal(tracked(controls).connection,null,JSON.stringify(controls));
   assert.equal(synthetic(t=>t<350?.06:.145).connection,null,'one varying pitch is not a connection');
 });
+test('one mixed RMS window on either side does not hide a short interrupted join',()=>{
+  function probe({third=false,missing=false,long=false,lowDip=false}={}){
+    const c=loud.capture(1000);
+    const raw=long?[[567,.03],[594,.029],[621,0],[648,0],[675,.028],[702,.028]]:
+      [[567,.029],[594,lowDip?.011:0],[621,lowDip?.011:0],[648,.029]];
+    const samples=new Map(raw);
+    if(third)samples.set(675,.029);
+    for(let t=27;t<=1200;t+=27){
+      if(missing&&t===648)continue;
+      c.observeMic({now:1000+t,rms:samples.get(t)??.07,rough:.015});
+    }
+    for(let t=16;t<=1200;t+=16)c.observePitch(1000+t,t<=560?2:t>=698?3:null,1);
+    return c.snapshot(.003,()=>true,null,()=>true).connection;
+  }
+  assert.equal(probe()?.kind,'break');
+  assert.equal(probe({lowDip:true}),null);
+  for(const controls of [{third:true},{missing:true},{long:true}])
+    assert.equal(probe(controls),null,JSON.stringify(controls));
+});
 test('centered short-window roughness distinguishes broadband bursts from smooth pitch and level changes',()=>{
   for(const rate of [44100,48000]){
     const tone=wave(.10,0,rate);

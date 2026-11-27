@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261127-096-experimental">
+  <meta name="site-version" content="20261127-097-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -1639,7 +1639,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-096-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-097-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -1795,8 +1795,24 @@
                  x.now<from.end-61||run.at(-1).now>to.start+61)continue;
               if(kind==='rough'&&(noise(preceding)||noise(following)))continue;
               if(kind==='dip'){
-                if(preceding.db<quieter-6||following.db<quieter-6)continue;
-                if(run.some(r=>r.db<=floorDb&&r.db<=quieter-18))kind='break';
+                const silent=run.some(r=>r.db<=floorDb&&r.db<=quieter-18);
+                if(preceding.db<quieter-6||following.db<quieter-6){
+                  // A 35 ms centered RMS window can include both silence and sound.
+                  // Only a measured near-silence can earn one mixed window; applying
+                  // this to general dips also catches some smooth intentional fades.
+                  if(!silent)continue;
+                  const recovered=(core,step)=>{
+                    for(let d=1;d<=2;d++){
+                      const row=join[core+step*d],inner=join[core+step*(d-1)];
+                      if(!row||Math.abs(row.now-join[core].now)>60||row.db<inner.db)return false;
+                      if(row.db>=quieter-6)return true;
+                      if(row.db<=quieter-12)return false;
+                    }
+                    return false;
+                  };
+                  if(!recovered(start,-1)||!recovered(q,1))continue;
+                }
+                if(silent)kind='break';
               }
               const rank={dip:1,rough:2,break:3}[kind];
               if(!evidence||rank>evidence.rank)evidence={kind,rank};
