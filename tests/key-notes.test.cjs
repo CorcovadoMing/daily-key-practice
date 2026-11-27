@@ -47,7 +47,7 @@ test('all-notes modal lists only saved keys, edits inline, guards unsaved edits 
   replaceChildren(){this.children=[];},setAttribute(k,v){this.attrs[k]=v;},getAttribute(k){return this.attrs[k];},click(){this.events.click();},addEventListener(k,f){this.events[k]=f;},
   focus(){calls.push(this);},showModal(){this.open=true;},close(){this.open=false;this.events.close?.();},remove(){this.removed=true;}});
  const body=node('body'),button=node('button');
- const ctx={document:{body,createElement:node,querySelectorAll:()=>[]},readStudentNote:id=>store.get(id)||'',
+ const ctx={playHistoryIcon(){},document:{body,createElement:node,querySelectorAll:()=>[]},readStudentNote:id=>store.get(id)||'',
   studentNoteKey:id=>id,selectedId:(m,i)=>m+'-'+i,keyName:(m,i)=>i===0?'C':i===1?'D♭':'K'+i,
   localStorage:{setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)}};
  vm.runInNewContext(html.slice(html.indexOf('function saveStudentNote('),html.indexOf('function openStudentNote(')),ctx);
@@ -82,7 +82,9 @@ test('all-notes modal lists only saved keys, edits inline, guards unsaved edits 
  a.equal(list.children.filter(n=>n.className==='practice-note-summary').length,3);
  deep(modal,n=>n.attrs['aria-label']==='編輯 D♭ 大調 筆記').events.click();
  const actions=deep(modal,n=>n.className==='student-note-actions');
- a.deepEqual(actions.children.map(x=>x.textContent),['清空內容','取消','儲存筆記']);
+ a.deepEqual(actions.children.map(x=>x.textContent),[undefined,'取消','儲存筆記']);
+ a.equal(actions.children[0].attrs['aria-label'],'清空內容');
+ a.match(actions.children[0].innerHTML,/history-delete-lid/);
  a.equal(actions.children[2].className,'room-action primary');
  actions.children[0].click();
  a.equal(deep(modal,n=>n.tag==='textarea').value,'');
@@ -90,10 +92,10 @@ test('all-notes modal lists only saved keys, edits inline, guards unsaved edits 
  actions.children[1].click();
  a.equal(store.get('major-1'),'Added with select');
  deep(modal,n=>n.attrs['aria-label']==='編輯 D♭ 大調 筆記').click();
- deep(modal,n=>n.textContent==='清空內容').click();
+ deep(modal,n=>n.attrs['aria-label']==='清空內容').click();
  deep(modal,n=>n.textContent==='儲存筆記').events.click();
  a.equal(store.has('major-1'),false);
- deep(modal,n=>n.textContent==='關閉').events.click();
+ deep(modal,n=>n.attrs['aria-label']==='關閉').events.click();
  a.equal(calls.at(-1),button);
 });
 
@@ -103,4 +105,11 @@ test('the card note hit target has no painted shell under its single inset face'
  a.doesNotMatch(surface,/\.student-note-button/);
  a.match(html, /body button\.compact-action\{\s*background:transparent;border-color:transparent;position:relative;isolation:isolate;box-shadow:none/);
  a.match(html, /button\.compact-action::before\{\s*content:"";position:absolute;z-index:-1;inset:4px 2px/);
+});
+
+test('pure dismissals share the icon-only X while save and cancel editing remain distinct',()=>{
+ for(const id of ['room-join-cancel','history-unavailable-dismiss'])assertClose(id);
+ function assertClose(id){a.match(html,new RegExp('<button[^>]+class="ui-close-button ui-icon-plain" id="'+id+'"[^>]+aria-label="關閉[^"]*"[^>]*><\/button>'));}
+ a.match(html,/createActionButton\(undefined,'ui-close-button ui-icon-plain'\)/);
+ a.match(html,/createActionButton\('取消'\)/);
 });

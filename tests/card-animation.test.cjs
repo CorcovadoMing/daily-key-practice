@@ -10,7 +10,7 @@ test('cumulative heading is concise and animated panels do not chase scroll anch
 test('both folded directions use the same full duration, and interrupted changes retain proportion',()=>{
  const s=setup();s.run(true);s.run(false);s.animations[0].onfinish();s.run(true);
  a.deepEqual(JSON.stringify(s.animations[0].options),JSON.stringify(s.animations[1].options));
- a.match(html,/disclosureMotion\(launchBody,from,to,full,launchSummary\)/);
+ a.match(html,/disclosureMotion\(launchBody,from,to,full\)/);
 });
 
 function nativeDetailsSetup(reduced=false){
@@ -47,4 +47,9 @@ test('touch removes only flash signals and keeps pressed state styling and keybo
  a.match(html,/button:not\(:disabled\):active\{scale:/);
  a.match(html,/\.fifths-circle \.filter-key\[aria-pressed=true\]\{\s*background:var\(--tonality-major\)/);
  a.match(html,/summary,input,select,textarea,\[tabindex\]\):focus-visible\{outline:/);
+});
+
+test('folds retain ordinary easing with no pulse on their headings',()=>{
+ a.doesNotMatch(html,/practice-fold-feedback|>summary:active\{scale:/);
+ a.match(html,/disclosureMotion\(details,start,end,expanded-collapsed\)/);
 });

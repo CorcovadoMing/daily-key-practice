@@ -126,7 +126,9 @@ test('phone shares one 24-slot axis with upright note names, and heat legend has
  assert.match(html,/\.practice-stats-key\{[^}]*font-size:min\(\.75rem,2\.68cqi\)[^}]*white-space:nowrap/);
  assert.doesNotMatch(html,/\.practice-stats-key\{[^}]*flex-direction:column/);
  assert.doesNotMatch(html,/\.practice-stats-key\{[^}]*writing-mode:vertical/);
- assert.match(html,/\.practice-heat-legend\{display:grid;grid-template-columns:repeat\(3,max-content\)/);
+ assert.match(html,/\.practice-heat-legend\{display:grid;grid-template-columns:repeat\(5,max-content\)/);
+ assert.match(html,/id="practice-heat-title">練習天數<\/h3>/);
+ assert.match(html,/id="practice-heat-legend-title"[^>]*>完成調性個數<\/div>\s*<div class="practice-heat-legend" role="group" aria-labelledby="practice-heat-legend-title"/);
  assert.doesNotMatch(html,/practice-stats-band-label/);
  assert.match(html,/id="practice-stats-grid" class="practice-stats-chart"/);
  assert.match(html,/id="practice-heat-range"[^>]*><\/span><\/div>[\s\S]*?id="practice-heat-grid"/);

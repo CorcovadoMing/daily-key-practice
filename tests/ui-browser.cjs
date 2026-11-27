@@ -49,6 +49,14 @@ async function noteCheck(p, width, errors){
    const perCard=p.locator('.student-note-dialog');assert.equal(await perCard.evaluate(e=>e.open),true);
    await p.keyboard.press('Escape');await perCard.waitFor({state:'detached'});
    await p.locator('#history-settings summary').click();
+   assert.equal(await p.locator('#practice-heat-title').innerText(),'練習天數');
+   const legend=p.getByRole('group',{name:'完成調性個數'});
+   const legendLayout=await legend.evaluate(e=>({tops:[...e.children].map(x=>x.offsetTop),items:[...e.children].map(x=>x.textContent),width:e.clientWidth,scroll:e.scrollWidth,
+     labelBottom:e.previousElementSibling.getBoundingClientRect().bottom,top:e.getBoundingClientRect().top}));
+   assert.deepEqual(legendLayout.items,['0','1','2','3–4','5+']);
+   assert.equal(new Set(legendLayout.tops).size,1);
+   assert.equal(legendLayout.width,legendLayout.scroll);
+   assert.ok(legendLayout.labelBottom<=legendLayout.top);
    const statsNotes=p.locator('#practice-stats-note-open');
    const dimensions=e=>{const s=getComputedStyle(e,'::before'),b=e.getBoundingClientRect();
      return {w:b.width,h:b.height,visibleHeight:b.height-parseFloat(s.top)-parseFloat(s.bottom),
@@ -77,9 +85,36 @@ async function noteCheck(p, width, errors){
      await Promise.all([dismissed,trash.click()]);
      assert.equal(await actions.count(),1);
    }
+   const noteKey='daily-key-practice:experimental:key-note:major-0';
+   async function checkNoteTrash(dialog){
+      const trash=dialog.getByRole('button',{name:'清空內容',exact:true});
+      const cancel=dialog.getByRole('button',{name:'取消',exact:true}),save=dialog.getByRole('button',{name:'儲存筆記',exact:true});
+      const paint=await trash.evaluate(e=>{
+        const s=getComputedStyle(e),r=e.getBoundingClientRect(),icon=e.querySelector('svg');
+        return {x:r.x,w:r.width,h:r.height,bg:s.backgroundColor,border:s.borderTopWidth,shadow:s.boxShadow,color:getComputedStyle(icon).color,svg:icon.outerHTML};
+      });
+      const shared=await p.locator('.history-delete').first().locator('svg').evaluate(e=>e.outerHTML);
+      assert.equal(paint.svg,shared);
+      assert.equal(paint.color,dark?'rgb(255, 157, 166)':'rgb(168, 49, 58)');
+      assert.deepEqual([paint.bg,paint.border,paint.shadow,paint.w,paint.h],['rgba(0, 0, 0, 0)','0px','none',44,44]);
+      assert.ok(paint.x+paint.w+10<(await cancel.boundingBox()).x);
+      assert.ok((await cancel.boundingBox()).x<(await save.boundingBox()).x);
+      await trash.click();
+      assert.equal(await dialog.locator('textarea').inputValue(),'');
+      assert.equal(await p.evaluate(k=>localStorage.getItem(k),noteKey),'既有 C 練習');
+      await cancel.click();
+   }
+   await cards.first().locator('.student-note-button').click();
+   await checkNoteTrash(p.locator('.student-note-dialog:not(.practice-notes-overview)'));
+   await p.locator('.student-note-dialog:not(.practice-notes-overview)').waitFor({state:'detached'});
    await statsNotes.click();
    const overview=p.locator('.practice-notes-overview');
    assert.ok((await overview.innerText()).includes('既有 C 練習'));
+   const close=overview.getByRole('button',{name:'關閉',exact:true});
+   assert.equal(await close.innerText(),'');
+   assert.deepEqual(await close.evaluate(e=>[getComputedStyle(e,'::before').content,getComputedStyle(e,'::after').content]),['""','""']);
+   await overview.getByRole('button',{name:'編輯 C 大調 筆記',exact:true}).click();
+   await checkNoteTrash(overview);
    await overview.getByRole('button',{name:'新增筆記',exact:true}).click();
    const picker=overview.getByRole('combobox',{name:'調性'}),textarea=overview.getByRole('textbox',{name:'練習筆記內容'});
    assert.equal(await overview.locator('input[type=search]').count(),0);
@@ -222,6 +257,45 @@ async function resultButtonCheck(page){
   assert.deepEqual(await observe(),idle);
  }
 }
+async function segmentMotionCheck(page,reduced){
+ await page.locator('#mode-settings-toggle').press('Space');
+ await page.waitForFunction(()=>!document.querySelector('#mode-settings').hasAttribute('data-animating'));
+ const track=page.locator('fieldset').filter({has:page.locator('input[name=launch-mode]')});
+ const result=await track.evaluate(async (e,reduce)=>{
+   const fields=[...e.querySelectorAll('input')],layout=()=>[e.offsetWidth,e.offsetHeight,...fields.map(x=>x.parentElement.offsetWidth)];
+   const paint=()=>{
+     const css=getComputedStyle(e,'::before'),scale=css.scale==='none'?[1,1]:css.scale.split(' ').map(Number);
+     return {travel:Number(css.getPropertyValue('--segment-travel')),x:scale[0],y:scale[1]??scale[0],translate:css.translate,transition:css.transitionProperty};
+   };
+   const run=async i=>{
+     const start=paint(); fields[i].click();
+     const samples=[paint()];
+     if(!reduce){
+       const until=performance.now()+510;
+       while(performance.now()<until){await new Promise(requestAnimationFrame);samples.push(paint());}
+     }
+     return {start,samples,end:samples.at(-1),checked:fields[i].checked};
+   };
+   const before=layout(),forward=await run(1),back=await run(0);
+   return {before,after:layout(),forward,back};
+ },reduced);
+ assert.deepEqual(result.before,result.after,'segment deformation cannot resize either label or track');
+ assert.ok(result.forward.checked&&result.back.checked);
+ const {forward,back}=result;
+ if(reduced){
+   assert.equal(forward.end.translate,'100%');assert.equal(back.end.translate,'none');
+   assert.equal(forward.end.x,1);assert.equal(back.end.x,1);
+   return;
+ }
+ for(const [direction,from,to] of [[forward,0,1],[back,1,0]]){
+   assert.equal(direction.start.travel,from);
+   assert.equal(direction.end.travel,to);
+   assert.equal(direction.end.x,1);assert.equal(direction.end.y,1);
+   assert.ok(direction.samples.some(s=>s.travel>.3&&s.travel<.75&&s.x>1.12&&s.y<.94),'thumb stretches and narrows between the two options');
+   const travels=direction.samples.map(s=>s.travel);
+   assert.ok(travels.every((x,i)=>x>=0&&x<=1&&(!i||(x-travels[i-1])*(to-from)>=-.001)),'thumb does not shake or overshoot');
+ }
+}
 async function surfaceMotionCheck(page){
  const button=page.locator('#tuner-settings'),panel=page.locator('#tuner-preferences');
  await button.press('Space');
@@ -240,12 +314,12 @@ async function surfaceMotionCheck(page){
  const closed=await details.evaluate(e=>e.offsetHeight);
  await summary.press('Space');
  assert.equal(await heightMotion(),480);
- assert.ok(await summary.evaluate(e=>e.getAnimations().some(a=>a.id==='practice-fold-feedback')));
+ assert.ok(await summary.evaluate(e=>e.getAnimations().length===0&&['none','1'].includes(getComputedStyle(e).scale)));
  await page.waitForFunction(()=>document.querySelector('#history-settings').getAnimations().length===0);
  assert.ok(await details.evaluate(e=>e.open&&e.offsetHeight>40));
  await summary.press('Space');
  assert.equal(await heightMotion(),480);
- assert.ok(await summary.evaluate(e=>e.getAnimations().some(a=>a.id==='practice-fold-feedback')));
+ assert.ok(await summary.evaluate(e=>e.getAnimations().length===0&&['none','1'].includes(getComputedStyle(e).scale)));
  await page.waitForFunction(()=>!document.querySelector('#history-settings').open);
  assert.equal(await details.evaluate(e=>e.offsetHeight),closed);
 }
@@ -350,6 +424,7 @@ async function extras(page,width){
     await page.goto(base+'/experimental/');
     if(dark)await page.locator('#appearance-toggle').click();
     await checkCompletion(page,reduced);
+    await segmentMotionCheck(page,reduced);
     if(width===390)await surfaceMotionCheck(page);
     assert.deepEqual(errors,[]);
     console.log(JSON.stringify({kind:'completion',width,dark,reduced,passed:true}));

@@ -35,3 +35,10 @@ test('native modal chrome and primary actions share theme tokens without resetti
  assert.match(html,/:root dialog :is\(\.room-action\.primary,\.primary,\.save-btn,\.cello-leave-save\),/);
  assert.match(html,/--ui-modal-limit:85dvh/);
 });
+
+test('liquid movement has a shared symmetric shape with a neutral resting thumb',()=>{
+ assert.match(html,/@property --segment-travel\{syntax:"<number>";inherits:false;initial-value:0\}/);
+ assert.match(html,/--segment-elasticity:sin\(calc\(180deg \* var\(--segment-travel\)\)\)/);
+ assert.match(html,/transition:--segment-travel 440ms/);
+ assert.match(html,/data-liquid-segments.*label:last-child.*--segment-travel:1/);
+});

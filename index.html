@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261127-118-experimental">
+  <meta name="site-version" content="20261127-119-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -405,10 +405,16 @@
     .history-date-sub{display:flex;align-items:center;flex-wrap:wrap;gap:2px 7px;margin-top:2px;color:var(--muted);font-size:.6875rem;font-weight:550;font-variant-numeric:tabular-nums}
     .history-count{padding:1px 5px;border-radius:5px;background:var(--soft);color:var(--ink);white-space:nowrap}
     .history-actions{grid-area:actions;display:flex;align-items:center;gap:2px}
-    .history-replay,.history-delete{display:inline-grid;place-items:center;padding:0;border-radius:8px;color:var(--ink);white-space:nowrap}
+    .history-replay,.ui-trash-button,.ui-close-button{display:inline-grid;place-items:center;padding:0;border-radius:8px;color:var(--ink);white-space:nowrap}
     .history-actions .history-replay{border:1px solid var(--line);font-size:.75rem;font-weight:750}
-    .history-delete{background:none;border:0;box-shadow:none}
-    .history-delete>.ui-icon{width:16px;height:16px;color:var(--ui-danger,#a8313a)}
+    .ui-trash-button,.ui-close-button{background:none;border:0;box-shadow:none;min-inline-size:44px;min-block-size:44px;position:relative;flex:none}
+    .ui-trash-button>.ui-icon{width:16px;height:16px;color:var(--ui-danger,#a8313a)}
+    .ui-close-button::before,.ui-close-button::after{content:"";grid-area:1/1;inline-size:16px;border-block-start:1.7px solid currentColor;transform:rotate(45deg);pointer-events:none}
+    .ui-close-button::after{transform:rotate(-45deg)}
+    .ui-dialog-titlebar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px}
+    .ui-dialog-titlebar>:is(h2,h3){margin:0}
+    .room-join-dialog .ui-dialog-titlebar>h2{padding-inline-start:52px}
+    .room-join-dialog .room-dialog-actions{grid-template-columns:1fr}
     .history-keys{grid-area:keys;display:flex;gap:4px;justify-content:flex-start;flex-wrap:wrap;min-width:0}
     .history-chip{border-radius:5px;padding:3px 6px;background:#e9f2e8;color:#395843;font-weight:700;font-size:.6875rem;line-height:1.35;white-space:nowrap}
     .history-chip.minor{background:#f0eaf8;color:#655178}
@@ -701,7 +707,8 @@
     .student-note-dialog{width:min(460px,calc(100% - 32px));box-sizing:border-box;border:1px solid #ccd8c9;border-radius:18px;padding:24px;background:var(--paper);color:var(--ink)}
     .student-note-dialog::backdrop{background:#18251b66}.student-note-dialog h2{font-size:20px;margin-top:0}.student-note-dialog label{display:block;font-size:13px;margin-bottom:8px}
     .student-note-dialog textarea{width:100%;box-sizing:border-box;resize:vertical;border:1px solid #bdcbb6;border-radius:10px;padding:12px;font:inherit;line-height:1.7;background:#fafaf9;color:inherit}
-    .student-note-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px}
+    .student-note-actions{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px}
+    .student-note-actions>.note-clear-content{margin-inline-end:auto}
     /* Appearance changes are display-only; printed notation uses the original light palette. */
     .display-settings{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
     @media(max-width:810px){.display-settings{flex-direction:row;align-items:center;justify-content:space-between}}
@@ -1014,7 +1021,8 @@
     .practice-heat-cell{display:block;width:.72rem;height:.72rem;border-radius:2px}
     .practice-heat-grid .practice-heat-cell{width:100%;height:100%;border-radius:4px}
     .practice-heat-grid .practice-heat-cell[aria-current=date]{outline:1px solid var(--ink);outline-offset:1px}
-    .practice-heat-legend{display:grid;grid-template-columns:repeat(3,max-content);align-items:center;justify-content:center;gap:.3rem .75rem;font-size:.6875rem;margin:.55rem 0 0}
+    .practice-heat-legend-title{text-align:center;color:var(--muted);font-size:.6875rem;font-weight:650;margin:.55rem 0 .3rem}
+    .practice-heat-legend{display:grid;grid-template-columns:repeat(5,max-content);align-items:center;justify-content:center;column-gap:clamp(.4rem,2vw,.8rem);font-size:.6875rem;white-space:nowrap}
     .practice-heat-legend span{display:inline-flex;align-items:center;gap:.25rem}
     .practice-heat-head{display:flex;align-items:baseline;flex-wrap:wrap;justify-content:space-between;gap:.25rem .75rem;margin-block-end:.45rem}
     .practice-heat-range{font-size:.75rem;color:var(--muted);font-variant-numeric:tabular-nums}
@@ -1462,6 +1470,21 @@
       :root body button.key-expand{color:var(--ui-secondary,var(--ink))}
       :root body button.key-expand:focus-visible{outline:2px solid var(--ui-focus);outline-offset:-3px}
     }
+    @property --segment-travel{syntax:"<number>";inherits:false;initial-value:0}
+    @supports (scale:calc(1 + .16 * sin(90deg))){
+      @media screen and (forced-colors:none) and (prefers-reduced-motion:no-preference){
+        /* One clock drives both position and shape. It is relaxed at either end
+           of travel, and gently stretches as it passes between the two labels. */
+        :root[data-liquid-segments] .launch-mode:has(>label>input:checked)::before{
+          --segment-travel:0;
+          --segment-elasticity:sin(calc(180deg * var(--segment-travel)));
+          translate:calc(100% * var(--segment-travel)) 0;
+          scale:calc(1 + .17 * var(--segment-elasticity)) calc(1 - .11 * var(--segment-elasticity));
+          transition:--segment-travel 440ms cubic-bezier(.38,.08,.24,1);
+        }
+        :root[data-liquid-segments] .launch-mode:has(>label:last-child>input:checked)::before{--segment-travel:1}
+      }
+    }
     .tuner-stop-icon,[aria-pressed=true]>.tuner-idle-icon{display:none}
     #tuner-open[aria-pressed=true] .tuner-stop-icon{display:block}
     @media screen and (prefers-reduced-motion:no-preference){
@@ -1472,11 +1495,11 @@
           border-color var(--ui-control-ms) var(--ui-motion-curve),color var(--ui-control-ms) var(--ui-motion-curve);
       }
       button:not(:disabled):active{scale:.95;transition:scale var(--ui-press-ms) var(--ui-press-curve)}
-      :is(.layout-disclosure,.launch-settings)>summary{transform-origin:left center;transition:scale var(--ui-spring-ms) var(--ui-spring-curve)}
-      :is(.layout-disclosure,.launch-settings)>summary:active{scale:.984;transition:scale var(--ui-press-ms) var(--ui-press-curve)}
+      :is(.key-expand,.key-title):not(:disabled):active{scale:1}
+      .key-expand>.ui-icon{transition:transform var(--ui-control-ms) var(--ui-motion-curve)}
       .toast{scale:.96;transition:opacity var(--ui-surface-ms) var(--ui-motion-curve),transform var(--ui-surface-ms) var(--ui-spring-curve),scale var(--ui-surface-ms) var(--ui-spring-curve)}
       .toast.active{scale:1}
-      :is(#metro-settings,#tuner-settings,.key-expand)>.ui-icon,
+      :is(#metro-settings,#tuner-settings)>.ui-icon,
       :is(.scale-demo-chevron,.scale-start-chevron)>svg{transition:transform var(--ui-spring-ms) var(--ui-spring-curve)}
       #appearance-toggle .theme-glyph{
         grid-area:1/1;display:block;opacity:1;transform:rotate(0) scale(1);
@@ -1568,7 +1591,10 @@
       </details>
       <dialog id="room-join-dialog" class="room-join-dialog" aria-labelledby="room-join-title">
         <form id="room-join-form" autocomplete="off">
-          <h2 id="room-join-title">加入房間</h2>
+          <div class="ui-dialog-titlebar">
+            <h2 id="room-join-title">加入房間</h2>
+            <button type="button" class="ui-close-button ui-icon-plain" id="room-join-cancel" aria-label="關閉加入房間視窗" title="關閉"></button>
+          </div>
           <label class="room-join-label" for="room-code-input">輸入六位數房號</label>
           <div class="room-digit-entry">
             <div class="room-digits" aria-hidden="true">
@@ -1579,7 +1605,6 @@
           </div>
           <div id="room-join-status" class="room-join-status" role="status"></div>
           <div class="room-dialog-actions">
-            <button type="button" class="room-action" id="room-join-cancel">取消</button>
             <button type="submit" class="room-action primary" id="room-join">加入房間</button>
           </div>
         </form>
@@ -1723,25 +1748,26 @@
         <button type="button" class="room-action practice-notes-open compact-action compact-action-label" id="practice-stats-note-open">練習筆記</button>
         </section>
         <section class="practice-stats practice-heat" aria-labelledby="practice-heat-title">
-        <div class="practice-heat-head"><h3 id="practice-heat-title">每日練習熱圖</h3><span id="practice-heat-range" class="practice-heat-range"></span></div>
+        <div class="practice-heat-head"><h3 id="practice-heat-title">練習天數</h3><span id="practice-heat-range" class="practice-heat-range"></span></div>
         <div id="practice-heat-grid" class="practice-stats-scroll" role="region" aria-label="每日完成調數，可左右捲動" tabindex="0"></div>
-        <div class="practice-heat-legend" aria-label="每日完成調數"><span><i class="practice-heat-cell" data-level="0" aria-hidden="true"></i>0</span><span><i class="practice-heat-cell" data-level="1" aria-hidden="true"></i>1</span><span><i class="practice-heat-cell" data-level="2" aria-hidden="true"></i>2</span><span><i class="practice-heat-cell" data-level="3" aria-hidden="true"></i>3–4</span><span><i class="practice-heat-cell" data-level="4" aria-hidden="true"></i>5+</span></div>
+        <div id="practice-heat-legend-title" class="practice-heat-legend-title">完成調性個數</div>
+        <div class="practice-heat-legend" role="group" aria-labelledby="practice-heat-legend-title"><span><i class="practice-heat-cell" data-level="0" aria-hidden="true"></i>0</span><span><i class="practice-heat-cell" data-level="1" aria-hidden="true"></i>1</span><span><i class="practice-heat-cell" data-level="2" aria-hidden="true"></i>2</span><span><i class="practice-heat-cell" data-level="3" aria-hidden="true"></i>3–4</span><span><i class="practice-heat-cell" data-level="4" aria-hidden="true"></i>5+</span></div>
         </section>
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-118-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-119-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
   </nav>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <dialog id="history-unavailable-dialog" class="history-choice-dialog" aria-labelledby="history-unavailable-title">
-    <h3 id="history-unavailable-title">課堂連線時無法繼續或重現練習</h3>
-    <p>目前不支援在課堂連線期間使用「繼續這次練習」或「重現這次練習」。請先離開同步房間，再從練習紀錄開啟。</p>
-    <div class="history-choice-actions">
-      <button type="button" class="primary" id="history-unavailable-dismiss">知道了</button>
+    <div class="ui-dialog-titlebar">
+      <h3 id="history-unavailable-title">課堂連線時無法繼續或重現練習</h3>
+      <button type="button" class="ui-close-button ui-icon-plain" id="history-unavailable-dismiss" aria-label="關閉提示" title="關閉"></button>
     </div>
+    <p>目前不支援在課堂連線期間使用「繼續這次練習」或「重現這次練習」。請先離開同步房間，再從練習紀錄開啟。</p>
   </dialog>
 
 
@@ -5803,10 +5829,21 @@ function createActionButton(text,className='room-action'){
  node.type='button';node.className=className;
  return node;
 }
+function createTrashButton(label,variant){
+ const button=createActionButton(undefined,'ui-trash-button ui-icon-plain '+variant);
+ button.setAttribute('aria-label',label);button.title=label;
+ button.innerHTML='<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path class="history-delete-lid" d="M4.5 7h15M9 7V4.8h6V7"/><path d="M6.2 7l.9 13h9.8l.9-13M10 10.5v6m4-6v6"/></svg>';
+ return button;
+}
+function playTrashIcon(button){
+ return playHistoryIcon(button,'.history-delete-lid',[
+  {transform:'rotate(0)'},{transform:'translateY(-1px) rotate(22deg)',offset:.44},{transform:'rotate(0)'}
+ ],260);
+}
 function createNoteActions(input,{sync, cancel:cancelEdit, save:saveEdit}){
  const group=createDialogNode('div');group.className='student-note-actions';
- const clear=createActionButton('清空內容'),cancel=createActionButton('取消'),save=createActionButton('儲存筆記','room-action primary');
- clear.addEventListener('click',()=>{input.value='';sync?.();input.focus();});
+ const clear=createTrashButton('清空內容','note-clear-content'),cancel=createActionButton('取消'),save=createActionButton('儲存筆記','room-action primary');
+ clear.addEventListener('click',()=>{if(input.value)playTrashIcon(clear);input.value='';sync?.();input.focus();});
  cancel.addEventListener('click',cancelEdit);
  save.addEventListener('click',saveEdit);
  group.append(clear,cancel,save);
@@ -5824,7 +5861,8 @@ function openPracticeNotes(opener){
  const dialog=createDialogNode('dialog');dialog.className='student-note-dialog practice-notes-overview';
  dialog.setAttribute('aria-label','練習筆記');
  const head=createDialogNode('header');head.className='practice-notes-head';
- const close=createActionButton('關閉');head.append(createDialogNode('h2','練習筆記'),close);dialog.append(head);
+ const close=createActionButton(undefined,'ui-close-button ui-icon-plain');
+ close.setAttribute('aria-label','關閉');close.title='關閉';head.append(createDialogNode('h2','練習筆記'),close);dialog.append(head);
  const body=createDialogNode('div');dialog.append(body);
  let dirty=()=>false;
  const closeNotice=createDialogNode('p');closeNotice.setAttribute('role','status');dialog.append(closeNotice);
@@ -6141,20 +6179,11 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   }
  }
 }
-    function disclosureMotion(element,from,to,full,summary){
+    function disclosureMotion(element,from,to,full){
       const root=getComputedStyle(document.documentElement||element);
       const duration=parseFloat(root.getPropertyValue?.('--ui-disclosure-ms'))||480;
       const easing=root.getPropertyValue?.('--ui-motion-curve').trim()||'cubic-bezier(.23,.68,.29,1)';
       const length=Math.max(65,Math.round(duration*Math.min(1,Math.abs(to-from)/Math.max(1,full))));
-      if(summary?.animate){
-        for(const previous of summary.getAnimations?.()||[])if(previous.id==='practice-fold-feedback')previous.cancel();
-        const opening=to>from;
-        const feedback=summary.animate([
-          {scale:'1'},{scale:opening?'.981':'1.012',offset:.25},
-          {scale:opening?'1.022':'.987',offset:.64},{scale:'1'}
-        ],{duration:Math.min(380,Math.max(220,length)),easing:'ease-in-out'});
-        feedback.id='practice-fold-feedback';
-      }
       return {duration:length,easing};
     }
     function setCardPanelOpen(item,opened,forceInstant=false){
@@ -6560,19 +6589,15 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         const replay=createActionButton(canContinue?'繼續':'重練','history-replay compact-action compact-action-square');
         replay.setAttribute('aria-label',(canContinue?'繼續這次練習':'重練這次練習')+'：'+dateText+timeLabel);
         replay.addEventListener('click',()=>replayHistoricalScale(record,kind));
-        const remove=createActionButton(undefined,'history-delete');
+        const remove=createTrashButton('刪除 '+dateText+timeLabel+' 的'+
+          (kind==='personal'?'個人':'課堂')+'練習紀錄','history-delete');
         remove.title='刪除紀錄';
-        remove.innerHTML='<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path class="history-delete-lid" d="M4.5 7h15M9 7V4.8h6V7"/><path d="M6.2 7l.9 13h9.8l.9-13M10 10.5v6m4-6v6"/></svg>';
-        remove.setAttribute('aria-label','刪除 '+dateText+timeLabel+' 的'+
-          (kind==='personal'?'個人':'課堂')+'練習紀錄');
         remove.addEventListener('click',async()=>{
           if(pendingHistoryDelete)return;
           pendingHistoryDelete=true;
           let confirmed=false;
           try{
-            const motion=playHistoryIcon(remove,'.history-delete-lid',[
-              {transform:'rotate(0)'},{transform:'translateY(-1px) rotate(22deg)',offset:.44},{transform:'rotate(0)'}
-            ],260);
+            const motion=playTrashIcon(remove);
             if(motion){try{await motion.finished;}catch{}}
             if(remove.isConnected!==false)confirmed=window.confirm('確定刪除這筆練習紀錄嗎？此操作無法復原。');
           }finally{pendingHistoryDelete=false;}
@@ -6670,7 +6695,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       summary.setAttribute('aria-expanded',String(opened));
       const frames=[{height:start+'px',overflow:'clip',boxSizing:'border-box'},
         {height:end+'px',overflow:'clip',boxSizing:'border-box'}];
-      const animation=details.animate(frames,disclosureMotion(details,start,end,expanded-collapsed,summary));
+      const animation=details.animate(frames,disclosureMotion(details,start,end,expanded-collapsed));
       const state={opened,previousInert,drop,finish};
       function drop(){
         animation.cancel();motionDetails.delete(details);summary.removeAttribute('aria-expanded');
@@ -6725,7 +6750,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       if(Math.abs(to-from)<1){finish();return;}
       launchOptions.dataset.animating='';
       const animation=launchBody.animate([{height:from+'px',opacity:alpha},{height:to+'px',opacity:open?1:0}],
-        disclosureMotion(launchBody,from,to,full,launchSummary));
+        disclosureMotion(launchBody,from,to,full));
       launchAnimation=animation;
       animation.onfinish=()=>{if(launchAnimation===animation)finish();};
     }
@@ -6740,6 +6765,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     });
     return showLaunchOptions;
     }
+    if(typeof globalThis.CSS?.registerProperty==='function')document.documentElement.setAttribute('data-liquid-segments','');
     wireLaunchDisclosure(q('#mode-settings'));
     const showLaunchOptions=wireLaunchDisclosure(q('#draw-settings'));
     // LAUNCH_DISCLOSURE_END
