@@ -102,3 +102,28 @@ test('lookahead grace admits already-captured exact next notes without making a 
   tool.stop();
  }
 });
+
+test('a slow inference catches buffered old hops with complete context, without moving the newest pitch or inventing missing audio',async()=>{
+ for(const hasHistory of [true,false]){
+  const gate=deferred(),clock={},calls=[];let reads=0;
+  const detector={async infer(samples,indices){
+   calls.push([samples.length,Array.from(indices)]);
+   if(calls.length===1)await gate.promise;
+   return indices.map(()=>110);
+  }};
+  const batch=createSwiftBatches(detector);
+  const raw=ms=>({now:ms,audioTime:ms/1000,rate:48000,clock,readSwift(){reads++;return new Float32Array(hasHistory?32768:21504).fill(.02);}});
+  const first=batch(raw(512));
+  assert.equal(batch(raw(566)),null);assert.equal(batch(raw(620)),null);
+  assert.equal(reads,1);
+  gate.resolve();assert.deepEqual(Array.from(await first,x=>x.swiftHop),[21]);
+  const recovered=await batch(raw(656));
+  const expected=hasHistory?[22,23,24,25,26,27,28,29,30]:[24,25,26,27,28,29,30];
+  assert.deepEqual(Array.from(recovered,x=>x.swiftHop),expected);
+  assert.equal(calls[1][0],(hasHistory?30:28)*256);
+  assert.equal(calls[1][1][0],11); // Don't request frames too close to the model's left edge.
+  assert.equal(calls[1][0]/256-calls[1][1].at(-1),11);
+  assert.ok(Math.abs(recovered.at(-1).now-480)<1e-9);
+  assert.equal(reads,2);
+ }
+});
