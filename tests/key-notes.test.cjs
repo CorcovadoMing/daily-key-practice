@@ -96,3 +96,11 @@ test('all-notes modal lists only saved keys, edits inline, guards unsaved edits 
  deep(modal,n=>n.textContent==='關閉').events.click();
  a.equal(calls.at(-1),button);
 });
+
+test('the card note hit target has no painted shell under its single inset face',()=>{
+ const surface=html.slice(html.indexOf('/* Secondary controls use the same neutral surface'),html.indexOf(':root:not([data-appearance=dark]) :is(.key-expand[aria-expanded=true]'));
+ a.ok(surface.includes('.key-expand'));
+ a.doesNotMatch(surface,/\.student-note-button/);
+ a.match(html, /\.key-details-row>\.student-note-button\{\s*background:transparent;border-color:transparent;position:relative;isolation:isolate;box-shadow:none/);
+ a.match(html, /\.key-details-row>\.student-note-button::before\{\s*content:"";position:absolute;z-index:-1;inset:4px 2px/);
+});
