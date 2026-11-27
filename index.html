@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261127-089-experimental">
+  <meta name="site-version" content="20261127-090-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -216,8 +216,8 @@
     .key-title-row>.key-title{max-width:100%;white-space:normal;overflow-wrap:anywhere}
     .key-details-row{display:grid;grid-template-columns:44px minmax(0,1fr);align-items:center;gap:8px;min-width:0}
     .key-details-row>.student-note-button{min-inline-size:44px;min-block-size:44px}
-    .key-details-row .key-relative{margin-top:0}
-    .key-details-row .key-secondary{margin-top:3px;overflow-wrap:anywhere}
+    .key-title-row>.key-relative{margin:0;color:var(--muted);font-size:var(--ui-caption,.8125rem);overflow-wrap:anywhere}
+    .key-details-row .key-secondary{margin:0;overflow-wrap:anywhere}
     .key-complete{display:grid;place-items:center;flex:none;min-width:44px;min-height:44px;padding:0;border:0;background:transparent;border-radius:50%;color:inherit}
     .key-complete .check-circle{margin:0}
     .key-title{min-height:44px;padding:0;border:0;background:transparent;text-align:left;color:inherit;cursor:pointer}
@@ -826,7 +826,8 @@
     .exercise-jump{min-height:44px;min-width:64px;padding:6px 12px;border:1px solid var(--line);border-radius:9px;color:var(--ink);background:var(--paper);font-size:13px;font-weight:750}
     .music-exercise-block{scroll-margin-top:58px}
     .exercise-disclosure.fingerboard-section,.exercise-disclosure.arpeggio-fingerboard{padding:0;border:1px solid var(--line);margin:5px 0 0}
-    .exercise-disclosure>summary{margin:0}
+    .exercise-disclosure>summary{margin:0;padding-block:10px;align-content:center}
+    .scale-practice>.exercise-disclosure{display:block;flex:0 1 100%;width:100%;margin:0}
     .scale-practice>.scale-practice-action{border:0;background:none}
     .scale-practice>.scale-practice-action button{border-radius:9px;padding-inline:12px;background:#edf4ed;border:1px solid #8da692}
     .scale-practice>.scale-practice-action button:hover{background:#dcebdd}
@@ -1585,7 +1586,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-089-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-090-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -4251,7 +4252,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     return {element:chart, header:head, update, select};
   }
 
-  function card(score, target, toggle, kind = 'scale', scope = null, snapshotVisiblePlan = null) {
+  function card(score, target, toggle, kind = 'scale', scope = null, snapshotVisiblePlan = null, _adviceContext = null, boardDisclosure = null) {
     const name = kind === 'arpeggio' ? '琶音' : '音階';
     const element = document.createElement('div');
     element.className = 'scale-practice';
@@ -4946,6 +4947,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     }};
     button.addEventListener('click', () => toggle(view));
     element.append(action,status,latest,demoStatus);
+    if(boardDisclosure)element.append(boardDisclosure);
 
     if(localCoach)element.append(localCoach);
     if (coachPanel) element.append(coachPanel);
@@ -4964,7 +4966,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
 });
 // SCALE_PRACTICE_END
   </script>
-  <script src="fingerboard.js?v=20261127-078"></script>
+  <script src="fingerboard.js?v=20261127-090"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.
@@ -5319,8 +5321,9 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       return '關係'+(mode==='major'?'小調：':'大調：')+name;
     }
     function scaleNameSummary(mode,key){
-      const names=dir=>window.CelloFingerboard.scaleNotes(mode,key,dir,1).map(n=>n.name).join(' · ');
-      return mode==='major'?names('up'):'上行 '+names('up')+'<br>下行 '+names('down');
+      const names=dir=>[...new Set(window.CelloFingerboard.scaleNotes(mode,key,dir,1)
+        .map(note=>note.name).filter(name=>/[♯♭𝄪𝄫]/u.test(name)))].join(' · ')||'無升降音';
+      return mode==='major'?['上下行 '+names('up')]:['上行 '+names('up'),'下行 '+names('down')];
     }
     function signature(count){ return count===0?'無升降記號':(count>0?`♯ × ${count}`:`♭ × ${-count}`); }
     function showToast(msg){
@@ -5650,12 +5653,16 @@ function createCard(mode,index,doneIds){
  title.addEventListener('click',()=>requestCardAction(()=>toggleCardExpansion(id)));
  const titleRow=document.createElement('div');titleRow.className='key-title-row';
  content.append(titleRow);
- const details=document.createElement('div');details.innerHTML=`<span class="key-relative">${relativeKeyLabel(mode,key)}</span><span class="key-secondary">${scaleNameSummary(mode,key)}</span>`;
+ const relative=document.createElement('small');relative.className='key-relative';relative.textContent=relativeKeyLabel(mode,key);
+ const details=document.createElement('div');details.className='key-secondary';
+ for(const line of scaleNameSummary(mode,key)){
+  const row=document.createElement('div');row.textContent=line;details.append(row);
+ }
  const detailsRow=document.createElement('div');detailsRow.className='key-details-row';content.append(detailsRow);
  const noteButton=document.createElement('button');noteButton.type='button';noteButton.className='student-note-button';
  noteButton.innerHTML=NOTE_ICON;
  noteButton.dataset.noteTitle=title.textContent;noteButton.dataset.noteLabel=title.textContent+'，';
- titleRow.append(title);detailsRow.append(noteButton,details);
+ titleRow.append(title,relative);detailsRow.append(noteButton,details);
  refreshNoteButton(noteButton,id);noteButton.addEventListener('click',()=>openStudentNote(id,noteButton));
  main.append(complete,content);
  const expand=document.createElement('button');expand.type='button';expand.className='key-expand';expand.innerHTML='<svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>';

@@ -11,17 +11,17 @@ test('the major and minor key headers place the accessible notes action below th
  const box={document:{createElement:node},MAJOR_KEYS:[['C']],MINOR_KEYS:[['A']],selectedId:m=>m+'-0',
    NOTE_ICON:'',refreshNoteButton(n){n.setAttribute('aria-label',n.dataset.noteLabel+'新增個人練習筆記')},
    requestCardAction(f){f()},toggleCardExpansion(id){calls.push(['expand',id])},toggleComplete(){},
-   openStudentNote(id,n){calls.push(['note',id,n])},relativeKeyLabel(){},scaleNameSummary(){},visibleFingerings:()=>({}),
+   openStudentNote(id,n){calls.push(['note',id,n])},relativeKeyLabel(){return '關係小調：A'},scaleNameSummary(){return ['上行 F♯','下行 無升降音']},visibleFingerings:()=>({}),
    window:{CelloFingerboard:{create:()=>({setRemoteArpeggioDrafts(){},setRemoteDrafts(){}})}},sharedRoom:null,
    state:{arpeggioFingerings:{}},boardInstances:new Map(),cardInstances:new Map(),roomArpeggioPreviews:{},roomEditingPreviews:{}};
  const source=html.slice(html.indexOf('function createCard('),html.indexOf('function mergeFingeringMap('));
  vm.runInNewContext(source,box);
  for(const [mode,name] of [['major','C 大調'],['minor','A 小調']]){
   const card=box.createCard(mode,0,[mode+'-0']),[header]=card.children,[main,expand]=header.children;
-  const [,content]=main.children,[row,detailsRow]=content.children,[title]=row.children,[note,details]=detailsRow.children;
-  a.equal(row.children.length,1);
+  const [,content]=main.children,[row,detailsRow]=content.children,[title,relative]=row.children,[note,details]=detailsRow.children;
+  a.equal(row.children.length,2);a.equal(relative.className,'key-relative');a.equal(relative.textContent,'關係小調：A');
   a.equal(detailsRow.className,'key-details-row');
-  a.match(details.innerHTML,/class="key-relative"[\s\S]*class="key-secondary"/);
+  a.equal(details.className,'key-secondary');a.deepEqual(details.children.map(n=>n.textContent),['上行 F♯','下行 無升降音']);
   a.equal(card.dataset.keyMode,mode);a.match(card.className,/done/);
   a.equal(title.textContent,name);a.equal(note.attrs['aria-label'],name+'，新增個人練習筆記');
   a.equal(title.children.length,0);a.equal(expand.className,'key-expand');

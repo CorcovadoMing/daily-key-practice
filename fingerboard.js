@@ -851,7 +851,7 @@
       panels[dir]={heading,viewport,editor,status,hint,stringChoices,
         fingerChoices,range,back,restoreSelected,reset,save,memo,legend,section};
     }
-    function appendPlayableScore(parent, arpeggio=false){
+    function appendPlayableScore(parent, boardDisclosure, arpeggio=false){
       const sequence=scoreNotes(mode,key,arpeggio);
       const score=makeScore(mode,key,arpeggio,sequence);
       parent.append(element('h3',{class:'music-section-title exercise-score-title'},(arpeggio?'琶音':'音階')),score);
@@ -859,21 +859,20 @@
         const expected=sequence.map(note=>({...note,octave:Math.floor(staffStep(note)/7)}));
         const practice=window.CelloScalePractice.card(score,expected,
           view=>window.CelloScalePractice.controller?.toggle(view),arpeggio?'arpeggio':'scale',id,
-          ()=>edit.dir===null?visiblePlan(mode,key,arpeggio?arpeggioAnnotations:annotations,arpeggio):null,arpeggioOptions.practiceAdviceContext);
+          ()=>edit.dir===null?visiblePlan(mode,key,arpeggio?arpeggioAnnotations:annotations,arpeggio):null,arpeggioOptions.practiceAdviceContext,boardDisclosure);
         parent.append(practice.element);
-      }
+      }else parent.append(boardDisclosure);
     }
     const scaleBlock=element('section',{class:'music-exercise-block scale-exercise','aria-label':'音階'});
     const scoreSection=element('div',{class:'score-section'});
-    appendPlayableScore(scoreSection);
     const boardSection=element('details',{class:'fingerboard-section layout-disclosure exercise-disclosure'});
     boardSection.append(element('summary',{},'音階指板與指法'),
       toolbar,boards);
-    scaleBlock.append(scoreSection,boardSection);
+    appendPlayableScore(scoreSection,boardSection);
+    scaleBlock.append(scoreSection);
 
     const arpeggioSection=element('section',{class:'music-exercise-block arpeggio-section','aria-label':'琶音'});
     const arpeggioScore=element('div',{class:'score-section'});
-    appendPlayableScore(arpeggioScore,true);
     const arpeggioBoard=element('details',{class:'arpeggio-fingerboard layout-disclosure exercise-disclosure'});
     const arpeggioBoards=element('div',{class:'cello-fb-two-up'});
     arpeggioBoard.append(element('summary',{},'琶音指板與指法'),arpeggioBoards);
@@ -881,7 +880,8 @@
     arpeggioBoards.append(panels.arpeggio.section);
     if(arpeggioOptions.localOnly)arpeggioBoard.append(
       element('p',{class:'fingering-note'},'琶音修改只儲存在此瀏覽器，不與教室同步。'));
-    arpeggioSection.append(arpeggioScore,arpeggioBoard);
+    appendPlayableScore(arpeggioScore,arpeggioBoard,true);
+    arpeggioSection.append(arpeggioScore);
 
     // Both scores remain mounted, with a shortcut only to stop active audio.
     const exerciseNav=element('div',{class:'exercise-nav','aria-label':'收音控制'});

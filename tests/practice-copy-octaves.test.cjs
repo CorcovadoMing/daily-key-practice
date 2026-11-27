@@ -30,7 +30,11 @@ function view(){
 }
 test('live-scale and arpeggio boards render complete two-octave paths without an octave control',()=>{
   const {window,api}=view(),targets=[];
-  window.CelloScalePractice={card(_,target,__ ,kind){targets.push({kind,target});return {element:new Node('practice-test')};}};
+  window.CelloScalePractice={card(_,target,__ ,kind,_scope,_plan,_context,board){
+    assert.equal(board.tagName,'details');
+    assert.notEqual(board.open,true);
+    targets.push({kind,target});const element=new Node('practice-test');element.append(board);return {element};
+  }};
   for(const [mode,key] of [
     ['major',['C',0,'C D E F G A B']],
     ['minor',['B',2,'B C♯ D E F♯ G♯ A♯ B','B C♯ D E F♯ G A B']]
@@ -60,4 +64,26 @@ test('only footer repeats privacy once; microphone failure, active result and lo
   for(const text of ['等待麥克風授權','無法讀取麥克風','收音中 · A4','已自動停止收音','首次使用需下載約 447 MB']){
     assert.ok(html.includes(text),text);
   }
+});
+test('key summaries use only distinct accidentaled score spellings across all 24 keys',()=>{
+  const {window}=view();
+  const begin=html.indexOf('    const MAJOR_KEYS = [');
+  const end=html.indexOf('    const STORAGE_KEY',begin);
+  const summaryStart=html.indexOf('    function relativeKeyLabel(');
+  const summaryEnd=html.indexOf('    function signature(',summaryStart);
+  const box={window};
+  vm.runInNewContext(html.slice(begin,end)+html.slice(summaryStart,summaryEnd)+';this.keys={major:MAJOR_KEYS,minor:MINOR_KEYS}',box);
+  for(const [mode,keys] of Object.entries(box.keys)){
+    for(const key of keys){
+      const lines=Array.from(box.scaleNameSummary(mode,key));
+      assert.equal(lines.length,mode==='major'?1:2);
+      for(const [index,dir] of (mode==='major'?['up']:['up','down']).entries()){
+        const expected=[...new Set(window.CelloFingerboard.scaleNotes(mode,key,dir,2).map(n=>n.name).filter(n=>/[♯♭𝄪𝄫]/u.test(n)))];
+        assert.deepEqual(lines[index].split(' ').slice(1).join(' ').split(' · '),expected.length?expected:['無升降音']);
+      }
+    }
+  }
+  assert.match(box.scaleNameSummary('minor',box.keys.minor[8])[0],/F𝄪/u);
+  assert.equal(box.relativeKeyLabel('major',box.keys.major[6]),'關係小調：D♯');
+  assert.equal(box.relativeKeyLabel('minor',box.keys.minor[3]),'關係大調：G♭');
 });
