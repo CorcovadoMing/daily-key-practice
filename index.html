@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261128-125-experimental">
+  <meta name="site-version" content="20261128-126-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -1758,7 +1758,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261128-125-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261128-126-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -3120,6 +3120,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
   // Only this take's accepted, same-lap score evidence enters the rule.
   // Printed/confirmed plans are assumptions, never physical measurements.
   const coachSources=Object.freeze({
+    openTuning:{title:'Ailbhe McDonagh：空弦調音',url:'https://www.ailbhemcdonagh.com/teaching/cello-basics/22-tuning-your-cello',reason:'沿用同一音高基準，用均勻的弓速逐一確認空弦。'},
     bowCrossing:{title:'Paul Katz：連貫換弦',url:'https://cellobello.org/cello-lessons/practicing/legato-string-crossings/',reason:'前音還在響時，就能平順地準備下一弦的弓高。'},
     bowJoin:{title:'Aldo Parisot：如何練習平順換弓',url:'https://cellobello.org/cello-blog/interviews/conversation-with-aldo-parisot-may-2001/',reason:'想拉得連貫時，換弓不要刻意多出一個重音；有意的起音或斷開不必抹掉。'},
     sustain:{title:'Paul Katz：用弓塑造聲音',url:'https://cellobello.org/cello-lessons/interpretation/artistry-in-sound/',reason:'樂句和單音都可以有刻意的強弱方向；只有想讓相鄰兩音一樣強時，才用這項練習比較。'},
@@ -3385,7 +3386,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     const grouped=new Set(positionCandidates.flatMap(g=>g.run));
     const choices=[...openCandidates.sort(byEvidence),...positionCandidates.sort(byEvidence),
       ...edgeCandidates.filter(x=>!grouped.has(x.i)).sort(byEvidence),...noteCandidates.filter(x=>!grouped.has(x.i)).sort(byEvidence)];
-    if(collect)return [...choices.map(item=>({...renderCandidate(item),type:item.type,slot:item.i,minRounds:item.n===1?1:2})),...intervalContext];
+    if(collect)return [...choices.map(item=>({...renderCandidate(item),type:item.type,slot:item.i,minRounds:item.n===1?1:2,...(item.type==='open-check'?{biasSign:item.sign}:{})})),...intervalContext];
     if(!choices.length)return missing('目前沒有足夠資料確認反覆的音準偏差。先照原譜慢練，再觀察。');
     return renderCandidate(choices[0]);
     function renderCandidate(selected){
@@ -3402,7 +3403,8 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       const pair=other===null?null:shownPair(Math.min(i,other),Math.max(i,other));
       const crossing=other!==null&&known(slots[other].plan)&&slots[other].plan.string!==string;
       const seen=n===1?'這次量到'+landing:'反覆'+landing;
-      return {kind:'note',observation:modeName(i)+'：'+string+' 空弦的 '+label(i)+'，'+seen+'。'+(pair?'連接：'+pair+'。':''),
+      const tunerReading=modeName(i)+'：'+string+' 空弦的 '+label(i)+'，'+seen+'。';
+      return {kind:'note',observation:tunerReading+(pair?'連接：'+pair+'。':''),tunerReading,
         action:'先用調音器，'+reference+'單獨慢拉 '+string+' 空弦；若調音器也持續顯示'+landing+'，先把這條弦調準。'+
           (pair?(crossing?'確認後，按原譜慢拉 '+pair+'；一音一弓，前音收尾放慢，換弓時平順換到下一弦的高度。':'確認後，按原譜慢拉 '+pair+'。'):'確認後，再慢拉譜上的這個音。'),
         sources:crossing?['crossing']:[],
@@ -3632,7 +3634,13 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       const fallback=single();
       return {issues:measured.length?[...measured,...(fallback.action?[fallback.observation]:[])]:[fallback.observation],drills:fallback.action?[(adviceDirection(fallback.observation)?adviceDirection(fallback.observation)+'：':'')+fallback.action]:[],drillSources:fallback.action?[fallback.sources||[]]:[]};
     }
-    const issues=[...new Set([...pitch.map(x=>x.observation),...timing.map(x=>bowAdvicePrefix+x.observation),...measured])];
+    const opens=pitch.filter(x=>x.type==='open-check'),openSlots=new Set(opens.map(x=>x.slot));
+    const strings=[...new Set(opens.map(x=>packet.slots[x.slot].plan.string))];
+    // Independent, repeated direction groups may contradict each other even
+    // on the same open string. Neither adjoining transition selects a tuning direction.
+    const conflicting=strings.length===1&&new Set(opens.filter(x=>x.minRounds===2).map(x=>x.biasSign)).size>1;
+    const issues=[...new Set([...pitch.map(x=>conflicting&&x.type==='open-check'?x.tunerReading:x.observation),
+      ...timing.map(x=>bowAdvicePrefix+x.observation),...measured])];
     const drills=[],drillSources=[];
     const add=(text,sources=[],evidence=[],bow=false)=>{
       const directions=new Set(evidence.map(x=>adviceDirection(x.observation)));
@@ -3643,11 +3651,11 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     };
     let metric,slur;
     const pin=(type,slots,minRounds)=>{metric??={type,slots,minRounds};};
-    const opens=pitch.filter(x=>x.type==='open-check'), openSlots=new Set(opens.map(x=>x.slot));
     if(opens.length){
       pin('pitch',[opens[0].slot],opens[0].minRounds);
-      const strings=[...new Set(opens.map(x=>packet.slots[x.slot].plan.string))];
-      if(strings.length===1)add(opens[0].action,opens[0].sources,opens);
+      if(conflicting)add('先用調音器，沿用'+(Number.isFinite(packet.reference)?' A4 '+packet.reference+' Hz':'原本的 A4')+
+        '，用均勻的弓速單獨慢拉 '+strings[0]+' 空弦。若調音器讀數反覆偏向同一側，再微調；讀數忽高忽低，先不要調弦。確認後再回原譜慢拉。',['openTuning'],opens);
+      else if(strings.length===1)add(opens[0].action,opens[0].sources,opens);
       else add('先用調音器，沿用'+(Number.isFinite(packet.reference)?' A4 '+packet.reference+' Hz':'原本的 A4')+
         '，單獨慢拉 '+strings.join('、')+' 空弦；調音器也確認偏差才調弦。調準後再回原譜練連接。',[],opens);
     }
@@ -5318,7 +5326,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
 });
 // SCALE_PRACTICE_END
   </script>
-  <script src="fingerboard.js?v=20261127-105"></script>
+  <script src="fingerboard.js?v=20261128-126"></script>
   <script>
     'use strict';
     // All twelve pitch classes are represented once in each mode.

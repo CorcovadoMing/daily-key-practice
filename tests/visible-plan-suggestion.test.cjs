@@ -808,3 +808,38 @@ test('corroborating group severity is comparable across key and direction; ties 
  a.equal(none.drills.length,0);
  a.doesNotMatch(none.issues.join(' '),/整組/);
 });
+
+test('opposite directions on one open string preserve both readings and suggest a neutral tuner check',async()=>{
+ const cache={};const f=setup(cache);const plan=f.startPlan;
+ const values=(ascending,descending)=>f.target.map((_,i)=>i===4?ascending:i===24?descending:0);
+ const report=(...rows)=>f.practiceAdviceReport({...plan,reference:443,detector:'Existing',rounds:rows.map((values,id)=>({id:id+1,values}))});
+ const exemplar=report(values(-24,25),values(-23,24));
+ a.match(exemplar.issues.join(' '),/上行：G 空弦的 G，反覆偏低/);
+ a.match(exemplar.issues.join(' '),/下行：G 空弦的 G，反覆偏高/);
+ a.doesNotMatch(exemplar.issues.join(' '),/連接：/);
+ const check=exemplar.drills.filter(d=>d.includes('單獨慢拉 G 空弦'));
+ a.equal(check.length,1);a.match(check[0],/A4 443 Hz.*用均勻的弓速.*反覆偏向同一側.*讀數忽高忽低，先不要調弦/);
+ a.doesNotMatch(check[0],/持續顯示偏低|C 弦上的 F → G 弦上的 G/);
+ const reversed=report(values(24,-25),values(23,-24));
+ a.equal(reversed.drills[0],exemplar.drills[0]);
+ const noConflict=report(values(-24,-25),values(-23,-24));
+ a.match(noConflict.drills[0],/持續顯示偏低.*先把這條弦調準/);
+ const tiny=report(values(-1,1),values(-1,1));a.doesNotMatch(tiny.drills.join(' '),/調音器/);
+ const weak=report(values(-24,25));a.doesNotMatch(weak.drills.join(' '),/讀數忽高忽低/);
+ const one=report(values(-24,null),values(-23,null));
+ a.match(one.drills[0],/^上行：.*持續顯示偏低/);
+ a.doesNotMatch(one.issues.join(' '),/下行：G 空弦的 G，反覆偏高/);
+ await f.press();f.ready();
+ for(let lap=0;lap<2;lap++){
+  const row=lap?values(-23,24):values(-24,25);
+  for(let i=lap?1:0;i<f.target.length;i++)f.play(f.target[i],row[i]);
+ }
+ await f.press();
+ const shown=f.advise();
+ a.match(shown,/上行：G 空弦的 G，反覆偏低/);
+ a.match(shown,/下行：G 空弦的 G，反覆偏高/);
+ a.match(shown,/讀數忽高忽低，先不要調弦/);
+ a.equal((shown.match(/單獨慢拉 G 空弦/g)||[]).length,1);
+ a.equal(setup(cache).advise().replace('上次保留的建議 ',''),shown);
+ a.equal(f.network,0);
+});
