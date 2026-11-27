@@ -69,8 +69,10 @@ test('one lap reports only a measured short interruption, rough join, or local d
     assert.deepEqual([e.from,e.to,e.lap],[2,3,1]);
     const advice=loud.suggestion(trace,'上行','D','E');
     assert.match(advice.observation,copy);
-    assert.match(advice.action,/如果.*慢拉 D → E 兩次.*原本的弓法/);
-    assert.match(advice.check,/前後各一音/);
+    assert.match(advice.action,/如果這裡本來要拉得連貫.*原本的弓法慢拉 D → E 兩次/);
+    assert.match(advice.action,/同一弓的話.*讓弓繼續走.*要換弓的話.*不刻意加重音/);
+    assert.match(advice.check,/前後各一音.*如果本來就要斷開，不用把兩音接起來/);
+    assert.ok(advice.check.includes({break:'有沒有空隙',dip:'突然掉下去',rough:'有沒有沙聲'}[expected]));
   }
   for(const controls of [{lap:2},{slot:4},{slot:2},{pause:270},{pause:27},{kind:'step'},{kind:'bright'},{kind:'one'},
     {kind:'normal'},{reject:3},{allow:false},{glitch:'missing'},{glitch:'processed'},{glitch:'clipped'},{glitch:'metro'},{glitch:'muted'}])
@@ -223,12 +225,12 @@ test('actual coach button renders current take loudness and resets from next tak
   assert.match(chart().textContent,/本回收音中位數/);
   assert.ok(chart().find(n=>n.attributes.class==='trend-line')?.attributes.d.includes('L'));
   assert.match(view.element.textContent,/上行：D → E.*接近安靜/);
-  assert.match(view.element.textContent,/Paul Katz：用弓塑造聲音/);
+  assert.match(view.element.textContent,/Aldo Parisot：如何練習平順換弓/);
   const first=chart();
   await play(2,false);
   assert.equal(chart(),first,'reuse the same chart across takes');
   assert.doesNotMatch(view.element.textContent,/接近安靜/);
-  assert.doesNotMatch(view.element.textContent,/Paul Katz：用弓塑造聲音/);
+  assert.doesNotMatch(view.element.textContent,/Aldo Parisot：如何練習平順換弓/);
   assert.equal(writes,0);assert.equal(fetches,0);
 });
 test('a provisional score match may be visualized but cannot recommend a technique',()=>{

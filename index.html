@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261127-097-experimental">
+  <meta name="site-version" content="20261127-098-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -1639,7 +1639,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-097-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-098-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -1831,9 +1831,10 @@
     const pair=from+' → '+to;
     const observation={break:'兩音之間的收音短暫接近安靜。',rough:'兩音交接時錄到一小段較粗的聲音。',dip:'兩音銜接時，聲音短暫掉下去又回來。'}[evidence.kind];
     if(!observation)return null;
+    const listen={break:'聽兩音之間有沒有空隙',rough:'聽後音起音有沒有沙聲',dip:'聽音量是否還會突然掉下去'}[evidence.kind];
     return {observation:`${direction}：${pair}，${observation}`,
-      action:'如果原本想拉得連貫，先慢拉 '+pair+' 兩次，照原本的弓法。'+(evidence.kind==='rough'?'放慢交接的動作，聽後音能不能乾淨地接上。':'讓前一音送到交接處，聽下一音能不能接住。'),
-      check:'接回前後各一音，聽整小段是否更連貫。'};
+      action:'如果這裡本來要拉得連貫，照原本的弓法慢拉 '+pair+' 兩次。同一弓的話，換音時讓弓繼續走；要換弓的話，試著讓後音接住前音，不刻意加重音。',
+      check:'接回前後各一音，'+listen+'。如果本來就要斷開，不用把兩音接起來。'};
   }
   return {measure,capture,suggestion};
 });
@@ -2979,6 +2980,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
   // Only this take's accepted, same-lap score evidence enters the rule.
   // Printed/confirmed plans are assumptions, never physical measurements.
   const coachSources=Object.freeze({
+    bowJoin:{title:'Aldo Parisot：如何練習平順換弓',url:'https://cellobello.org/cello-blog/interviews/conversation-with-aldo-parisot-may-2001/',reason:'想拉得連貫時，換弓不要刻意多出一個重音；有意的起音或斷開不必抹掉。'},
     sustain:{title:'Paul Katz：用弓塑造聲音',url:'https://cellobello.org/cello-lessons/interpretation/artistry-in-sound/',reason:'樂句和單音都可以有刻意的強弱方向；只有想讓相鄰兩音一樣強時，才用這項練習比較。'},
     slur:{title:'Ailbhe McDonagh：練習連弓',url:'https://www.ailbhemcdonagh.com/teaching/cello-intermediate/21-practising-bow-slurs',reason:'只把這兩音放在同一弓內，換指時弓仍平順往前。'},
     connected:{title:'Emanuel Feuermann：音階的音與音要連接',url:'https://www.cellobello.org/wp-content/uploads/2019/10/CelloLegacy_Feuermann.pdf#page=10',reason:'慢拉相鄰兩音或三音，換弓時讓弓聲連起來。'},
@@ -4626,7 +4628,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         }
         if(loudnessAdvice){
           actions.push(loudnessAdvice.action+loudnessAdvice.check);
-          related.push(['sustain']);
+          related.push(['bowJoin']);
           actionDirections.push(adviceDirection(loudnessAdvice.observation));
         }
         const namedPhase=issues.some(adviceDirection)||actionDirections.some(Boolean);
