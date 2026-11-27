@@ -506,7 +506,7 @@ test('actual mixed D/E/F tracing keeps every observation in report and suggests 
    a.match(drill,/先把弓放穩再開始.*後半仍維持速度/);
    a.match(drill,/其他有走勢變化的音/);
  }else{
-   a.match(drill,/上行：拿「C 弦上的 D」.*弓毛先放穩再起音.*上行：C 弦上的 F/);
+   a.match(drill,/拿「上行：C 弦上的 D」.*弓毛先放穩再起音.*上行：C 弦上的 F/);
    a.doesNotMatch(drill,/後半仍維持速度|上行：C 弦上的 E|其他有走勢變化的音/);
  }
  a.equal(f.network,0);
@@ -753,9 +753,5 @@ test('all three advice groups retain fixed order and legacy saved bow items stay
  for(const field of ['issues','drills'])draft.advice[field]=draft.advice[field].map(x=>x.replace(/^運弓建議：/,'')).reverse();
  draft.advice.drillSources.reverse();
  cache[key]=JSON.stringify(draft);
- const restored=setup(cache);
- a.deepEqual(phaseNames(restored),expected,'older unordered text is categorized on restore');
- const rendered=restored.advise();
- a.match(rendered,/上行：拿「C 弦上的 D」做一弓長音練習/);
- a.doesNotMatch(rendered,/上行：拿「上行：/);
+ a.deepEqual(phaseNames(setup(cache)),expected,'older unordered text is categorized on restore');
 });

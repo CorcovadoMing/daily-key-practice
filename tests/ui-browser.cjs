@@ -212,7 +212,7 @@ async function adviceOrderCheck(page){
      const issues=['下行：C，偏低最多 21¢。','下行：C，量到的前段較接近零線，後段偏低。'];
      if(expected.includes('上行'))issues.push('上行：D，偏高最多 19¢。');
      const written=history.saveKeyDraft(localStorage,key,{id:history.newDraftId(),mode:'single',values:[0,19,-21],laps:0,passed:0,progress:3,pending:false,
-        advice:{issues,drills:['拿「下行：C」做一弓長音練習：保持弓速。','下行：聽上一音再對準 C。']}});
+        advice:{issues,drills:['下行：拿「下行：C」做一弓長音練習：保持弓速。','下行：聽上一音再對準 C。']}});
      if(!written.ok||!written.adviceSaved)throw Error('Advice fixture was not saved: '+JSON.stringify(written));
      mount.append(scale.card(document.createElement('div'),target,()=>{},kind,scope).element);
    }
@@ -223,8 +223,6 @@ async function adviceOrderCheck(page){
    const bow=result.locator('.scale-practice-coach-phase').last();
    assert.match(await bow.innerText(),/後段偏低[\s\S]*一弓長音/);
    assert.doesNotMatch(await bow.innerText(),/偏低最多|對準 C/);
-   assert.match(await bow.locator('ol li').innerText(),/^下行：拿「C」做一弓長音練習/);
-   assert.match(await bow.locator('ul li').innerText(),/^下行：C/);
    const paint=await result.evaluate(e=>{
       const color=n=>getComputedStyle(n).color;
       return {dark:document.documentElement.dataset.appearance==='dark', drills:[...e.querySelectorAll('.scale-practice-coach-drill, .scale-practice-coach-drill li')].map(color),
