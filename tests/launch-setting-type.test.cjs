@@ -7,9 +7,11 @@ test('both setup disclosures share stable accessible type without page-wide text
   assert.match(html,/<summary id="launch-settings-toggle"><span class="launch-summary-title">調性設定<\/span>/);
   assert.match(html,/<meta name="viewport" content="width=device-width, initial-scale=1">/);
 });
-test('the draw settings pool uses wider buttons and retains the 12 paired circle positions',()=>{
-  assert.match(html,/\.launch-settings \.fifths-circle\{max-width:min\(100%,370px\);aspect-ratio:4\/5;/);
-  assert.match(html,/\.launch-settings \.fifths-pair\{width:19%;max-width:66px;/);
+test('the draw settings pool uses a compact grid with the same semantic fifth order',()=>{
+  assert.match(html,/\.fifths-grid\{display:grid;grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/);
+  assert.match(html,/\.fifths-grid\{grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
+  assert.match(html,/\.fifths-pair \.filter-key\{[^}]*min-height:44px/);
+  assert.doesNotMatch(html,/fifths-circle|fifths-signature/);
   assert.match(html,/const signatures=\[0,1,2,3,4,5,6,-5,-4,-3,-2,-1\]/);
   assert.match(html,/for\(const mode of \['major','minor'\]\)/);
   assert.match(html,/button\.setAttribute\('aria-label',key\[0\]/);
