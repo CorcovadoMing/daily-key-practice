@@ -281,3 +281,23 @@ test('window spanning start is discarded even if its center is after start',()=>
   observe(take,1025,.1,{halfMs:17.5});
   assert.deepEqual(take.snapshot().points.map(x=>x.ms),[25]);
 });
+
+test('a centered near-silent bow join may be corroborated by both overlapping shoulders, never a lone dip',()=>{
+  function probe({core=0,left=.015,right=.015,recovered=.055,omit=-1,processed=false,muted=false,metro=false}={}){
+    const c=loud.capture(1000);
+    const samples=new Map([[567,recovered],[594,left],[621,core],[648,right],[675,recovered]]);
+    for(let t=27;t<940;t+=27){
+      if(t===omit)continue;
+      c.observeMic({now:1000+t,rms:samples.get(t)??.055,rough:.015,
+        processed:processed&&t===621,muted:muted&&t===621,metro:metro&&t===621});
+    }
+    // The destination is confirmed late and ends soon afterwards, just like
+    // the traditional PCM replay. Match provenance still comes from scoring.
+    for(let t=16;t<=940;t+=16)c.observePitch(1000+t,t<=608?2:t>=736&&t<=848?3:null,1);
+    return c.snapshot(.003,()=>true,null,()=>true).connection;
+  }
+  const actual=probe();
+  assert.deepEqual([actual?.kind,actual?.from,actual?.to],['break',2,3]);
+  for(const control of [{core:.007},{left:.055},{right:.055},{recovered:.026},{omit:594},{processed:true},{muted:true},{metro:true}])
+    assert.equal(probe(control),null,JSON.stringify(control));
+});
