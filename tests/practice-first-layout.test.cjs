@@ -154,3 +154,13 @@ test('editable draw counts are beside the primary button, default to one, and re
  assert.match(html,/preferences:\{majorCount:1,minorCount:1,showScale:false\}/);
  assert.match(html,/syncPracticeCards\(session\);\s*}\s*updateSessionLaunch\(\);\s*if\(historyChanged\)/);
 });
+
+test('a random-only warning keeps the same layout space in sequence mode without entering the controls grid',()=>{
+ const start=html.indexOf('class="launch-controls" role="group"');
+ const end=html.indexOf('<aside class="audio-tools"',start);
+ const section=html.slice(start,end);
+ assert.match(section,/<\/section>\s*<\/div>\s*<p id="filter-warning"[^>]*role="status" hidden>/);
+ assert.match(html,/\.session-launch\[data-mode=sequential\]>\.filter-warning\{visibility:hidden\}/);
+ assert.match(html,/warning\.hidden=!warning\.textContent;/);
+ assert.doesNotMatch(html,/warning\.hidden=.*launchMode/);
+});

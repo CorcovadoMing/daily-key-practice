@@ -13,7 +13,7 @@ class Node{
 }
 const key=['C',0,'C D E F G A B'];
 const flatText=n=>[n.textContent,...n.children.map(flatText)].join(' ');
-function setup(data,search='',reject=()=>false,configurePlan=x=>x,adviceContext=null,scope='major-C'){
+function setup(data,search='',reject=()=>false,configurePlan=x=>x,adviceContext=null,scope='major-C',selection={mode:'major',key}){
  let now=0,reference=443,listener,network=0;
  const localStorage={get length(){return Object.keys(data).length;},key:i=>Object.keys(data)[i]??null,removeItem:k=>delete data[k],getItem:k=>data[k]??null,setItem:(k,v)=>{if(reject(k,v))throw Error('QuotaExceededError');data[k]=v;}};
  const mounted=[],events={};
@@ -24,8 +24,8 @@ function setup(data,search='',reject=()=>false,configurePlan=x=>x,adviceContext=
  vm.runInContext(code('PRACTICE_COACH'),box);vm.runInContext(code('SCALE_PRACTICE'),box);
  box.CelloPracticeCoach.service=()=>{network++;throw Error('no model');};
  const {manager,card,planSuggestion,practiceAdviceReport,measuredTrendIssues,measuredTrendMetrics}=box.CelloScalePractice,fb=box.window.CelloFingerboard;
- const target=fb.scoreNotes('major',key).map(n=>({...n,octave:Math.floor(fb.staffStep(n)/7)}));
- const startPlan=fb.visiblePlan('major',key);
+ const target=fb.scoreNotes(selection.mode,selection.key).map(n=>({...n,octave:Math.floor(fb.staffStep(n)/7)}));
+ const startPlan=fb.visiblePlan(selection.mode,selection.key);
  let plan=configurePlan(startPlan);
  const capture={subscribe(x){listener=x;return ()=>{};}};
  const m=manager({performance:{now:()=>now}},{capture,swiftCapture:capture,reference:()=>reference,
@@ -698,4 +698,28 @@ test('default fingering corpus contains an applicable measured-note exercise',()
  }
  a.ok(hits.length>0,JSON.stringify(hits));
  a.ok(hits.some(([mode,k])=>mode==='major'&&k==='F'));
+});
+
+test('each drill retains its evidence direction and does not reuse a shift prescription for finger spacing',async()=>{
+ const key=['C',-3,'C D E♭ F G A B','C D E♭ F G A♭ B♭'];
+ const f=setup({},'',()=>false,p=>p,null,'minor-C',{mode:'minor',key});
+ const values=f.target.map((_,i)=>i>14&&i%2?27:0);
+ const packet={...f.startPlan,rounds:[{id:1,values},{id:2,values}],reference:443,detector:'existing'};
+ const report=f.practiceAdviceReport(packet);
+ a.match(report.issues.join(' '),/A♭ → G（換把提示）/);
+ a.match(report.issues.join(' '),/G → F。多次量到的音程偏寬/);
+ a.match(report.issues.join(' '),/F → E♭。多次量到的音程偏窄/);
+ a.ok(report.drills.every(x=>/^下行：/.test(x)));
+ a.doesNotMatch(report.drills.join(' '),/用同一種練法/);
+ await f.press();f.ready();
+ for(let round=0;round<2;round++)for(let i=round;i<f.target.length;i++)f.play(f.target[i],values[i]);
+ await f.press();
+ const shown=f.advise();a.match(shown,/A♭ → G（換把提示）/);a.doesNotMatch(shown,/用同一種練法/);
+ a.equal(f.network,0);
+ const outliers=f.target.map((_,i)=>i<3?99:null);
+ const bad=f.practiceAdviceReport({...packet,rounds:[{id:1,values:outliers}]});
+ a.doesNotMatch(bad.drills.join(' '),/手移到|用同一種練法/);
+ const brief=f.practiceAdviceReport({...packet,rounds:[{id:1,values:values.map((v,i)=>i<4?v:null)}]});
+ a.doesNotMatch(brief.issues.join(' '),/換把提示/);
+ a.doesNotMatch(brief.drills.join(' '),/用同一種練法/);
 });
