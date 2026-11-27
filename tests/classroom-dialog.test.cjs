@@ -9,7 +9,7 @@ function fixture(hash = '', useGuard = false) {
   const rooms = new Map([['000123', {}], ['1'.repeat(32), {}]]);
   const writes = [], roomChanges = [], copied = [], reads = [];
   const events = {}, elements = new Map();
-  let guarded, timeout;
+  let guarded, timeout, online=true, createError;
   let location = new URL('https://example.test/experimental/' + hash), focus, waiting;
   function node() {
     const handlers = {};
@@ -42,10 +42,11 @@ function fixture(hash = '', useGuard = false) {
       if(waiting) await waiting;
       return {val: () => rooms.get(ref.path.slice(6))};
     },
-    onValue(ref, cb) { events[ref.path] = cb;cb({val:() => ref.path === '.info/connected' ? true : rooms.get(ref.path.slice(6))});return () => delete events[ref.path]; },
+    onValue(ref, cb) { events[ref.path] = cb;cb({val:() => ref.path === '.info/connected' ? online : rooms.get(ref.path.slice(6))});return () => delete events[ref.path]; },
     remove: async () => {}, set: async () => {},
     onDisconnect: () => ({remove:async()=>{},cancel:async()=>{}}),
     runTransaction: async (ref, update) => {
+      if(createError)throw createError;
       const id = ref.path.slice(6), next = update(rooms.get(id) ?? null);
       if(!next) return {committed:false};
       writes.push(ref.path);rooms.set(id,next);return {committed:true};
@@ -70,6 +71,8 @@ function fixture(hash = '', useGuard = false) {
   vm.runInContext(source.replace(/async function loadFirebase\(\) \{[\s\S]*?\n\}/, 'async function loadFirebase(){firebase=sdk;database={};editorUserId="device";}'), sandbox);
   return {get,slots,roomChanges,copied,reads,writes,get focus(){return focus;},get hash(){return location.hash;},
     wait(promise){waiting = promise;},
+    setOnline(value){online=value;},
+    failCreation(code){createError=Object.assign(new Error(code),{code});},
     expire(){timeout?.();}, allow(){return guarded?.();},
 
     emit(path,value){events[path]?.({val:()=>value});},
@@ -185,4 +188,25 @@ test('header date is absent and progress is one compact line while retaining acc
   a.match(html,/<h2 class="sr-only" id="results-title"/);
   a.match(html,/<div class="summary-top"><span>練習完成進度<\/span><strong id="progress-text">0／4/);
   a.match(html,/<div class="progress-track sr-only" role="progressbar"/);
+});
+test('create while RTDB is not connected permits retry without a queued room transaction', async () => {
+  const f=fixture();f.setOnline(false);
+  const first=f.get('create').fire('click');
+  await f.settle();a.equal(f.get('create').disabled,true);
+  f.expire();await first;
+  a.deepEqual(f.writes,[]);
+  a.match(f.get('status').textContent,/尚未連上.*沒有建立房間/);
+  a.equal(f.get('create').disabled,false);
+  f.setOnline(true);
+  await f.get('create').fire('click');
+  a.deepEqual(f.writes,['rooms/000271']);
+  a.equal(f.get('code-number').textContent,'000271');
+});
+test('denied transaction reports a Rules rejection, not an anonymous sign-in failure', async()=>{
+  const f=fixture();f.failCreation('PERMISSION_DENIED');
+  await f.get('create').fire('click');
+  a.deepEqual(f.writes,[]);
+  a.match(f.get('status').textContent,/資料庫拒絕.*Firebase Rules/);
+  a.doesNotMatch(f.get('status').textContent,/匿名登入/);
+  a.equal(f.get('create').disabled,false);
 });

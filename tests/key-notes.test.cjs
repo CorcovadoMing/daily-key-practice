@@ -32,7 +32,7 @@ test('the major and minor key headers place the accessible notes action below th
  a.match(html,/--tonality-major:#57789b;--tonality-minor:#805c91/);
  a.match(html,/data-appearance=dark[^\n]*--tonality-major:#87aacd;--tonality-minor:#b49ac6/);
  for(const mode of ['major','minor']){
-   a.ok(html.includes('.key-card[data-key-mode='+mode+'],.history-chip[data-key-mode='+mode+']{--key-card-accent:var(--tonality-'+mode+')}'));
+   a.ok(html.includes('.key-card[data-key-mode='+mode+']{--key-card-accent:var(--tonality-'+mode+')}'));
    a.ok(html.includes('.practice-stats [data-kind='+mode+']{--stats-bar:var(--tonality-'+mode+')}'));
  }
  a.doesNotMatch(html,/--key-card-tint/);
@@ -41,7 +41,7 @@ test('the major and minor key headers place the accessible notes action below th
  a.match(html,/\.key-details-row\{display:grid;grid-template-columns:44px minmax\(0,1fr\)/);
 });
 
-test('all-notes modal lists only saved keys, edits inline, guards unsaved edits and adds by search to shared storage',()=>{
+test('all-notes modal lists only saved keys, edits inline, guards unsaved edits and adds with a native select to shared storage',()=>{
  const store=new Map([['major-0','Existing\nContent']]),calls=[];
  const node=(tag)=>({tag,children:[],attrs:{},events:{},dataset:{},append(...nodes){this.children.push(...nodes)},
   replaceChildren(){this.children=[];},setAttribute(k,v){this.attrs[k]=v;},getAttribute(k){return this.attrs[k];},click(){this.events.click();},addEventListener(k,f){this.events[k]=f;},
@@ -68,18 +68,17 @@ test('all-notes modal lists only saved keys, edits inline, guards unsaved edits 
  a.equal(store.get('major-0'),'Edited');
  a.equal(deep(modal,n=>n.textContent==='D♭ 大調'),undefined);
  deep(modal,n=>n.textContent==='新增筆記').events.click();
- const search=deep(modal,n=>n.id==='practice-note-key-search');
- a.equal(deep(modal,n=>n.textContent==='D♭ 大調'),undefined);
- search.value='降 D 大調';search.events.input();
- a.equal(deep(modal,n=>n.textContent==='D♭ 小調'),undefined);
- a.equal(store.has('major-1'),false);
- search.events.keydown({key:'Enter',isComposing:true});
- a.equal(deep(modal,n=>n.tag==='textarea'),undefined);
- search.events.keydown({key:'Enter',preventDefault(){}});
-
- deep(modal,n=>n.tag==='textarea').value='Added by search';
+ const select=deep(modal,n=>n.id==='practice-note-add-key'),textarea=deep(modal,n=>n.tag==='textarea');
+ a.equal(select.tag,'select');a.equal(select.children.length,24);
+ a.equal(select.children.some(n=>n.value==='major-0'),false);
+ a.equal(deep(modal,n=>n.id==='practice-note-add-form').children[2],textarea);
+ a.equal(textarea.disabled,true);a.equal(store.has('major-1'),false);
+ select.value='major-1';select.events.change();
+ a.equal(textarea.disabled,false);textarea.value='Added with select';textarea.events.input();
+ a.equal(select.disabled,true);a.equal(store.has('major-1'),false);
+ modal.events.cancel({preventDefault(){prevented++;}});a.equal(prevented,2);
  deep(modal,n=>n.textContent==='儲存筆記').events.click();
- a.equal(store.get('major-1'),'Added by search');
+ a.equal(store.get('major-1'),'Added with select');
  a.equal(list.children.filter(n=>n.className==='practice-note-summary').length,3);
  deep(modal,n=>n.attrs['aria-label']==='編輯 D♭ 大調 筆記').events.click();
  const actions=deep(modal,n=>n.className==='student-note-actions');
@@ -87,9 +86,9 @@ test('all-notes modal lists only saved keys, edits inline, guards unsaved edits 
  a.equal(actions.children[2].className,'room-action primary');
  actions.children[0].click();
  a.equal(deep(modal,n=>n.tag==='textarea').value,'');
- a.equal(store.get('major-1'),'Added by search');
+ a.equal(store.get('major-1'),'Added with select');
  actions.children[1].click();
- a.equal(store.get('major-1'),'Added by search');
+ a.equal(store.get('major-1'),'Added with select');
  deep(modal,n=>n.attrs['aria-label']==='編輯 D♭ 大調 筆記').click();
  deep(modal,n=>n.textContent==='清空內容').click();
  deep(modal,n=>n.textContent==='儲存筆記').events.click();

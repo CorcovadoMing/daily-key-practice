@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261127-106-experimental">
+  <meta name="site-version" content="20261127-107-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -482,7 +482,6 @@
     .audio-buttons button .ui-icon{width:16px;height:16px}
     .key-expand{display:grid;place-items:center}
     .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;clip-path:inset(50%)!important;white-space:nowrap!important;border:0!important;min-height:0!important}
-    #metro-settings:hover,#tuner-settings:hover{background:#edf1e9;border-color:#81927a}
     .audio-needle[data-band=green]{background:#295b33}.audio-needle[data-band=yellow]{background:#82641b}.audio-needle[data-band=red]{background:#a43a2a}
     .audio-tools{padding-left:12px;padding-right:12px}
     .audio-note{width:44px;min-width:44px;flex:0 0 44px;font-size:18px;white-space:nowrap;overflow:hidden}
@@ -762,7 +761,7 @@
       [data-appearance=dark] .audio-tools :is(button:not([aria-pressed=true]):not([aria-expanded=true]),input:not([type=range]),select){border-color:#525f6e}
       [data-appearance=dark] :is(.progress-track,.audio-meter){background:#333c47}
       [data-appearance=dark] :is(.filter-warning,.student-note-button.has-note,.teacher-note-pill){background:#493a24;color:var(--theme-gold);border-color:#867044}
-      [data-appearance=dark] :is(#metro-settings,#tuner-settings):hover,[data-appearance=dark] :is(.key-expand,.key-complete,.cello-inline-choices button):hover{background:#435268}
+      [data-appearance=dark] :is(.key-expand,.key-complete,.cello-inline-choices button):hover{background:#435268}
       [data-appearance=dark] :is(button,select,input,textarea,[tabindex]):focus-visible{outline-color:#a0d3f6}
       [data-appearance=dark] .scale-practice,[data-appearance=dark] .cello-scale-score{--practice-green:#9cdaa8;--practice-yellow:#f4d485;--practice-red:#f4a69c}
       [data-appearance=dark] .cello-scale-score :is([fill="#222"],[fill="#647461"]){fill:var(--ink)}
@@ -886,10 +885,13 @@
     .session-launch{display:block;max-width:720px}
     .launch-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:stretch}
     .launch-controls #draw-button{min-width:0;width:100%;margin:0;padding-inline:10px;min-height:54px;font-size:16px}
-    .launch-mode{display:flex;min-width:0;align-items:stretch;margin:0;padding:2px;border:1px solid var(--line);border-radius:10px;background:var(--paper)}
+    .launch-mode{--segment-radius:13px;--segment-inset:2px;--segment-border:1px;
+      --segment-inner-radius:calc(var(--segment-radius) - var(--segment-inset) - var(--segment-border));
+      display:flex;min-width:0;align-items:stretch;margin:0;padding:var(--segment-inset);
+      border:var(--segment-border) solid var(--line);border-radius:var(--segment-radius);background:var(--paper)}
     .launch-mode label{position:relative;display:grid;place-items:stretch;cursor:pointer}
     .launch-mode input{position:absolute;margin:0;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
-    .launch-mode span{display:grid;place-items:center;min-width:44px;padding:0 7px;font-size:13px;font-weight:750;color:var(--muted);border:1px solid transparent;border-radius:7px;white-space:nowrap}
+    .launch-mode span{display:grid;place-items:center;min-width:44px;padding:0 7px;font-size:13px;font-weight:750;color:var(--muted);border:1px solid transparent;border-radius:var(--segment-inner-radius);white-space:nowrap}
     .launch-mode input:checked+span{background:var(--accent);color:var(--accent-ink);border-color:var(--line)}
     .launch-mode input:focus-visible+span{outline:2px solid #4c81b3;outline-offset:-2px}
     .pitch-detector-setting{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:2px 0 10px}
@@ -1135,16 +1137,14 @@
       .practice-note-summary h3{margin:.2rem 0}
       .practice-note-summary p{white-space:pre-wrap;overflow-wrap:anywhere;margin:.2rem 0}
       .practice-notes-overview button{min-height:44px}
-      .practice-note-search{display:grid;gap:.4rem;margin-block:.5rem}
-      .practice-note-search input{font:inherit;color:var(--ink);background:var(--page);border:1px solid var(--line);border-radius:8px;padding:.6rem;min-width:0}
-      .practice-note-results{display:grid;max-block-size:12rem;overflow:auto}
-      .practice-note-results button{text-align:start}
+      .practice-note-add-form{display:grid;gap:.4rem;margin-block:.5rem}
+      .practice-note-add-form select{min-height:44px;width:100%;font:inherit;color:var(--ink);background:var(--page);border:1px solid var(--line);border-radius:8px;padding:.35rem .5rem;min-width:0}
+      .practice-note-add-form :is(p,textarea){margin:0}
       .practice-notes-overview textarea{width:100%}
       @media(max-width:16em){
       }
-      .key-card[data-key-mode=major],.history-chip[data-key-mode=major]{--key-card-accent:var(--tonality-major)}
-      .key-card[data-key-mode=minor],.history-chip[data-key-mode=minor]{--key-card-accent:var(--tonality-minor)}
-      .history-chip[data-key-mode]{box-shadow:inset 3px 0 var(--key-card-accent)}
+      .key-card[data-key-mode=major]{--key-card-accent:var(--tonality-major)}
+      .key-card[data-key-mode=minor]{--key-card-accent:var(--tonality-minor)}
       .key-card[data-key-mode]>.key-card-heading{
         box-shadow:inset 6px 0 var(--key-card-accent)
       }
@@ -1296,8 +1296,8 @@
         }
         [data-appearance=dark] .launch-mode{--segment-fill:#445970;--segment-edge:#aec3dc}
         .launch-mode::before{
-          content:"";position:absolute;z-index:-1;pointer-events:none;inset-block:2px;
-          inset-inline-start:2px;inline-size:calc(50% - 2px);border-radius:7px;
+          content:"";position:absolute;z-index:-1;pointer-events:none;inset-block:var(--segment-inset);
+          inset-inline-start:var(--segment-inset);inline-size:calc(50% - var(--segment-inset));border-radius:var(--segment-inner-radius);
           background:var(--segment-fill);border:1px solid var(--segment-edge)
         }
         .launch-mode:has(>label:last-child>input:checked)::before{translate:100% 0}
@@ -1316,7 +1316,8 @@
         --control-segment:#435d51;--control-segment-ink:#f1faf4;--control-focus:#a9cdb6}
       .session-launch #draw-button{background:var(--control-main);color:var(--control-main-ink);border:1px solid transparent;border-radius:15px}
       .session-launch #draw-button:hover:not(:disabled){background:var(--control-main-hover)}
-      .session-launch :is(.launch-mode,.launch-count-sentence .stepper){background:var(--control-surface);border:1px solid var(--control-outline);border-radius:13px}
+      .session-launch :is(.launch-mode,.launch-count-sentence .stepper){background:var(--control-surface);border-color:var(--control-outline)}
+      .session-launch .launch-count-sentence .stepper{border:1px solid var(--control-outline);border-radius:13px}
       .session-launch .launch-mode{--segment-fill:var(--control-segment);--segment-edge:transparent}
       .session-launch .launch-mode input:checked+span{color:var(--control-segment-ink);font-weight:800}
       .session-launch :is(button,a,summary):focus-visible,.scale-practice .scale-practice-demo:focus-visible{outline:2px solid var(--control-focus);outline-offset:3px}
@@ -1326,7 +1327,6 @@
       .audio-tools .audio-tool-pair{gap:0;border:1px solid var(--control-outline);border-radius:13px;background:var(--control-surface)}
       .audio-tools .audio-tool-pair :is(button,#metro-settings,#tuner-settings){
         border:0;border-radius:10px;color:var(--ink);background:transparent}
-      .audio-tools .audio-tool-pair :is(button,#metro-settings,#tuner-settings):hover:not(:disabled){background:var(--control-hover)}
       .audio-tools .audio-tool-pair button[aria-pressed=true]{background:var(--control-segment);color:var(--control-segment-ink)}
       .audio-tools button:focus-visible{outline:2px solid var(--control-focus);outline-offset:2px}
     }
@@ -1373,8 +1373,7 @@
       }
       .classroom-bar .room-action:not(.primary):hover:not(:disabled),
       .scale-practice .scale-practice-action :is(.scale-demo-chevron,.scale-start-chevron):hover:not(:disabled),
-      .scale-practice .scale-practice-action .scale-practice-demo[data-demo-state=idle]:hover:not(:disabled),
-      .audio-tools .audio-tool-pair :is(button,#metro-settings,#tuner-settings):hover:not(:disabled){background:var(--ui-button-hover);color:var(--ink)}
+      .scale-practice .scale-practice-action .scale-practice-demo[data-demo-state=idle]:hover:not(:disabled){background:var(--ui-button-hover);color:var(--ink)}
       :is(.session-launch,.scale-action-popover) .launch-mode{--segment-fill:var(--ui-selected);--segment-edge:transparent}
       :is(.session-launch,.scale-action-popover) .launch-mode input:checked+span{
         background:var(--ui-selected);color:var(--ui-selected-text);border-color:transparent;
@@ -1393,6 +1392,67 @@
       :is(.session-launch,.scale-action-popover) .launch-mode input:focus-visible+span{
         outline:2px solid var(--ui-focus);outline-offset:2px;
       }
+    }
+    /* The Start action and its settings arrow are one visual split control. */
+    @media screen and (forced-colors:none){
+      .scale-practice .scale-start-shell{--start-fill:var(--ui-main);--start-ink:var(--ui-main-text);--start-edge:var(--ui-main);
+        --start-divider:color-mix(in srgb,var(--start-fill) 68%,var(--start-ink))}
+      .scale-practice .scale-start-shell:has(>button:hover:not(:disabled)){
+        --start-fill:var(--ui-main-hover);--start-edge:var(--ui-main-hover)
+      }
+      .scale-practice:not([data-phase=idle]) .scale-start-shell{
+        --start-fill:var(--ui-selected);--start-ink:var(--ui-selected-text);--start-edge:var(--ui-button-edge)
+      }
+      :root .scale-practice[data-phase]>.scale-practice-action .scale-start-shell
+        >:is(.scale-practice-button,.scale-start-chevron),
+      :root .scale-practice[data-phase]>.scale-practice-action .scale-start-shell
+        >:is(.scale-practice-button,.scale-start-chevron):is(:hover,[aria-pressed=true]){
+        background:var(--start-fill);color:var(--start-ink);border-color:var(--start-edge)
+      }
+      :root .scale-practice[data-phase]>.scale-practice-action .scale-start-shell>.scale-start-chevron{
+        opacity:1;border-inline-start-color:var(--start-divider)
+      }
+      .scale-start-chevron:disabled>svg{opacity:.48}
+    }
+    /* Tonality hue identifies the key; green checkmarks still mean completion. */
+    @media screen and (forced-colors:none){
+      [data-key-mode=major]{--key-tone:var(--tonality-major)}
+      [data-key-mode=minor]{--key-tone:var(--tonality-minor)}
+      [data-key-mode]{--key-tone-ink:color-mix(in srgb,var(--key-tone) 68%,var(--ink));
+        --key-tone-tint:color-mix(in srgb,var(--key-tone) 14%,var(--paper));
+        --key-tone-edge:color-mix(in srgb,var(--key-tone) 41%,var(--line))}
+      :root .key-card[data-key-mode] .key-title,
+      :root .key-group[data-key-mode] .key-group-title h3{color:var(--key-tone-ink)}
+      :root .key-group[data-key-mode] .key-dot{background:var(--key-tone)}
+      :root .history-keys .history-chip[data-key-mode],
+      :root [data-key-mode].practice-jump:is(.is-done,.is-active,:hover),
+      :root button.practice-jump[data-key-mode]{
+        color:var(--key-tone-ink);background:var(--key-tone-tint);border-color:var(--key-tone-edge)
+      }
+      :root .practice-jump[data-key-mode].is-active{box-shadow:0 0 0 1px var(--key-tone);border-color:var(--key-tone)}
+      :root .practice-jump[data-key-mode]:hover:not(.is-active){border-color:var(--key-tone)}
+      :is(.history-chip-done,.practice-jump.is-done .quick-check){color:var(--completion-green,#247447)}
+      .history-chip-done{margin-inline-end:.25em}
+      .practice-stats-col .practice-stats-key{color:color-mix(in srgb,var(--stats-bar) 68%,var(--ink))}
+    }
+    /* Keep the touch area full-size; draw the smaller note control inside it. */
+    @media screen{
+      button:is(.room-action,.icon-button,.cello-fb-button,.ordered-practice-button){padding-block:6px}
+      .session-launch #draw-button{padding-block:8px}
+      .scale-practice-action .scale-start-shell>.scale-practice-button{min-block-size:max(44px,var(--ui-touch))}
+    }
+    @media screen and (forced-colors:none){
+      :root .key-details-row>.student-note-button,
+      :root[data-appearance=dark] .key-details-row>.student-note-button{
+        background:transparent;border-color:transparent;position:relative;isolation:isolate;box-shadow:none
+      }
+      :root .key-details-row>.student-note-button::before{
+        content:"";position:absolute;z-index:-1;inset:4px 2px;border:1px solid var(--ui-button-edge,var(--line));border-radius:8px;
+        background:var(--ui-button-quiet,var(--paper));pointer-events:none
+      }
+      :root .key-details-row>.student-note-button:hover::before{background:var(--ui-button-hover,var(--soft))}
+      :root .key-details-row>.student-note-button.has-note::before{background:#fff1c7;border-color:#d9b663}
+      :root[data-appearance=dark] .key-details-row>.student-note-button.has-note::before{background:#493a24;border-color:#867044}
     }
     .tuner-stop-icon,[aria-pressed=true]>.tuner-idle-icon{display:none}
     #tuner-open[aria-pressed=true] .tuner-stop-icon{display:block}
@@ -1457,9 +1517,6 @@
       :root:not([data-appearance=dark]) :is(.key-expand[aria-expanded=true],.cello-fb-button[aria-pressed=true],
         .cello-inline-editor button[aria-pressed=true],.teacher-tools button[aria-pressed=true],.scale-practice-slur-controls .scale-practice-slur-option[aria-pressed=true]){
         background:var(--ui-selected);border-color:#8a918d;color:var(--ui-selected-text)
-      }
-      :root:not([data-appearance=dark]) .scale-practice:not([data-phase=idle]) .scale-practice-button:is(:hover,[aria-pressed=true]){
-        background:var(--ui-selected);color:var(--ui-selected-text)
       }
       .session-launch .fifths-circle .filter-key[aria-pressed=true]{
         background:var(--tonality-major);color:var(--tonality-on);border-color:var(--tonality-major);border-style:solid;opacity:1
@@ -1662,7 +1719,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-106-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-107-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -5747,41 +5804,50 @@ function openPracticeNotes(opener){
    actions.append(clear,cancel,save);group.append(label,input,actions,status);
    return {group,input};
   }
-  let focused;
+  let focused;const editButtons=[];
   for(const key of rows.filter(key=>key.value.trim())){
    const entry=create('section');entry.className='practice-note-summary';
    entry.append(create('h3',key.label));
    if(active===key.id){const edit=editor(key);entry.append(edit.group);focused=edit.input;}
    else{
     const edit=button('編輯');edit.disabled=Boolean(active);edit.setAttribute('aria-label','編輯 '+key.label+' 筆記');
-    edit.addEventListener('click',()=>render(key.id));entry.append(create('p',key.value),edit);
+    editButtons.push(edit);edit.addEventListener('click',()=>render(key.id));entry.append(create('p',key.value),edit);
    }
    body.append(entry);
   }
   const add=create('section');add.className='practice-note-summary';
-  const pending=rows.find(key=>key.id===active&&!key.value.trim());
-  if(pending){const edit=editor(pending);add.append(edit.group);focused=edit.input;}
   const available=rows.filter(key=>!key.value.trim());
   if(!active&&available.length){
-   const start=button('新增筆記');start.setAttribute('aria-expanded','false');start.setAttribute('aria-controls','practice-note-search');add.append(start);
-   let chooser;
+   const start=button('新增筆記');start.setAttribute('aria-expanded','false');start.setAttribute('aria-controls','practice-note-add-form');add.append(start);
    start.addEventListener('click',()=>{
-    if(chooser){chooser.remove();chooser=null;start.setAttribute('aria-expanded','false');start.focus();return;}
-    start.setAttribute('aria-expanded','true');
-    chooser=create('div');chooser.id='practice-note-search';
-    const label=create('label','搜尋要寫筆記的調'),input=create('input'),results=create('div'),hint=create('p');
-    chooser.className='practice-note-search';results.className='practice-note-results';
-    input.id='practice-note-key-search';input.type='search';input.placeholder='例如 C、升 F、小調';label.htmlFor=input.id;
-    hint.setAttribute('role','status');hint.textContent='輸入音名或大小調。';
-    const normalize=value=>value.normalize('NFKC').toLowerCase().replace(/\s/g,'').replace(/^(升|降|#|♯|♭)([a-g])/,'$2$1').replace(/[升♯]/g,'#').replace(/[降♭]/g,'b');
-    function filter(){
-     const query=normalize(input.value);const matches=query?available.filter(key=>normalize(key.label).includes(query)):[];
-     results.replaceChildren();hint.textContent=!query?'輸入音名或大小調。':matches.length>6?'找到 '+matches.length+' 個調，請再輸入音名或大小調。':matches.length?'找到 '+matches.length+' 個調':'沒有符合的調。';
-     for(const key of matches.slice(0,6)){const choice=button(key.label);choice.addEventListener('click',()=>render(key.id));results.append(choice);}
+    start.setAttribute('aria-expanded','true');start.hidden=true;
+    editButtons.forEach(edit=>edit.disabled=true);
+    const form=create('div');form.id='practice-note-add-form';form.className='practice-note-add-form';
+    const label=create('label','調性'),select=create('select'),input=create('textarea');
+    select.id='practice-note-add-key';label.htmlFor=select.id;
+    const option=(value,text)=>{const node=create('option',text);node.value=value;return node;};
+    select.append(option('','請選擇調性'),...available.map(key=>option(key.id,key.label)));
+    input.rows=5;input.value='';input.setAttribute('aria-label','練習筆記內容');input.placeholder='輸入練習筆記…';
+    dirty=()=>Boolean(input.value);
+    const actions=create('div');actions.className='student-note-actions';
+    const clear=button('清空內容'),cancel=button('取消'),save=button('儲存筆記'),status=create('p');
+    save.className='room-action primary';status.setAttribute('role','status');
+    function sync(){
+     input.disabled=!select.value;clear.disabled=input.disabled;
+     save.disabled=input.disabled||!input.value.trim();
+     // A new draft never silently moves to another key once typing begins.
+     select.disabled=Boolean(input.value);
     }
-    input.addEventListener('input',filter);
-    input.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.isComposing&&results.children.length===1){event.preventDefault();results.children[0].click();}});
-    chooser.append(label,input,hint,results);add.append(chooser);input.focus();
+    select.addEventListener('change',sync);input.addEventListener('input',sync);
+    clear.addEventListener('click',()=>{input.value='';sync();input.focus();});
+    cancel.addEventListener('click',()=>{render();close.focus();});
+    save.addEventListener('click',()=>{
+     const key=available.find(entry=>entry.id===select.value);
+     if(!key||!input.value.trim())return;
+     try{saveStudentNote(key.id,input.value);render();close.focus();}
+     catch{status.textContent='無法儲存，請先複製筆記保留。';}
+    });
+    actions.append(clear,cancel,save);form.append(label,select,input,actions,status);add.append(form);sync();select.focus();
    });start.dataset.noteAdd='true';
   }
   body.append(add);focused?.focus();
@@ -6026,6 +6092,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   for(const id of order){
    const [mode,n]=id.split('-'),name=keyName(mode,Number(n))+(mode==='major'?' 大調':' 小調');
    const button=document.createElement('button');button.type='button';
+   button.dataset.keyMode=mode;
    button.className='practice-jump'+(done.has(id)?' is-done':'')+(active===id?' is-active':'');
    button.setAttribute('aria-label','跳轉並展開 '+name+(done.has(id)?'，已完成':'，未完成'));
    if(active===id)button.setAttribute('aria-current','true');
@@ -6110,7 +6177,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       }
       for(const [mode,indices,label] of [['major',session.majorIds,'大調 MAJOR'],['minor',session.minorIds,'古典旋律小調 MELODIC MINOR']]){
         if(!Array.isArray(indices)||!indices.length) continue;
-        const section=document.createElement('section');section.className='key-group';
+        const section=document.createElement('section');section.className='key-group';section.dataset.keyMode=mode;
         const heading=document.createElement('div');heading.className='key-group-title';
         heading.innerHTML=`<h3><i class="key-dot${mode==='minor'?' minor':''}" aria-hidden="true"></i>${label}</h3><span>${indices.length} 個調性</span>`;
         const grid=document.createElement('div');grid.className='key-grid';
@@ -6430,7 +6497,11 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
             const finished=progress.done.has(selectedId(mode,i));
             chip.className='history-chip'+(finished?' done':mode==='minor'?' minor':'');
             chip.dataset.keyMode=mode;
-            chip.textContent=(finished?'✓ ':'')+keyName(mode,i)+(mode==='major'?' 大調':' 小調');
+            chip.textContent=keyName(mode,i)+(mode==='major'?' 大調':' 小調');
+            if(finished){
+              const mark=document.createElement('span');mark.className='history-chip-done';mark.textContent='✓';
+              mark.setAttribute('aria-label','已完成');mark.setAttribute('role','img');chip.prepend(mark);
+            }
             chips.append(chip);
           });
         }
@@ -6659,7 +6730,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     render();
   </script>
   <script src="firebase-config.js?v=20261106-001"></script>
-  <script type="module" src="classroom.js?v=20261126-073"></script>
+  <script type="module" src="classroom.js?v=20261127-room1"></script>
 <script>
 // AUDIO_TOOLS_START
 (function () {

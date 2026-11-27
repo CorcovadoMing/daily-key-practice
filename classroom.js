@@ -28,6 +28,7 @@ const configured = Boolean(config && ['apiKey','authDomain','projectId','databas
   .every(key => typeof config[key] === 'string' && config[key].length > 0 && !config[key].includes('YOUR_')));
 
 let firebase = null;
+let firebaseLoading = null;
 let database = null;
 let ready = false;
 let connected = false;
@@ -312,18 +313,23 @@ function leaveRoom() {
 async function loadFirebase() {
   if(firebase) return;
   if(!configured) throw Error('Firebase 設定不完整');
-  const [appSdk, authSdk, dbSdk] = await Promise.all([
-    import('https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js'),
-    import('https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js'),
-    import('https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js')
-  ]);
-  const app = appSdk.initializeApp(config);
-  const auth = authSdk.getAuth(app);
-  await auth.authStateReady();
-  if(!auth.currentUser) await authSdk.signInAnonymously(auth);
-  editorUserId=auth.currentUser?.uid||null;
-  database = dbSdk.getDatabase(app);
-  firebase = dbSdk;
+  // Share pending initialization. Repeated clicks after a timeout cannot
+  // create several anonymous sessions or race the same SDK instance.
+  if(!firebaseLoading) firebaseLoading = (async () => {
+    const [appSdk, authSdk, dbSdk] = await Promise.all([
+      import('https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js'),
+      import('https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js'),
+      import('https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js')
+    ]);
+    const app = appSdk.initializeApp(config);
+    const auth = authSdk.getAuth(app);
+    await auth.authStateReady();
+    if(!auth.currentUser) await authSdk.signInAnonymously(auth);
+    editorUserId=auth.currentUser?.uid||null;
+    database = dbSdk.getDatabase(app);
+    firebase = dbSdk;
+  })().finally(() => { firebaseLoading = null; });
+  return firebaseLoading;
 }
 
 function updateConnectionState() {
@@ -434,16 +440,61 @@ function randomSixDigits() {
   do { crypto.getRandomValues(random); } while(random[0] >= limit);
   return String(random[0] % 1000000).padStart(6, '0');
 }
+function roomStartupDeadline(promise, code, ms) {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      timer = setTimeout(() => reject(Object.assign(new Error(code), {code})), ms);
+    })
+  ]).finally(() => clearTimeout(timer));
+}
+
+async function waitForRoomConnection() {
+  let unsubscribe;
+  try {
+    const connection = new Promise((resolve, reject) => {
+      unsubscribe = firebase.onValue(firebase.ref(database, '.info/connected'), snapshot => {
+        if(snapshot.val() === true) resolve();
+      }, reject);
+    });
+    await roomStartupDeadline(connection, 'classroom/database-offline', 9000);
+  } finally {
+    unsubscribe?.();
+  }
+}
+
+function roomCreationError(error) {
+  switch(String(error?.code || '').toLowerCase()){
+    case 'classroom/startup-timeout':
+    case 'auth/network-request-failed': return '無法連線到課堂服務，請確認網路後再試一次。';
+    case 'classroom/database-offline': return '尚未連上課堂服務，沒有建立房間。請確認網路後再試一次。';
+    case 'auth/operation-not-allowed':
+    case 'auth/admin-restricted-operation': return '課堂服務目前不接受匿名登入，無法建立房間。';
+    case 'auth/too-many-requests':
+    case 'auth/quota-exceeded': return '課堂服務暫時限制登入次數，請稍後再試。';
+    case 'permission_denied':
+    case 'permission-denied':
+    case 'database/permission-denied': return '課堂資料庫拒絕建立房間（Firebase Rules）。';
+    case 'classroom/codes-exhausted': return '暫時無法取得空房號，請再試一次。';
+    default: return '目前無法建立房間，請重新整理後再試。';
+  }
+}
+
 async function createRoom() {
   if(!configured) { practice.showToast('請先完成 Firebase 設定'); return; }
   if(joining) return;
   if(activeId) return;
   if(!window.crypto?.getRandomValues) { practice.showToast('需要 HTTPS 才能安全產生房號'); return; }
   joining = true;
-  setStatus('正在產生六位數房號…');
+  setStatus('正在連線到課堂服務…');
   updateButtons();
   try {
-    await loadFirebase();
+    await roomStartupDeadline(loadFirebase(), 'classroom/startup-timeout', 10000);
+    // RTDB queues transactions while offline. Check connection first so a
+    // failed preflight cannot silently create a room later after reconnecting.
+    await waitForRoomConnection();
+    setStatus('正在產生六位數房號…');
     const prefs = practice.getPreferences();
     for(let attempt = 0; attempt < 12; attempt++) {
       const id = randomSixDigits();
@@ -470,11 +521,12 @@ async function createRoom() {
       }
       return;
     }
-    throw Error('暫時無法取得空房號，請再試一次');
+    throw Object.assign(new Error('No available room code'), {code:'classroom/codes-exhausted'});
   } catch(error) {
     console.error('Classroom creation failed:', error);
-    setStatus('建立失敗：請確認 Firebase Rules 已發布，且匿名登入已啟用');
-    practice.showToast(error.message || '建立課堂房間失敗');
+    const message=roomCreationError(error);
+    setStatus(message);
+    practice.showToast(message);
   } finally {
     joining = false;
     updateButtons();

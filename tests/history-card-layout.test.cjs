@@ -1,7 +1,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8');
 test('each record groups both actions on the header row and retains all key chips',()=>{
- const element=tag=>({tag,dataset:{},children:[],attrs:{},listeners:{},append(...n){this.children.push(...n)},replaceChildren(){this.children=[]},setAttribute(k,v){this.attrs[k]=v},addEventListener(k,f){this.listeners[k]=f}});
+ const element=tag=>({tag,dataset:{},children:[],attrs:{},listeners:{},append(...n){this.children.push(...n)},prepend(...n){this.children.unshift(...n)},replaceChildren(){this.children=[]},setAttribute(k,v){this.attrs[k]=v},addEventListener(k,f){this.listeners[k]=f}});
  const lists={'#personal-history-list':element('div'),'#classroom-history-list':element('div')};
  const all=Array.from({length:12},(_,i)=>i),date='2026-11-27',replays=[];
  const fresh={id:'fresh',date,majorIds:[0],minorIds:[0],doneIds:['major-0']},complete={id:'old',date,majorIds:all,minorIds:all,doneIds:[...all.map(i=>'major-'+i),...all.map(i=>'minor-'+i)]};
