@@ -29,7 +29,7 @@ for(const reason of['close','superseded','replaced','modal','editing','disconnec
 test('title spacing clears mobile top chrome and restored/direct behavior remains separate',()=>{
  a.match(html,/max-width:660px\)\{\.key-title\{scroll-margin-top:calc\(72px \+ env\(safe-area-inset-top,0px\)\)/);
  const jump=html.slice(html.indexOf('    function jumpToPractice('),html.indexOf('    function scrollExpandedTitleAfterLayout('));
- a.match(jump,/cardScrollRequest\+\+/);a.match(jump,/item.title.focus\(\{preventScroll:true\}\)/);a.match(jump,/item.card.scrollIntoView/);
+ a.match(jump,/\+\+cardScrollRequest/);a.match(jump,/item.title.focus\(\{preventScroll:true\}\)/);a.match(jump,/scrollToPracticeLanding\(item.card,request/);
  a.equal((html.match(/if\(opening\)scrollExpandedTitleAfterLayout/g)||[]).length,1);
 });
 test('downward switch commits both heights and compensates before restoring scroll settings',async()=>{

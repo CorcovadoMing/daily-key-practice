@@ -44,6 +44,38 @@ for(const rate of [44100,48000])test(`iOS generated audio bounded, clocks unchan
  }
 });
 test('audio asset cache bust and malformed peak clamping',()=>{
- assert.match(html,/metronome-worklet\.js\?v=20261126-066/);
+ assert.match(html,/metronome-worklet\.js\?v=20261127-accents1/);
  for(const peakLevel of [4,Infinity,NaN,-1]) {const x=processor();x.send({type:'start',settings:{volume:200,peakLevel}});const peak=x.render(.2);assert.ok(Number.isFinite(peak)&&peak<=.85);}
+});
+test('six eighth-note clicks use independent 2+4 marks without changing tempo; zero accents is explicit',()=>{
+ const x=processor();
+ x.send({type:'start',settings:{count:6,bpm:240,accentMask:0b001010}});
+ x.render(1.58);
+ assert.deepEqual(x.messages.map(m=>m.beat),[1,2,3,4,5,6,1]);
+ assert.deepEqual(x.messages.map(m=>m.accented),[false,true,false,true,false,false,false]);
+ assert.ok(x.messages.slice(1).every((m,i)=>Math.abs(m.at-x.messages[i].at-.25)<=1/48000));
+ x.send({type:'configure',settings:{accentMask:0}});
+ x.render(1.6);
+ assert.equal(x.messages[7].beat,2);
+ assert.ok(x.messages.slice(7).every(m=>!m.accented));
+});
+test('meter picker and real accent control send a mask; changing accents preserves beat phase',async()=>{
+ const x=controller();await x.api.startMetro();
+ const buttons=x.$('metro-accents');
+ assert.equal((buttons.innerHTML.match(/data-unit="4"/g)||[]).length,4);
+ x.$('metro-beats').value=6;x.$('metro-beats').onchange();
+ assert.equal(x.$('metro-bpm-label').textContent,'♪ BPM');
+ assert.equal((buttons.innerHTML.match(/data-unit="8"/g)||[]).length,6);
+ const marks={};
+ for(const i of [0,1,3]){
+   const node={dataset:{beat:String(i)},setAttribute:(key,value)=>marks[i]=value};
+   buttons.onclick({target:{closest:()=>node}});
+ }
+ assert.deepEqual(marks,{0:'false',1:'true',3:'true'});
+ const last=x.nodes[0].messages.at(-1);
+ assert.equal(last.settings.accentMask,0b001010);assert.equal(last.resetBeat,false);
+ x.$('metro-beats').value=2;x.$('metro-beats').onchange();
+ assert.equal(x.nodes[0].messages.at(-1).settings.accentMask,0b10);
+ assert.equal(x.nodes[0].messages.at(-1).resetBeat,true);
+ assert.doesNotMatch(html,/id="metro-beat"/);
 });

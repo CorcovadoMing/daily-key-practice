@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261127-098-experimental">
+  <meta name="site-version" content="20261127-099-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -444,7 +444,12 @@
     .tuner-readout #tuner-cents{font-weight:400;color:#84917e}
     #tuner-panel[data-reading-state="held"] .audio-meter-wrap{filter:grayscale(1)}
     .audio-status{font-size:12px;margin:0;max-width:200px}.audio-status:empty{display:none}.audio-error{color:#9b3939!important}
-    #metro-beat{min-width:36px;font-variant-numeric:tabular-nums}
+    #metronome-panel{width:300px}
+    #metro-accents{grid-column:1/-1;display:grid;grid-template-columns:repeat(var(--metro-note-count,4),minmax(44px,1fr));gap:1px;overflow-x:auto;padding:2px 0}
+    #metronome-panel .metro-accent-note{min-width:44px;padding:0;display:grid;place-items:center}
+    .metro-accent-note svg{width:25px;height:34px}
+    .metro-accent-note:not([aria-pressed=true]) .metro-accent-mark,.metro-accent-note:not([data-unit="8"]) .metro-eighth-flag{display:none}
+    .metro-accent-note[data-current]{box-shadow:inset 0 -3px currentColor}
      .audio-meter[data-active="false"] .audio-band{transition:none}
     @media(prefers-reduced-motion:reduce){.audio-tools,.audio-needle,.audio-band{transition:none!important}}
     @media(max-width:600px){.audio-meter-wrap{width:106px}.audio-note{min-width:30px;font-size:22px}.audio-cents{font-size:10px;white-space:normal;line-height:13px}.audio-panel{gap:6px}.audio-tools{gap:6px;padding:6px}.audio-buttons{gap:4px}.audio-tools button{font-size:13px;padding:8px 6px}}
@@ -1574,10 +1579,10 @@
       <div class="audio-buttons"><div class="audio-tool-pair" role="group" aria-label="節拍器"><button id="metronome-open" aria-pressed="false" aria-label="啟用節拍器並開始打拍"><span class="metro-beat-motion" aria-hidden="true"><svg class="metro-play-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 3v14" fill="none" stroke="currentColor" stroke-width="2.2"/><ellipse cx="11" cy="18" rx="5" ry="3.5" transform="rotate(-20 11 18)" fill="currentColor"/></svg><svg class="metro-stop-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="5.8" fill="currentColor"/></svg></span></button><button id="metro-settings" aria-expanded="false" aria-controls="metronome-panel" aria-label="展開節拍器設定"><svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button></div><div class="audio-tool-pair" role="group" aria-label="調音器"><button id="tuner-open" aria-pressed="false" aria-expanded="false" aria-controls="tuner-panel" aria-label="啟用調音器並開始收音"><svg class="tuner-idle-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M7 3v7a5 5 0 0 0 10 0V3M12 15v7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg><svg class="tuner-stop-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2" fill="currentColor"/></svg></button><button id="tuner-settings" aria-expanded="false" aria-controls="tuner-preferences" aria-label="開啟調音器設定"><svg class="ui-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button></div></div>
 <div id="tuner-preferences" class="tuner-preferences" role="dialog" aria-label="調音器設定" hidden><label class="a4-control" for="tuner-a"><span>A4</span><input id="tuner-a" type="number" min="430" max="450" value="442" step="1" inputmode="numeric" aria-label="A4基準頻率，Hz"></label></div>
         <section id="metronome-panel" class="audio-panel tuner-preferences" role="dialog" aria-label="節拍器控制" hidden>
-          <label for="metro-bpm">BPM</label><input id="metro-bpm" type="number" min="30" max="240" value="80" inputmode="numeric">
-          <input id="metro-slider" aria-label="節拍器速度 BPM" type="range" min="30" max="240" step="1" value="80" style="grid-column:1 / -1;width:100%"><label for="metro-volume" style="grid-column:1 / -1">音量</label><input id="metro-volume" type="range" min="0" max="100" step="1" value="100" style="grid-column:1 / -1;width:100%"><label for="metro-beats">每小節</label><select id="metro-beats"><option value="1">1 拍</option><option value="2">2 拍</option><option value="3">3 拍</option><option value="4" selected>4 拍</option><option value="6">6 拍</option></select>
-          <label for="metro-accent">重拍</label><select id="metro-accent"><option value="0">無</option><option value="1" selected>第 1 拍</option><option value="2">第 2 拍</option><option value="3">第 3 拍</option><option value="4">第 4 拍</option></select><span id="metro-beat" aria-hidden="true">●</span>
-
+          <label for="metro-bpm" id="metro-bpm-label">♩ BPM</label><input id="metro-bpm" type="number" min="30" max="240" value="80" inputmode="numeric">
+          <input id="metro-slider" aria-labelledby="metro-bpm-label" type="range" min="30" max="240" step="1" value="80" style="grid-column:1 / -1;width:100%"><label for="metro-volume" style="grid-column:1 / -1">音量</label><input id="metro-volume" type="range" min="0" max="100" step="1" value="100" style="grid-column:1 / -1;width:100%"><label for="metro-beats">拍號</label><select id="metro-beats"><option value="1">1/4</option><option value="2">2/4</option><option value="3">3/4</option><option value="4" selected>4/4</option><option value="6">6/8</option></select>
+          <span id="metro-accents-label" style="grid-column:1 / -1">重拍</span>
+          <div id="metro-accents" role="group" aria-labelledby="metro-accents-label"></div>
         </section>
         <section id="tuner-panel" class="audio-panel" aria-label="調音器控制" hidden>
           <div class="audio-meter-wrap"><div class="tuner-readout"><span id="tuner-note" class="audio-note">—</span><span id="tuner-cents" class="audio-cents" aria-label="目前音分">—</span></div><div id="tuner-meter" class="audio-meter" aria-label="音準範圍負50至正50音分；正負10以內綠色，超過10至20黃色，超過20紅色" aria-hidden="true"><span class="audio-band" data-segment="low-red"></span><span class="audio-band" data-segment="low-yellow"></span><span class="audio-band" data-segment="center"></span><span class="audio-band" data-segment="high-yellow"></span><span class="audio-band" data-segment="high-red"></span><span id="tuner-needle" class="audio-needle"></span></div><div class="audio-scale" aria-hidden="true"><span style="left:30%">−20</span><span style="left:40%">−10</span><span style="left:60%">+10</span><span style="left:70%">+20</span></div></div>
@@ -1639,7 +1644,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-098-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-099-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -5591,8 +5596,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     function showStartedList(){
       showLaunchOptions(false);
       const title=q('#results-title');
-      title.focus({preventScroll:true});
-      title.closest('.result-panel').scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'});
+      scrollToPracticeLanding(title.closest('.result-panel'),++cardScrollRequest,()=>title.focus({preventScroll:true}));
     }
     async function drawToday(){
       refreshDate();
@@ -5881,19 +5885,60 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   .map(card=>card.dataset.keyId).filter(id=>cardInstances.has(id));
 }
     let cardScrollRequest=0;
-    for(const type of ['wheel','touchmove'])window.addEventListener(type,()=>cardScrollRequest++,{passive:true});
-    window.addEventListener('keydown',event=>{if(['ArrowUp','ArrowDown','PageUp','PageDown','Home','End','Escape'].includes(event.key))cardScrollRequest++;});
+    for(const type of ['wheel','touchmove','pointerdown'])window.addEventListener(type,()=>cardScrollRequest++,{passive:true});
+    window.addEventListener('keydown',event=>{if(['ArrowUp','ArrowDown','PageUp','PageDown','Home','End','Escape','Tab'].includes(event.key))cardScrollRequest++;});
+    function scrollToPracticeLanding(target,request,arrive,valid=()=>true){
+      const root=document.documentElement,scroller=document.scrollingElement||root;
+      const start=window.scrollY;
+      const offset=()=>Math.max(0,parseFloat(getComputedStyle(root).scrollPaddingTop)||0)+
+        Math.max(0,parseFloat(getComputedStyle(target).scrollMarginTop)||0);
+      const ideal=()=>Math.max(0,window.scrollY+target.getBoundingClientRect().top-offset());
+      const destination=()=>Math.max(0,Math.min(scroller.scrollHeight-root.clientHeight,ideal()));
+      const distance=Math.abs(start-destination()),reduced=window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+      const duration=Math.min(580,Math.max(320,distance*.24));
+      const stillCurrent=()=>request===cardScrollRequest&&target.isConnected&&valid();
+      const go=top=>window.scrollTo({top,behavior:'instant'});
+      const finish=()=>{if(!stillCurrent())return;go(destination());arrive();};
+      if(reduced||distance<2){finish();return;}
+      const began=performance.now();
+      const step=now=>{
+        if(!stillCurrent())return;
+        const t=Math.min(1,Math.max(0,(now-began)/duration)),eased=t*t*(3-2*t);
+        if(t===1){finish();return;}
+        go(start+(destination()-start)*eased);
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }
     function jumpToPractice(id){
  const session=currentSession();
  if(!cardInstances.has(id)||!session)return;
  requestCardAction(()=>{
   const item=cardInstances.get(id),current=currentSession();
   if(!item||!current)return;
-  const previous=[...cardInstances.values()].find(entry=>entry.opened&&entry!==item);
-  cardScrollRequest++; // A direct practice jump supersedes pending title alignment.
-  expandedOverride=id;syncPracticeCards(current);
-  item.title.focus({preventScroll:true});
-  item.card.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});
+  const request=++cardScrollRequest;
+  const valid=()=>cardInstances.get(id)===item&&currentSession()===current;
+  scrollToPracticeLanding(item.card,request,()=>{
+   // Keep the old card's space until arrival. Only then close it and open
+   // the new card, compensating the target before the browser can paint.
+   const root=document.documentElement,oldAnchor=root.style.overflowAnchor;
+   const top=item.card.getBoundingClientRect().top,wasOpen=item.opened;
+   root.style.overflowAnchor='none';
+   try{
+    expandedOverride=id;syncPracticeCards(current,true);
+    const shift=item.card.getBoundingClientRect().top-top;
+    if(Math.abs(shift)>.5)window.scrollBy({top:shift,behavior:'instant'});
+   }finally{root.style.overflowAnchor=oldAnchor;}
+   if(!wasOpen&&item.panel.animate&&!window.matchMedia('(prefers-reduced-motion:reduce)').matches){
+    const animation=item.panel.animate([{opacity:0,translate:'0 5px'},{opacity:1,translate:'0 0'}],disclosureMotion(item.panel,0,1,1));
+    item.panelAnimation=animation;
+    animation.onfinish=()=>{if(item.panelAnimation===animation)item.panelAnimation=null;};
+   }
+   // Align gently only when the first glide was constrained by the old page end.
+   const settledTop=item.card.getBoundingClientRect().top;
+   if(settledTop>=0&&settledTop<=64)item.title.focus({preventScroll:true});
+   else scrollToPracticeLanding(item.card,request,()=>item.title.focus({preventScroll:true}),valid);
+  },valid);
  });
 }
     function scrollExpandedTitleAfterLayout(id,item,request){
@@ -6256,7 +6301,8 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
           const next=jumpOrder().find(id=>!progress.done.has(id));
           if(next){jumpToPractice(next);return;}
         }
-        q('.result-panel').scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});
+        const title=q('#results-title');
+        scrollToPracticeLanding(title.closest('.result-panel'),++cardScrollRequest,()=>title.focus({preventScroll:true}));
       });
     }
     function formatHistoryTime(value){
@@ -6839,8 +6885,24 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   const metroFallbackMessage = 'AudioWorklet 無法使用，目前使用相容節拍模式。';
   const oscillators = new Set(), visuals = new Set();
   let metroBeatAnimation;
+  let accentMask=1;
+  const metroCount=()=>Number($('metro-beats').value);
+  const metroUnit=()=>metroCount()===6?8:4;
+  const accentAt=index=>Boolean(accentMask&(1<<index));
+  const markMetroNote=index=>$('metro-accents').querySelectorAll?.('button').forEach((button,i)=>button.toggleAttribute('data-current',i===index-1));
+  function renderMetroAccents(){
+    const count=metroCount(),unit=metroUnit();
+    $('metro-bpm-label').textContent=unit===8?'♪ BPM':'♩ BPM';
+    $('metro-accents').style?.setProperty('--metro-note-count',count);
+    $('metro-accents').innerHTML=Array.from({length:count},(_,i)=>
+      '<button type="button" class="metro-accent-note" data-beat="'+i+'" data-unit="'+unit+'" aria-pressed="'+accentAt(i)+'" aria-label="第 '+(i+1)+' 拍重拍（'+(unit===8?'八':'四')+'分音符）">'+
+      '<svg viewBox="0 0 25 34" aria-hidden="true" focusable="false"><path class="metro-accent-mark" d="M7 4l12 3-12 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'+
+      '<path d="M15 13v14" fill="none" stroke="currentColor" stroke-width="1.7"/><ellipse cx="11.4" cy="27.6" rx="4.8" ry="3.1" transform="rotate(-22 11.4 27.6)" fill="currentColor"/>'+
+      '<path class="metro-eighth-flag" d="M15 13c.8 4 7.5 4.5 6.7 10.2-1.2-3.7-3.9-3.6-6.7-6.4Z" fill="currentColor"/></svg></button>').join('');
+  }
   function showMetroBeat(index,count,accented) {
-    $('metro-beat').textContent = index + ' / ' + count;
+    if(count!==metroCount())return;
+    markMetroNote(index);
     const symbol=$('metronome-open').querySelector?.('.metro-beat-motion');
     if(!symbol?.animate||window.matchMedia?.('(prefers-reduced-motion:reduce)').matches)return;
     metroBeatAnimation?.cancel();
@@ -6868,12 +6930,12 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     },Math.max(0,delay));
     visuals.add(timer);
   }
-  const metroSettings = () => ({ peakLevel: metroPeakLevel, bpm: bpm(), count: Number($('metro-beats').value), accent: Number($('metro-accent').value), volume: Math.max(0, Math.min(100, Number($('metro-volume').value) || 0)) });
+  const metroSettings = () => ({ peakLevel: metroPeakLevel, bpm: bpm(), count: metroCount(), accentMask, volume: Math.max(0, Math.min(100, Number($('metro-volume').value) || 0)) });
   function configureWorklet(resetBeat = false) { metroWorklet?.port.postMessage({ type: 'configure', settings: metroSettings(), resetBeat }); }
   function legacyMetro() { schedule(); metroTimer = setInterval(schedule, 25); }
   async function prepareWorklet() {
     if (!metroContext.audioWorklet || !window.AudioWorkletNode) throw new Error('不支援 AudioWorklet');
-    if (!workletModule) workletModule = metroContext.audioWorklet.addModule('./metronome-worklet.js?v=20261126-066').catch(error => { workletModule = null; throw error; });
+    if (!workletModule) workletModule = metroContext.audioWorklet.addModule('./metronome-worklet.js?v=20261127-accents1').catch(error => { workletModule = null; throw error; });
     await workletModule;
     return new AudioWorkletNode(metroContext, 'practice-metronome', { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [1] });
   }
@@ -6886,7 +6948,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     metroGeneration++; metroPending = false; metroRunning = false; clearInterval(metroTimer);
     if (metroWorklet) { metroWorklet.port.postMessage({ type: 'stop' }); metroWorklet.disconnect(); metroWorklet.port.close(); metroWorklet = null; }
     oscillators.forEach(o => { try { o.stop(); } catch (_) {} }); oscillators.clear();
-    visuals.forEach(clearTimeout); visuals.clear(); metroBeatAnimation?.cancel(); metroBeatAnimation=null; $('metro-beat').textContent = '●';
+    visuals.forEach(clearTimeout); visuals.clear(); metroBeatAnimation?.cancel(); metroBeatAnimation=null; markMetroNote(0);
     $('metro-status').textContent = message; metroUI();
   }
   function schedule() {
@@ -6895,7 +6957,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     // Never emit a burst of missed beats after a blocked/backgrounded tab.
     if (nextBeat < metroContext.currentTime - 0.03) { nextBeat = metroContext.currentTime + 0.03; beat = 0; }
     while (nextBeat < metroContext.currentTime + 0.12) {
-      const count = Number($('metro-beats').value), accent = beat + 1 === Number($('metro-accent').value);
+      const count = metroCount(), accent = accentAt(beat);
       const volume = Math.max(0, Math.min(100, Number($('metro-volume').value) || 0));
       if (volume > 0) {
         const o = metroContext.createOscillator(), gain = metroContext.createGain();
@@ -6955,12 +7017,23 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   }
   $('metro-bpm').onchange = () => { $('metro-bpm').value = bpm(); $('metro-slider').value=bpm(); configureWorklet(); metroUI(); };
   $('metro-slider').oninput=()=>{$('metro-bpm').value=$('metro-slider').value;configureWorklet();metroUI();};
-  $('metro-beats').onchange = () => {
-    beat=0; const selected=Number($('metro-accent').value),count=Number($('metro-beats').value);
-    $('metro-accent').replaceChildren(...Array.from({length:count+1},(_,i)=>{const o=document.createElement('option');o.value=i;o.textContent=i?'第 '+i+' 拍':'無';return o;}));
-    $('metro-accent').value=selected<=count?selected:1; configureWorklet(true);
+  $('metro-beats').onchange=()=>{
+    beat=0;
+    const previous=accentMask;
+    accentMask&=(1<<metroCount())-1;
+    if(previous&&!accentMask)accentMask=1;
+    renderMetroAccents(); configureWorklet(true);
   };
-  $('metro-accent').onchange=()=>{beat=0;configureWorklet(true);};
+  $('metro-accents').onclick=event=>{
+    const button=event.target.closest('button[data-beat]');
+    if(!button)return;
+    const index=Number(button.dataset.beat);
+    if(!Number.isInteger(index)||index<0||index>=metroCount())return;
+    accentMask^=1<<index;
+    button.setAttribute('aria-pressed',String(accentAt(index)));
+    configureWorklet();
+  };
+  renderMetroAccents();
   $('metro-volume').addEventListener('input', () => configureWorklet());
 
   let tunerRelease, tunerRunning = false, pending = false, tunerGeneration = 0;
