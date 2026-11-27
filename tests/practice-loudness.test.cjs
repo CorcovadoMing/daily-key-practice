@@ -39,49 +39,48 @@ function synthetic(levelAt,flagsAt=()=>({})){
 test('fixed room gain cancels, steady sustains and note envelopes do not warn',()=>{
   const a=synthetic(t=>t<65||t>625?.014:.07),b=synthetic(t=>t<65||t>625?.028:.14);
   assert.deepEqual(a.points.map(x=>x.db),b.points.map(x=>x.db));
-  assert.equal(a.best,null);
-  assert.equal(b.best,null);
+  assert.equal(a.connection,null);
+  assert.equal(b.connection,null);
   assert.equal(loud.suggestion(a,'D3↑'),null);
 });
-test('only repeatable same-slot mic variation recommends a conditional exercise',()=>{
-  const first=synthetic(t=>t<350?.06:.145);
-  assert.equal(first.best.slot,2);assert.equal(first.best.lap,1);assert.ok(first.best.spread>=7);
-  assert.ok(first.points.length>12,'one-off variation remains visible');
-  assert.equal(loud.suggestion(first,'D'),null);
-  function tracked(rows,accept){
+test('one lap with accepted adjoining score notes can suggest a conditional connection check',()=>{
+  function tracked({slot=3,lap=1,pause=0,level=.155,glitch=null,reject=null,attack=false}={}){
     const take=loud.capture(1000);
-    rows.forEach(([slot,lap,variable],i)=>{
-      for(let t=0;t<=700;t+=25)observe(take,1000+i*800+t,variable&&t<350?.06:.145);
-      for(let t=0;t<=700;t+=16)take.observePitch(1000+i*800+t,slot,lap);
-    });
-    return take.snapshot(.003,accept);
+    for(let t=0;t<=1200+pause;t+=25){
+      const during=t>=600&&t<600+pause;
+      const base=during?.0001:t<600?.065:level;
+      observe(take,1000+t,glitch==='silence'&&t===600?.0001:attack&&t>=600&&t<=630?.2:base,
+        glitch&&t===600?{[glitch]:true}:{});
+    }
+    for(let t=0;t<=1200+pause;t+=16){
+      const during=t>=600&&t<600+pause;
+      take.observePitch(1000+t,during?null:t<600?2:slot,t<600?1:lap);
+    }
+    return take.snapshot(.003,({slot})=>slot!==reject);
   }
-  const repeated=tracked([[2,1,true],[2,2,true],[2,3,false]]);
-  assert.deepEqual(repeated.repeated,{slot:2,hits:2,usable:3});
-  const advice=loud.suggestion(repeated,'D');
-  assert.match(advice.observation,/D.*收音強弱有起伏（2／3 輪）/);
-  assert.match(advice.action,/如果.*單獨慢拉這個音兩次/);
+  const trace=tracked(),e=trace.connection;
+  assert.equal(e.from,2);assert.equal(e.to,3);assert.equal(e.lap,1);assert.equal(e.change,'較強');assert.ok(e.db>=7);
+  const advice=loud.suggestion(trace,'上行','D','E');
+  assert.match(advice.observation,/上行：D → E.*後音.*收音較強.*dB/);
+  assert.match(advice.action,/如果.*慢拉 D → E 兩次/);
   assert.doesNotMatch(advice.action,/弓速|琴橋/);
   assert.match(advice.check,/手機位置/);
-  for(const trace of [
-    tracked([[2,1,true],[2,2,false]]),
-    tracked([[2,1,true],[3,2,true]]),
-    tracked([[2,1,true],[2,1,true],[2,2,true]]),
-    tracked([[2,1,true],[2,2,true]],span=>span.lap===1),
-    tracked([[2,1,true],[2,2,true],[2,3,false],[2,4,false]])
-  ])assert.equal(loud.suggestion(trace,'D'),null);
+  for(const controls of [{lap:2},{slot:4},{slot:2},{pause:250},{level:.08},{level:.065,attack:true},{reject:3},
+    {glitch:'processed'},{glitch:'clipped'},{glitch:'metro'},{glitch:'muted'},{glitch:'silence'}])
+    assert.equal(tracked(controls).connection,null,JSON.stringify(controls));
+  assert.equal(synthetic(t=>t<350?.06:.145).connection,null,'one varying pitch is not a connection');
 });
 test('clipping, metronome, mute and silence cause gaps, not spin or false dips',()=>{
   const a=synthetic(t=>t===475?.0001:.05,t=>({clipped:t===200,metro:t===350,muted:t===575}));
   assert.equal(a.clipped,true);assert.equal(a.metronome,true);
   for(const t of [200,350,375,400,425,450,475,575])assert.ok(!a.points.some(x=>x.ms===t));
   assert.equal(new Set(a.points.map(p=>p.segment)).size,4);
-  assert.equal(a.best,null);
+  assert.equal(a.connection,null);
   assert.equal(synthetic(()=>.0001).points.length,0);
 });
 test('auto-processing may show readings but suppresses the technique observation',()=>{
   const a=synthetic(t=>t<350?.06:.15,t=>({processed:t===100}));
-  assert.ok(a.points.length>0);assert.equal(a.processing,true);assert.equal(a.best,null);
+  assert.ok(a.points.length>0);assert.equal(a.processing,true);assert.equal(a.connection,null);
 });
 test('unvoiced and out-of-span frames are omitted and each take is separate',()=>{
   const take=loud.capture(3000,8);
@@ -167,10 +166,10 @@ test('actual coach button renders current take loudness and resets from next tak
     await managerInstance.toggle(view);listener.ready();
     const route=[38,...Array.from({length:repeatCount},()=>[40,41,40,38]).flat()];
     for(let slot=0;slot<route.length;slot++){
-      const midi=route[slot],repeat=slot%4===1;
-      for(let i=0;i<(repeat?30:10);i++){
+      const midi=route[slot];
+      for(let i=0;i<23;i++){
         clock+=27;
-        listener.loudness({now:clock-17.5,rms:makeVariation&&repeat&&i<15?.065:.155});
+        listener.loudness({now:clock-17.5,rms:makeVariation&&slot===0?.065:.155});
         listener.frame({now:clock,frequency:442*2**((midi-69)/12)});
       }
     }
@@ -181,15 +180,12 @@ test('actual coach button renders current take loudness and resets from next tak
   assert.ok(chart());
   assert.match(chart().textContent,/本回收音中位數/);
   assert.ok(chart().find(n=>n.attributes.class==='trend-line')?.attributes.d.includes('L'));
-  assert.doesNotMatch(view.element.textContent,/收音強弱有起伏/);
-  assert.doesNotMatch(view.element.textContent,/Paul Katz：用弓塑造聲音/);
-  const first=chart();
-  await play(2,true);
-  assert.match(view.element.textContent,/上行：E.*收音強弱有起伏（2／2 輪）/);
+  assert.match(view.element.textContent,/上行：D → E.*後音.*收音較強/);
   assert.match(view.element.textContent,/Paul Katz：用弓塑造聲音/);
+  const first=chart();
   await play(2,false);
   assert.equal(chart(),first,'reuse the same chart across takes');
-  assert.doesNotMatch(view.element.textContent,/收音強弱有起伏/);
+  assert.doesNotMatch(view.element.textContent,/銜接附近的收音/);
   assert.doesNotMatch(view.element.textContent,/Paul Katz：用弓塑造聲音/);
   assert.equal(writes,0);assert.equal(fetches,0);
 });
@@ -203,8 +199,8 @@ test('a provisional score match may be visualized but cannot recommend a techniq
   }
   const rejected=take.snapshot(.003,()=>false);
   const accepted=take.snapshot(.003,span=>span.slot===2&&span.lap===1&&span.start===1000);
-  assert.ok(rejected.points.length>12);assert.equal(rejected.best,null);
-  assert.equal(accepted.best.slot,2);
+  assert.ok(rejected.points.length>12);assert.equal(rejected.connection,null);
+  assert.equal(accepted.connection,null,'a single accepted pitch cannot build a pair');
   assert.equal(loud.suggestion(rejected,'D'),null);
 });
 test('window spanning start is discarded even if its center is after start',()=>{
