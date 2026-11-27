@@ -125,15 +125,15 @@ test('tuner and shared practice inference apply the same acoustic safeguard, onl
  assert.deepEqual(Array.from(await swift.infer(render(16000,true,7168),[11,13])),[null,null]);
 });
 
-function sharedTunerFixture(saved,legacy) {
+function sharedTunerFixture(initial={}) {
  const code=html.split('// AUDIO_TOOLS_START')[1].split('// AUDIO_TOOLS_END')[0];
  const lib=section('AUDIO_TOOLS'),practice=section('SCALE_PRACTICE');
- const subscribers=new Set(),renders=[],nodes=new Map();
- let stored=saved,now=0,runs=0,initialized=0,legacyReads=0,reads=0;
+ const subscribers=new Set(),renders=[],nodes=new Map(),store=new Map(Object.entries(initial));
+ let now=0,runs=0,initialized=0,legacyReads=0,reads=0;
  const radio=value=>({value,checked:false,addEventListener(_,fn){this.change=fn;}});
- const radios=[radio('existing'),radio('swift')];
+ const practiceRadios=[radio('existing'),radio('swift')],tunerRadios=[radio('existing'),radio('swift')];
  const $=id=>{
-  if(!nodes.has(id))nodes.set(id,{value:id==='tuner-a'?'444':'0',textContent:'',setAttribute(){},querySelectorAll:()=>radios});
+  if(!nodes.has(id))nodes.set(id,{value:id==='tuner-a'?'444':'0',textContent:'',setAttribute(){},querySelectorAll:()=>id==='tuner-detector'?tunerRadios:practiceRadios});
   return nodes.get(id);
  };
  const capture={subscribe(listener){subscribers.add(listener);return ()=>subscribers.delete(listener);}};
@@ -141,14 +141,14 @@ function sharedTunerFixture(saved,legacy) {
  const clock={};
  const window={
   performance:{now:()=>now},
-  localStorage:{getItem(k){return k.endsWith(':pitch-detector')?stored:k.endsWith(':tuner-detector')?legacy:null;},setItem(k,v){assert.match(k,/experimental:pitch-detector$/);stored=v;}},
+  localStorage:{getItem(k){return store.get(k.split(':experimental:')[1])??null;},setItem(k,v){assert.match(k,/experimental:detector:(practice|tuner):v2$/);store.set(k.split(':experimental:')[1],v);}},
   CelloScalePractice:{...practice,micCapture:()=>capture}
  };
  const env={...lib,window,navigator:{},performance:window.performance,$,
   createSwiftF0:()=>detector,renderTuner:(pitch,hold)=>renders.push({pitch,hold}),metroRunning:false};
  vm.runInNewContext(code.slice(code.indexOf('  let tunerRelease'),code.indexOf('  function closeTool(name)'))+
    '\nglobalThis.control={startTuner,stopTuner}',env);
- function choose(index){
+ function choose(radios,index){
   radios.forEach((input,i)=>input.checked=i===index);radios[index].change();
  }
  function ready(){for(const s of subscribers)s.ready();}
@@ -162,58 +162,62 @@ function sharedTunerFixture(saved,legacy) {
   }
   await tick();
  }
- return {radios,choose,ready,frame,control:env.control,renders,controller:window.CelloScalePractice.controller,field:$('pitch-detector'),lockHint:$('pitch-detector-locked'),
-  get stored(){return stored;},get runs(){return runs;},get reads(){return reads;},get legacyReads(){return legacyReads;},
+ return {practiceRadios,tunerRadios,choosePractice:i=>choose(practiceRadios,i),chooseTuner:i=>choose(tunerRadios,i),
+  ready,frame,control:env.control,renders,controller:window.CelloScalePractice.controller,field:$('pitch-detector'),
+  tunerField:$('tuner-detector'),lockHint:$('pitch-detector-locked'),store,
+  get runs(){return runs;},get reads(){return reads;},get legacyReads(){return legacyReads;},
   get subscribers(){return subscribers.size;},get initialized(){return initialized;}};
 }
-test('page-wide selector defaults Smart, saves one choice and switches the tuner without reopening the mic', async()=>{
- const f=sharedTunerFixture(), [traditional,smart]=f.radios;
- assert.match(html,/<fieldset id="pitch-detector"[^>]*>[\s\S]*?value="existing"><span>傳統<\/span>[\s\S]*?value="swift" checked><span>智慧/);
- assert.equal(sharedTunerFixture(undefined,'existing').radios[0].checked,true);
- assert.equal(sharedTunerFixture('swift','existing').radios[1].checked,true);
- assert.equal(smart.checked,true);assert.equal(f.initialized,0);
- f.control.startTuner();f.ready();await tick();await f.frame();
- assert.equal(f.renders.at(-1).pitch.midi,69,'shared A4 444, not default A4');
- assert.equal(f.runs,1);assert.equal(f.subscribers,1);assert.equal(f.legacyReads,0);
- f.choose(0);await f.frame();
- assert.equal(traditional.checked,true);assert.equal(f.stored,'existing');
- assert.equal(f.renders.at(-1).pitch.midi,57);assert.equal(f.runs,1);
- assert.equal(f.subscribers,1);
- assert.equal(sharedTunerFixture(f.stored).radios[0].checked,true);
- f.choose(1);await tick();await f.frame();
- assert.equal(f.renders.at(-1).pitch.midi,69);assert.equal(f.subscribers,1);
- assert.equal(f.stored,'swift');
- f.control.stopTuner();assert.equal(f.subscribers,0);
-});
-test('actual tuner and both exercise routes share each Swift batch while keeping score logic', async()=>{
- for(const kind of ['scale','arpeggio']){
-  const f=sharedTunerFixture(), updates=[];
-  const view={kind,target:[{midi:69}],mode:'single',detector:'existing',update(...args){updates.push(args);}};
-  f.control.startTuner();await f.controller.toggle(view);f.ready();await tick();
-  assert.equal(f.subscribers,2);
-  assert.equal(f.field.disabled,true);assert.equal(f.lockHint.hidden,false);
-  f.choose(0);
-  assert.equal(f.radios[1].checked,true);assert.equal(f.stored,undefined);
-  await f.frame();await f.frame();await f.frame();await f.frame();await f.frame();
-  assert.equal(f.runs,f.reads,'exactly one PCM read and model invocation per eligible batch shared by both subscribers');
-  assert.ok(f.runs>=3);
-  assert.equal(f.legacyReads,0);
-  assert.equal(f.renders.at(-1).pitch.midi,69);
-  assert.ok(updates.some(x=>x[2]?.complete),'the same A reaches the actual practice aligner');
-  f.control.stopTuner();
- }
+
+test('independent defaults ignore old shared choices; explicit choices survive reload', async()=>{
+ const f=sharedTunerFixture({'pitch-detector':'swift','tuner-detector':'existing'});
+ assert.match(html,/<fieldset id="pitch-detector"[^>]*>[\s\S]*?value="existing" checked><span>傳統/);
+ assert.match(html,/<fieldset id="tuner-detector"[^>]*>[\s\S]*?value="swift" checked><span>智慧/);
+ assert.equal(f.practiceRadios[0].checked,true);
+ assert.equal(f.tunerRadios[1].checked,true);
+ assert.equal(f.initialized,0);
+ f.choosePractice(1);
+ assert.equal(f.tunerRadios[1].checked,true);
+ f.chooseTuner(0);
+ assert.equal(f.practiceRadios[1].checked,true);
+ const back=sharedTunerFixture(Object.fromEntries(f.store));
+ assert.equal(back.practiceRadios[1].checked,true);
+ assert.equal(back.tunerRadios[0].checked,true);
+ const bad=sharedTunerFixture({'detector:tuner:v2':'other','detector:practice:v2':''});
+ assert.equal(bad.tunerRadios[1].checked,true);
+ assert.equal(bad.practiceRadios[0].checked,true);
 });
 
-test('global Traditional selects the ordinary capture for both exercises and unlocks after stop',async()=>{
- for(const demoKind of ['scale','arpeggio']){
-  const f=sharedTunerFixture();
-  f.choose(0);
-  const v={demoKind,target:[{midi:57}],mode:'single',detector:'swift',update(){}};
-  await f.controller.toggle(v);
-  assert.equal(f.field.disabled,true);
-  f.ready();await tick();await f.frame();
-  assert.equal(f.legacyReads,1);assert.equal(f.runs,0);assert.equal(f.initialized,0);
-  f.controller.stop();assert.equal(f.field.disabled,false);assert.equal(f.lockHint.hidden,true);
-  f.choose(1);assert.equal(f.stored,'swift');
+test('all four mode combinations and both kinds run concurrently; each tool stops independently',async()=>{
+ for(const demoKind of ['scale','arpeggio'])for(const p of [0,1])for(const t of [0,1]){
+  const f=sharedTunerFixture(),updates=[];
+  f.choosePractice(p);f.chooseTuner(t);
+  const target=(p?[69,71]:[57,59]).map(midi=>({midi}));
+  const view={demoKind,target,mode:'single',update(...x){updates.push(x);}};
+  f.control.startTuner();await f.controller.toggle(view);f.ready();await tick();
+  assert.equal(f.subscribers,2);
+  assert.equal(f.field.disabled,true);assert.notEqual(f.tunerField.disabled,true);assert.equal(f.lockHint.hidden,false);
+  f.choosePractice(1-p);
+  assert.equal(f.practiceRadios[p].checked,true,'active exercise freezes its own choice');
+  for(let i=0;i<6;i++)await f.frame();
+  assert.equal(f.renders.at(-1).pitch.midi,t?69:57);
+  assert.ok(updates.some(x=>x[3]===1),'first actual note reached the exercise matcher');
+  assert.equal(f.runs,f.reads,'same Swift batch is shared');
+  assert.equal(f.runs>0,Boolean(t||p));
+  assert.equal(f.legacyReads>0,Boolean(!t||!p));
+  f.chooseTuner(1-t);await tick();await f.frame();
+  assert.equal(f.renders.at(-1).pitch.midi,t?57:69);
+  assert.equal(f.subscribers,2);
+  if(demoKind==='scale'){
+   f.controller.stop();assert.equal(f.subscribers,1);assert.equal(f.field.disabled,false);
+   await f.frame();assert.equal(f.renders.at(-1).pitch.midi,t?57:69);
+   f.control.stopTuner();
+  }else{
+   f.control.stopTuner();assert.equal(f.subscribers,1);
+   assert.equal(f.field.disabled,true);await f.frame();
+   assert.equal(updates.at(-1)[0],'listening');
+   f.controller.stop();assert.equal(f.field.disabled,false);
+  }
+  assert.equal(f.subscribers,0);assert.equal(f.lockHint.hidden,true);
  }
 });
