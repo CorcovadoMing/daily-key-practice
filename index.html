@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261127-114-experimental">
+  <meta name="site-version" content="20261127-115-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -220,6 +220,15 @@
     .key-details-row .key-secondary{margin:0;overflow-wrap:anywhere}
     .key-complete{display:grid;place-items:center;flex:none;min-width:44px;min-height:44px;padding:0;border:0;background:transparent;border-radius:50%;color:inherit}
     .key-complete .check-circle{margin:0}
+    .check-circle>.completion-glyph{width:13px;height:13px;visibility:hidden}
+    .key-complete[aria-pressed=true] .completion-glyph{visibility:visible}
+    .completion-stroke{stroke-dasharray:1}
+    @media screen and (prefers-reduced-motion:no-preference){
+      .key-complete[data-check-motion] .check-circle{animation:completion-circle 380ms var(--ui-motion-curve) both}
+      .key-complete[data-check-motion] .completion-stroke{animation:completion-stroke 260ms 45ms var(--ui-motion-curve) both}
+      @keyframes completion-circle{0%{transform:scale(.9)}54%{transform:scale(1.16)}78%{transform:scale(.985)}100%{transform:scale(1)}}
+      @keyframes completion-stroke{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+    }
     .key-title{min-height:44px;padding:0;border:0;background:transparent;text-align:left;color:inherit;cursor:pointer}
     .key-title:focus-visible,.key-complete:focus-visible,.key-expand:focus-visible{outline:2px solid #527049;outline-offset:2px}
     .key-primary{display:block;font-size:26px;line-height:1.05;letter-spacing:-.055em;font-weight:800;white-space:nowrap}
@@ -1704,7 +1713,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-114-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-115-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -5865,7 +5874,10 @@ function createCard(mode,index,doneIds){
  const main=document.createElement('div');main.className='key-card-main';
  const complete=document.createElement('button');complete.type='button';complete.className='key-complete';complete.setAttribute('aria-pressed',String(done));
  complete.setAttribute('aria-label',`${key[0]} ${mode==='major'?'大調':'小調'}，切換完成狀態`);
- complete.innerHTML=`<span class="check-circle" aria-hidden="true">${done?'✓':''}</span>`;
+ complete.innerHTML='<span class="check-circle" aria-hidden="true"><svg class="completion-glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path class="completion-stroke" pathLength="1" d="M3.25 8.2 6.5 11.45 12.75 5"/></svg></span>';
+ complete.addEventListener('animationend',event=>{
+  if(event.animationName==='completion-circle')complete.removeAttribute('data-check-motion');
+ });
  complete.addEventListener('click',()=>requestCardAction(()=>toggleComplete(id)));
  const content=document.createElement('div');content.className='key-card-content';
  const title=document.createElement('button');title.type='button';title.className='key-primary key-title';title.textContent=`${key[0]} ${mode==='major'?'大調':'小調'}`;
@@ -5904,7 +5916,7 @@ function createCard(mode,index,doneIds){
   {annotations:(sharedRoom?sharedRoom.arpeggioFingerings:state.arpeggioFingerings)[id]||{},
    onPreview:draft=>sharedRoom?window.classroomSync?.setArpeggioDraft(id,draft):null,
    onSave:(direction,map,original,resetAll)=>saveArpeggioFingering(id,map,original,resetAll)});
- boardInstances.set(id,guide);cardInstances.set(id,{card,button:complete,title,panel,expand,guide});
+ boardInstances.set(id,guide);cardInstances.set(id,{card,button:complete,title,panel,expand,guide,finished:done});
  guide.setRemoteArpeggioDrafts(roomArpeggioPreviews[id]||[]);
  guide.setRemoteDrafts(roomEditingPreviews[id]||[]);panel.append(guide);card.append(heading,panel);
  return card;
@@ -6122,7 +6134,12 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   item.card.classList.toggle('done',finished);
   item.card.classList.toggle('is-expanded',opened);
   item.button.setAttribute('aria-pressed',String(finished));
-  item.button.querySelector('.check-circle').textContent=finished?'✓':'';
+  if(item.finished!==finished){
+   if(finished&&item.finished===false&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+    item.button.setAttribute('data-check-motion','');
+   else item.button.removeAttribute('data-check-motion');
+   item.finished=finished;
+  }
   setCardPanelOpen(item,opened,forceInstant);
   item.expand.setAttribute('aria-expanded',String(opened));
   item.title.setAttribute('aria-expanded',String(opened));

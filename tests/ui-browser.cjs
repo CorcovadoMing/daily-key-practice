@@ -127,6 +127,35 @@ async function redrawCheck(page,mode){
   await page.reload();
   assert.deepEqual((await saved()).personalHistory,expected,'reload keeps all separately saved draws');
 }
+async function checkCompletion(page,reduced){
+  const card=page.locator('.key-card[data-key-id="major-0"]');
+  const button=card.locator('.key-complete'),glyph=button.locator('.completion-glyph');
+  const rect=()=>card.evaluate(e=>{const p=e.getBoundingClientRect();return [p.x,p.width,p.height];});
+  const animations=()=>button.evaluate(b=>b.getAnimations({subtree:true}).map(a=>a.animationName).filter(x=>x?.startsWith('completion-')).sort());
+  assert.equal(await button.getAttribute('aria-pressed'),'false');
+  assert.equal(await glyph.evaluate(e=>getComputedStyle(e).visibility),'hidden');
+  assert.deepEqual(await animations(),[]);
+  await button.focus();
+  const initial=await rect();
+  await button.press('Space');
+  assert.equal(await button.getAttribute('aria-pressed'),'true');
+  assert.equal(await glyph.evaluate(e=>getComputedStyle(e).visibility),'visible');
+  assert.deepEqual(await animations(),reduced?[]:['completion-circle','completion-stroke']);
+  assert.deepEqual(await rect(),initial,'completion must not move or resize its card');
+  await button.press('Space');
+  assert.equal(await button.getAttribute('aria-pressed'),'false');
+  assert.deepEqual(await animations(),[]);
+  assert.equal(await glyph.evaluate(e=>getComputedStyle(e).visibility),'hidden');
+  await button.press('Space');
+  assert.deepEqual(await animations(),reduced?[]:['completion-circle','completion-stroke']);
+  await page.waitForFunction(()=>!document.querySelector('.key-complete[data-check-motion]'));
+  assert.equal(await glyph.evaluate(e=>getComputedStyle(e).visibility),'visible');
+  assert.deepEqual(await rect(),initial);
+  await page.reload();
+  assert.equal(await button.getAttribute('aria-pressed'),'true');
+  assert.equal(await glyph.evaluate(e=>getComputedStyle(e).visibility),'visible');
+  assert.deepEqual(await animations(),[],'restoring an already-complete key does not replay the effect');
+}
 async function extras(page,width){
  const q=s=>page.locator(s);
  // The dock's settings must be mutually exclusive and not start a microphone.
@@ -206,5 +235,17 @@ async function extras(page,width){
     console.log(JSON.stringify({kind,width,dark,resume,passed:true}));
    }
   }
+   for(const [width,dark,reduced] of [[390,true,false],[768,false,true],[1280,false,false]]){
+    const page=await browser.newPage({viewport:{width,height:850},isMobile:width<500,hasTouch:width<500,reducedMotion:reduced?'reduce':'no-preference'});
+    const errors=[];page.on('pageerror',e=>errors.push(e.message));
+    await page.route('**/*',r=>r.request().url().startsWith(base+'/')?r.continue():r.abort());
+    await seed(page,{resume:true,notes:false});
+    await page.goto(base+'/experimental/');
+    if(dark)await page.locator('#appearance-toggle').click();
+    await checkCompletion(page,reduced);
+    assert.deepEqual(errors,[]);
+    console.log(JSON.stringify({kind:'completion',width,dark,reduced,passed:true}));
+    await page.close();
+   }
  }finally{await browser?.close();await new Promise(res=>server.close(res));}
 })().catch(e=>{console.error(e);process.exitCode=1});
