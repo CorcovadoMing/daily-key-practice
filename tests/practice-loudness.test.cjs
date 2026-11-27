@@ -43,32 +43,49 @@ test('fixed room gain cancels, steady sustains and note envelopes do not warn',(
   assert.equal(b.connection,null);
   assert.equal(loud.suggestion(a,'D3↑'),null);
 });
-test('one lap with accepted adjoining score notes can suggest a conditional connection check',()=>{
-  function tracked({slot=3,lap=1,pause=0,level=.155,glitch=null,reject=null,attack=false}={}){
+test('one lap reports only a measured short interruption, rough join, or local dip',()=>{
+  function tracked({kind='break',slot=3,lap=1,pause=108,reject=null,glitch=null,allow=true}={}){
     const take=loud.capture(1000);
-    for(let t=0;t<=1200+pause;t+=25){
-      const during=t>=600&&t<600+pause;
-      const base=during?.0001:t<600?.065:level;
-      observe(take,1000+t,glitch==='silence'&&t===600?.0001:attack&&t>=600&&t<=630?.2:base,
-        glitch&&t===600?{[glitch]:true}:{});
+    for(let t=0;t<=1200+pause;t+=27){
+      const during=t>=594&&t<594+pause;
+      let rms=t<594?.065:kind==='step'?.17:.07,rough=.01;
+      if(during&&kind==='break')rms=0;
+      if(during&&kind==='dip')rms=.012;
+      if(during&&kind==='noise')rough=.8;
+      if(during&&kind==='one'&&t===594)rough=.8;
+      if(kind==='bright'&&t>=594)rough=.8;
+      if(glitch==='missing'&&during)continue;
+      observe(take,1000+t,rms,{rough,...(glitch&&t===594?{[glitch]:true}:{})});
     }
     for(let t=0;t<=1200+pause;t+=16){
-      const during=t>=600&&t<600+pause;
-      take.observePitch(1000+t,during?null:t<600?2:slot,t<600?1:lap);
+      const during=t>=594&&t<594+pause;
+      take.observePitch(1000+t,during?null:t<594?2:slot,t<594?1:lap);
     }
-    return take.snapshot(.003,({slot})=>slot!==reject);
+    return take.snapshot(.003,({slot})=>slot!==reject,null,()=>allow);
   }
-  const trace=tracked(),e=trace.connection;
-  assert.equal(e.from,2);assert.equal(e.to,3);assert.equal(e.lap,1);assert.equal(e.change,'較強');assert.ok(e.db>=7);
-  const advice=loud.suggestion(trace,'上行','D','E');
-  assert.match(advice.observation,/上行：D → E.*後音.*收音較強.*dB/);
-  assert.match(advice.action,/如果.*慢拉 D → E 兩次/);
-  assert.doesNotMatch(advice.action,/弓速|琴橋/);
-  assert.match(advice.check,/手機位置/);
-  for(const controls of [{lap:2},{slot:4},{slot:2},{pause:250},{level:.08},{level:.065,attack:true},{reject:3},
-    {glitch:'processed'},{glitch:'clipped'},{glitch:'metro'},{glitch:'muted'},{glitch:'silence'}])
+  for(const [kind,expected,copy] of [['break','break',/接近安靜/],['dip','dip',/掉下去又回來/],['noise','rough',/較粗的聲音/]]){
+    const trace=tracked({kind}),e=trace.connection;
+    assert.equal(e?.kind,expected);
+    assert.deepEqual([e.from,e.to,e.lap],[2,3,1]);
+    const advice=loud.suggestion(trace,'上行','D','E');
+    assert.match(advice.observation,copy);
+    assert.match(advice.action,/如果.*慢拉 D → E 兩次.*原本的弓法/);
+    assert.match(advice.check,/前後各一音/);
+  }
+  for(const controls of [{lap:2},{slot:4},{slot:2},{pause:270},{pause:27},{kind:'step'},{kind:'bright'},{kind:'one'},
+    {kind:'normal'},{reject:3},{allow:false},{glitch:'missing'},{glitch:'processed'},{glitch:'clipped'},{glitch:'metro'},{glitch:'muted'}])
     assert.equal(tracked(controls).connection,null,JSON.stringify(controls));
   assert.equal(synthetic(t=>t<350?.06:.145).connection,null,'one varying pitch is not a connection');
+});
+test('centered short-window roughness distinguishes broadband bursts from smooth pitch and level changes',()=>{
+  for(const rate of [44100,48000]){
+    const tone=wave(.10,0,rate);
+    const bright=Float32Array.from(tone,(v,i)=>v+.04*Math.sin(2*Math.PI*1000*i/rate));
+    let seed=17;
+    const scratch=Float32Array.from(tone,v=>{seed=(1664525*seed+1013904223)>>>0;return v+(seed/2**32-.5)*.35;});
+    for(const a of [tone,bright,wave(.24,0,rate)])assert.ok(loud.measure(a,rate).rough<.12);
+    assert.ok(loud.measure(scratch,rate).rough>.5);
+  }
 });
 test('clipping, metronome, mute and silence cause gaps, not spin or false dips',()=>{
   const a=synthetic(t=>t===475?.0001:.05,t=>({clipped:t===200,metro:t===350,muted:t===575}));
@@ -130,7 +147,7 @@ test('shared hub provides a scalar-only practice tap without opening another str
   assert.equal(count,1);assert.deepEqual(pitches,[196,196]);assert.equal(measurements.length,1);
   assert.equal(measurements[0].now,82.5);assert.equal(measurements[0].processed,true);
   assert.ok(Math.abs(measurements[0].rms-.2/Math.sqrt(2))<.001);
-  assert.deepEqual(Object.keys(measurements[0]).sort(),['clipped','halfMs','muted','now','processed','rms']);
+  assert.deepEqual(Object.keys(measurements[0]).sort(),['clipped','halfMs','muted','now','processed','rms','rough']);
 });
 test('actual coach button renders current take loudness and resets from next take; no audio data is persisted',async()=>{
   let fetches=0, writes=0;
@@ -167,6 +184,12 @@ test('actual coach button renders current take loudness and resets from next tak
     const route=[38,...Array.from({length:repeatCount},()=>[40,41,40,38]).flat()];
     for(let slot=0;slot<route.length;slot++){
       const midi=route[slot];
+      if(makeVariation&&slot===1){
+        for(let i=0;i<4;i++){
+          clock+=27;listener.loudness({now:clock-17.5,rms:0});
+          listener.frame({now:clock,frequency:null});
+        }
+      }
       for(let i=0;i<23;i++){
         clock+=27;
         listener.loudness({now:clock-17.5,rms:makeVariation&&slot===0?.065:.155});
@@ -180,12 +203,12 @@ test('actual coach button renders current take loudness and resets from next tak
   assert.ok(chart());
   assert.match(chart().textContent,/本回收音中位數/);
   assert.ok(chart().find(n=>n.attributes.class==='trend-line')?.attributes.d.includes('L'));
-  assert.match(view.element.textContent,/上行：D → E.*後音.*收音較強/);
+  assert.match(view.element.textContent,/上行：D → E.*接近安靜/);
   assert.match(view.element.textContent,/Paul Katz：用弓塑造聲音/);
   const first=chart();
   await play(2,false);
   assert.equal(chart(),first,'reuse the same chart across takes');
-  assert.doesNotMatch(view.element.textContent,/銜接附近的收音/);
+  assert.doesNotMatch(view.element.textContent,/接近安靜/);
   assert.doesNotMatch(view.element.textContent,/Paul Katz：用弓塑造聲音/);
   assert.equal(writes,0);assert.equal(fetches,0);
 });
