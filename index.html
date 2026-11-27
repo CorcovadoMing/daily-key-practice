@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261127-115-experimental">
+  <meta name="site-version" content="20261127-116-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -201,8 +201,7 @@
     .key-card{width:100%;border:1px solid #e8e9e6;background:#fafaf9;border-radius:13px;min-width:0;overflow:hidden;transition:background .18s,border-color .18s,transform .18s}
     .key-card-heading{display:flex;align-items:stretch;gap:3px}
     .key-card-main{flex:1;min-width:0;background:transparent;border:0;text-align:left;display:flex;gap:11px;align-items:flex-start;padding:14px 14px 12px;color:inherit}
-    .key-expand{flex:none;align-self:center;border:1px solid #e1e8df;border-radius:9px;background:#f7faf6;color:#5b7160;padding:7px 10px;margin-right:11px;font-size:16px;line-height:1.2}
-    .key-expand[aria-expanded="true"]{background:#ebf3eb;border-color:#bbd3c0}
+    .key-expand{flex:none;align-self:center;border:0;border-radius:9px;background:none;color:inherit;padding:7px 10px;margin-right:11px;font-size:16px;line-height:1.2}
     .key-card.is-expanded{border-color:#bacfbd;box-shadow:0 3px 14px rgba(34,65,41,.05)}
     .key-card{scroll-margin-top:18px}
     .key-title{scroll-margin-top:calc(24px + env(safe-area-inset-top,0px))}
@@ -714,8 +713,8 @@
       [data-appearance=dark] :is(.result-summary,.key-card.done,.cello-fb-group,.cello-fb-legend,.fingering-note,.teacher-note-status,.online-count,.history-empty,.empty-graphic){background:var(--soft);color:var(--ink);border-color:var(--line)}
       [data-appearance=dark] :is(button,select,input:not([type=range]):not([type=checkbox]),textarea){color:var(--ink);border-color:var(--line)}
       [data-appearance=dark] :is(.room-action,.icon-button,.stepper button,.filter-all,.filter-key,.show-scales,.practice-jump,.practice-quick-list button,.cello-fb-button,.cello-inline-editor button,.teacher-tools button,.student-note-button,.scale-practice button,.scale-practice select,.audio-tools button,.audio-tools input,.audio-tools select){background:var(--theme-high);border-color:#6d7a8a;color:var(--ink)}
-      [data-appearance=dark] :is(.filter-key[aria-pressed=false],.fifths-pair .filter-key[aria-pressed=false],.ordered-practice-button,.key-expand,.fingering-edit,.history-choice-actions button,.finger-form-actions button,.teacher-finger-button,.cello-leave-keep){background:var(--theme-high);color:var(--ink);border-color:#6d7a8a}
-      [data-appearance=dark] :is(.filter-key[aria-pressed=true],.key-expand[aria-expanded=true],.cello-fb-button[aria-pressed=true],.cello-inline-choice[aria-pressed=true],.cello-inline-finger[aria-pressed=true],.teacher-note-pill[aria-pressed=true],.teacher-finger-button[aria-pressed=true],.history-choice-actions button.primary,.finger-form-actions button.primary,.practice-jump.is-active){background:#445970;color:#eff5fd}
+      [data-appearance=dark] :is(.filter-key[aria-pressed=false],.fifths-pair .filter-key[aria-pressed=false],.ordered-practice-button,.fingering-edit,.history-choice-actions button,.finger-form-actions button,.teacher-finger-button,.cello-leave-keep){background:var(--theme-high);color:var(--ink);border-color:#6d7a8a}
+      [data-appearance=dark] :is(.filter-key[aria-pressed=true],.cello-fb-button[aria-pressed=true],.cello-inline-choice[aria-pressed=true],.cello-inline-finger[aria-pressed=true],.teacher-note-pill[aria-pressed=true],.teacher-finger-button[aria-pressed=true],.history-choice-actions button.primary,.finger-form-actions button.primary,.practice-jump.is-active){background:#445970;color:#eff5fd}
       [data-appearance=dark] .teacher-note-pill[aria-pressed=true]{background:#445970;color:#eff5fd}
       [data-appearance=dark] :is(.history-chip.done,.practice-jump.is-done){background:#363e47;color:var(--muted)}
       [data-appearance=dark] :is(.cello-inline-undo,.cello-inline-range,.cello-inline-range[aria-pressed=true]){background:#2e4354;color:var(--theme-blue);border-color:#7192aa}
@@ -765,7 +764,7 @@
       [data-appearance=dark] .audio-tools :is(button:not([aria-pressed=true]):not([aria-expanded=true]),input:not([type=range]),select){border-color:#525f6e}
       [data-appearance=dark] :is(.progress-track,.audio-meter){background:#333c47}
       [data-appearance=dark] :is(.filter-warning,.student-note-button.has-note,.teacher-note-pill){background:#493a24;color:var(--theme-gold);border-color:#867044}
-      [data-appearance=dark] :is(.key-expand,.key-complete,.cello-inline-choices button):hover{background:#435268}
+      [data-appearance=dark] :is(.key-complete,.cello-inline-choices button):hover{background:#435268}
       [data-appearance=dark] :is(button,select,input,textarea,[tabindex]):focus-visible{outline-color:#a0d3f6}
       [data-appearance=dark] .scale-practice,[data-appearance=dark] .cello-scale-score{--practice-green:#9cdaa8;--practice-yellow:#f4d485;--practice-red:#f4a69c}
       [data-appearance=dark] .cello-scale-score :is([fill="#222"],[fill="#647461"]){fill:var(--ink)}
@@ -848,8 +847,8 @@
     .history-access .history-heading{margin:12px 0}
     .history-access .history-heading h2{font-size:17px}
     .key-card.is-expanded{overflow:clip}
-    .exercise-nav{display:none;flex-wrap:wrap;gap:6px;margin:0 0 8px;background:var(--paper);position:sticky;top:0;z-index:3}
-    .exercise-active-stop{margin-left:auto}
+    .exercise-nav{display:none;position:fixed;inset-block-start:max(10px,env(safe-area-inset-top,0px));inset-inline-end:max(10px,env(safe-area-inset-right,0px));z-index:24}
+    .exercise-active-stop{margin:0;box-shadow:0 4px 14px #18282224}
     .cello-fingerboard:has(.scale-practice:is([data-phase=listening],[data-phase=pending])) .exercise-nav{display:flex}
     .exercise-jump{min-height:44px;min-width:64px;padding:6px 12px;border:1px solid var(--line);border-radius:9px;color:var(--ink);background:var(--paper);font-size:13px;font-weight:750}
     .music-exercise-block{scroll-margin-top:58px}
@@ -1166,26 +1165,30 @@
     @media print{.practice-action-icon{display:none}}
     /* The same reversible motion language applies to settings, docks and dialogs. */
     :root{
-      --ui-surface-ms:320ms;--ui-disclosure-ms:440ms;--ui-control-ms:160ms;
-      --ui-motion-curve:cubic-bezier(.4,0,.6,1);
+      --ui-surface-ms:380ms;--ui-disclosure-ms:480ms;--ui-control-ms:220ms;
+      --ui-spring-ms:340ms;--ui-press-ms:110ms;
+      --ui-motion-curve:cubic-bezier(.23,.68,.29,1);
+      --ui-spring-curve:cubic-bezier(.2,.82,.26,1.32);
+      --ui-press-curve:cubic-bezier(.25,.7,.3,1);
       --ui-focus:#426e58;
     }
     @media screen{
       :root[data-appearance=dark]{--ui-focus:#a9cdb6}
     }
     @media screen and (prefers-reduced-motion:no-preference){
-      .audio-tools .tuner-preferences,.scale-action-popover{--ui-surface-x:0px;--ui-surface-y:6px}
-      #tuner-panel{--ui-surface-x:-6px;--ui-surface-y:0px}
+      .audio-tools .tuner-preferences,.scale-action-popover{--ui-surface-x:0px;--ui-surface-y:9px;transform-origin:center bottom}
+      #tuner-panel{--ui-surface-x:-8px;--ui-surface-y:0px;transform-origin:left center}
       :where(.audio-tools .tuner-preferences,#tuner-panel,.scale-action-popover,dialog){
-        --ui-surface-y:6px;
-        opacity:0;translate:var(--ui-surface-x,0px) var(--ui-surface-y);
+        --ui-surface-y:9px;
+        opacity:0;translate:var(--ui-surface-x,0px) var(--ui-surface-y);scale:.92;
         pointer-events:none;
-        transition:opacity var(--ui-surface-ms) var(--ui-motion-curve),translate var(--ui-surface-ms) var(--ui-motion-curve),
-          display var(--ui-surface-ms) allow-discrete,overlay var(--ui-surface-ms) allow-discrete;
+        transition:opacity var(--ui-surface-ms) var(--ui-motion-curve),translate var(--ui-surface-ms) var(--ui-spring-curve),
+          scale var(--ui-surface-ms) var(--ui-spring-curve),display var(--ui-surface-ms) allow-discrete,
+          overlay var(--ui-surface-ms) allow-discrete;
       }
       #tuner-panel{--ui-surface-y:0px}
       :is(.audio-tools .tuner-preferences,#tuner-panel,.scale-action-popover):not([hidden]),
-      dialog[open]{opacity:1;translate:0 0;pointer-events:auto}
+      dialog[open]{opacity:1;translate:0 0;scale:1;pointer-events:auto}
       dialog::backdrop{
         opacity:0;pointer-events:none;
         transition:opacity var(--ui-surface-ms) var(--ui-motion-curve),display var(--ui-surface-ms) allow-discrete,
@@ -1194,7 +1197,7 @@
       dialog[open]::backdrop{opacity:1;pointer-events:auto}
       @starting-style{
         :is(.audio-tools .tuner-preferences,#tuner-panel,.scale-action-popover):not([hidden]),
-        dialog[open]{opacity:0;translate:var(--ui-surface-x,0px) var(--ui-surface-y)}
+        dialog[open]{opacity:0;translate:var(--ui-surface-x,0px) var(--ui-surface-y);scale:.92}
         dialog[open]::backdrop{opacity:0}
       }
     }
@@ -1231,6 +1234,10 @@
     /* Same button and focus target throughout playback. */
     .scale-demo-shell,.scale-start-shell{display:inline-flex;min-block-size:44px;max-inline-size:100%;align-items:stretch}
     .scale-demo-shell{inline-size:116px}
+    .scale-start-label{inline-size:4em;flex:none;text-align:center;white-space:nowrap}
+    /* Suppress accidental double-taps on compact controls without removing pinch zoom. */
+    :is(button,summary){touch-action:manipulation}
+    html[data-practice-active]{overscroll-behavior-y:contain}
     .scale-practice .scale-practice-action .scale-demo-shell .scale-practice-demo{border-start-end-radius:0;border-end-end-radius:0}
     .scale-practice .scale-practice-action :is(.scale-demo-chevron,.scale-start-chevron){
       display:grid;place-items:center;inline-size:44px;min-block-size:44px;padding:0;margin-inline-start:-1px;
@@ -1389,9 +1396,6 @@
       .scale-practice .scale-start-shell:has(>button:hover:not(:disabled)){
         --start-fill:var(--ui-main-hover);--start-edge:var(--ui-main-hover)
       }
-      .scale-practice:not([data-phase=idle]) .scale-start-shell{
-        --start-fill:var(--ui-selected);--start-ink:var(--ui-selected-text);--start-edge:var(--ui-button-edge)
-      }
       :root .scale-practice[data-phase]>.scale-practice-action .scale-start-shell
         >:is(.scale-practice-button,.scale-start-chevron),
       :root .scale-practice[data-phase]>.scale-practice-action .scale-start-shell
@@ -1449,27 +1453,37 @@
       :root button.student-note-button.has-note::before{background:#fff1c7;border-color:#d9b663}
       :root[data-appearance=dark] button.student-note-button.has-note::before{background:#493a24;border-color:#867044}
     }
+    @media screen and (forced-colors:none){
+      :root[data-appearance] .key-card .key-card-heading>button.key-expand,
+      :root[data-appearance] .key-card .key-card-heading>button.key-expand:is(:hover,[aria-expanded=true]){
+        background:none;border:0;box-shadow:none;color:var(--ui-secondary,var(--ink))
+      }
+    }
     .tuner-stop-icon,[aria-pressed=true]>.tuner-idle-icon{display:none}
     #tuner-open[aria-pressed=true] .tuner-stop-icon{display:block}
     @media screen and (prefers-reduced-motion:no-preference){
-      .launch-mode::before{transition:translate var(--ui-control-ms) var(--ui-motion-curve)}
+      .launch-mode::before{transition:translate var(--ui-spring-ms) var(--ui-spring-curve)}
       .launch-mode label span{transition:color var(--ui-control-ms) var(--ui-motion-curve)}
       button:not(:disabled){
-        transition:scale var(--ui-control-ms) var(--ui-motion-curve),background-color var(--ui-control-ms) var(--ui-motion-curve),
+        transition:scale var(--ui-spring-ms) var(--ui-spring-curve),background-color var(--ui-control-ms) var(--ui-motion-curve),
           border-color var(--ui-control-ms) var(--ui-motion-curve),color var(--ui-control-ms) var(--ui-motion-curve);
       }
-      button:not(:disabled):active{scale:.974}
+      button:not(:disabled):active{scale:.95;transition:scale var(--ui-press-ms) var(--ui-press-curve)}
+      :is(.layout-disclosure,.launch-settings)>summary{transform-origin:left center;transition:scale var(--ui-spring-ms) var(--ui-spring-curve)}
+      :is(.layout-disclosure,.launch-settings)>summary:active{scale:.984;transition:scale var(--ui-press-ms) var(--ui-press-curve)}
+      .toast{scale:.96;transition:opacity var(--ui-surface-ms) var(--ui-motion-curve),transform var(--ui-surface-ms) var(--ui-spring-curve),scale var(--ui-surface-ms) var(--ui-spring-curve)}
+      .toast.active{scale:1}
       :is(#metro-settings,#tuner-settings,.key-expand)>.ui-icon,
-      :is(.scale-demo-chevron,.scale-start-chevron)>svg{transition:transform var(--ui-control-ms) var(--ui-motion-curve)}
+      :is(.scale-demo-chevron,.scale-start-chevron)>svg{transition:transform var(--ui-spring-ms) var(--ui-spring-curve)}
       #appearance-toggle .theme-glyph{
         grid-area:1/1;display:block;opacity:1;transform:rotate(0) scale(1);
-        transition:opacity 320ms var(--ui-motion-curve),transform 440ms var(--ui-motion-curve)
+        transition:opacity 320ms var(--ui-motion-curve),transform 440ms var(--ui-spring-curve)
       }
       :root:not([data-appearance=dark]) #appearance-toggle .theme-moon{opacity:0;transform:rotate(42deg) scale(.58)}
       [data-appearance=dark] #appearance-toggle .theme-sun{opacity:0;transform:rotate(-42deg) scale(.58)}
       .practice-action-icon svg,.audio-buttons :is(.metro-stop-icon,.metro-play-icon,.tuner-stop-icon,.tuner-idle-icon){
         grid-area:1/1;display:block;opacity:1;
-        transition:opacity var(--ui-control-ms) var(--ui-motion-curve),scale var(--ui-control-ms) var(--ui-motion-curve),rotate var(--ui-control-ms) var(--ui-motion-curve)
+        transition:opacity var(--ui-control-ms) var(--ui-motion-curve),scale var(--ui-spring-ms) var(--ui-spring-curve),rotate var(--ui-spring-ms) var(--ui-spring-curve)
       }
       .scale-practice[data-phase=idle] .practice-stop-icon,.scale-practice:not([data-phase=idle]) .practice-play-icon,
       #metronome-open[aria-pressed=true] .metro-play-icon,#metronome-open:not([aria-pressed=true]) .metro-stop-icon,
@@ -1498,17 +1512,17 @@
         background:var(--ui-button-quiet);border-color:var(--ui-button-edge)
       }
       /* Secondary controls use the same neutral surface, even in deeper panels. */
-      :root:not([data-appearance=dark]) :is(.key-expand,.ordered-practice-button,
+      :root:not([data-appearance=dark]) :is(.ordered-practice-button,
         .cello-inline-editor button:not(.cello-inline-save),.teacher-tools button,.scale-practice-history-actions button,
         .scale-practice-slur-option,.scale-practice-merge,.scale-practice-coach-action){
         background:var(--ui-button-quiet);border-color:var(--ui-button-edge);color:var(--ink)
       }
-      :root:not([data-appearance=dark]) :is(.key-expand,.ordered-practice-button,
+      :root:not([data-appearance=dark]) :is(.ordered-practice-button,
         .cello-inline-editor button:not(.cello-inline-save),.teacher-tools button,.scale-practice-history-actions button,
         .scale-practice-slur-option,.scale-practice-merge,.scale-practice-coach-action):hover:not(:disabled){
         background:var(--ui-button-hover);color:var(--ink)
       }
-      :root:not([data-appearance=dark]) :is(.key-expand[aria-expanded=true],.cello-fb-button[aria-pressed=true],
+      :root:not([data-appearance=dark]) :is(.cello-fb-button[aria-pressed=true],
         .cello-inline-editor button[aria-pressed=true],.teacher-tools button[aria-pressed=true],.scale-practice-slur-controls .scale-practice-slur-option[aria-pressed=true]){
         background:var(--ui-selected);border-color:#8a918d;color:var(--ui-selected-text)
       }
@@ -1713,7 +1727,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-115-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-116-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -4515,6 +4529,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     button.type = 'button'; button.className = 'scale-practice-button';
     const buttonIcon=document.createElement('span'),buttonText=document.createElement('span');
     buttonIcon.className='practice-action-icon';
+    buttonText.className='scale-start-label';
     buttonIcon.setAttribute('aria-hidden','true');
     buttonIcon.innerHTML='<svg class="practice-play-icon" aria-hidden="true" focusable="false" viewBox="0 0 16 16"><path d="M4 2.5v11l9-5.5z"/></svg><svg class="practice-stop-icon" aria-hidden="true" focusable="false" viewBox="0 0 16 16"><rect x="3.5" y="3.5" width="9" height="9" rx="1"/></svg>';
     button.append(buttonIcon,buttonText);
@@ -5026,9 +5041,9 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         if(next!=='idle'){closeDemoSettings(false);closeStartSettings(false);}
         demoStatus.textContent='';
         element.dataset.phase = next;
-        buttonText.textContent = next === 'idle' ? '開始練習' : next === 'pending' ? '取消收音' : '停止並看結果';
+        buttonText.textContent = next === 'idle' ? '開始練習' : next === 'pending' ? '取消收音' : '觀看結果';
         button.setAttribute('aria-label', next === 'idle' ? '開始' + name + '練習'
-          : next === 'pending' ? '取消' + name + '收音' : '停止' + name + '練習並看結果');
+          : next === 'pending' ? '取消' + name + '收音' : '觀看結果（停止' + name + '練習）');
         button.setAttribute('aria-pressed', String(next !== 'idle'));
         const stopHint=next==='listening'?'連續 2 分鐘未對上下一個譜音會自動停止。':'';
         button.title=stopHint;
@@ -5051,7 +5066,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         text = '收音中 · A4 ' + reference + ' Hz · ' + (mode === 'loop' ? '第 ' + (laps + 1) + ' 輪 · ' : '') +
           '依序對上 ' + (display?.values ? display.values.filter(Number.isFinite).length : progress) + '／' + target.length + ' 音';
         if (target[progress]) text += ' · 下一音 ' + label(target[progress], progress);
-        else text += ' · 可停止並看結果';
+        else text += ' · 可觀看結果';
         if (message) text += '。' + message;
         const live = display?.live;
         const liveText = live ? '聽到 ' + live.name + ' ' + centsText(live.cents) +
@@ -6092,11 +6107,21 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   }
  }
 }
-    function disclosureMotion(element,from,to,full){
+    function disclosureMotion(element,from,to,full,summary){
       const root=getComputedStyle(document.documentElement||element);
-      const duration=parseFloat(root.getPropertyValue?.('--ui-disclosure-ms'))||440;
-      const easing=root.getPropertyValue?.('--ui-motion-curve').trim()||'cubic-bezier(.4,0,.6,1)';
-      return {duration:Math.max(65,Math.round(duration*Math.min(1,Math.abs(to-from)/Math.max(1,full)))),easing};
+      const duration=parseFloat(root.getPropertyValue?.('--ui-disclosure-ms'))||480;
+      const easing=root.getPropertyValue?.('--ui-motion-curve').trim()||'cubic-bezier(.23,.68,.29,1)';
+      const length=Math.max(65,Math.round(duration*Math.min(1,Math.abs(to-from)/Math.max(1,full))));
+      if(summary?.animate){
+        for(const previous of summary.getAnimations?.()||[])if(previous.id==='practice-fold-feedback')previous.cancel();
+        const opening=to>from;
+        const feedback=summary.animate([
+          {scale:'1'},{scale:opening?'.981':'1.012',offset:.25},
+          {scale:opening?'1.022':'.987',offset:.64},{scale:'1'}
+        ],{duration:Math.min(380,Math.max(220,length)),easing:'ease-in-out'});
+        feedback.id='practice-fold-feedback';
+      }
+      return {duration:length,easing};
     }
     function setCardPanelOpen(item,opened,forceInstant=false){
  const panel=item.panel,previous=item.opened;
@@ -6611,7 +6636,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       summary.setAttribute('aria-expanded',String(opened));
       const frames=[{height:start+'px',overflow:'clip',boxSizing:'border-box'},
         {height:end+'px',overflow:'clip',boxSizing:'border-box'}];
-      const animation=details.animate(frames,disclosureMotion(details,start,end,expanded-collapsed));
+      const animation=details.animate(frames,disclosureMotion(details,start,end,expanded-collapsed,summary));
       const state={opened,previousInert,drop,finish};
       function drop(){
         animation.cancel();motionDetails.delete(details);summary.removeAttribute('aria-expanded');
@@ -6666,7 +6691,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       if(Math.abs(to-from)<1){finish();return;}
       launchOptions.dataset.animating='';
       const animation=launchBody.animate([{height:from+'px',opacity:alpha},{height:to+'px',opacity:open?1:0}],
-        disclosureMotion(launchBody,from,to,full));
+        disclosureMotion(launchBody,from,to,full,launchSummary));
       launchAnimation=animation;
       animation.onfinish=()=>{if(launchAnimation===animation)finish();};
     }
@@ -7348,9 +7373,19 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     asset:'./fingerboard-editor.js?v=20261126-cello-audio-2'
   });
   window.CelloScalePractice.demo=demo;
+  function warnDuringPractice(event){
+    event.preventDefault();
+    event.returnValue=true;
+  }
+  function setPracticeCaptureState(active){
+    lockDetector(active);
+    window.document?.documentElement?.toggleAttribute('data-practice-active',active);
+    if(active)window.addEventListener?.('beforeunload',warnDuringPractice);
+    else window.removeEventListener?.('beforeunload',warnDuringPractice);
+  }
   const scalePractice = window.CelloScalePractice.manager(window, {
     demoBlocked:demo.blocked,stopDemoWithin:demo.stopWithin,
-    detector:()=>practiceDetector,captureState:lockDetector,
+    detector:()=>practiceDetector,captureState:setPracticeCaptureState,
     capture,
     swiftCapture:swiftPracticeCapture(window,capture,swift,swiftBatches,(frequency,now)=>practiceSwiftClick(frequency,now,clickIsAudible())),
     reference: a4Reference,

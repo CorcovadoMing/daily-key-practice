@@ -156,6 +156,73 @@ async function checkCompletion(page,reduced){
   assert.equal(await glyph.evaluate(e=>getComputedStyle(e).visibility),'visible');
   assert.deepEqual(await animations(),[],'restoring an already-complete key does not replay the effect');
 }
+async function resultButtonCheck(page){
+ const first=page.locator('.key-card').first();
+ await first.locator('.key-title').click();
+ const unloadAllowed=()=>page.evaluate(()=>window.dispatchEvent(new Event('beforeunload',{cancelable:true})));
+ assert.equal(await unloadAllowed(),true);
+ assert.doesNotMatch(await page.locator('meta[name=viewport]').getAttribute('content'),/maximum-scale|user-scalable/);
+ for(const kind of ['scale','arpeggio']){
+  const view=first.locator('.scale-practice[data-practice-kind="'+kind+'"]'),button=view.locator('.scale-practice-button');
+  const observe=()=>button.evaluate(e=>{
+   const a=getComputedStyle(e),s=e.parentElement,r=e.getBoundingClientRect();
+   return {x:e.offsetLeft,y:e.offsetTop,w:r.width,h:r.height,group:s.offsetWidth,color:a.color,background:a.backgroundColor};
+  });
+  const phase=name=>view.evaluate((e,n)=>e.dataset.phase===n,name);
+  const expectPhase=async n=>{for(let t=0;t<150;t++){if(await phase(n))return;await page.waitForTimeout(20);}assert.fail('Missing phase '+n);};
+  await button.focus();
+  const idle=await observe();
+  assert.equal((await button.innerText()).trim(),'開始練習');
+  await button.press('Space');
+  await expectPhase('pending');
+  assert.equal((await button.innerText()).trim(),'取消收音');
+  assert.equal(await unloadAllowed(),false);
+  assert.deepEqual(await observe(),idle);
+  await page.evaluate(()=>window.releaseSimulatedMic());
+  await expectPhase('listening');
+  assert.equal((await button.innerText()).trim(),'觀看結果');
+  assert.match(await button.getAttribute('aria-label'),/^觀看結果/);
+  assert.equal(await button.getAttribute('aria-pressed'),'true');
+  assert.equal(await unloadAllowed(),false);
+  assert.equal(await button.evaluate(e=>getComputedStyle(e).touchAction),'manipulation');
+  assert.equal(await page.locator('html').evaluate(e=>getComputedStyle(e).overscrollBehaviorY),'contain');
+  assert.deepEqual(await observe(),idle);
+  assert.equal(await view.locator('.scale-start-chevron').isDisabled(),true);
+  await button.press('Space');
+  await expectPhase('idle');
+  assert.equal(await unloadAllowed(),true);
+  assert.equal((await button.innerText()).trim(),'開始練習');
+  assert.equal(await button.evaluate(e=>e===document.activeElement),true);
+  assert.deepEqual(await observe(),idle);
+ }
+}
+async function surfaceMotionCheck(page){
+ const button=page.locator('#tuner-settings'),panel=page.locator('#tuner-preferences');
+ await button.press('Space');
+ assert.equal(await button.getAttribute('aria-expanded'),'true');
+ const motion=()=>panel.evaluate(e=>e.getAnimations().map(a=>[a.transitionProperty,a.effect.getTiming().duration,a.effect.getTiming().easing]));
+ const spring=entries=>entries.some(([p,,e])=>p==='scale'&&e==='cubic-bezier(0.2, 0.82, 0.26, 1.32)');
+ assert.ok(spring(await motion()),'popover should use shared spring on opening');
+ await page.waitForFunction(()=>document.querySelector('#tuner-preferences').getAnimations().length===0);
+ assert.equal(await panel.evaluate(e=>getComputedStyle(e).scale),'1');
+ await page.keyboard.press('Escape');
+ assert.equal(await button.getAttribute('aria-expanded'),'false');
+ assert.ok(spring(await motion()),'popover should spring on closing too');
+ await panel.waitFor({state:'hidden'});
+ const summary=page.locator('#history-settings summary'),details=page.locator('#history-settings');
+ const heightMotion=()=>details.evaluate(e=>e.getAnimations().find(a=>a.effect.getKeyframes()[0].height)?.effect.getTiming().duration);
+ const closed=await details.evaluate(e=>e.offsetHeight);
+ await summary.press('Space');
+ assert.equal(await heightMotion(),480);
+ assert.ok(await summary.evaluate(e=>e.getAnimations().some(a=>a.id==='practice-fold-feedback')));
+ await page.waitForFunction(()=>document.querySelector('#history-settings').getAnimations().length===0);
+ assert.ok(await details.evaluate(e=>e.open&&e.offsetHeight>40));
+ await summary.press('Space');
+ assert.equal(await heightMotion(),480);
+ assert.ok(await summary.evaluate(e=>e.getAnimations().some(a=>a.id==='practice-fold-feedback')));
+ await page.waitForFunction(()=>!document.querySelector('#history-settings').open);
+ assert.equal(await details.evaluate(e=>e.offsetHeight),closed);
+}
 async function extras(page,width){
  const q=s=>page.locator(s);
  // The dock's settings must be mutually exclusive and not start a microphone.
@@ -186,8 +253,17 @@ async function extras(page,width){
  const metro=await open(metronome);
  assert.equal(await tune.isVisible(),false);
  await dismiss(metro,metronome);
- const card=q('.key-card').first();
- if(await card.locator('.key-title').getAttribute('aria-expanded')!=='true')await card.locator('.key-title').click();
+ const card=q('.key-card').first(),arrow=card.locator('.key-expand');
+ const checkArrow=async()=>{
+  const a=await arrow.evaluate(e=>{const s=getComputedStyle(e);return [e.offsetWidth,e.offsetHeight,s.backgroundColor,s.borderTopWidth,s.boxShadow];});
+  assert.deepEqual(a,[44,44,'rgba(0, 0, 0, 0)','0px','none']);
+ };
+ if(await arrow.getAttribute('aria-expanded')==='true')await arrow.press('Space');
+ await checkArrow();
+ await arrow.press('Space');
+ assert.equal(await arrow.getAttribute('aria-expanded'),'true');
+ await checkArrow();
+ if(width>=500){await arrow.hover();await checkArrow();}
  for(const kind of ['scale','arpeggio']){
   const item=card.locator('.scale-practice[data-practice-kind="'+kind+'"]');
   const start=item.locator('.scale-start-chevron'),demo=item.locator('.scale-demo-chevron');
@@ -219,7 +295,7 @@ async function extras(page,width){
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));let browser;
  const base='http://127.0.0.1:'+server.address().port;
  try{
-  browser=await chromium.launch({headless:true,...(process.env.CHROMIUM?{executablePath:process.env.CHROMIUM}:{})});
+  browser=await chromium.launch({headless:true,args:['--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream'],...(process.env.CHROMIUM?{executablePath:process.env.CHROMIUM}:{})});
   for(const [width,dark] of viewports){
    for(const [kind,resume] of [['layout',false],['layout',true],['notes',true]]){
     const page=await browser.newPage({viewport:{width,height:850},isMobile:width<500,hasTouch:width<500,reducedMotion:'reduce'});
@@ -243,8 +319,27 @@ async function extras(page,width){
     await page.goto(base+'/experimental/');
     if(dark)await page.locator('#appearance-toggle').click();
     await checkCompletion(page,reduced);
+    if(width===390)await surfaceMotionCheck(page);
     assert.deepEqual(errors,[]);
     console.log(JSON.stringify({kind:'completion',width,dark,reduced,passed:true}));
+    await page.close();
+   }
+   for(const [width,dark] of [[320,false],[390,true],[768,false],[1280,true]]){
+    const page=await browser.newPage({viewport:{width,height:850},isMobile:width<500,hasTouch:width<500,reducedMotion:'reduce'});
+    const errors=[];page.on('pageerror',e=>errors.push(e.message));
+    await page.route('**/*',r=>r.request().url().startsWith(base+'/')?r.continue():r.abort());
+    await seed(page,{resume:true,notes:false});
+    await page.addInitScript(()=>{
+      const media=navigator.mediaDevices,original=media.getUserMedia.bind(media);
+      media.getUserMedia=options=>new Promise((resolve,reject)=>{
+        window.releaseSimulatedMic=()=>original(options).then(resolve,reject);
+      });
+    });
+    await page.goto(base+'/experimental/');
+    if(dark)await page.locator('#appearance-toggle').click();
+    await resultButtonCheck(page);
+    assert.deepEqual(errors,[]);
+    console.log(JSON.stringify({kind:'result-button',width,dark,passed:true}));
     await page.close();
    }
  }finally{await browser?.close();await new Promise(res=>server.close(res));}

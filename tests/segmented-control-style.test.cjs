@@ -9,7 +9,8 @@ test('the native radio fallback and sliding thumb share concentric track radii',
 });
 test('the scale and arpeggio split renders action and arrow with shared phase paint',()=>{
  assert.match(html,/>:is\(\.scale-practice-button,\.scale-start-chevron\):is\(:hover,\[aria-pressed=true\]\)\{\s*background:var\(--start-fill\);color:var\(--start-ink\);border-color:var\(--start-edge\)/);
- assert.match(html,/\.scale-practice:not\(\[data-phase=idle\]\) \.scale-start-shell\{[^}]*--start-fill:var\(--ui-selected\)/);
+ assert.doesNotMatch(html,/\.scale-practice:not\(\[data-phase=idle\]\) \.scale-start-shell\{[^}]*--start-ink/);
+ assert.match(html,/\.scale-start-label\{inline-size:4em;flex:none;text-align:center/);
  assert.match(html,/action\.append\(demoShell,startShell,demoSettings,startSettings\)/);
  assert.match(html,/demoButton\.disabled=demoChevron\.disabled=startChevron\.disabled=next!=='idle'/);
 });
