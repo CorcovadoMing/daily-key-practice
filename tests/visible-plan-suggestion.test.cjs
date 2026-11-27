@@ -547,8 +547,9 @@ test('an empty measured take keeps generic copy without inventing phase sections
 
 test('actual reviewed hand groups distinguish a shared offset, isolated finger, and interval drift, both directions',()=>{
  const f=setup({}), plan=f.startPlan;
- const report=marks=>f.practiceAdviceReport({...plan,reference:442,detector:'SwiftF0',rounds:[{id:1,values:plan.slots.map((_,i)=>marks[i]??null)}]});
- const all=report({9:-21,10:-22,11:-26,17:20,18:21,19:24});
+ const report=(...rows)=>f.practiceAdviceReport({...plan,reference:442,detector:'SwiftF0',rounds:rows.map((marks,id)=>({id:id+1,values:plan.slots.map((_,i)=>marks[i]??null)}))});
+ const offsets={9:-21,10:-22,11:-26,17:20,18:21,19:24};
+ const all=report(offsets,{9:-19,10:-23,11:-26,17:19,18:22,19:23});
  a.match(all.issues.join(' '),/上行：D 弦同一把位.*整組一起偏低.*下行：D 弦同一把位.*整組一起偏高/);
  a.match(all.drills.join(' '),/保持指距不變，讓整手往琴橋.*保持指距不變，讓整手往琴枕/);
  const single=report({9:1,10:27,11:-4});
@@ -561,6 +562,22 @@ test('actual reviewed hand groups distinguish a shared offset, isolated finger, 
  a.ok(drift.drills.some(x=>/^下行：.*指距收窄/.test(x)));
  const partial=report({9:-25,10:-22,17:24});
  a.doesNotMatch(partial.issues.join(' '),/整組|手形/);
+});
+test('whole-position offset needs repeated agreement before suggesting moving the hand',()=>{
+ const f=setup({}),p=f.startPlan;
+ const report=(...rows)=>f.practiceAdviceReport({...p,reference:442,detector:'SwiftF0',
+   rounds:rows.map((marks,id)=>({id:id+1,values:p.slots.map((_,i)=>marks[i]??null)}))});
+ const high={9:20,10:22,11:19};
+ const one=report(high);
+ a.match(one.issues.join(' '),/上行：D 弦同一把位（E、F、G）。這一輪整組一起偏高，還需要重測/);
+ a.match(one.drills.join(' '),/確認 D 空弦.*聽準第一音 E.*照指板原指法慢拉 E、F、G 兩次.*A4 442 Hz.*仍一起偏高/);
+ a.doesNotMatch(one.drills.join(' '),/整手往|琴枕|琴橋|不伸指/);
+ const again=report(high,{9:18,10:21,11:20});
+ a.match(again.drills.join(' '),/保持指距不變，讓整手往琴枕一點/);
+ const contradicted=report(high,{9:1,10:2,11:1});
+ a.doesNotMatch(contradicted.issues.join(' '),/整組一起偏高/);
+ a.ok(contradicted.issues.some(line=>/偏高/.test(line)),'one-off measurements remain visible');
+ a.doesNotMatch(contradicted.drills.join(' '),/整手往|琴枕|琴橋/);
 });
 test('complete pitch list includes both signs, one-off large errors, and mild reminders but not unplayed slots',()=>{
  const f=setup({}),p=f.startPlan;
@@ -591,8 +608,8 @@ test('same hand can span reviewed strings only when the captured shape is unchan
   {name:'A',midi:45,direction:'up',plan:{string:'G',finger:1}},
   {name:'B',midi:47,direction:'up',plan:{string:'G',finger:3}},
  ].map(s=>({...s,plan:{...s.plan,anchor:2,shape:'normal',reviewed:true,fingersReviewed:true}}));
- const report=(values,use=slots)=>f.practiceAdviceReport({source:'confirmed/visible plan',slots:use,reference:442,detector:'SwiftF0',rounds:[{id:1,values}]});
- const all=report([-24,-22,-22,-23]);
+ const report=(values,use=slots,repeat=null)=>f.practiceAdviceReport({source:'confirmed/visible plan',slots:use,reference:442,detector:'SwiftF0',rounds:[{id:1,values},...(repeat?[{id:2,values:repeat}]:[])]});
+ const all=report([-24,-22,-22,-23],slots,[-23,-20,-22,-25]);
  a.match(all.issues.join(' '),/C、G 弦同一把位.*整組一起偏低/);
  a.match(all.drills.join(' '),/先用調音器確認 C、G 各弦.*保持指距不變/);
  for (const values of [[-24,-22,1,2],[-24,-22,-22,null],[-24,-20,-8,2]]) {

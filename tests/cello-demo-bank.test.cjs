@@ -19,7 +19,8 @@ test('sample bank and calibrations are the independently octave-verified pair',(
 test('reference crossfades sustained bows at every original cue and releases only the final note',async()=>{
  const vm=require('node:vm'),html=read('index.html'),f=html.slice(html.indexOf('  const celloDemoRoots'),html.indexOf('  function celloDemoPlayer'))+html.slice(html.indexOf('  function celloDemoPlayer'),html.indexOf('  function celloDemoPlayer')+html.slice(html.indexOf('  function celloDemoPlayer')).indexOf('\n  }\n')+5);
  const make=vm.runInNewContext(f+'\ncelloDemoPlayer');
- for(const [demoKind,step] of [['scale',.50],['arpeggio',.64]]){
+ for(const [demoKind,base] of [['scale',.50],['arpeggio',.64]])for(const demoSpeed of [1,.6,1.4]){
+  const step=base/demoSpeed;
   const notes=[],envelopes=[],stops=[],states=[];
   class AudioContext{
    state='running';currentTime=8;destination={};
@@ -29,7 +30,7 @@ test('reference crossfades sustained bows at every original cue and releases onl
   }
   const env={AudioContext,performance:{now:()=>8e3},fetch:async()=>({ok:true,text:async()=>read('fingerboard-editor.js')}),atob,setTimeout:()=>5,clearTimeout(){}};
   const player=make(env,{reference:()=>442,isCapturing:()=>false,asset:'bank'});
-  const view={demoKind,target:[36,43,48].map(midi=>({midi})),demoUpdate:s=>states.push(s)};
+  const view={demoKind,demoSpeed,target:[36,43,48].map(midi=>({midi})),demoUpdate:s=>states.push(s)};
   await player.toggle(view);
   a.deepEqual(states,['loading','playing']);a.equal(notes.length,3);
   const near=(x,y)=>a.ok(Math.abs(x-y)<1e-9,[x,y].join(' vs '));
@@ -37,10 +38,11 @@ test('reference crossfades sustained bows at every original cue and releases onl
   for(let i=0;i<3;i++){
    const m=view.target[i].midi, [hz,offset]=table[Math.round((m-36)/3)];
    const cue=8.06+i*step, first=i===0, last=i===2;
-   const start=cue-(first?0:.024), end=cue+(last?1.10:step+.024);
+   const start=cue-(first?0:.024), end=cue+(last?Math.min(1.30,1.10/demoSpeed):step+.024);
    near(notes[i].r,442*2**((m-69)/12)/hz);
    near(notes[i].t,start);near(notes[i].d/notes[i].r,end-start);
    near(notes[i].o,offset+(first?0:.115));near(stops[i],end);
+   a.ok(notes[i].o+notes[i].d<offset+1.65,'never crosses into the next sample');
    const gain=envelopes[i+1];
    a.equal(gain[0][0],0);a.equal(gain.at(-1)[0],0);near(gain.at(-1)[1],end);
    a.ok(gain.every(([v,t],n)=>v>=0&&v<=1&&(n===0||t>gain[n-1][1])));
