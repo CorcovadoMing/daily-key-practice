@@ -92,28 +92,26 @@ async function noteCheck(p, width, errors){
      assert.equal(await actions.count(),1);
    }
    const noteKey='daily-key-practice:experimental:key-note:major-0';
-   async function checkNoteEraser(dialog){
-      const trash=dialog.getByRole('button',{name:'清空內容',exact:true});
+   async function checkNoteClear(dialog){
+      const clear=dialog.getByRole('button',{name:'清空',exact:true});
       const cancel=dialog.getByRole('button',{name:'取消',exact:true}),save=dialog.getByRole('button',{name:'儲存筆記',exact:true});
-      const paint=await trash.evaluate(e=>{
-        const s=getComputedStyle(e),r=e.getBoundingClientRect(),icon=e.querySelector('svg');
-        return {x:r.x,w:r.width,h:r.height,bg:s.backgroundColor,border:s.borderTopWidth,shadow:s.boxShadow,color:getComputedStyle(icon).color,svg:icon.outerHTML};
+      const paint=await clear.evaluate(e=>{
+        const s=getComputedStyle(e),r=e.getBoundingClientRect();
+        return {x:r.x,w:r.width,h:r.height,color:s.color,text:e.innerText};
       });
-      const shared=await p.locator('.history-delete').first().locator('svg').evaluate(e=>e.outerHTML);
-      assert.match(paint.svg,/note-clear-eraser/);
-      assert.doesNotMatch(paint.svg,/history-delete-lid/);
-      assert.match(shared,/history-delete-lid/);
+      assert.equal(paint.text,'清空');
+      assert.equal(await clear.locator('svg').count(),0);
       assert.equal(paint.color,dark?'rgb(255, 157, 166)':'rgb(168, 49, 58)');
-      assert.deepEqual([paint.bg,paint.border,paint.shadow,paint.w,paint.h],['rgba(0, 0, 0, 0)','0px','none',44,44]);
-      assert.ok(paint.x+paint.w+10<(await cancel.boundingBox()).x);
+      assert.ok(paint.w>=44&&paint.h>=44);
+      assert.ok(paint.x+paint.w<(await cancel.boundingBox()).x);
       assert.ok((await cancel.boundingBox()).x<(await save.boundingBox()).x);
-      await trash.click();
+      await clear.click();
       assert.equal(await dialog.locator('textarea').inputValue(),'');
       assert.equal(await p.evaluate(k=>localStorage.getItem(k),noteKey),'既有 C 練習');
       await cancel.click();
    }
    await cards.first().locator('.student-note-button').click();
-   await checkNoteEraser(p.locator('.student-note-dialog:not(.practice-notes-overview)'));
+   await checkNoteClear(p.locator('.student-note-dialog:not(.practice-notes-overview)'));
    await p.locator('.student-note-dialog:not(.practice-notes-overview)').waitFor({state:'detached'});
    await statsNotes.click();
    const overview=p.locator('.practice-notes-overview');
@@ -122,7 +120,7 @@ async function noteCheck(p, width, errors){
    assert.equal(await close.innerText(),'');
    assert.deepEqual(await close.evaluate(e=>[getComputedStyle(e,'::before').content,getComputedStyle(e,'::after').content]),['""','""']);
    await overview.getByRole('button',{name:'編輯 C 大調 筆記',exact:true}).click();
-   await checkNoteEraser(overview);
+   await checkNoteClear(overview);
    await overview.getByRole('button',{name:'新增筆記',exact:true}).click();
    const picker=overview.getByRole('combobox',{name:'調性'}),textarea=overview.getByRole('textbox',{name:'練習筆記內容'});
    assert.equal(await overview.locator('input[type=search]').count(),0);

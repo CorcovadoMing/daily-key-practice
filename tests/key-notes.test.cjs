@@ -82,10 +82,9 @@ test('all-notes modal lists only saved keys, edits inline, guards unsaved edits 
  a.equal(list.children.filter(n=>n.className==='practice-note-summary').length,3);
  deep(modal,n=>n.attrs['aria-label']==='編輯 D♭ 大調 筆記').events.click();
  const actions=deep(modal,n=>n.className==='student-note-actions');
- a.deepEqual(actions.children.map(x=>x.textContent),[undefined,'取消','儲存筆記']);
- a.equal(actions.children[0].attrs['aria-label'],'清空內容');
- a.match(actions.children[0].innerHTML,/note-clear-eraser/);
- a.doesNotMatch(actions.children[0].innerHTML,/history-delete-lid/);
+ a.deepEqual(actions.children.map(x=>x.textContent),['清空','取消','儲存筆記']);
+ a.equal(actions.children[0].className,'room-action note-clear-content');
+ a.equal(actions.children[0].innerHTML,undefined);
  a.equal(actions.children[2].className,'room-action primary');
  actions.children[0].click();
  a.equal(deep(modal,n=>n.tag==='textarea').value,'');
@@ -93,7 +92,7 @@ test('all-notes modal lists only saved keys, edits inline, guards unsaved edits 
  actions.children[1].click();
  a.equal(store.get('major-1'),'Added with select');
  deep(modal,n=>n.attrs['aria-label']==='編輯 D♭ 大調 筆記').click();
- deep(modal,n=>n.attrs['aria-label']==='清空內容').click();
+ deep(modal,n=>n.textContent==='清空').click();
  deep(modal,n=>n.textContent==='儲存筆記').events.click();
  a.equal(store.has('major-1'),false);
  deep(modal,n=>n.attrs['aria-label']==='關閉').events.click();
