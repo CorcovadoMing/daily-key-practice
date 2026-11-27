@@ -51,7 +51,9 @@ test('24 ordered accessible counts share one linear axis, including zeros and la
  assert.equal(allBars()[14].children[0].textContent,'D 小調，650 次');
  assert.equal(picker.children.length,0);
  open.events.click();assert.deepEqual(noteCalls[0],[open]);
- assert.ok(allBars().some(col=>col.children[1].children[1].textContent==='0'));
+ assert.ok(allBars().every(col=>col.dataset.count==='0'?col.children[1].children.length===1:col.children[1].children[1].textContent===col.dataset.count));
+ assert.deepEqual(allBars()[1].children[2].children.map(part=>part.textContent),['D','♭']);
+ assert.deepEqual(allBars()[13].children[2].children.map(part=>part.textContent),['C','♯']);
  assert.match(html,/class="practice-stats-chart" role="region" aria-label="24 調的練習次數"/);
  assert.match(html,/\.practice-stats-scroll\{[^}]*overflow-x:auto/);
 });
@@ -115,12 +117,13 @@ test('actual heat render outputs date/count per cell and consistent green thresh
  assert.ok(cells.every((x,i)=>i===0||x.dataset.date>cells[i-1].dataset.date));
 });
 
-test('phone shares one 24-slot axis with rotated note names, and heat legend has fixed tracks',()=>{
+test('phone shares one 24-slot axis with upright note names, and heat legend has fixed tracks',()=>{
  assert.match(html,/\.practice-statistics\{[^}]*grid-template-columns:minmax\(0,1fr\)/);
  assert.match(html,/\.practice-stats-scroll\{[^}]*overflow-x:auto[^}]*contain:inline-size/);
  assert.match(html,/\.practice-stats-bars\{[^}]*grid-template-columns:repeat\(24,minmax\(0,1fr\)\)/);
  assert.match(html,/@media\(max-width:680px\)\{[\s\S]*?\.practice-statistics\{[^}]*grid-template-columns:minmax\(0,1fr\)/);
- assert.match(html,/\.practice-stats-key\{[^}]*writing-mode:vertical-rl/);
+ assert.match(html,/\.practice-stats-key\{[^}]*flex-direction:column/);
+ assert.doesNotMatch(html,/\.practice-stats-key\{[^}]*writing-mode:vertical/);
  assert.match(html,/\.practice-heat-legend\{display:grid;grid-template-columns:repeat\(3,max-content\)/);
  assert.doesNotMatch(html,/practice-stats-band-label/);
  assert.match(html,/id="practice-stats-grid" class="practice-stats-chart"/);

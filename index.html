@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261127-099-experimental">
+  <meta name="site-version" content="20261127-100-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -977,7 +977,7 @@
     .practice-stats-bar{position:absolute;inset-inline:24%;bottom:0;height:var(--bar-height);background:var(--stats-bar);border-radius:3px 3px 0 0}
     .practice-stats-value{position:absolute;inset-inline:0;bottom:var(--bar-height);font-size:.6875rem;font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1.05}
     .practice-stats-value.long{inset-inline:auto;left:50%;transform:translateX(-50%);writing-mode:vertical-rl;text-orientation:sideways}
-    .practice-stats-key{font-size:.75rem;font-weight:700;padding-top:.3rem;color:var(--ink)}
+    .practice-stats-key{display:flex;justify-content:center;align-items:flex-start;font-size:.75rem;font-weight:700;padding-top:.3rem;color:var(--ink);white-space:nowrap}
     .practice-heat{--heat-0:#e6ebe5;--heat-1:#b8d6b8;--heat-2:#87b58c;--heat-3:#528557;--heat-4:#286037}
     [data-appearance=dark] .practice-heat{--heat-0:#333d3a;--heat-1:#3b5b46;--heat-2:#4d8059;--heat-3:#72a978;--heat-4:#a0cda1}
     .practice-heat [data-level="0"]{--heat-color:var(--heat-0)}
@@ -1007,7 +1007,7 @@
       .practice-stats-axis{font-size:.625rem}
       .practice-stats-axis span:not(:first-child):not(:last-child){display:none}
       .practice-stats-key,.practice-stats-value{font-size:.625rem}
-      .practice-stats-key{padding:0;justify-self:center;writing-mode:vertical-rl;text-orientation:sideways;padding-block:0;padding-inline-start:.2rem}
+      .practice-stats-key{flex-direction:column;align-items:center;justify-content:flex-start;padding:.2rem 0 0;line-height:1}
     }
     @media(max-width:380px){
       .launch-mode span{padding:0 5px}
@@ -1644,7 +1644,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-099-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-100-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -6252,8 +6252,11 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
           col.style.setProperty('--bar-height',String(100*count/scale.max)+'%');
           col.append(build('span','sr-only',name+' '+suffix+'，'+count+' 次'));
           const slot=build('div','practice-stats-bar-slot');slot.setAttribute('aria-hidden','true');
-          slot.append(build('span','practice-stats-bar'),build('span','practice-stats-value'+(count>=10?' long':''),String(count)));
-          const label=build('span','practice-stats-key',name);label.setAttribute('aria-hidden','true');
+          slot.append(build('span','practice-stats-bar'));
+          if(count>0)slot.append(build('span','practice-stats-value'+(count>=10?' long':''),String(count)));
+          const label=build('span','practice-stats-key');label.setAttribute('aria-hidden','true');
+          label.append(build('span','practice-stats-letter',name[0]));
+          if(name.length>1)label.append(build('span','practice-stats-accidental',name.slice(1)));
           col.append(slot,label);bars.append(col);
         }
         plot.append(axis,bars);
