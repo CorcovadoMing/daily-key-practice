@@ -43,13 +43,33 @@ test('fixed room gain cancels, steady sustains and note envelopes do not warn',(
   assert.equal(b.best,null);
   assert.equal(loud.suggestion(a,'D3↑'),null);
 });
-test('same-note mic variation is measured, and exercise is conditional rather than causal',()=>{
-  const a=synthetic(t=>t<350?.06:.145);
-  assert.equal(a.best.slot,2);assert.equal(a.best.lap,1);assert.ok(a.best.spread>=7);
-  const advice=loud.suggestion(a,'D3↑');
-  assert.match(advice.observation,/D3↑.*起伏明顯/);
-  assert.match(advice.action,/如果/);
+test('only repeatable same-slot mic variation recommends a conditional exercise',()=>{
+  const first=synthetic(t=>t<350?.06:.145);
+  assert.equal(first.best.slot,2);assert.equal(first.best.lap,1);assert.ok(first.best.spread>=7);
+  assert.ok(first.points.length>12,'one-off variation remains visible');
+  assert.equal(loud.suggestion(first,'D'),null);
+  function tracked(rows,accept){
+    const take=loud.capture(1000);
+    rows.forEach(([slot,lap,variable],i)=>{
+      for(let t=0;t<=700;t+=25)observe(take,1000+i*800+t,variable&&t<350?.06:.145);
+      for(let t=0;t<=700;t+=16)take.observePitch(1000+i*800+t,slot,lap);
+    });
+    return take.snapshot(.003,accept);
+  }
+  const repeated=tracked([[2,1,true],[2,2,true],[2,3,false]]);
+  assert.deepEqual(repeated.repeated,{slot:2,hits:2,usable:3});
+  const advice=loud.suggestion(repeated,'D');
+  assert.match(advice.observation,/D.*收音強弱有起伏（2／3 輪）/);
+  assert.match(advice.action,/如果.*單獨慢拉這個音兩次/);
+  assert.doesNotMatch(advice.action,/弓速|琴橋/);
   assert.match(advice.check,/手機位置/);
+  for(const trace of [
+    tracked([[2,1,true],[2,2,false]]),
+    tracked([[2,1,true],[3,2,true]]),
+    tracked([[2,1,true],[2,1,true],[2,2,true]]),
+    tracked([[2,1,true],[2,2,true]],span=>span.lap===1),
+    tracked([[2,1,true],[2,2,true],[2,3,false],[2,4,false]])
+  ])assert.equal(loud.suggestion(trace,'D'),null);
 });
 test('clipping, metronome, mute and silence cause gaps, not spin or false dips',()=>{
   const a=synthetic(t=>t===475?.0001:.05,t=>({clipped:t===200,metro:t===350,muted:t===575}));
@@ -143,25 +163,34 @@ test('actual coach button renders current take loudness and resets from next tak
   });
   const target=[38,40,41,40,38].map((midi,i)=>({midi,name:['D','E','F','E','D'][i],octave:2}));
   const view=card({querySelectorAll:()=>target.map(()=>new Node('g'))},target,()=>{});
-  async function play(loudThenSoft){
+  async function play(repeatCount,makeVariation){
     await managerInstance.toggle(view);listener.ready();
-    for(let i=0;i<30;i++){
-      clock+=27;
-      listener.loudness({now:clock-17.5,rms:loudThenSoft&&i<15?.065:.155});
-      listener.frame({now:clock,frequency:442*2**((38-69)/12)});
+    const route=[38,...Array.from({length:repeatCount},()=>[40,41,40,38]).flat()];
+    for(let slot=0;slot<route.length;slot++){
+      const midi=route[slot],repeat=slot%4===1;
+      for(let i=0;i<(repeat?30:10);i++){
+        clock+=27;
+        listener.loudness({now:clock-17.5,rms:makeVariation&&repeat&&i<15?.065:.155});
+        listener.frame({now:clock,frequency:442*2**((midi-69)/12)});
+      }
     }
     await managerInstance.toggle(view);
   }
   const chart=()=>view.element.find(n=>n.tag==='section'&&n.dataset.chartTime==='volume');
-  await play(true);
+  await play(1,true);
   assert.ok(chart());
   assert.match(chart().textContent,/本回收音中位數/);
   assert.ok(chart().find(n=>n.attributes.class==='trend-line')?.attributes.d.includes('L'));
-  assert.match(view.element.textContent,/上行：D.*收音強弱起伏/);
+  assert.doesNotMatch(view.element.textContent,/收音強弱有起伏/);
+  assert.doesNotMatch(view.element.textContent,/Paul Katz：用弓塑造聲音/);
   const first=chart();
-  await play(false);
+  await play(2,true);
+  assert.match(view.element.textContent,/上行：E.*收音強弱有起伏（2／2 輪）/);
+  assert.match(view.element.textContent,/Paul Katz：用弓塑造聲音/);
+  await play(2,false);
   assert.equal(chart(),first,'reuse the same chart across takes');
-  assert.doesNotMatch(view.element.textContent,/收音強弱起伏/);
+  assert.doesNotMatch(view.element.textContent,/收音強弱有起伏/);
+  assert.doesNotMatch(view.element.textContent,/Paul Katz：用弓塑造聲音/);
   assert.equal(writes,0);assert.equal(fetches,0);
 });
 test('a provisional score match may be visualized but cannot recommend a technique',()=>{

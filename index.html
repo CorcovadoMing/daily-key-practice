@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261127-090-experimental">
+  <meta name="site-version" content="20261127-091-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -1586,7 +1586,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-090-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-091-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -1690,6 +1690,7 @@
         if(preview&&liveReference===null&&points.length>=4)liveReference=quantile(points.slice(0,4).map(p=>p.db).sort((a,b)=>a-b),.5);
         const reference=preview?liveReference:points.length?quantile(points.map(p=>p.db).sort((a,b)=>a-b),.5):null;
         let best=null;
+        const bySlot=new Map();
         if(!preview&&!processing)for(const {span,points:g} of groups){
           // Do not mistake a deliberate start/release, a short note or one outlier for an uneven sustain.
           if(span.end-span.start<380||(acceptedSpan&&!acceptedSpan(span)))continue;
@@ -1699,18 +1700,34 @@
           const spread=quantile(values,.85)-quantile(values,.15);
           if(spread>=4.5&&(!best||spread>best.spread))
             best={slot:span.slot,lap:span.lap,spread:Math.round(spread)};
+          const laps=bySlot.get(span.slot)||new Map();
+          bySlot.set(span.slot,laps);
+          // Multiple views of a held note, e.g. either side of a dropout,
+          // still describe one lap; never vote twice or join over a gap.
+          const prior=laps.get(span.lap);
+          if(!prior||prior.span===span&&prior.length<interior.length)
+            laps.set(span.lap,{span,spread,length:interior.length});
+          else if(prior.span!==span)laps.set(span.lap,{span:null,spread:0,length:0});
+        }
+        let repeated=null;
+        for(const [slot,laps] of bySlot){
+          const usable=[...laps.values()].filter(row=>row.span);
+          const hits=usable.filter(row=>row.spread>=4.5);
+          if(hits.length<2||hits.length*3<usable.length*2)continue;
+          const candidate={slot,hits:hits.length,usable:usable.length};
+          if(!repeated||candidate.hits>repeated.hits)repeated=candidate;
         }
         return {points:reference===null?[]:points.map(({db,...p})=>({...p,db:Math.round((db-reference)*10)/10})),
-          best,clipped,metronome,processing,capped};
+          best,repeated,clipped,metronome,processing,capped};
       }
     };
   }
   function suggestion(trace,label){
-    if(!trace?.best||trace.processing)return null;
+    if(!trace?.repeated||trace.processing)return null;
     if(typeof label!=='string'||!label)return null;
-    return {observation:`${label}，持音中段收音強弱起伏明顯。`,
-      action:'如果這個音原本想拉得均勻，可以單獨慢拉一次：先保持弓速和弓與琴橋的距離，聽聽中段有沒有突然變大或變小。',
-      check:'保持手機位置不變，再拉同一音，看看走勢中段是否更平穩。'};
+    return {observation:`${label}，持音中段收音強弱有起伏（${trace.repeated.hits}／${trace.repeated.usable} 輪）。`,
+      action:'如果你想拉得均勻，先用舒服的速度單獨慢拉這個音兩次，聽中段的強弱，不用刻意加重。',
+      check:'手機位置不變，再拉回原譜，對照這個音的中段是否更平穩。'};
   }
   return {measure,capture,suggestion};
 });
@@ -2856,6 +2873,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
   // Only this take's accepted, same-lap score evidence enters the rule.
   // Printed/confirmed plans are assumptions, never physical measurements.
   const coachSources=Object.freeze({
+    sustain:{title:'Paul Katz：用弓塑造聲音',url:'https://cellobello.org/cello-lessons/interpretation/artistry-in-sound/',reason:'單音也可以有刻意的強弱方向；只有想拉均勻時，才用這項練習比較。'},
     slur:{title:'Ailbhe McDonagh：練習連弓',url:'https://www.ailbhemcdonagh.com/teaching/cello-intermediate/21-practising-bow-slurs',reason:'只把這兩音放在同一弓內，換指時弓仍平順往前。'},
     connected:{title:'Emanuel Feuermann：音階的音與音要連接',url:'https://www.cellobello.org/wp-content/uploads/2019/10/CelloLegacy_Feuermann.pdf#page=10',reason:'慢拉相鄰兩音或三音，換弓時讓弓聲連起來。'},
     crossing:{title:'Ailbhe McDonagh：換弦基礎',url:'https://www.ailbhemcdonagh.com/cello-basics-17-string-crossings.html',reason:'慢速感受各弦的弓高，平順換到下一弦。'},
@@ -4501,6 +4519,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         }
         if(loudnessAdvice){
           actions.push(loudnessAdvice.action+loudnessAdvice.check);
+          related.push(['sustain']);
           actionDirections.push(adviceDirection(loudnessAdvice.observation));
         }
         const namedPhase=issues.some(adviceDirection)||actionDirections.some(Boolean);
@@ -4763,7 +4782,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       }
       if(next==='pending')loudnessAdvice=null;
       if(next==='idle'&&display?.final&&display.loudness){
-        const slot=display.loudness.best?.slot;
+        const slot=display.loudness.repeated?.slot;
         const plan=display.planDiagnostics, score=target[slot];
         const note=plan?.slots?.[slot], confirmed=plan?.source==='confirmed/visible plan'&&note?.plan?.reviewed===true;
         const direction=note?.direction==='down'||(!note&&slot>(target.length-1)/2)?'下行':'上行';
