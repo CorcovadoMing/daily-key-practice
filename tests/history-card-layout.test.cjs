@@ -41,3 +41,20 @@ test('history presets use local civil dates; range and key filters intersect',()
  assert.equal(check('2026-03-01','2026-03-07','7','major-1'),true);
  assert.equal(check('2026-02-28','2026-03-07','7','major-1'),false);
 });
+
+test('resetting history filters retains an accessible focus target with no record mutation',()=>{
+ const tag=html.match(/<button[^>]*id="history-filter-reset"[^>]*>/)[0];
+ assert.match(html,/<span class="sr-only" id="history-filter-status" role="status"><\/span>/);
+ assert.match(tag,/aria-label="重置篩選"/);
+ assert.match(tag,/aria-disabled="true"/);
+ assert.doesNotMatch(tag,/\sdisabled(?:[\s=>])/);
+ const body=html.slice(html.indexOf("    const historyDate=q("),html.indexOf("    q('#major-minus').addEventListener"));
+ let calls=[],click;
+ const date={value:'30',addEventListener(){},focus(){assert.fail('date picker should not receive focus');}};
+ const key={value:'major-6',addEventListener(){},focus(){assert.fail('key picker should not receive focus');}};
+ const reset={inactive:'false',getAttribute(){return this.inactive;},focus(o){assert.equal(o.preventScroll,true);calls.push('focus');},addEventListener(k,f){click=f;}};
+ const ctx={q:id=>({'#history-filter-date':date,'#history-filter-key':key,'#history-filter-reset':reset})[id],renderHistoryLists(){calls.push('render');reset.inactive='true';}};
+ vm.runInNewContext(body,ctx);
+ click();assert.deepEqual(calls,['focus','render']);assert.equal(date.value,'3');assert.equal(key.value,'');
+ click();assert.deepEqual(calls,['focus','render']);
+});

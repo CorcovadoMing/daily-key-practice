@@ -29,10 +29,12 @@ test('the major and minor key headers place the accessible notes action below th
   title.events.click();a.deepEqual(calls.pop(),['expand',mode+'-0']);
   expand.events.click();a.deepEqual(calls.pop(),['expand',mode+'-0']);
  }
- a.match(html,/data-key-mode=major[^\n]*--key-card-accent:#57789b/);
- a.match(html,/data-key-mode=minor[^\n]*--key-card-accent:#805c91/);
- a.match(html,/data-appearance=dark[^\n]*data-key-mode=major[^\n]*--key-card-accent:#87aacd/);
- a.match(html,/data-appearance=dark[^\n]*data-key-mode=minor[^\n]*--key-card-accent:#b49ac6/);
+ a.match(html,/--tonality-major:#57789b;--tonality-minor:#805c91/);
+ a.match(html,/data-appearance=dark[^\n]*--tonality-major:#87aacd;--tonality-minor:#b49ac6/);
+ for(const mode of ['major','minor']){
+   a.ok(html.includes('.key-card[data-key-mode='+mode+'],.history-chip[data-key-mode='+mode+']{--key-card-accent:var(--tonality-'+mode+')}'));
+   a.ok(html.includes('.practice-stats [data-kind='+mode+']{--stats-bar:var(--tonality-'+mode+')}'));
+ }
  a.doesNotMatch(html,/--key-card-tint/);
  a.match(html,/\.key-card\[data-key-mode\]>\.key-card-heading\{\s*box-shadow:inset 6px 0 var\(--key-card-accent\)\s*\}/);
  a.match(html,/\.key-title:focus-visible/);
