@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261127-087-experimental">
+  <meta name="site-version" content="20261127-088-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -768,9 +768,6 @@
       [data-appearance=dark] .scale-practice-slur-controls .scale-practice-slur-option[aria-pressed=true]{
         background:#445970;color:#eff5fd;border-color:#aec3dc
       }
-      [data-appearance=dark] :is(.scale-practice-choice,#pitch-detector,#tuner-detector) input:checked+span{
-        background:#445970;color:#eff5fd;border-color:#aec3dc
-      }
       [data-appearance=dark] .scale-pitch-track [data-band=center]{--practice-ink:var(--theme-green)}
       [data-appearance=dark] .scale-pitch-track [data-band=near]{--practice-ink:var(--theme-gold)}
       [data-appearance=dark] .scale-pitch-track [data-band=outside]{--practice-ink:var(--theme-red)}
@@ -937,8 +934,7 @@
       #tuner-panel .audio-scale{font-size:6px;letter-spacing:-.3px}
     }
     @media screen and (prefers-reduced-motion:no-preference){
-      .audio-tools{transition:width 350ms cubic-bezier(.29,.12,.24,1)}
-      .audio-tools[data-tuner-open=true]{transition-duration:420ms}
+      .audio-tools{transition:width var(--ui-surface-ms) var(--ui-motion-curve)}
     }
     #metro-status{position:absolute;bottom:calc(100% + var(--dock-gap));left:0;width:max-content;max-width:min(250px,calc(100vw - 30px));
       background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:6px 10px;box-shadow:0 3px 10px #15231a18;pointer-events:none}
@@ -1142,71 +1138,45 @@
       }
     }
     @media print{.practice-action-icon{display:none}}
-    /* Floating surface motion keeps native dismissal, without scaling text on the page. */
+    /* The same reversible motion language applies to settings, docks and dialogs. */
+    :root{
+      --ui-surface-ms:320ms;--ui-control-ms:160ms;
+      --ui-motion-curve:cubic-bezier(.4,0,.6,1);
+      --ui-focus:#426e58;
+    }
+    @media screen{
+      :root[data-appearance=dark]{--ui-focus:#a9cdb6}
+    }
     @media screen and (prefers-reduced-motion:no-preference){
-      :root{--surface-in:390ms;--surface-out:310ms;--surface-ease:cubic-bezier(.22,.80,.20,1);--surface-rest:cubic-bezier(.30,.04,.24,1)}
-      .audio-tools .tuner-preferences{transform-origin:30% 100%;--surface-shift:9px}
-      #tuner-panel{transform-origin:0 50%;--surface-shift:0px;--surface-shift-x:-6px}
-      @keyframes surface-in{
-        from{opacity:var(--surface-start-opacity,0);translate:var(--surface-shift-x,0px) var(--surface-shift,10px);scale:var(--surface-start-scale,.955);clip-path:var(--surface-closed-clip,none)}
-        to{opacity:1;translate:0 0;scale:1;clip-path:var(--surface-open-clip,none)}
+      .audio-tools .tuner-preferences,.scale-action-popover{--ui-surface-x:0px;--ui-surface-y:6px}
+      #tuner-panel{--ui-surface-x:-6px;--ui-surface-y:0px}
+      details:is(#classroom-disclosure,.history-access,.exercise-disclosure){--ui-surface-y:-5px}
+      :where(.audio-tools .tuner-preferences,#tuner-panel,.scale-action-popover,dialog){
+        --ui-surface-y:6px;
+        opacity:0;translate:var(--ui-surface-x,0px) var(--ui-surface-y);
+        pointer-events:none;
+        transition:opacity var(--ui-surface-ms) var(--ui-motion-curve),translate var(--ui-surface-ms) var(--ui-motion-curve),
+          display var(--ui-surface-ms) allow-discrete,overlay var(--ui-surface-ms) allow-discrete;
       }
-      /* Older engines at least get the anchored opening animation. */
-      :where(.audio-tools .tuner-preferences:not([hidden]),#tuner-panel:not([hidden]),dialog[open]){
-        animation:surface-in var(--surface-in) var(--surface-ease) both;
+      #tuner-panel{--ui-surface-y:0px}
+      :is(.audio-tools .tuner-preferences,#tuner-panel,.scale-action-popover):not([hidden]),
+      dialog[open]{opacity:1;translate:0 0;pointer-events:auto}
+      dialog::backdrop{
+        opacity:0;pointer-events:none;
+        transition:opacity var(--ui-surface-ms) var(--ui-motion-curve),display var(--ui-surface-ms) allow-discrete,
+          overlay var(--ui-surface-ms) allow-discrete;
       }
-      @supports (transition-behavior:allow-discrete){
-        :is(.audio-tools .tuner-preferences,#tuner-panel){
-          animation:none;
-          transition:opacity var(--surface-out) var(--surface-rest),translate var(--surface-out) var(--surface-rest),
-            scale var(--surface-out) var(--surface-rest),clip-path var(--surface-out) var(--surface-rest),display var(--surface-out) allow-discrete;
-        }
-        :is(.audio-tools .tuner-preferences,#tuner-panel):not([hidden]){
-          animation:none;opacity:1;translate:0 0;scale:1;clip-path:var(--surface-open-clip,none);
-          transition-duration:var(--surface-in);transition-timing-function:var(--surface-ease);
-        }
-        :is(.audio-tools .tuner-preferences,#tuner-panel)[hidden]{
-          opacity:var(--surface-start-opacity,0);translate:var(--surface-shift-x,0px) var(--surface-shift,10px);
-          scale:var(--surface-start-scale,.955);clip-path:var(--surface-closed-clip,none);pointer-events:none;
-        }
-        @starting-style {
-          :is(.audio-tools .tuner-preferences,#tuner-panel):not([hidden]){
-            opacity:var(--surface-start-opacity,0);translate:var(--surface-shift-x,0px) var(--surface-shift,10px);
-            scale:var(--surface-start-scale,.955);clip-path:var(--surface-closed-clip,none)
-          }
-        }
-        details:is(#classroom-disclosure,.history-access,.exercise-disclosure)::details-content{
-          opacity:0;
-          transition:opacity var(--surface-out) var(--surface-rest),content-visibility var(--surface-out) allow-discrete;
-        }
-        details:is(#classroom-disclosure,.history-access,.exercise-disclosure)[open]::details-content{
-          opacity:1;transition-duration:var(--surface-in);transition-timing-function:var(--surface-ease);
-        }
+      dialog[open]::backdrop{opacity:1;pointer-events:auto}
+      details:is(#classroom-disclosure,.history-access,.exercise-disclosure)::details-content{
+        opacity:0;translate:0 var(--ui-surface-y);
+        transition:opacity var(--ui-surface-ms) var(--ui-motion-curve),translate var(--ui-surface-ms) var(--ui-motion-curve),
+          content-visibility var(--ui-surface-ms) allow-discrete;
       }
-      @supports (overlay:auto) and (transition-behavior:allow-discrete){
-        :is(dialog){
-          animation:none;opacity:var(--surface-start-opacity,0);translate:var(--surface-shift-x,0px) var(--surface-shift,10px);
-          scale:var(--surface-start-scale,.955);clip-path:var(--surface-closed-clip,none);pointer-events:none;
-          transition:opacity var(--surface-out) var(--surface-rest),translate var(--surface-out) var(--surface-rest),
-            scale var(--surface-out) var(--surface-rest),clip-path var(--surface-out) var(--surface-rest),
-            display var(--surface-out) allow-discrete,overlay var(--surface-out) allow-discrete;
-        }
-        :is(dialog[open]){
-          animation:none;opacity:1;translate:0 0;scale:1;clip-path:var(--surface-open-clip,none);pointer-events:auto;
-          transition-duration:var(--surface-in);transition-timing-function:var(--surface-ease);
-        }
-        dialog::backdrop{
-          opacity:0;pointer-events:none;
-          transition:opacity var(--surface-out) var(--surface-rest),display var(--surface-out) allow-discrete,overlay var(--surface-out) allow-discrete;
-        }
-        dialog[open]::backdrop{opacity:1;pointer-events:auto;transition-duration:var(--surface-in)}
-        @starting-style {
-          :is(dialog[open]){
-            opacity:var(--surface-start-opacity,0);translate:var(--surface-shift-x,0px) var(--surface-shift,10px);
-            scale:var(--surface-start-scale,.955);clip-path:var(--surface-closed-clip,none)
-          }
-          dialog[open]::backdrop{opacity:0}
-        }
+      details:is(#classroom-disclosure,.history-access,.exercise-disclosure)[open]::details-content{opacity:1;translate:0 0}
+      @starting-style{
+        :is(.audio-tools .tuner-preferences,#tuner-panel,.scale-action-popover):not([hidden]),
+        dialog[open]{opacity:0;translate:var(--ui-surface-x,0px) var(--ui-surface-y)}
+        dialog[open]::backdrop{opacity:0}
       }
     }
     /* The setup reads top to bottom; quiet secondary controls stay grouped. */
@@ -1291,9 +1261,8 @@
     .scale-demo-bar{inline-size:3px;block-size:20px;border-radius:2px;background:currentColor;transform:scaleY(var(--demo-level,.20))}
     .scale-demo-spinner{inline-size:15px;block-size:15px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%}
     @media screen and (prefers-reduced-motion:no-preference){
-      .scale-practice .scale-practice-action .scale-practice-demo{transition:scale 225ms cubic-bezier(.29,.12,.24,1)}
-      .scale-demo-play,.scale-demo-stop{transition:opacity 150ms ease,scale 215ms cubic-bezier(.22,.8,.2,1)}
-      .scale-demo-loading{transition:opacity 145ms ease}
+      .scale-demo-play,.scale-demo-stop{transition:opacity var(--ui-control-ms) var(--ui-motion-curve),scale var(--ui-control-ms) var(--ui-motion-curve)}
+      .scale-demo-loading{transition:opacity var(--ui-control-ms) var(--ui-motion-curve)}
       [data-demo-state=loading] .scale-demo-spinner{animation:demo-turn 760ms linear infinite}
       .scale-demo-bar{transition:transform 67ms linear}
       @keyframes demo-turn{to{transform:rotate(1turn)}}
@@ -1342,19 +1311,85 @@
       .audio-tools .audio-tool-pair button[aria-pressed=true]{background:var(--control-segment);color:var(--control-segment-ink)}
       .audio-tools button:focus-visible{outline:2px solid var(--control-focus);outline-offset:2px}
     }
+    @media screen and (forced-colors:none){
+      :root{--ui-button-quiet:#edf2eb;--ui-button-edge:#becabb;--ui-button-hover:#e0ebe0;
+        --ui-main:#315643;--ui-main-hover:#3e6651;--ui-main-text:#fbfffc;
+        --ui-selected:#d2e7d9;--ui-selected-text:#173e2b;--ui-veil:#18251b66;
+        --ui-raised:#fcfdf9;--ui-surface-tint:#f0f4ee}
+      :root[data-appearance=dark]{--ui-button-quiet:#2a3435;--ui-button-edge:#526068;--ui-button-hover:#38464a;
+        --ui-main:#b4d2bf;--ui-main-hover:#cbe6d3;--ui-main-text:#142d21;
+        --ui-selected:#435d51;--ui-selected-text:#effaf2;--ui-veil:#070b0db3;
+        --ui-raised:#242a2e;--ui-surface-tint:#2b3436}
+      .workspace :is(dialog,.scale-action-popover),dialog,.audio-tools .tuner-preferences{
+        background:var(--paper);color:var(--ink);border-color:var(--line);
+      }
+      dialog::backdrop{background:var(--ui-veil)}
+      :root .workspace :is(.result-panel,.key-card,.history-panel,.practice-float){
+        background:var(--paper);color:var(--ink);border-color:var(--line);
+      }
+      :root .workspace :is(.key-card.is-expanded,.music-exercise-block,.scale-pitch-chart,.scale-pitch-trend,.scale-practice-coach){
+        background:var(--ui-raised);color:var(--ink);border-color:var(--line);
+      }
+      :root .workspace :is(.history-empty,.history-chip,.teacher-memo){
+        background:var(--ui-surface-tint);border-color:var(--line);
+      }
+      :root .scale-practice .scale-practice-action
+       .scale-practice-demo:is([data-demo-state=loading],[data-demo-state=playing]){
+        background:var(--ui-selected);color:var(--ui-selected-text);border-color:var(--ui-selected);
+      }
+      .session-launch #draw-button,:root .classroom-bar .room-action.primary,
+      :root dialog :is(.room-action.primary,.primary,.save-btn),
+      .scale-practice[data-phase=idle]>.scale-practice-action .scale-start-shell>.scale-practice-button{
+        background:var(--ui-main);color:var(--ui-main-text);border-color:var(--ui-main);
+      }
+      .session-launch #draw-button:hover:not(:disabled),:root .classroom-bar .room-action.primary:hover:not(:disabled),
+      :root dialog :is(.room-action.primary,.primary,.save-btn):hover:not(:disabled),
+      .scale-practice[data-phase=idle]>.scale-practice-action .scale-start-shell>.scale-practice-button:hover:not(:disabled){
+        background:var(--ui-main-hover);color:var(--ui-main-text);border-color:var(--ui-main-hover);
+      }
+      .classroom-bar .room-action:not(.primary),.scale-practice .scale-practice-action :is(.scale-demo-chevron,.scale-start-chevron),
+      .scale-practice .scale-practice-action .scale-practice-demo[data-demo-state=idle],
+      .session-launch .launch-mode,.scale-action-popover .launch-mode,.audio-tools .audio-tool-pair{
+        background:var(--ui-button-quiet);color:var(--ink);border-color:var(--ui-button-edge);
+      }
+      .classroom-bar .room-action:not(.primary):hover:not(:disabled),
+      .scale-practice .scale-practice-action :is(.scale-demo-chevron,.scale-start-chevron):hover:not(:disabled),
+      .scale-practice .scale-practice-action .scale-practice-demo[data-demo-state=idle]:hover:not(:disabled),
+      .audio-tools .audio-tool-pair :is(button,#metro-settings,#tuner-settings):hover:not(:disabled){background:var(--ui-button-hover);color:var(--ink)}
+      :is(.session-launch,.scale-action-popover) .launch-mode{--segment-fill:var(--ui-selected);--segment-edge:transparent}
+      :is(.session-launch,.scale-action-popover) .launch-mode input:checked+span{
+        background:var(--ui-selected);color:var(--ui-selected-text);border-color:transparent;
+      }
+      @supports selector(:has(*)){
+        :is(.session-launch,.scale-action-popover) .launch-mode:has(>label>input:checked) input:checked+span{
+          background:transparent;border-color:transparent;
+        }
+      }
+      .audio-tools .audio-tool-pair button[aria-pressed=true]{color:var(--ui-selected-text)}
+      .audio-tools .audio-tool-pair button[aria-pressed=true]{background:var(--ui-selected)}
+      .scale-practice .scale-practice-action .scale-practice-demo:is([data-demo-state=loading],[data-demo-state=playing]){
+        background:var(--ui-selected);color:var(--ui-selected-text);border-color:var(--ui-selected);
+      }
+      :is(.session-launch,.scale-practice,.audio-tools,.classroom-bar,dialog) :is(button,a,summary,input):focus-visible,
+      :is(.session-launch,.scale-action-popover) .launch-mode input:focus-visible+span{
+        outline:2px solid var(--ui-focus);outline-offset:2px;
+      }
+    }
     .tuner-stop-icon,[aria-pressed=true]>.tuner-idle-icon{display:none}
     #tuner-open[aria-pressed=true] .tuner-stop-icon{display:block}
     @media screen and (prefers-reduced-motion:no-preference){
-      .launch-mode::before{transition:translate 370ms cubic-bezier(.25,.17,.23,1)}
-      .launch-mode label span{transition:color 215ms ease}
-      button:where(:not(:disabled)){
-        transition:scale 275ms var(--surface-ease),background-color 215ms ease,border-color 215ms ease,color 200ms ease
+      .launch-mode::before{transition:translate var(--ui-control-ms) var(--ui-motion-curve)}
+      .launch-mode label span{transition:color var(--ui-control-ms) var(--ui-motion-curve)}
+      button:not(:disabled){
+        transition:scale var(--ui-control-ms) var(--ui-motion-curve),background-color var(--ui-control-ms) var(--ui-motion-curve),
+          border-color var(--ui-control-ms) var(--ui-motion-curve),color var(--ui-control-ms) var(--ui-motion-curve);
       }
-      button:where(:not(:disabled)):not(#metronome-open):active{scale:.974}
-      :is(#metro-settings,#tuner-settings,.key-expand)>.ui-icon{transition:transform 340ms var(--surface-ease)}
+      button:not(:disabled):active{scale:.974}
+      :is(#metro-settings,#tuner-settings,.key-expand)>.ui-icon,
+      :is(.scale-demo-chevron,.scale-start-chevron)>svg{transition:transform var(--ui-control-ms) var(--ui-motion-curve)}
       #appearance-toggle .theme-glyph,.practice-action-icon svg,.audio-buttons :is(.metro-stop-icon,.metro-play-icon,.tuner-stop-icon,.tuner-idle-icon){
         grid-area:1/1;display:block;opacity:1;
-        transition:opacity 195ms ease,scale 285ms var(--surface-ease),rotate 285ms var(--surface-ease)
+        transition:opacity var(--ui-control-ms) var(--ui-motion-curve),scale var(--ui-control-ms) var(--ui-motion-curve),rotate var(--ui-control-ms) var(--ui-motion-curve)
       }
       :root:not([data-appearance=dark]) #appearance-toggle .theme-moon,[data-appearance=dark] #appearance-toggle .theme-sun,
       .scale-practice[data-phase=idle] .practice-stop-icon,.scale-practice:not([data-phase=idle]) .practice-play-icon,
@@ -1545,7 +1580,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-087-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-088-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -5771,6 +5806,12 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   }
  }
 }
+    function disclosureMotion(element,from,to,full){
+      const root=getComputedStyle(document.documentElement||element);
+      const duration=parseFloat(root.getPropertyValue?.('--ui-surface-ms'))||320;
+      const easing=root.getPropertyValue?.('--ui-motion-curve').trim()||'cubic-bezier(.4,0,.6,1)';
+      return {duration:Math.max(65,Math.round(duration*Math.min(1,Math.abs(to-from)/Math.max(1,full)))),easing};
+    }
     function setCardPanelOpen(item,opened,forceInstant=false){
  const panel=item.panel,previous=item.opened;
  if(previous===opened)return;
@@ -5787,17 +5828,12 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
  const instant=forceInstant||previous===undefined||window.matchMedia('(prefers-reduced-motion:reduce)').matches||typeof panel.animate!=='function';
  if(instant){panel.hidden=!opened;return;}
  panel.hidden=false;
- const targetHeight=opened?panel.getBoundingClientRect().height:0;
+ const fullHeight=panel.getBoundingClientRect().height,targetHeight=opened?fullHeight:0;
  const natural=getComputedStyle(panel);
  const animation=panel.animate([
   {height:currentHeight+'px',opacity:currentOpacity,overflow:'hidden',boxSizing:'border-box',paddingTop:oldPaddingTop,paddingBottom:oldPaddingBottom,borderTopWidth:oldBorder},
   {height:targetHeight+'px',opacity:opened?1:0,overflow:'hidden',boxSizing:'border-box',paddingTop:opened?natural.paddingTop:'0px',paddingBottom:opened?natural.paddingBottom:'0px',borderTopWidth:opened?natural.borderTopWidth:'0px'}
- ],{
-  // Tall scale + arpeggio panels need time to settle. Reversing mid-flight
-  // travels only the remaining distance rather than replaying a full duration.
-  duration:Math.max(180,Math.min(460,280+Math.abs(targetHeight-currentHeight)*.07)),
-  easing:'cubic-bezier(.25,.1,.25,1)'
- });
+ ],disclosureMotion(panel,currentHeight,targetHeight,fullHeight));
  item.panelAnimation=animation;
  animation.onfinish=()=>{if(item.panelAnimation!==animation)return;panel.hidden=!item.opened;item.panelAnimation=null;};
  }
@@ -6208,12 +6244,11 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         delete launchOptions.dataset.animating;
       };
       if(!launchBody.animate||window.matchMedia('(prefers-reduced-motion:reduce)').matches){finish();return;}
-      const to=open?launchBody.getBoundingClientRect().height:0;
+      const full=launchBody.getBoundingClientRect().height,to=open?full:0;
       if(Math.abs(to-from)<1){finish();return;}
       launchOptions.dataset.animating='';
-      const duration=Math.min(open?430:350,Math.max(160,Math.abs(to-from)*1.3));
       const animation=launchBody.animate([{height:from+'px',opacity:alpha},{height:to+'px',opacity:open?1:0}],
-        {duration,easing:open?'cubic-bezier(.29,.12,.24,1)':'cubic-bezier(.30,.04,.24,1)'});
+        disclosureMotion(launchBody,from,to,full));
       launchAnimation=animation;
       animation.onfinish=()=>{if(launchAnimation===animation)finish();};
     }
