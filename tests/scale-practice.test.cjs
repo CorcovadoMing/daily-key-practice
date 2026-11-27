@@ -298,7 +298,8 @@ test('arpeggios use distinct kind labels, chart and results without changing but
   const heads=cMajorArpeggio.map(()=>new Node());
   const view=standalone.module.exports.card({querySelectorAll:()=>heads},cMajorArpeggio,()=>{},'arpeggio');
   const [action,status]=view.element.children;
-  const [,button]=action.children;
+  const [,start]=action.children;
+  const [button]=start.children;
   assert.equal(view.element.dataset.practiceKind,'arpeggio');
   assert.equal(button.children[1].textContent,'開始練習');
   assert.equal(button.attributes['aria-label'],'開始琶音練習');
@@ -437,7 +438,9 @@ test('native practice-mode selection persists and syncs scale/arpeggio without s
   let invoked=0;
   const scale=api.card(score,target,()=>invoked++), arp=api.card(score,cMajorArpeggio,()=>invoked++,'arpeggio');
   const [action]=scale.element.children, [otherAction]=arp.element.children;
-  const [demo,button,choice]=action.children, [,otherBtn,otherChoice]=otherAction.children;
+  const [demo,start,,settings]=action.children, [,otherStart,,otherSettings]=otherAction.children;
+  const [button]=start.children,[otherBtn]=otherStart.children;
+  const [choice]=settings.children,[otherChoice]=otherSettings.children;
   assert.equal(demo.className,'scale-demo-shell');
   assert.equal(demo.children[0].tag,'button');
   assert.equal(demo.children[0].dataset.demoState,'idle');

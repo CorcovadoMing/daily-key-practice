@@ -57,3 +57,38 @@ test('reference crossfades sustained bows at every original cue and releases onl
   a.equal(states.at(-1),'idle');a.equal(stops.filter(s=>s===undefined).length,3);
  }
 });
+
+test('live speed swaps only unsounded notes and preserves cue, pitch, order, and Stop',async()=>{
+ const vm=require('node:vm'),html=read('index.html'),code=html.split('// SCALE_PRACTICE_START')[1].split('// SCALE_PRACTICE_END')[0];
+ const scope={module:{exports:{}}};vm.runInNewContext(code,scope);
+ let current=8,armed=0;const sources=[],stops=[],states=[];
+ class AudioContext{
+  state='running';get currentTime(){return current;}destination={};
+  async decodeAudioData(){return {duration:21.45};}
+  createGain(){return {gain:{setValueAtTime(){},linearRampToValueAtTime(){}},connect(){},disconnect(){}};}
+  createBufferSource(){const id=sources.length,obj={id,playbackRate:{value:0},start(t,o,d){this.row={t,o,d,r:this.playbackRate.value};},stop(t){stops.push({id,t});},connect(){}};
+   sources.push(obj);return obj;
+  }
+ }
+ const env={AudioContext,performance:{now:()=>current*1e3},fetch:async()=>({ok:true,text:async()=>read('fingerboard-editor.js')}),atob,setTimeout:()=>++armed,clearTimeout(){}};
+ const p=scope.module.exports.celloDemoPlayer(env,{reference:()=>442,isCapturing:()=>false,asset:'bank'});
+ const view={target:[36,38,40,41,43,45].map(midi=>({midi})),demoKind:'scale',demoSpeed:1,demoUpdate:s=>states.push(s)};
+ await p.toggle(view);
+ const base=sources.slice(),eq=(x,y)=>a.ok(Math.abs(x-y)<1e-9);
+ current=8.25;
+ a.equal(p.speedChanged(1.4),true);
+ a.deepEqual(stops.filter(x=>x.t===undefined).map(x=>x.id),[1,2,3,4,5]);
+ const faster=sources.slice(6);
+ eq(faster[0].row.t,base[1].row.t);eq(faster[1].row.t-faster[0].row.t,.5/1.4);
+ a.deepEqual(faster.map(x=>x.row.r),base.slice(1).map(x=>x.row.r));
+ // The first renewed note has now sounded. Slowing keeps it and the next cue.
+ current=8.68;
+ a.equal(p.speedChanged(.6),true);
+ a.deepEqual(stops.filter(x=>x.t===undefined).map(x=>x.id),[1,2,3,4,5,7,8,9,10]);
+ const slower=sources.slice(11);
+ eq(slower[0].row.t,faster[1].row.t);eq(slower[1].row.t-slower[0].row.t,.5/.6);
+ a.deepEqual(slower.map(x=>x.row.r),base.slice(2).map(x=>x.row.r));
+ a.equal(states.length,2); // no stop/restart or replay UI during speed changes
+ p.stop();a.equal(states.at(-1),'idle');
+ a.equal(new Set(stops.filter(x=>x.t===undefined).map(x=>x.id)).size,sources.length);
+});

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261127-086-experimental">
+  <meta name="site-version" content="20261127-087-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -455,6 +455,7 @@
     .filter-key.minor{background:#eeebf0;border-color:#dcd6e1;color:#594e61}
     .draw-button{background:#42533e}.draw-button:hover:not(:disabled){background:#52664c}
     #tuner-preferences{flex-wrap:wrap;left:var(--tuner-settings-left,0px)}
+    #metronome-panel{left:var(--metro-settings-left,0px)}
     .audio-tools,.tuner-preferences{background:var(--paper)}
     .intro .eyebrow{color:#697b5e}h1 em{color:#718067}
     #metronome-open,#tuner-open{width:60px;min-width:60px}
@@ -1053,7 +1054,7 @@
       .room-join-dialog{max-block-size:min(calc(100% - 1.5rem),calc(100dvh - 1.5rem));overflow:auto;overscroll-behavior:contain}
       .room-join-dialog .room-digits span{height:max(46px,2.875rem);font-size:1.375rem}
       .scale-practice>.scale-practice-action,.scale-practice-history-actions{gap:var(--ui-gap)}
-      .scale-practice-action>.scale-practice-button{min-block-size:calc(2.5rem + 6px)}
+      .scale-practice-action .scale-start-shell>.scale-practice-button{min-block-size:calc(2.5rem + 6px)}
       :is(.scale-pitch-chart,.scale-pitch-trend,.scale-practice-coach){padding:clamp(.625rem,2.8vw,.875rem);border-radius:var(--ui-radius)}
       .scale-pitch-area{grid-template-columns:39px minmax(0,1fr)}
       .scale-pitch-axis{font-size:var(--ui-caption)}
@@ -1133,10 +1134,10 @@
       .key-card[data-key-mode].done .key-title{color:var(--ink)}
       .scale-practice{--score-start-fill:#304c37;--score-start-ink:#fff;--score-start-hover:#405b45}
       [data-appearance=dark] .scale-practice{--score-start-fill:#363d46;--score-start-ink:var(--ink);--score-start-hover:#4b5a69}
-      .scale-practice[data-phase=idle]>.scale-practice-action>.scale-practice-button{
+      .scale-practice[data-phase=idle]>.scale-practice-action .scale-start-shell>.scale-practice-button{
         background:var(--score-start-fill);color:var(--score-start-ink);border-color:var(--score-start-fill)
       }
-      .scale-practice[data-phase=idle]>.scale-practice-action>.scale-practice-button:hover{
+      .scale-practice[data-phase=idle]>.scale-practice-action .scale-start-shell>.scale-practice-button:hover{
         background:var(--score-start-hover);border-color:var(--score-start-hover)
       }
     }
@@ -1234,23 +1235,30 @@
       @media(max-width:26rem){.launch-count-sentence{row-gap:4px}}
     }
     /* Same button and focus target throughout playback. */
-    .scale-demo-shell{display:inline-flex;inline-size:116px;min-block-size:44px;max-inline-size:100%;align-items:stretch}
+    .scale-demo-shell,.scale-start-shell{display:inline-flex;min-block-size:44px;max-inline-size:100%;align-items:stretch}
+    .scale-demo-shell{inline-size:116px}
     .scale-practice .scale-practice-action .scale-demo-shell .scale-practice-demo{border-start-end-radius:0;border-end-end-radius:0}
-    .scale-practice .scale-practice-action .scale-demo-chevron{
+    .scale-practice .scale-practice-action :is(.scale-demo-chevron,.scale-start-chevron){
       display:grid;place-items:center;inline-size:44px;min-block-size:44px;padding:0;margin-inline-start:-1px;
       border:1px solid var(--line);border-start-start-radius:0;border-end-start-radius:0;
       border-start-end-radius:22px;border-end-end-radius:22px;background:var(--paper);color:var(--ink)
     }
-    .scale-practice .scale-practice-action .scale-demo-chevron:hover:not(:disabled){background:var(--soft);color:var(--ink)}
-    .scale-demo-chevron svg{inline-size:13px;block-size:13px}
-    .scale-demo-chevron[aria-expanded=true] svg{transform:rotate(180deg)}
-    .scale-demo-settings{flex:1 1 100%;max-inline-size:20rem;min-width:0;padding:.5rem .7rem;background:var(--paper);border:1px solid var(--line);border-radius:12px;color:var(--ink)}
+    .scale-practice .scale-practice-action :is(.scale-demo-chevron,.scale-start-chevron):hover:not(:disabled){background:var(--soft);color:var(--ink)}
+    :is(.scale-demo-chevron,.scale-start-chevron) svg{inline-size:13px;block-size:13px}
+    :is(.scale-demo-chevron,.scale-start-chevron)[aria-expanded=true] svg{transform:rotate(180deg)}
+    .scale-practice .scale-practice-action .scale-start-shell>.scale-practice-button{border-start-end-radius:0;border-end-end-radius:0}
+    .scale-action-popover{position:fixed;z-index:80;inset:auto;margin:0;box-sizing:border-box;width:max-content;
+      max-inline-size:min(20rem,calc(100vw - 16px));max-block-size:calc(100dvh - 16px);overflow:auto;
+      padding:.5rem .7rem;background:var(--paper);border:1px solid var(--line);
+      border-radius:12px;color:var(--ink);box-shadow:0 4px 24px #243a252a}
+    .scale-action-popover .scale-practice-choice{margin:0}
+    .scale-demo-settings{inline-size:min(15rem,calc(100vw - 16px));min-width:0}
     .scale-demo-speed-row{display:flex;align-items:center;gap:.6rem;min-block-size:44px;font-size:.875rem}
     .scale-demo-speed-row label,.scale-demo-speed-row output{flex:none}
     .scale-demo-speed-row input{flex:1 1 6rem;min-inline-size:0;width:100%;min-block-size:44px}
     .scale-demo-speed-row output{min-inline-size:2.5em;text-align:end;font-variant-numeric:tabular-nums}
     .scale-demo-speed-status{font-size:.75rem;color:var(--muted)}
-    .scale-demo-settings[hidden],.scale-demo-speed-status[hidden]{display:none}
+    .scale-action-popover[hidden],.scale-demo-speed-status[hidden]{display:none}
     .scale-practice .scale-practice-action .scale-practice-demo{
       position:relative;display:grid;place-items:center;inline-size:72px;max-inline-size:100%;
       padding:0;min-block-size:44px;overflow:hidden;border:1px solid var(--line);
@@ -1290,7 +1298,7 @@
       .scale-demo-bar{transition:transform 67ms linear}
       @keyframes demo-turn{to{transform:rotate(1turn)}}
     }
-    @media print{.scale-demo-shell,.scale-demo-settings{display:none!important}}
+    @media print{.scale-demo-shell,.scale-start-chevron,.scale-action-popover{display:none!important}}
     /* A shared two-option track. Native radios remain the real controls. */
     @media screen and (forced-colors:none){
       @supports selector(fieldset:has(input:checked)){
@@ -1537,7 +1545,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-086-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261127-087-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -3431,6 +3439,58 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     try{globalThis.localStorage?.setItem(demoSpeedPreference,String(demoSpeed));}catch{}
     return demoSpeed;
   }
+  let activeActionPopover=null;
+  function anchoredActionPopover(trigger,panel,focusTarget){
+    const document=globalThis.document;
+    const native=typeof panel.showPopover==='function'&&typeof panel.hidePopover==='function';
+    if(native)panel.setAttribute('popover','manual');
+    panel.hidden=true;
+    trigger.setAttribute('aria-controls',panel.id);
+    trigger.setAttribute('aria-expanded','false');
+    function position(){
+      if(trigger.isConnected===false){close(false);return;}
+      const box=trigger.getBoundingClientRect?.();
+      if(!box)return;
+      const viewport=globalThis.visualViewport;
+      const vw=viewport?.width||document.documentElement?.clientWidth||globalThis.innerWidth;
+      const vh=viewport?.height||document.documentElement?.clientHeight||globalThis.innerHeight;
+      if(!Number.isFinite(vw)||!Number.isFinite(vh))return;
+      const x=viewport?.offsetLeft||0,y=viewport?.offsetTop||0;
+      const width=panel.offsetWidth,height=panel.offsetHeight;
+      const left=Math.max(x+8,Math.min(box.left+box.width/2-width/2,x+vw-width-8));
+      panel.style.left=left+'px';
+      panel.style.top=Math.max(y+8,Math.min(box.top-height-7,y+vh-height-8))+'px';
+    }
+    const outside=event=>{if(!panel.contains?.(event.target)&&!trigger.contains?.(event.target))close(false);};
+    const key=event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();close(true);}};
+    function close(focus){
+      if(panel.hidden)return;
+      if(native)try{panel.hidePopover();}catch{}
+      panel.hidden=true;trigger.setAttribute('aria-expanded','false');
+      if(activeActionPopover===close)activeActionPopover=null;
+      document.removeEventListener?.('pointerdown',outside,true);
+      document.removeEventListener?.('keydown',key,true);
+      document.removeEventListener?.('scroll',position,true);
+      globalThis.removeEventListener?.('resize',position);
+      globalThis.visualViewport?.removeEventListener?.('resize',position);
+      if(focus)trigger.focus?.({preventScroll:true});
+    }
+    function open(){
+      activeActionPopover?.(false);
+      panel.hidden=false;
+      if(native)try{panel.showPopover();}catch{}
+      trigger.setAttribute('aria-expanded','true');
+      activeActionPopover=close;
+      position();focusTarget()?.focus?.({preventScroll:true});
+      document.addEventListener?.('pointerdown',outside,true);
+      document.addEventListener?.('keydown',key,true);
+      document.addEventListener?.('scroll',position,true);
+      globalThis.addEventListener?.('resize',position);
+      globalThis.visualViewport?.addEventListener?.('resize',position);
+    }
+    trigger.addEventListener('click',()=>panel.hidden?open():close(false));
+    return close;
+  }
   const demoSpeedControls=new WeakMap();
   let demoSpeedSerial=0;
   function celloDemoPlayer(env, {reference, isCapturing, asset}) {
@@ -3445,7 +3505,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       if(take.meterFrame!==undefined)env.cancelAnimationFrame?.(take.meterFrame);
       try{take.analyser?.disconnect();}catch{}
       if(take.audible)quietUntil=clock()+600;
-      for(const source of take.nodes)try{source.stop();}catch{}
+      for(const {source} of take.nodes)try{source.stop();}catch{}
       try{take.output?.disconnect();}catch{}
       take.view.demoUpdate('idle');
     }
@@ -3500,7 +3560,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       stop();
       const Context=env.AudioContext||env.webkitAudioContext;
       if(!Context){view.demoUpdate('idle','這個瀏覽器無法播放大提琴錄音。');return;}
-      const a4=reference(), speed=demoSpeedValue(view.demoSpeed), take={view,nodes:[],audible:false};
+      const a4=reference(), take={view,nodes:[],audible:false,speed:demoSpeedValue(view.demoSpeed)};
       active=take;
       view.demoUpdate('loading');
       try{
@@ -3513,57 +3573,82 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         if(isCapturing()||context.state!=='running')throw new Error('audio unavailable');
         const t0=context.currentTime+.06, output=context.createGain();
         take.output=output;output.gain.value=.86;output.connect(context.destination);
-        let end=t0;
-        const count=view.target.length, transition=.024;
-        const beat=(view.demoKind==='arpeggio'?.64:.50)/speed;
-        for(let i=0;i<count;i++){
-          const {midi}=view.target[i];
-          if(!Number.isInteger(midi)||midi<36||midi>72)throw new Error('outside sample bank');
-          const root=Math.round((midi-36)/3), [hz,offset]=celloDemoRoots[root];
-          const rate=a4*Math.pow(2,(midi-69)/12)/hz;
-          const first=i===0, last=i===count-1, cue=t0+i*beat;
-          // Keep the last sustain within the isolated sample; do not spill into the next root.
-          const next=cue+(last?Math.min(1.30,1.10/speed):beat);
-          const start=first?cue:cue-transition;
-          end=last?next:next+transition;
-          // The phrase has one audible bow attack. Join the sustained part of
-          // each later recording to the previous one around the exact cue,
-          // without tapering every note to silence or sliding between pitches.
-          const level=.87+.10*Math.sin(Math.PI*i/Math.max(1,count-1));
-          const source=context.createBufferSource(), gain=context.createGain();
-          source.buffer=bank;source.playbackRate.value=rate;
-          gain.gain.setValueAtTime(0,start);
-          gain.gain.linearRampToValueAtTime(level,cue+(first?.034:transition));
-          if(last){
-            gain.gain.setValueAtTime(level,next-.24);
-            gain.gain.linearRampToValueAtTime(level*.23,next-.075);
-          }else{
-            gain.gain.setValueAtTime(level,next-transition);
+        function schedule(from,t0,speed){
+          let end=t0;
+          const count=view.target.length, transition=.024;
+          const beat=(view.demoKind==='arpeggio'?.64:.50)/speed;
+          for(let i=from;i<count;i++){
+            const {midi}=view.target[i];
+            if(!Number.isInteger(midi)||midi<36||midi>72)throw new Error('outside sample bank');
+            const root=Math.round((midi-36)/3), [hz,offset]=celloDemoRoots[root];
+            const rate=a4*Math.pow(2,(midi-69)/12)/hz;
+            const first=i===0, last=i===count-1, cue=t0+(i-from)*beat;
+            // Keep the last sustain within the isolated sample; do not spill into the next root.
+            const next=cue+(last?Math.min(1.30,1.10/speed):beat);
+            const start=first?cue:cue-transition;
+            end=last?next:next+transition;
+            // The phrase has one audible bow attack. Join the sustained part of
+            // each later recording to the previous one around the exact cue,
+            // without tapering every note to silence or sliding between pitches.
+            const level=.87+.10*Math.sin(Math.PI*i/Math.max(1,count-1));
+            const source=context.createBufferSource(), gain=context.createGain();
+            source.buffer=bank;source.playbackRate.value=rate;
+            gain.gain.setValueAtTime(0,start);
+            gain.gain.linearRampToValueAtTime(level,cue+(first?.034:transition));
+            if(last){
+              gain.gain.setValueAtTime(level,next-.24);
+              gain.gain.linearRampToValueAtTime(level*.23,next-.075);
+            }else{
+              gain.gain.setValueAtTime(level,next-transition);
+            }
+            gain.gain.linearRampToValueAtTime(0,end);
+            source.connect(gain);gain.connect(output);
+            take.nodes.push({source,gain,start,cue});
+            source.start(start,offset+(first?0:.115),(end-start)*rate);
+            source.stop(end);
           }
-          gain.gain.linearRampToValueAtTime(0,end);
-          source.connect(gain);gain.connect(output);
-          take.nodes.push(source);
-          source.start(start,offset+(first?0:.115),(end-start)*rate);
-          source.stop(end);
+          take.end=end;
         }
+        // Stretch/compress the unheard tail, but preserve the next cue at
+        // the current note's already-scheduled release and crossfade.
+        take.retime=(nextSpeed)=>{
+          if(nextSpeed===take.speed||context.state!=='running')return false;
+          const now=context.currentTime;
+          const next=take.nodes.findIndex(note=>note.start>now+.02);
+          if(next<0)return false;
+          const cue=take.nodes[next].cue;
+          for(const {source,gain} of take.nodes.splice(next)){
+            try{source.stop();}catch{}
+            try{source.disconnect();gain.disconnect();}catch{}
+          }
+          schedule(next,cue,nextSpeed);
+          take.speed=nextSpeed;
+          if(take.endTimer!==undefined)env.clearTimeout(take.endTimer);
+          finish();
+          return true;
+        };
+        schedule(0,t0,take.speed);
         take.audible=true;
         view.demoUpdate('playing');
         showSpectrum(take,output);
-        // Audio clock is authoritative: suspend and delayed timers cannot leave
-        // queued sample sound after the button or recording becomes available.
-        const finish=()=>{
+        function finish(){
           if(active!==take)return;
           if(context.state==='closed'){stop();return;}
-          const remaining=end-context.currentTime;
+          const remaining=take.end-context.currentTime;
           if(remaining<=.002){stop();return;}
           take.endTimer=env.setTimeout(finish,Math.max(50,remaining*1000+25));
-        };
+        }
         finish();
       }catch{
         if(active===take){stop();view.demoUpdate('idle','目前無法播放大提琴錄音，請再試一次。');}
       }
     }
-    return {toggle,stop,blocked,stopWithin:host=>{if(active&&host?.contains(active.view.element))stop();}};
+    function speedChanged(value){
+      if(!active)return false;
+      if(!active.audible){active.speed=demoSpeedValue(value);return true;}
+      return active.retime?.(demoSpeedValue(value))||false;
+    }
+    return {toggle,stop,blocked,speedChanged,stopWithin:host=>{if(active&&host?.contains(active.view.element))stop();}};
   }
 
   // Without an opening anchor, a clear run down to the shared low tonic
@@ -4180,7 +4265,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     demoChevron.setAttribute('aria-label',name+'示範速度');
     demoChevron.setAttribute('aria-expanded','false');
     demoChevron.innerHTML='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m3 6 5 5 5-5"/></svg>';
-    demoSettings.className='scale-demo-settings';demoSettings.hidden=true;demoSettings.id='demo-settings-'+(++demoSpeedSerial);
+    demoSettings.className='scale-demo-settings scale-action-popover';demoSettings.hidden=true;demoSettings.id='demo-settings-'+(++demoSpeedSerial);
     demoChevron.setAttribute('aria-controls',demoSettings.id);
     const speedRow=document.createElement('div'),speedLabel=document.createElement('label'),speedSlider=document.createElement('input'),
       speedOutput=document.createElement('output'),speedStatus=document.createElement('small');
@@ -4188,7 +4273,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     speedSlider.id=demoSettings.id+'-speed';speedLabel.htmlFor=speedSlider.id;
     speedSlider.type='range';speedSlider.min='0.6';speedSlider.max='1.4';speedSlider.step='0.1';
     speedOutput.setAttribute('for',speedSlider.id);speedOutput.setAttribute('aria-hidden','true');
-    speedStatus.className='scale-demo-speed-status';speedStatus.textContent='下次播放生效';speedStatus.hidden=true;
+    speedStatus.className='scale-demo-speed-status';speedStatus.textContent='從下一個可調整的音開始';speedStatus.hidden=true;
     speedRow.append(speedLabel,speedSlider,speedOutput);demoSettings.append(speedRow,speedStatus);
     demoShell.append(demoButton,demoChevron);
     function syncDemoSpeed(value){
@@ -4196,21 +4281,21 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       speedSlider.value=String(value);speedOutput.textContent=visible;
       speedSlider.setAttribute('aria-valuetext',value.toFixed(1)+' 倍');
     }
-    function showDemoSettings(open,focus=false){
-      demoSettings.hidden=!open;demoChevron.setAttribute('aria-expanded',String(open));
-      if(open){syncDemoSpeed(getDemoSpeed());if(focus)speedSlider.focus?.({preventScroll:true});}
-      else if(focus)demoChevron.focus?.({preventScroll:true});
-    }
+    const closeDemoSettings=anchoredActionPopover(demoChevron,demoSettings,()=>speedSlider);
+    const startShell=document.createElement('span'),startChevron=document.createElement('button'),startSettings=document.createElement('div');
+    startShell.className='scale-start-shell';startChevron.type='button';startChevron.className='scale-start-chevron';
+    startChevron.setAttribute('aria-label',name+'練習方式');
+    startChevron.innerHTML=demoChevron.innerHTML;
+    startSettings.className='scale-action-popover scale-start-settings';startSettings.id='practice-settings-'+methodGroup;
+    startSettings.append(choice);startShell.append(button,startChevron);
+    const closeStartSettings=anchoredActionPopover(startChevron,startSettings,()=>methodInputs.find(x=>x.checked)||methodInputs[0]);
     demoSpeedControls.set(speedSlider,syncDemoSpeed);
     syncDemoSpeed(getDemoSpeed());
-    demoChevron.addEventListener('click',()=>showDemoSettings(demoSettings.hidden,demoSettings.hidden));
-    demoSettings.addEventListener('keydown',event=>{
-      if(event.key!=='Escape')return;
-      event.preventDefault();event.stopPropagation();showDemoSettings(false,true);
-    });
     speedSlider.addEventListener('input',()=>{
       const next=saveDemoSpeed(Number(speedSlider.value));
       syncDemoSpeed(next);
+      const live=globalThis.CelloScalePractice?.demo?.speedChanged?.(next);
+      speedStatus.textContent=live?'從下一個可調整的音開始':'下次播放生效';
       for(const field of document.querySelectorAll?.('.scale-demo-speed-row input')||[])demoSpeedControls.get(field)?.(next);
     });
     const demoStill=[.25,.45,.66,.52,.34,.21];
@@ -4230,7 +4315,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
     }
     demoUpdate('idle');
     demoButton.addEventListener('click',()=>globalThis.CelloScalePractice?.demo?.toggle(view));
-    action.append(demoShell,button,choice,demoSettings);
+    action.append(demoShell,startShell,demoSettings,startSettings);
     const status = document.createElement('p');
     status.className = 'scale-practice-status';
     status.setAttribute('role', 'status');
@@ -4649,8 +4734,8 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       const summary = '已完成 ' + laps + ' 輪 · ' + (display?.passed || 0) + ' 輪通過';
       if (next !== phase) {
         phase = next;
-        demoButton.disabled=demoChevron.disabled=next!=='idle';
-        if(next!=='idle')showDemoSettings(false);
+        demoButton.disabled=demoChevron.disabled=startChevron.disabled=next!=='idle';
+        if(next!=='idle'){closeDemoSettings(false);closeStartSettings(false);}
         demoStatus.textContent='';
         element.dataset.phase = next;
         buttonText.textContent = next === 'idle' ? '開始練習' : next === 'pending' ? '取消收音' : '停止並看結果';
@@ -6522,14 +6607,14 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     $('tuner-needle').dataset.band = view.band;
     $('tuner-meter').querySelectorAll('.audio-band').forEach(band => band.classList.toggle('is-active', view.valid && band.dataset.segment === view.segment));
   }
-  function alignTunerSettings(tools=document.querySelector('.audio-tools')){
-    const panel=$('tuner-preferences'),trigger=$('tuner-settings');
+  function alignTunerSettings(tools=document.querySelector('.audio-tools'),kind='tuner'){
+    const panel=$(kind==='tuner'?'tuner-preferences':'metronome-panel'),trigger=$(kind==='tuner'?'tuner-settings':'metro-settings');
     if(panel.hidden||!tools)return;
     const box=tools.getBoundingClientRect(),button=trigger.getBoundingClientRect(),width=panel.offsetWidth;
     const viewport=document.documentElement.clientWidth||window.innerWidth;
     const left=Math.max(8,Math.min(button.left+button.width/2-width/2,viewport-width-8));
     const border=parseFloat(getComputedStyle(tools).borderLeftWidth)||0;
-    panel.style.setProperty('--tuner-settings-left',left-box.left-border+'px');
+    panel.style.setProperty(kind==='tuner'?'--tuner-settings-left':'--metro-settings-left',left-box.left-border+'px');
   }
   function sizeTools(){
     const tools=document.querySelector('.audio-tools'),buttons=tools.querySelector('.audio-buttons'),rail=$('floating-practice-nav');
@@ -6544,7 +6629,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     tools.style.setProperty('--dock-readout-start',Math.ceil(start+buttonsWidth+gap)+'px');
     tools.style.setProperty('--dock-readout-end',Math.ceil(end)+'px');
     if(rail)rail.style.setProperty('--practice-float-bottom',Math.ceil(Math.max(0,innerHeight-dock.top)+10)+'px');
-    alignTunerSettings(tools);
+    alignTunerSettings(tools);alignTunerSettings(tools,'metro');
   }
   const toolResize=new ResizeObserver(()=>requestAnimationFrame(sizeTools));
   toolResize.observe(document.querySelector('.audio-buttons'));
@@ -6557,7 +6642,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     }
     $(name+'-panel').hidden=!visible;
     $(name==='metronome'?'metro-settings':name+'-open').setAttribute('aria-expanded',String(visible));
-    if(name==='metronome'){$('metro-settings').setAttribute('aria-label',visible?'收起節拍器設定':'展開節拍器設定');if(visible)tunerSettings(false);}
+    if(name==='metronome'){$('metro-settings').setAttribute('aria-label',visible?'收起節拍器設定':'展開節拍器設定');if(visible){tunerSettings(false);alignTunerSettings(undefined,'metro');}}
   }
   const Context = window.AudioContext || window.webkitAudioContext;
   // +2.3 dB only on iOS Safari, with 15% digital headroom even at full volume.

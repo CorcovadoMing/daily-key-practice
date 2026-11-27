@@ -12,7 +12,7 @@ test('the dock width transition is based on button size, not on its changing wid
  let right=220;const rail={style:styles},tools={style:styles,querySelector:()=>({offsetWidth:182,scrollWidth:182}),getBoundingClientRect:()=>({top,left:12,right})};
  const els={'.audio-tools':tools};
  const tuner={hidden:true,offsetHeight:76};
- const ctx={document:{querySelector:k=>els[k]},$:id=>id==='floating-practice-nav'?rail:id==='tuner-preferences'?{hidden:true}:tuner,
+ const ctx={document:{querySelector:k=>els[k]},$:id=>id==='floating-practice-nav'?rail:['tuner-preferences','metronome-panel'].includes(id)?{hidden:true}:tuner,
   innerWidth:1200,innerHeight:800,getComputedStyle:()=>({paddingLeft:'12px',paddingRight:'12px',borderLeftWidth:'1px',borderRightWidth:'1px',getPropertyValue:()=> '8px'})};
  const start=html.indexOf('  function alignTunerSettings('),end=html.indexOf('  const toolResize',start);
  vm.runInNewContext(html.slice(start,end)+';this.resize=sizeTools;',ctx);
