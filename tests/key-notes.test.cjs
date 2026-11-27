@@ -24,7 +24,7 @@ test('the major and minor key headers place the accessible notes action below th
   a.equal(details.className,'key-secondary');a.deepEqual(details.children.map(n=>n.textContent),['上行 F♯','下行 無升降音']);
   a.equal(card.dataset.keyMode,mode);a.match(card.className,/done/);
   a.equal(title.textContent,name);a.equal(note.attrs['aria-label'],name+'，新增個人練習筆記');
-  a.equal(title.children.length,0);a.equal(expand.className,'key-expand');
+  a.equal(title.children.length,0);a.deepEqual(expand.className.split(' '),['key-expand','ui-icon-plain']);
   note.events.click();a.deepEqual(calls.pop(),['note',mode+'-0',note]);
   title.events.click();a.deepEqual(calls.pop(),['expand',mode+'-0']);
   expand.events.click();a.deepEqual(calls.pop(),['expand',mode+'-0']);

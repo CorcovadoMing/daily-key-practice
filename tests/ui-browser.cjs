@@ -255,15 +255,20 @@ async function extras(page,width){
  await dismiss(metro,metronome);
  const card=q('.key-card').first(),arrow=card.locator('.key-expand');
  const checkArrow=async()=>{
-  const a=await arrow.evaluate(e=>{const s=getComputedStyle(e);return [e.offsetWidth,e.offsetHeight,s.backgroundColor,s.borderTopWidth,s.boxShadow];});
-  assert.deepEqual(a,[44,44,'rgba(0, 0, 0, 0)','0px','none']);
+  const a=await arrow.evaluate(e=>{const s=getComputedStyle(e);return [e.offsetWidth,e.offsetHeight,s.backgroundColor,s.borderTopWidth,s.boxShadow,s.webkitTapHighlightColor,getComputedStyle(e,'::before').content];});
+  assert.deepEqual(a,[44,44,'rgba(0, 0, 0, 0)','0px','none','rgba(0, 0, 0, 0)','none']);
  };
  if(await arrow.getAttribute('aria-expanded')==='true')await arrow.press('Space');
  await checkArrow();
  await arrow.press('Space');
  assert.equal(await arrow.getAttribute('aria-expanded'),'true');
  await checkArrow();
- if(width>=500){await arrow.hover();await checkArrow();}
+ if(width>=500){
+  await arrow.hover();await checkArrow();
+  await page.mouse.down();try{await checkArrow();}finally{await page.mouse.up();}
+  assert.equal(await arrow.getAttribute('aria-expanded'),'false');
+  await arrow.press('Space');
+ }
  for(const kind of ['scale','arpeggio']){
   const item=card.locator('.scale-practice[data-practice-kind="'+kind+'"]');
   const start=item.locator('.scale-start-chevron'),demo=item.locator('.scale-demo-chevron');
