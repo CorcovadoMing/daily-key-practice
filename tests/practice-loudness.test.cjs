@@ -79,6 +79,24 @@ test('one lap reports only a measured short interruption, rough join, or local d
     assert.equal(tracked(controls).connection,null,JSON.stringify(controls));
   assert.equal(synthetic(t=>t<350?.06:.145).connection,null,'one varying pitch is not a connection');
 });
+test('only two reviewed adjacent strings earn a conditional bow-crossing drill',()=>{
+  const trace={connection:{kind:'rough',from:0,to:1,lap:1}};
+  const plan=(a,b,reviewed=true,source='confirmed/visible plan')=>({source,slots:[
+    {plan:{string:a,reviewed:true}},{plan:{string:b,reviewed}}
+  ]});
+  const fallback=loud.suggestion(trace,'上行','D','E');
+  for(const p of [plan('G','G'),plan('C','D'),plan('G','D',false),plan('G','D',true,'score only'),plan('G','X'),null])
+    assert.deepEqual(loud.suggestion(trace,'上行','D','E',p),fallback);
+  for(const [a,b,direction] of [['G','D','上行'],['D','G','下行']]){
+    const out=loud.suggestion(trace,direction,'D','E',plan(a,b));
+    assert.equal(out.source,'bowCrossing');
+    assert.match(out.observation,/錄到一小段較粗的聲音/);
+    assert.ok(out.action.includes(a+'、'+b+' 兩條空弦'));
+    assert.match(out.action,/如果這裡本來要拉得連貫.*弓臂就慢慢往下一弦的高度移.*照原弓法慢拉 D → E 兩次/);
+    assert.match(out.check,/前後各一音.*沙聲.*如果本來就要斷開/);
+    assert.equal(loud.suggestion({...trace,processing:true},direction,'D','E',plan(a,b)),null);
+  }
+});
 test('one mixed RMS window on either side does not hide a short interrupted join',()=>{
   function probe({third=false,missing=false,long=false,lowDip=false}={}){
     const c=loud.capture(1000);
@@ -198,11 +216,11 @@ test('actual coach button renders current take loudness and resets from next tak
   const managerInstance=manager({performance:{now:()=>clock}},{
     capture,swiftCapture:capture,pitchReading,pitchName:String,reference:()=>442,loudnessCapture:loud.capture
   });
-  const target=[38,40,41,40,38].map((midi,i)=>({midi,name:['D','E','F','E','D'][i],octave:2}));
+  const target=[50,52,53,52,50].map((midi,i)=>({midi,name:['D','E','F','E','D'][i],octave:3}));
   const view=card({querySelectorAll:()=>target.map(()=>new Node('g'))},target,()=>{});
   async function play(repeatCount,makeVariation){
     await managerInstance.toggle(view);listener.ready();
-    const route=[38,...Array.from({length:repeatCount},()=>[40,41,40,38]).flat()];
+    const route=[50,...Array.from({length:repeatCount},()=>[52,53,52,50]).flat()];
     for(let slot=0;slot<route.length;slot++){
       const midi=route[slot];
       if(makeVariation&&slot===1){
@@ -230,6 +248,13 @@ test('actual coach button renders current take loudness and resets from next tak
   await play(2,false);
   assert.equal(chart(),first,'reuse the same chart across takes');
   assert.doesNotMatch(view.element.textContent,/接近安靜/);
+  assert.doesNotMatch(view.element.textContent,/Aldo Parisot：如何練習平順換弓/);
+  view.snapshotVisiblePlan=()=>({source:'confirmed/visible plan',revision:'confirmed',
+    slots:target.map((note,i)=>({...note,direction:i<=2?'up':'down',plan:{string:i===0||i===4?'G':'D',reviewed:true,finger:i===0||i===4?4:1}}))});
+  await play(1,true);
+  assert.match(view.element.textContent,/G 弦上的 D → D 弦上的 E.*接近安靜/);
+  assert.match(view.element.textContent,/G、D 兩條空弦.*前音還在響時/);
+  assert.match(view.element.textContent,/Paul Katz：連貫換弦/);
   assert.doesNotMatch(view.element.textContent,/Aldo Parisot：如何練習平順換弓/);
   assert.equal(writes,0);assert.equal(fetches,0);
 });
