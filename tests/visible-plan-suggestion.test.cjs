@@ -755,3 +755,56 @@ test('all three advice groups retain fixed order and legacy saved bow items stay
  cache[key]=JSON.stringify(draft);
  a.deepEqual(phaseNames(setup(cache)),expected,'older unordered text is categorized on restore');
 });
+
+test('position advice prioritizes corroborating group offsets, independent of a contradictory first lap',async()=>{
+ const f=setup({});const p=f.startPlan;
+ const rows=[
+  {9:46,10:46,11:46,17:1,18:1,19:1},
+  {5:-26,6:-27,7:-28,9:-17,10:-18,11:-20,17:-30,18:-32,19:-33,21:-23,22:-24,23:-25},
+  {5:-27,6:-28,7:-29,9:-18,10:-19,11:-21,17:-31,18:-33,19:-34,21:-24,22:-25,23:-26},
+ ];
+ const mapped=rows=>rows.map((row,id)=>({id:id+1,values:p.slots.map((_,i)=>row[i]??0)}));
+ const opts={...p,reference:443,detector:'Existing'};
+ const label=/^下行：.*對準這組的第一音 G/;
+ const original=f.practiceAdviceReport({...opts,rounds:mapped(rows)});
+ a.match(original.drills[0],label);
+ a.equal(original.drills.length,3);
+ a.match(original.drills[1],/^上行：.*對準這組的第一音 A/);
+ a.match(original.drills[2],/^下行：.*對準這組的第一音 C/);
+ a.doesNotMatch(original.drills.join(' '),/第一音 E/);
+ a.ok(original.issues.some(line=>/^上行：.*偏高最多 46¢/.test(line)),'contradictory measured lap stays visible');
+ a.deepEqual(f.practiceAdviceReport({...opts,rounds:mapped([...rows].reverse())}).drills,original.drills);
+ const weak=f.practiceAdviceReport({...opts,rounds:mapped(rows.slice(0,1))});
+ a.doesNotMatch(weak.drills.join(' '),/整手往/);
+ const partial=f.practiceAdviceReport({...opts,rounds:mapped(rows).map(r=>({...r,values:r.values.map((v,i)=>i===17?null:v)}))});
+ a.doesNotMatch(partial.drills.join(' '),/第一音 G/);
+ await f.press();f.ready();
+ for(let lap=0;lap<rows.length;lap++)for(let i=lap?1:0;i<f.target.length;i++)f.play(f.target[i],rows[lap][i]??0);
+ await f.press();
+ a.match(f.advise(),/下行：D 弦同一把位.*整組一起偏低/);
+ a.match(f.advise(),/上行：D 弦同一把位.*整組一起偏低/);
+ a.match(f.advise(),/偏高最多 46¢/);
+ a.match(f.advise(),/對準這組的第一音 C/);
+ a.doesNotMatch(f.advise(),/對準這組的第一音 E/);
+ a.equal(f.network,0);
+});
+
+test('corroborating group severity is comparable across key and direction; ties stay in score order',()=>{
+ const k=['G',1,'G A B C D E F♯'];
+ const f=setup({},'',()=>false,p=>p,null,'major-G',{mode:'major',key:k});
+ const p=f.startPlan;
+ const runs=[[1,2,3],[5,6,7],[21,22,23],[25,26,27]];
+ const report=(offsets,opposition=true)=>{
+  const row=amounts=>p.slots.map((_,i)=>{const j=runs.findIndex(g=>g.includes(i));return j<0?null:amounts[j];});
+  const rows=opposition?[row([48,1,1,1]),row(offsets),row(offsets)]:[row(offsets),row(offsets)];
+  return f.practiceAdviceReport({...p,rounds:rows.map((values,id)=>({id:id+1,values})),reference:443,detector:'Existing'});
+ };
+ const sorted=report([-18,-26,-33,-23]);
+ a.deepEqual(Array.from(sorted.drills,line=>line.match(/第一音 ([^ ]+)/)?.[1]),['G','E','C']);
+ a.ok(sorted.issues.some(line=>line.includes('偏高最多 48¢')));
+ const tie=report([-27,-27,-27,-27],false);
+ a.deepEqual(Array.from(tie.drills,line=>line.match(/第一音 ([^ ]+)/)?.[1]),['A','E','G']);
+ const none=report([null,null,null,null],false);
+ a.equal(none.drills.length,0);
+ a.doesNotMatch(none.issues.join(' '),/整組/);
+});
