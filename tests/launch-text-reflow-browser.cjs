@@ -13,6 +13,20 @@ const pre=await p.evaluate(()=>{const e=document.querySelector('#metro-settings'
  await pointer('#metro-settings');await p.locator('#metro-beats').selectOption('6');
  await p.keyboard.press('Escape');await pointer('#tuner-settings');
  if(!await p.locator('#tuner-a').isVisible())throw Error('A4 unavailable');
+ const sectionBounds=selector=>p.locator(selector).evaluate(e=>{const r=e.getBoundingClientRect(),v=visualViewport;return [r.top,r.bottom,v.offsetTop,v.offsetTop+v.height];});
+ const inFrame=([t,b,vt,vb])=>t>=vt+6&&b<=vb;
+ if(!inFrame(await sectionBounds('#tuner-preferences')))throw Error('A4 panel clipped');
  await p.keyboard.press('Escape');await pointer('#metro-settings');
-const out=await p.evaluate(()=>{const box=q=>{const e=document.querySelector(q),r=e.getBoundingClientRect();return [r.x,r.y,r.width,r.height,e.scrollWidth,e.clientWidth,e.scrollHeight,e.clientHeight]};return {panel:box('#metronome-panel'),accents:box('#metro-accents'),six:box('[data-beat="5"]'),trigger:box('#metro-settings'),main:document.documentElement.scrollWidth,scroll:[window.scrollX,window.scrollY]};});if(out.accents[4]!==out.accents[5])throw Error('accents require horizontal scrolling');await p.close();
+const out=await p.evaluate(()=>{const box=q=>{const e=document.querySelector(q),r=e.getBoundingClientRect();return [r.x,r.y,r.width,r.height,e.scrollWidth,e.clientWidth,e.scrollHeight,e.clientHeight]};return {panel:box('#metronome-panel'),accents:box('#metro-accents'),six:box('[data-beat="5"]'),trigger:box('#metro-settings'),main:document.documentElement.scrollWidth,scroll:[window.scrollX,window.scrollY]};});if(out.accents[4]!==out.accents[5])throw Error('accents require horizontal scrolling');
+ if(!inFrame(await sectionBounds('#metronome-panel'))||out.panel[1]+out.panel[3]>out.trigger[1]-2)throw Error('metronome panel clipped or covers trigger: '+JSON.stringify(out));
+ if(height===256){
+  await p.locator('#metronome-panel').evaluate(e=>{e.scrollTop=0;});
+  const bpm=await p.locator('#metro-bpm').evaluate(e=>{const r=e.getBoundingClientRect(),p=e.closest('section').getBoundingClientRect();return r.top>=p.top&&r.bottom<=p.bottom;});
+  if(!bpm)throw Error('BPM cannot be reached at the top');
+  await p.locator('#metronome-panel').evaluate(e=>{e.scrollTop=e.scrollHeight;});
+  const beat=p.locator('[data-beat="5"]'),was=await beat.getAttribute('aria-pressed');
+  await pointer('[data-beat="5"]');
+  if(was===await beat.getAttribute('aria-pressed'))throw Error('sixth accent cannot be reached');
+ }
+ await p.close();
 }}finally{await b?.close();server.close();}})().catch(e=>{console.error(e);process.exitCode=1});
