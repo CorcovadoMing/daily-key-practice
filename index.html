@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261128-136-experimental">
+  <meta name="site-version" content="20261128-137-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -1278,7 +1278,10 @@
     }
     /* Same button and focus target throughout playback. */
     .scale-demo-shell,.scale-start-shell{display:inline-flex;min-block-size:44px;max-inline-size:100%;align-items:stretch}
-    .scale-demo-shell{inline-size:calc(72px + var(--split-chevron-width))}
+    .scale-demo-shell{--demo-main-width:72px;inline-size:calc(var(--demo-main-width) + var(--split-chevron-width))}
+    @media(max-width:328px){
+      .scale-demo-shell{--demo-main-width:clamp(64px,calc(100vw - 256px),72px)}
+    }
     .scale-start-label{inline-size:4em;flex:none;text-align:center;white-space:nowrap}
     /* Suppress accidental double-taps on compact controls without removing pinch zoom. */
     :is(button,summary){touch-action:manipulation}
@@ -1304,7 +1307,7 @@
     .scale-demo-speed-status{font-size:.75rem;color:var(--muted)}
     .scale-action-popover[hidden],.scale-demo-speed-status[hidden]{display:none}
     .scale-practice .scale-practice-action .scale-practice-demo{
-      position:relative;display:grid;place-items:center;inline-size:72px;max-inline-size:100%;
+      position:relative;display:grid;place-items:center;inline-size:var(--demo-main-width,72px);max-inline-size:100%;
       padding:0;min-block-size:44px;overflow:hidden;border:1px solid var(--line);
       border-radius:22px;background:#e5f1e8;color:#19392c;border-color:#718e7c;white-space:nowrap
     }
@@ -1426,7 +1429,7 @@
         .launch-mode:has(>label:last-child>input:checked)::before{translate:100% 0}
         .launch-mode:has(>label>input:checked) input:checked+span{background:transparent;border-color:transparent}
       }
-      .scale-practice .scale-practice-action .scale-demo-shell>.scale-practice-demo:is([data-demo-state=loading],[data-demo-state=playing]),
+      .scale-practice .scale-practice-action .scale-demo-shell>.scale-practice-demo:is([data-demo-state=loading],[data-demo-state=playing]):not(:disabled),
       .scale-practice .scale-practice-action .scale-demo-shell>.scale-practice-demo:is([data-demo-state=loading],[data-demo-state=playing])+.split-chevron{
         background:var(--ui-selected);color:var(--ui-selected-text);border-color:var(--ui-selected);
       }
@@ -1794,7 +1797,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261128-136-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261128-137-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
