@@ -471,4 +471,4 @@ async function extras(page,width){
     await page.close();
    }
  }finally{await browser?.close();await new Promise(res=>server.close(res));}
-})().catch(e=>{console.error(e);process.exitCode=1});
+})().then(()=>require('./dock-ux-browser.cjs')).catch(e=>{console.error(e);process.exitCode=1});

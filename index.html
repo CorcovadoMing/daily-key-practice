@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261128-127-experimental">
+  <meta name="site-version" content="20261128-128-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -592,8 +592,11 @@
     @media screen{[data-appearance=dark] .scale-practice-coach-tip .scale-practice-coach-drill{color:#a8cbff}}
     .scale-practice-coach-tip .scale-practice-coach-context{color:var(--muted)}
     .scale-practice-coach .scale-practice-coach-elapsed{color:var(--muted);font-size:.8125rem}
-    .scale-practice-status{font-size:12px;margin:0;max-width:100%;flex:1 1 230px}
-    .scale-practice-latest{font-size:12px;white-space:nowrap}
+    .scale-practice-status,.scale-practice-latest{
+      min-inline-size:0;max-inline-size:100%;font-size:var(--ui-detail,.875rem);line-height:1.5;overflow-wrap:anywhere
+    }
+    .scale-practice-status{margin:0;flex:1 1 230px}
+    .scale-practice-latest{font-variant-numeric:tabular-nums;white-space:normal}
     .scale-practice-demo{min-block-size:44px}
     .scale-practice-demo-status{flex-basis:100%;color:var(--muted);font-size:.8125rem}
     .scale-practice-demo-status:empty,.scale-practice-status:empty,.scale-practice-latest:empty,.scale-pitch-legend:empty{display:none}
@@ -964,7 +967,15 @@
       min-width:0;flex:0 0 auto;padding:0 2px 0 8px;border-inline-start:1px solid var(--line);
       container-type:inline-size
     }
+    @media(max-width:24rem){#tuner-panel>.audio-meter-wrap{padding-inline:4px 0}}
     #tuner-panel .tuner-readout{gap:4px;margin-bottom:2px}
+    .tuner-meter-caption{display:grid;grid-template-columns:minmax(0,1fr);align-items:center;min-block-size:12px}
+    .tuner-meter-caption>*{grid-area:1/1;margin:0}
+    #tuner-state{color:var(--muted);font-size:.6875rem;text-align:center;line-height:12px;white-space:nowrap}
+    #tuner-panel:not([data-feedback=live]) .tuner-meter-caption>.audio-scale{visibility:hidden}
+    @container (max-width:100px){
+      #tuner-panel .audio-scale span{transform:translateX(-50%) scaleX(.72)}
+    }
     @container (max-width:120px){
       #tuner-panel .tuner-readout :is(#tuner-note,#tuner-cents){font-size:.875rem}
       #tuner-panel .audio-scale{font-size:6px;letter-spacing:-.3px}
@@ -976,6 +987,9 @@
       background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:6px 10px;box-shadow:0 3px 10px #15231a18;pointer-events:none}
     .local-audio-note{color:var(--muted);font-size:11px;text-align:left;align-self:flex-start}
     .audio-tool-pair{display:inline-flex;align-items:center;gap:3px}
+      .audio-tools .audio-tool-pair :is(#metronome-open,#metro-settings,#tuner-open,#tuner-settings){
+        box-sizing:border-box;inline-size:44px;min-inline-size:44px;block-size:44px
+      }
     .audio-buttons{gap:8px}
     .scale-practice>.scale-practice-action{display:flex;flex:0 1 auto;flex-wrap:wrap;align-items:flex-start;min-width:0;max-inline-size:100%;gap:5px}
     .scale-practice-action>.scale-practice-choice{min-height:44px;margin:0}
@@ -1346,6 +1360,10 @@
       .audio-tools .audio-tool-pair :is(button,#metro-settings,#tuner-settings){
         border:0;border-radius:10px;color:var(--ink);background:transparent
       }
+      .audio-tools .audio-tool-pair :is(#metro-settings,#tuner-settings)::before{
+        content:"";position:absolute;inset-block:13px;inset-inline-start:0;inline-size:1px;background:var(--ui-button-edge);pointer-events:none
+      }
+      .audio-tools .audio-tool-pair :is(#metro-settings,#tuner-settings){position:relative}
       .session-launch #draw-button{border:1px solid transparent;border-radius:15px}
       .session-launch .launch-count-sentence .stepper{
         background:var(--ui-button-quiet);border:1px solid var(--ui-button-edge);border-radius:13px
@@ -1689,7 +1707,7 @@
           <div id="metro-accents" role="group" aria-labelledby="metro-accents-label"></div>
         </section>
         <section id="tuner-panel" class="audio-panel" aria-label="調音器控制" hidden>
-          <div class="audio-meter-wrap"><div class="tuner-readout"><span id="tuner-note" class="audio-note">—</span><span id="tuner-cents" class="audio-cents" aria-label="目前音分">—</span></div><div id="tuner-meter" class="audio-meter" aria-label="音準範圍負50至正50音分；正負10以內綠色，超過10至20黃色，超過20紅色" aria-hidden="true"><span class="audio-band" data-segment="low-red"></span><span class="audio-band" data-segment="low-yellow"></span><span class="audio-band" data-segment="center"></span><span class="audio-band" data-segment="high-yellow"></span><span class="audio-band" data-segment="high-red"></span><span id="tuner-needle" class="audio-needle"></span></div><div class="audio-scale" aria-hidden="true"><span style="left:30%">−20</span><span style="left:40%">−10</span><span style="left:60%">+10</span><span style="left:70%">+20</span></div></div>
+          <div class="audio-meter-wrap"><div class="tuner-readout"><span id="tuner-note" class="audio-note">—</span><span id="tuner-cents" class="audio-cents" aria-label="目前音分">—</span></div><div id="tuner-meter" class="audio-meter" aria-label="音準範圍負50至正50音分；正負10以內綠色，超過10至20黃色，超過20紅色" aria-hidden="true"><span class="audio-band" data-segment="low-red"></span><span class="audio-band" data-segment="low-yellow"></span><span class="audio-band" data-segment="center"></span><span class="audio-band" data-segment="high-yellow"></span><span class="audio-band" data-segment="high-red"></span><span id="tuner-needle" class="audio-needle"></span></div><div class="tuner-meter-caption"><div class="audio-scale" aria-hidden="true"><span style="left:30%">−20</span><span style="left:40%">−10</span><span style="left:60%">+10</span><span style="left:70%">+20</span></div><span id="tuner-state" role="status"></span></div></div>
         </section>
 
         <p id="metro-status" class="audio-status" role="status"></p>
@@ -1758,7 +1776,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261128-127-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261128-128-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -7431,9 +7449,11 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     swift.load().then(() => {
       if (revision !== detectorRevision || tunerDetector !== 'swift') return;
       swiftReady = true;
+      if(tunerRunning)tunerFeedback('listening');
     }, () => {
       if (revision !== detectorRevision || tunerDetector !== 'swift') return;
       swiftFailed = true;
+      if(tunerRunning)tunerFeedback('failed');
       tunerNotice('智慧偵測無法載入，可在練習設定將「調音器」切回傳統。');
     });
   }
@@ -7460,7 +7480,10 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     detectorRevision++;
     swiftReady=swiftFailed=false;
     smooth.reset();renderTuner();swiftClick(null,performance.now(),false);
-    if(tunerRunning&&tunerDetector==='swift')prepareSwift();
+    if(tunerRunning){
+      tunerFeedback(tunerDetector==='swift'?'loading':'listening');
+      if(tunerDetector==='swift')prepareSwift();
+    }
   });
   const smooth = new PitchWindow(); let lastSignal = 0;
   const tunerInputFloor = pitchInputFloor(navigator);
@@ -7499,6 +7522,12 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     pitchName: midi => pitchReading(442 * 2 ** ((midi - 69) / 12), 442).name
   });
   window.CelloScalePractice.controller = scalePractice;
+  function tunerFeedback(state) {
+    const panel=$('tuner-panel'),line=$('tuner-state');
+    if(!line || !panel?.dataset || panel.dataset.feedback===state)return;
+    panel.dataset.feedback=state;
+    line.textContent=({permission:'等待麥克風',loading:'準備偵測',listening:'等待音高',held:'保留上次讀數',failed:'偵測無法使用'})[state]||'';
+  }
   function tunerUI() {
     $('tuner-open').setAttribute('aria-pressed',String(pending||tunerRunning));
     $('tuner-open').setAttribute('aria-label',pending?'取消麥克風授權等待並收起':tunerRunning?'停止收音並收起':'啟用調音器並開始收音');
@@ -7507,18 +7536,21 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     tunerGeneration++; detectorRevision++; pending = tunerRunning = false;
     tunerRelease?.(); tunerRelease = null;
     smooth.reset(); renderTuner();
-    tunerNotice(message);tunerUI();
+    tunerFeedback(message?'failed':'idle');tunerNotice(message);tunerUI();
   }
   function startTuner() {
     if (pending || tunerRunning) { stopTuner(); return; }
-    const generation = ++tunerGeneration; pending = true; tunerUI();
+    const generation = ++tunerGeneration; pending = true; tunerUI();tunerFeedback('permission');
     let nextRead = null, readRevision = detectorRevision;
     function displayFrame(now,frequency) {
       if (!frequency) {
-        if (now - lastSignal > 500) smooth.reset(); renderTuner(null, true); return;
+        if (now - lastSignal > 500) smooth.reset(); renderTuner(null, true);
+        // A single weak frame shouldn't flash a new caption or live announcement.
+        if(!lastTunerReading||now-lastSignal>=280)tunerFeedback(lastTunerReading?'held':'listening');
+        return;
       }
       lastSignal = now;
-      renderTuner(pitchReading(smooth.push(frequency),a4Reference()));
+      renderTuner(pitchReading(smooth.push(frequency),a4Reference()));tunerFeedback('live');
     }
     tunerRelease = capture.subscribe({
       raw:()=>tunerDetector === 'swift',
@@ -7526,6 +7558,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
         if (generation !== tunerGeneration) return;
         smooth.reset(); lastSignal = performance.now();
         pending = false; tunerRunning = true; tunerUI();
+        tunerFeedback(tunerDetector==='swift'?'loading':'listening');
         if (tunerDetector === 'swift') prepareSwift();
       },
       frame(raw) {
@@ -7553,6 +7586,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
           if (stale()) return;
           swiftFailed = true;
           smooth.reset(); renderTuner();
+          tunerFeedback('failed');
           tunerNotice('智慧偵測無法分析，可在練習設定將「調音器」切回傳統。');
         });
       },
