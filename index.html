@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261128-135-experimental">
+  <meta name="site-version" content="20261128-136-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -713,6 +713,7 @@
     .student-note-dialog{width:min(460px,calc(100% - 32px));box-sizing:border-box;border:1px solid #ccd8c9;border-radius:18px;padding:24px;background:var(--paper);color:var(--ink)}
     .student-note-dialog::backdrop{background:#18251b66}.student-note-dialog h2{font-size:20px;margin-top:0}.student-note-dialog label{display:block;font-size:13px;margin-bottom:8px}
     .student-note-dialog textarea{width:100%;box-sizing:border-box;resize:vertical;border:1px solid #bdcbb6;border-radius:10px;padding:12px;font:inherit;line-height:1.7;background:#fafaf9;color:inherit}
+    .note-dismiss-status:empty{margin:0}
     .student-note-actions{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px}
     :root dialog .student-note-actions>.room-action.note-clear-content{margin-inline-end:auto;min-inline-size:44px;color:var(--ui-danger,#a8313a)}
     /* Appearance changes are display-only; printed notation uses the original light palette. */
@@ -1793,7 +1794,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261128-135-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261128-136-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -6026,11 +6027,19 @@ function openStudentNote(id,button,storageKey=studentNoteKey(id)){
  const heading=createDialogNode('h2',button.dataset.noteTitle?button.dataset.noteTitle+'練習筆記':'我的練習筆記');heading.id='student-note-heading';
  dialog.setAttribute('aria-labelledby',heading.id);
  const label=createDialogNode('label','這個調想記住的事');label.htmlFor='student-note-text';
- const input=createDialogNode('textarea');input.id='student-note-text';input.rows=6;input.value=readStudentNote(id,storageKey);input.placeholder='例如：換把前放鬆左手、下次從慢速開始…';
+ const input=createDialogNode('textarea');
+ const original=readStudentNote(id,storageKey);
+ input.id='student-note-text';input.rows=6;input.value=original;input.placeholder='例如：換把前放鬆左手、下次從慢速開始…';
  const help=createDialogNode('p','只保存在這個瀏覽器，不會同步給老師或其他學生。共用裝置上的其他人仍可看見。');help.className='caption';
  const close=()=>dialog.close();
  const actions=createNoteActions(input,{cancel:close,save:()=>commitNoteEdit(id,input,help,close,storageKey)});
- dialog.append(heading,label,input,help,actions.group);
+ const dismissStatus=createDialogNode('p');dismissStatus.className='note-dismiss-status caption';dismissStatus.setAttribute('role','status');
+ dialog.addEventListener('cancel',event=>{
+  if(input.value===original)return;
+  event.preventDefault();dismissStatus.textContent='請先儲存或取消編輯。';
+ });
+ input.addEventListener('input',()=>{if(input.value===original)dismissStatus.textContent='';});
+ dialog.append(heading,label,input,help,actions.group,dismissStatus);
  showNoteDialog(dialog,button,input);
 }
 function createCard(mode,index,doneIds){
