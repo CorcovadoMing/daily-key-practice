@@ -151,6 +151,23 @@ async function noteCheck(p, width, errors){
    assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth-innerWidth),0);
    assert.deepEqual(errors,[]);
 }
+async function historyDeleteFocusCheck(p){
+   const panel=p.locator('#history-settings');
+   if(!await panel.evaluate(e=>e.open))await panel.locator('summary').click();
+   const personal=p.locator('#personal-history-list');
+   const deletes=personal.locator('.history-delete');
+   const count=await deletes.count();
+   assert.ok(count>=1);
+   for(let remaining=count;remaining>0;remaining--){
+     await deletes.first().focus();
+     const accepted=p.waitForEvent('dialog').then(async dialog=>{assert.equal(dialog.type(),'confirm');await dialog.accept();});
+     await Promise.all([accepted,p.keyboard.press('Enter')]);
+     assert.equal(await deletes.count(),remaining-1);
+     if(remaining>1)assert.equal(await personal.locator('.history-replay').first().evaluate(e=>e===document.activeElement),true);
+   }
+   assert.equal(await personal.locator('.history-empty').evaluate(e=>e===document.activeElement&&e.tabIndex===-1),true);
+   assert.equal(await p.locator('#classroom-history-list .history-row').count(),1);
+}
 async function redrawCheck(page,mode){
   const saved=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('daily-key-practice:experimental:v1')));
   const draw=page.locator('#draw-button'),resume=page.locator('#launch-resume');
@@ -459,7 +476,7 @@ async function extras(page,width){
     await seed(page,{resume,notes:kind==='notes'});
     await page.goto(base+'/experimental/');
     if(dark&&kind==='notes')await page.locator('#appearance-toggle').click();
-    if(kind==='notes'){await noteCheck(page,width,errors);await extras(page,width);await redrawCheck(page,dark?'sequential':'random');}
+    if(kind==='notes'){await noteCheck(page,width,errors);await extras(page,width);await redrawCheck(page,dark?'sequential':'random');await historyDeleteFocusCheck(page);}
     else await modeCheck(page,width,dark,resume);
     assert.deepEqual(errors,[]);
     await page.close();

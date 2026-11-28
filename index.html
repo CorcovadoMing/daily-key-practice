@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261129-141-experimental">
+  <meta name="site-version" content="20261129-142-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -1802,7 +1802,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261129-141-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261129-142-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -2012,7 +2012,7 @@
     const a=reviewedStringAt(plan,evidence.from), b=reviewedStringAt(plan,evidence.to);
     if(a&&b&&Math.abs(strings.indexOf(a)-strings.indexOf(b))===1){
       return {observation:`${direction}：${pair}，${observation}`,
-        action:'如果這裡本來要拉得連貫，照指板先在 '+a+'、'+b+' 兩條空弦慢練換弦。前音還在響時，弓臂就慢慢往下一弦的高度移；到換音時再讓新弦發聲。接著照原弓法慢拉 '+pair+' 兩次。',
+        action:'如果這裡本來要拉得連貫，先用同一弓在 '+a+'、'+b+' 兩條空弦各拉一音。弓只轉到能乾淨碰到下一弦，不必抬得很高。接著照原弓法慢拉 '+pair+' 兩次；原本要換弓，就保留換弓。',
         check:'接回前後各一音，'+listen+'。如果本來就要斷開，不用把兩音接起來。',
         source:'bowCrossing'};
     }
@@ -3199,7 +3199,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
   // Printed/confirmed plans are assumptions, never physical measurements.
   const coachSources=Object.freeze({
     openTuning:{title:'Ailbhe McDonagh：空弦調音',url:'https://www.ailbhemcdonagh.com/teaching/cello-basics/22-tuning-your-cello',reason:'沿用同一音高基準，用均勻的弓速逐一確認空弦。'},
-    bowCrossing:{title:'Paul Katz：連貫換弦',url:'https://cellobello.org/cello-lessons/practicing/legato-string-crossings/',reason:'前音還在響時，就能平順地準備下一弦的弓高。'},
+    bowCrossing:{title:'Ailbhe McDonagh：兩音連弓換弦',url:'https://www.ailbhemcdonagh.com/teaching/cello-intermediate/24-improving-string-crossings',reason:'先不按指，用兩音連弓找出乾淨換弦所需的最小弓高變化。'},
     bowJoin:{title:'Aldo Parisot：如何練習平順換弓',url:'https://cellobello.org/cello-blog/interviews/conversation-with-aldo-parisot-may-2001/',reason:'想拉得連貫時，換弓不要刻意多出一個重音；有意的起音或斷開不必抹掉。'},
     sustain:{title:'Paul Katz：用弓塑造聲音',url:'https://cellobello.org/cello-lessons/interpretation/artistry-in-sound/',reason:'樂句和單音都可以有刻意的強弱方向；只有想讓相鄰兩音一樣強時，才用這項練習比較。'},
     slur:{title:'Ailbhe McDonagh：練習連弓',url:'https://www.ailbhemcdonagh.com/teaching/cello-intermediate/21-practising-bow-slurs',reason:'只把這兩音放在同一弓內，換指時弓仍平順往前。'},
@@ -6741,6 +6741,8 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
             if(remove.isConnected!==false)confirmed=window.confirm('確定刪除這筆練習紀錄嗎？此操作無法復原。');
           }finally{pendingHistoryDelete=false;}
           if(!confirmed)return;
+          const list=row.parentElement;
+          const focusedIndex=document.activeElement===remove&&list?[...list.children].indexOf(row):-1;
           const wasContinuing=state.continuedSession?.historyId===record.id;
           if(wasContinuing)state.continuedSession=null;
           if(kind==='classroom'){
@@ -6763,6 +6765,17 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
           }
           persist();renderHistory();
           if(!sharedRoom&&(wasContinuing||(kind==='personal'&&record.date===currentDate)))renderResults();
+          if(focusedIndex>=0){
+            // A deleted button cannot retain focus. Stay in the same group,
+            // and focus a safe (non-delete) action in the neighboring row.
+            const actions=list.querySelectorAll('.history-replay');
+            const next=actions[Math.min(focusedIndex,actions.length-1)];
+            if(next)next.focus();
+            else{
+              const empty=list.querySelector('.history-empty');
+              if(empty){empty.tabIndex=-1;empty.focus();}
+            }
+          }
           showToast('已刪除這筆練習紀錄');
         });
         const actions=document.createElement('div');actions.className='history-actions';

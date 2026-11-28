@@ -92,7 +92,9 @@ test('only two reviewed adjacent strings earn a conditional bow-crossing drill',
     assert.equal(out.source,'bowCrossing');
     assert.match(out.observation,/錄到一小段較粗的聲音/);
     assert.ok(out.action.includes(a+'、'+b+' 兩條空弦'));
-    assert.match(out.action,/如果這裡本來要拉得連貫.*弓臂就慢慢往下一弦的高度移.*照原弓法慢拉 D → E 兩次/);
+    assert.match(out.action,/如果這裡本來要拉得連貫.*先用同一弓.*弓只轉到能乾淨碰到下一弦.*照原弓法慢拉 D → E 兩次；原本要換弓，就保留換弓/);
+    assert.match(html,/bowCrossing:\{[^\n]*24-improving-string-crossings/);
+    assert.doesNotMatch(out.observation,/弓高|同一弓|手腕|弓臂/);
     assert.match(out.check,/前後各一音.*沙聲.*如果本來就要斷開/);
     assert.equal(loud.suggestion({...trace,processing:true},direction,'D','E',plan(a,b)),null);
   }
@@ -253,8 +255,8 @@ test('actual coach button renders current take loudness and resets from next tak
     slots:target.map((note,i)=>({...note,direction:i<=2?'up':'down',plan:{string:i===0||i===4?'G':'D',reviewed:true,finger:i===0||i===4?4:1}}))});
   await play(1,true);
   assert.match(view.element.textContent,/G 弦上的 D → D 弦上的 E.*接近安靜/);
-  assert.match(view.element.textContent,/G、D 兩條空弦.*前音還在響時/);
-  assert.match(view.element.textContent,/Paul Katz：連貫換弦/);
+  assert.match(view.element.textContent,/G、D 兩條空弦.*弓只轉到能乾淨碰到下一弦/);
+  assert.match(view.element.textContent,/Ailbhe McDonagh：兩音連弓換弦/);
   assert.doesNotMatch(view.element.textContent,/Aldo Parisot：如何練習平順換弓/);
   assert.equal(writes,0);assert.equal(fetches,0);
 });
