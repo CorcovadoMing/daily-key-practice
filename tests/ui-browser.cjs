@@ -349,6 +349,22 @@ async function extras(page,width){
  // The dock's settings must be mutually exclusive and not start a microphone.
  const tuner=q('#tuner-settings'),metronome=q('#metro-settings');
  const layout=()=>page.evaluate(()=>[...document.querySelectorAll('.audio-tool-pair')].map(e=>e.offsetTop));
+ async function pair(trigger){
+  const size=await trigger.evaluate(e=>{
+   const main=e.previousElementSibling, t=e.getBoundingClientRect(), p=main.getBoundingClientRect(),g=e.querySelector('svg'),d=getComputedStyle(e,'::before');
+   const same=()=>getComputedStyle(e).backgroundColor===getComputedStyle(main).backgroundColor&&getComputedStyle(e).color===getComputedStyle(main).color;
+   const existing=main.getAttribute('aria-pressed'),demo=main.dataset.demoState;
+   const idle=same();let active;
+   if(main.closest('.audio-tool-pair')){main.setAttribute('aria-pressed','true');active=same();main.setAttribute('aria-pressed',existing);}
+   else if(demo!==undefined){main.dataset.demoState='playing';active=same();main.dataset.demoState=demo;}
+   else active=same();
+   return {w:t.width,h:t.height,x:t.x,right:p.right,gh:g.getBoundingClientRect().height,d:d.width,view:g.getAttribute('viewBox'),path:g.querySelector('path').getAttribute('d'),active,idle};
+  });
+  assert.equal(size.w,width<=480?30:44,JSON.stringify(size));assert.ok(size.h>=44&&size.x>=size.right-.5,JSON.stringify(size));
+  assert.equal(size.gh,14);assert.equal(size.d,'1px');assert.equal(size.view,'0 0 16 16');assert.equal(size.path,'m3 6 5 5 5-5');
+  assert.equal(size.active,true,JSON.stringify(size));assert.equal(size.idle,true,JSON.stringify(size));
+ }
+ await pair(tuner);await pair(metronome);
  assert.equal(new Set(await layout()).size,1);
  async function open(trigger){
   await trigger.click();
@@ -356,6 +372,8 @@ async function extras(page,width){
   await panel.waitFor({state:'visible'});
   assert.equal(await trigger.getAttribute('aria-expanded'),'true');
   const t=await trigger.boundingBox(),p=await panel.boundingBox();
+  assert.ok(p.y+p.height<=t.y+3,JSON.stringify({t,p}));
+  assert.equal(await trigger.locator('.split-chevron-glyph').evaluate(e=>getComputedStyle(e).transform),'matrix(-1, 0, 0, -1, 0, 0)');
   const centered=Math.max(8,Math.min(t.x+t.width/2-p.width/2,width-p.width-8));
   assert.ok(Math.abs(p.x-centered)<3,JSON.stringify({trigger:await trigger.getAttribute('aria-controls'),p,centered}));
   return panel;
@@ -393,6 +411,7 @@ async function extras(page,width){
  for(const kind of ['scale','arpeggio']){
   const item=card.locator('.scale-practice[data-practice-kind="'+kind+'"]');
   const start=item.locator('.scale-start-chevron'),demo=item.locator('.scale-demo-chevron');
+  await pair(demo);await pair(start);
   const d=await open(demo);
   const a=await open(start);
   assert.equal(await d.isVisible(),false);

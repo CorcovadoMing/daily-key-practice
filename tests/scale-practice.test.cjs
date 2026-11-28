@@ -441,7 +441,8 @@ test('native practice-mode selection persists and syncs scale/arpeggio without s
   const [demo,start,,settings]=action.children, [,otherStart,,otherSettings]=otherAction.children;
   const [button]=start.children,[otherBtn]=otherStart.children;
   const [choice]=settings.children,[otherChoice]=otherSettings.children;
-  assert.equal(demo.className,'scale-demo-shell');
+  assert.deepEqual(demo.className.split(' '),['scale-demo-shell','split-control']);
+  assert.match(demo.children[1].className,/\bsplit-chevron\b/);
   assert.equal(demo.children[0].tag,'button');
   assert.equal(demo.children[0].dataset.demoState,'idle');
   const [single,loop]=choice.children.map(label=>label.children[0]);

@@ -26,7 +26,7 @@ test('key identity uses blue/purple tones while completion check separate and on
 test('audio dock hover is not mistaken for the semantic active signal',()=>{
  assert.doesNotMatch(html,/\.audio-tool-pair :is\(button,#metro-settings,#tuner-settings\):hover/);
  assert.doesNotMatch(html,/#metro-settings:hover|#tuner-settings:hover|:is\(#metro-settings,#tuner-settings\):hover/);
- assert.match(html,/\.audio-tool-pair :is\(#metronome-open,#tuner-open\)\[aria-pressed=true\]\{\s*background:var\(--ui-selected\)/);
+ assert.match(html,/\.audio-tool-pair :is\(#metronome-open,#tuner-open\)\[aria-pressed=true\],\s*\.audio-tools \.audio-tool-pair :is\(#metronome-open,#tuner-open\)\[aria-pressed=true\]\+\.split-chevron\{\s*background:var\(--ui-selected\)/);
  assert.match(html,/\:is\(\.session-launch,\.scale-practice,\.audio-tools,\.classroom-bar,dialog\) :is\(button,a,summary,input\):focus-visible/);
 });
 
