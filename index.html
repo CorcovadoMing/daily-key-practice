@@ -975,6 +975,8 @@
     #tuner-panel:not([data-feedback=live]) .tuner-meter-caption>.audio-scale{visibility:hidden}
     @container (max-width:100px){
       #tuner-panel .audio-scale span{transform:translateX(-50%) scaleX(.72)}
+      #tuner-panel .audio-scale span:first-child{margin-inline-start:-3px}
+      #tuner-panel .audio-scale span:last-child{margin-inline-start:3px}
     }
     @container (max-width:120px){
       #tuner-panel .tuner-readout :is(#tuner-note,#tuner-cents){font-size:.875rem}
