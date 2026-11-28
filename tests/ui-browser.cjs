@@ -490,4 +490,4 @@ async function extras(page,width){
     await page.close();
    }
  }finally{await browser?.close();await new Promise(res=>server.close(res));}
-})().then(()=>require('./dock-ux-browser.cjs')).then(()=>require('./dock-settings-keyboard-browser.cjs')).then(()=>require('./launch-text-reflow-browser.cjs')).catch(e=>{console.error(e);process.exitCode=1});
+})().then(()=>require('./dock-ux-browser.cjs')).then(()=>require('./dock-settings-keyboard-browser.cjs')).then(()=>require('./launch-text-reflow-browser.cjs')).then(()=>require('./history-heat-reflow-browser.cjs')).catch(e=>{console.error(e);process.exitCode=1});
