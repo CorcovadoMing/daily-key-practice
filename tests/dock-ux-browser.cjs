@@ -1,7 +1,7 @@
 const { chromium } = require(process.env.PLAYWRIGHT_PATH || 'playwright');
 const { strict: assert } = require('node:assert');
 const { createServer } = require('node:http'), { readFileSync } = require('node:fs'), { join } = require('node:path');
-(async () => {
+module.exports=(async () => {
  const srv=createServer((req,res)=>{
   const rel=new URL(req.url,'http://localhost').pathname.replace(/^\/experimental\//,'')||'index.html';
   try{const file=join(process.cwd(),rel);const mime=file.endsWith('.js')?'text/javascript':'text/html';res.setHeader('content-type',mime);res.end(readFileSync(file));}

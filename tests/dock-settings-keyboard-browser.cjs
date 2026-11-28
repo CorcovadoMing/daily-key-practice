@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { createServer } = require('node:http');
 const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
-(async()=>{
+module.exports=(async()=>{
   const server=createServer((req,res)=>{
     const file=join(process.cwd(),new URL(req.url,'http://localhost').pathname.replace(/^\/experimental\//,'')||'index.html');
     try{res.setHeader('content-type',file.endsWith('.js')?'text/javascript':'text/html');res.end(readFileSync(file));}
