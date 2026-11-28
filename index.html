@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261128-134-experimental">
+  <meta name="site-version" content="20261128-135-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -519,8 +519,8 @@
     .setup-stack .key-filter{grid-column:1;grid-row:2/8;margin:0;padding:12px;min-width:0}
     .setup-stack>.panel>:not(.key-filter):not(.panel-head){grid-column:2}
     .fifths-circle{
-      --fifths-inset-x:clamp(25px,8.75%,29px);--fifths-inset-y:33px;
-      position:relative;width:100%;max-width:340px;height:326px;margin:6px auto 0;min-width:0
+      --fifths-inset-x:clamp(25px,8.75%,29px);--fifths-inset-y:max(33px,2.0625rem);
+      position:relative;width:100%;max-width:340px;height:max(326px,20.375rem);margin:6px auto 0;min-width:0;container-type:inline-size
     }
     .fifths-circle::before{content:"";position:absolute;inset:var(--fifths-inset-y) var(--fifths-inset-x);border:1px solid var(--line);border-radius:50%;pointer-events:none}
     .fifths-pair{position:absolute;left:calc(var(--fifths-inset-x) + (100% - 2 * var(--fifths-inset-x)) * var(--fifths-x));
@@ -530,11 +530,12 @@
     .fifths-signature{position:absolute;left:calc(var(--fifths-inset-x) + (100% - 2 * var(--fifths-inset-x)) * var(--fifths-x));
       top:calc(var(--fifths-inset-y) + (100% - 2 * var(--fifths-inset-y)) * var(--fifths-y));
       transform:translate(-50%,-50%);font-size:.875rem;font-weight:700;line-height:1.15;
-      color:var(--ink);white-space:nowrap;pointer-events:none}
+      color:var(--ink);max-inline-size:20cqi;text-align:center;pointer-events:none}
+    .fifths-signature-pair{translate:0 min(0px,calc(32px - 2rem))}
     .fifths-pair .filter-key{width:100%;min-height:30px;padding:1px;display:flex;flex-direction:row;flex-wrap:wrap;align-content:center;align-items:center;justify-content:center;gap:0 1px;border-radius:8px;line-height:1.1}
     .fifths-pair .filter-key strong,.fifths-pair .filter-key small{white-space:nowrap}
     .fifths-pair .filter-key strong{font-size:.75rem}.fifths-pair .filter-key small{font-size:.5625rem}
-    @media(max-width:300px){.fifths-circle{height:414px}}
+    @media(max-width:300px){.fifths-circle{height:max(414px,25.875rem)}}
     .fifths-pair .filter-key[aria-pressed="false"]{background:#fafaf9;color:#697269;border-color:#9da99a;border-style:dashed;opacity:1}
     .fifths-pair .filter-key:focus-visible{outline:3px solid #3c78a4;outline-offset:2px}
     .scale-practice{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:0 0 12px;color:#425948;min-width:0}
@@ -1792,7 +1793,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261128-134-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261128-135-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -5660,6 +5661,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         }
         const short=n=>n===0?'0':(n>0?'♯':'♭')+Math.abs(n);
         const marker=document.createElement('span');marker.className='fifths-signature';
+        if(sig===6)marker.classList.add('fifths-signature-pair');
         marker.setAttribute('aria-hidden','true'); // Existing key labels announce each full signature.
         marker.style.setProperty('--fifths-x',.5+(x-.5)*.54);
         marker.style.setProperty('--fifths-y',.5+(y-.5)*(sig===6?.64:.54));
