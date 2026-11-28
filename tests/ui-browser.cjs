@@ -119,8 +119,13 @@ async function noteCheck(p, width, errors){
    const close=overview.getByRole('button',{name:'關閉',exact:true});
    assert.equal(await close.innerText(),'');
    assert.deepEqual(await close.evaluate(e=>[getComputedStyle(e,'::before').content,getComputedStyle(e,'::after').content]),['""','""']);
-   await overview.getByRole('button',{name:'編輯 C 大調 筆記',exact:true}).click();
+   const editC=overview.getByRole('button',{name:'編輯 C 大調 筆記',exact:true});
+   await editC.focus();await p.keyboard.press('Enter');
    await checkNoteClear(overview);
+   assert.equal(await editC.evaluate(e=>e===document.activeElement),true);
+   await p.keyboard.press('Enter');
+   assert.equal(await overview.locator('textarea').evaluate(e=>e===document.activeElement),true);
+   await overview.getByRole('button',{name:'取消',exact:true}).click();
    await overview.getByRole('button',{name:'新增筆記',exact:true}).click();
    const picker=overview.getByRole('combobox',{name:'調性'}),textarea=overview.getByRole('textbox',{name:'練習筆記內容'});
    assert.equal(await overview.locator('input[type=search]').count(),0);
@@ -140,6 +145,7 @@ async function noteCheck(p, width, errors){
    assert.equal(await p.evaluate(()=>localStorage.getItem('daily-key-practice:experimental:key-note:major-1')),null);
    await overview.getByRole('button',{name:'儲存筆記',exact:true}).click();
    assert.ok((await overview.innerText()).includes('新增 D♭ 練習'));
+   assert.match(await overview.evaluate(()=>document.activeElement.getAttribute('aria-label')), /^編輯 D♭ 大調 筆記$/);
    await overview.getByRole('button',{name:'關閉'}).click();await overview.waitFor({state:'detached'});
    assert.equal(await cards.nth(1).locator('.student-note-button').evaluate(e=>e.classList.contains('has-note')),true);
    assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth-innerWidth),0);

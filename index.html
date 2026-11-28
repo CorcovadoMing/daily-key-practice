@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261129-140-experimental">
+  <meta name="site-version" content="20261129-141-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -1802,7 +1802,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261129-140-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261129-141-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -5989,7 +5989,7 @@ function openPracticeNotes(opener){
  let dirty=()=>false;
  const closeNotice=createDialogNode('p');closeNotice.setAttribute('role','status');dialog.append(closeNotice);
  const all=['major','minor'].flatMap(mode=>Array.from({length:12},(_,i)=>({id:selectedId(mode,i),label:keyName(mode,i)+(mode==='major'?' 大調':' 小調')})));
- function render(active=null){
+ function render(active=null,returnTo=null){
   const rows=all.map(key=>({...key,value:readStudentNote(key.id)}));
   dirty=()=>false;closeNotice.textContent='';body.replaceChildren();
   function editor(key){
@@ -5997,21 +5997,21 @@ function openPracticeNotes(opener){
    input.id='practice-note-overview-editor';label.htmlFor=input.id;input.rows=5;input.value=key.value;
    dirty=()=>input.value!==key.value;
    const status=createDialogNode('p');status.setAttribute('role','status');
-   const closeEditor=()=>{render();close.focus();};
+   const closeEditor=()=>render(null,key.id);
    const actions=createNoteActions(input,{
     cancel:closeEditor,save:()=>commitNoteEdit(key.id,input,status,closeEditor)
    });
    group.append(label,input,actions.group,status);
    return {group,input};
   }
-  let focused;const editButtons=[];
+  let focused,addButton;const editButtons=new Map();
   for(const key of rows.filter(key=>key.value.trim())){
    const entry=createDialogNode('section');entry.className='practice-note-summary';
    entry.append(createDialogNode('h3',key.label));
    if(active===key.id){const edit=editor(key);entry.append(edit.group);focused=edit.input;}
    else{
     const edit=createActionButton('編輯');edit.disabled=Boolean(active);edit.setAttribute('aria-label','編輯 '+key.label+' 筆記');
-    editButtons.push(edit);edit.addEventListener('click',()=>render(key.id));entry.append(createDialogNode('p',key.value),edit);
+    editButtons.set(key.id,edit);edit.addEventListener('click',()=>render(key.id));entry.append(createDialogNode('p',key.value),edit);
    }
    body.append(entry);
   }
@@ -6019,6 +6019,7 @@ function openPracticeNotes(opener){
   const available=rows.filter(key=>!key.value.trim());
   if(!active&&available.length){
    const start=createActionButton('新增筆記');start.setAttribute('aria-expanded','false');start.setAttribute('aria-controls','practice-note-add-form');add.append(start);
+   addButton=start;
    start.addEventListener('click',()=>{
     start.setAttribute('aria-expanded','true');start.hidden=true;
     editButtons.forEach(edit=>edit.disabled=true);
@@ -6030,12 +6031,12 @@ function openPracticeNotes(opener){
     input.rows=5;input.value='';input.setAttribute('aria-label','練習筆記內容');input.placeholder='輸入練習筆記…';
     dirty=()=>Boolean(input.value);
     const status=createDialogNode('p');status.setAttribute('role','status');
-    const closeEditor=()=>{render();close.focus();};
+    const closeEditor=()=>render(null,'add');
     const actions=createNoteActions(input,{
      sync,cancel:closeEditor,
      save:()=>{
       const key=available.find(entry=>entry.id===select.value);
-      if(key&&input.value.trim())commitNoteEdit(key.id,input,status,closeEditor);
+      if(key&&input.value.trim())commitNoteEdit(key.id,input,status,()=>render(null,key.id));
      }
     });
     function sync(){
@@ -6048,7 +6049,11 @@ function openPracticeNotes(opener){
     form.append(label,select,input,actions.group,status);add.append(form);sync();select.focus();
    });start.dataset.noteAdd='true';
   }
-  body.append(add);focused?.focus();
+  body.append(add);
+  // The editor replaces its original button. Restore focus to the matching
+  // row (or Add if the record was removed), not to the top of a long list.
+  if(returnTo!==null)(editButtons.get(returnTo)||addButton||close).focus();
+  else focused?.focus();
  }
  const blockClose=event=>{if(!dirty())return false;event.preventDefault?.();closeNotice.textContent='請先儲存或取消編輯。';return true;};
  close.addEventListener('click',event=>{if(!blockClose(event))dialog.close();});
