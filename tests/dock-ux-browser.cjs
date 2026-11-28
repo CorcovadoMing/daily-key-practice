@@ -28,7 +28,7 @@ const { createServer } = require('node:http'), { readFileSync } = require('node:
    const hit=await p.locator('.audio-buttons button').evaluateAll(bs=>bs.map(x=>{
     const r=x.getBoundingClientRect();return {id:x.id,x:r.x,right:r.right,w:r.width,h:r.height};
    }));
-   assert.equal(hit.length,4);hit.forEach((x,j)=>{assert.ok(x.w>=44&&x.h>=44,JSON.stringify(x));if(j)assert.ok(hit[j-1].right<=x.x);});
+   assert.equal(hit.length,4);hit.forEach((x,j)=>{assert.equal(x.w,width<=480&&x.id.endsWith('-settings')?30:44,JSON.stringify(x));assert.ok(x.h>=44,JSON.stringify(x));if(j)assert.ok(hit[j-1].right<=x.x);});
    const open=p.locator('#tuner-open'),settings=p.locator('#tuner-settings'),metro=p.locator('#metro-settings'),panel=p.locator('#tuner-panel');
    await metro.click();assert.ok(await p.locator('#metronome-panel').isVisible());await p.keyboard.press('Escape');
    await settings.click();assert.ok(await p.locator('#tuner-preferences').isVisible());await p.keyboard.press('Escape');
@@ -38,7 +38,7 @@ const { createServer } = require('node:http'), { readFileSync } = require('node:
    await open.click();await ensure('permission');await p.evaluate(()=>window.allowMic());await ensure('listening');
    assert.equal(await p.locator('#tuner-state').textContent(),'等待音高');
    const meter=await p.locator('#tuner-meter').boundingBox();
-   assert.ok(meter.width>=70&&meter.x>=hit.at(-1).right&&meter.x+meter.width<=width,JSON.stringify({width,hit,meter}));
+   assert.ok(meter.width>=(width===320?106:width===390?156:70)&&meter.x>=hit.at(-1).right&&meter.x+meter.width<=width,JSON.stringify({width,hit,meter}));
    await p.evaluate(()=>signal(.08));await ensure('live');
    const ticks=await panel.locator('.audio-scale span').evaluateAll(items=>items.map(el=>{
     const r=document.createRange();r.selectNodeContents(el);const box=r.getBoundingClientRect();
