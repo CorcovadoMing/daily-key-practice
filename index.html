@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261129-139-experimental">
+  <meta name="site-version" content="20261129-140-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -1802,7 +1802,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261129-139-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261129-140-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -6977,9 +6977,15 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       if (diff[tau] < 0.15) { while (tau + 1 < max && diff[tau + 1] < diff[tau]) tau++; break; }
     }
     if (tau >= max) return null;
-    // A strong second harmonic can hide the fundamental. Only double the
-    // period when the alternating half-waves give a clearly better fit;
-    // a genuine note an octave up repeats just as well at its first period.
+    function refine(lag) {
+      const a = diff[lag - 1], b = diff[lag], c = diff[lag + 1];
+      const denom = 2 * (2 * b - a - c), shift = denom ? (c - a) / denom : 0;
+      return lag + Math.max(-1, Math.min(1, shift));
+    }
+    // A strong second harmonic can hide the fundamental. A coarse integer
+    // lag can also make 2T look better just because it lands closer to the
+    // sample grid. Confirm an improvement at fractional lags in the original
+    // samples, over equally long, centered intervals within this window.
     const doubled = tau * 2;
     if (rate / tau <= 225 && doubled < max) {
       let best = doubled;
@@ -6987,11 +6993,27 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
       for (let trial = Math.max(tau+1,doubled-margin); trial <= Math.min(max-1,doubled+margin); trial++) {
         if (diff[trial] < diff[best]) best = trial;
       }
-      if (diff[tau] - diff[best] > 0.008 && diff[best] < diff[tau]*0.55) tau = best;
+      if (diff[tau] - diff[best] > 0.008 && diff[best] < diff[tau]*0.55) {
+        const shortLag = refine(tau) * stride, longLag = refine(best) * stride;
+        const terms = input.length - Math.ceil(longLag) - 1;
+        function repeatError(lag) {
+          const offset = (input.length - terms - lag) / 2;
+          const l = Math.floor(offset), r = Math.floor(offset + lag);
+          const lf = offset - l, rf = offset + lag - r;
+          let error = 0, power = 0;
+          for (let i = 0; i < terms; i++) {
+            const a = input[l+i] + lf * (input[l+i+1] - input[l+i]) - mean;
+            const b = input[r+i] + rf * (input[r+i+1] - input[r+i]) - mean;
+            const d = a - b;
+            error += d*d; power += a*a + b*b;
+          }
+          return power ? error / power : 0;
+        }
+        const shortError = repeatError(shortLag), longError = repeatError(longLag);
+        if (shortError - longError > 0.004 && longError < shortError * 0.55) tau = best;
+      }
     }
-    const a = diff[tau - 1], b = diff[tau], c = diff[tau + 1];
-    const denom = 2 * (2 * b - a - c), shift = denom ? (c - a) / denom : 0;
-    const frequency = rate / (tau + Math.max(-1, Math.min(1, shift)));
+    const frequency = rate / refine(tau);
     return Number.isFinite(frequency) ? frequency : null;
   }
   function pitchBand(cents){const distance=Math.abs(cents);return distance<=10+1e-7?'green':distance<=20+1e-7?'yellow':'red';}
