@@ -843,3 +843,40 @@ test('opposite directions on one open string preserve both readings and suggest 
  a.equal(setup(cache).advise().replace('上次保留的建議 ',''),shown);
  a.equal(f.network,0);
 });
+
+test('reviewed F-major shift adds listening and the actual written lead-in through Start/Stop',async()=>{
+ const keys=vm.runInNewContext(html.slice(html.indexOf('    const MAJOR_KEYS ='),html.indexOf('    const MINOR_KEYS ='))+';MAJOR_KEYS');
+ const key=keys.find(k=>k[0]==='F'),cache={},opts={mode:'major',key};
+ const f=setup(cache,'',()=>false,p=>p,null,'major-F',opts),p=f.startPlan;
+ const render=values=>f.planSuggestion({...p,rounds:[{id:1,values},{id:2,values}],detector:'Traditional',reference:443});
+ let i=-1;
+ for(let j=2;j<p.slots.length-1;j++){
+   const vals=p.slots.map((_,k)=>k===j?-26:k===j-1?0:null);
+   if(render(vals).sources?.includes('shiftFrames')){i=j;break;}
+ }
+ a.ok(i>=2,'real reviewed default F folding must offer a two-frame drill');
+ const n=j=>p.slots[j].name;
+ const pair=n(i-1)+' → '+n(i), lead=n(i-2)+' → '+pair;
+ const phrase='先在心裡聽到 '+n(i);
+ const values=p.slots.map((_,j)=>j===i?-26:0);
+ const suggestion=render(values);
+ a.ok(suggestion.action.includes(phrase));
+ a.ok(suggestion.action.includes(lead));
+ a.doesNotMatch(suggestion.observation,/心裡|移動|造成/);
+ await f.press();f.ready();
+ for(let k=0;k<2;k++)for(let j=k;j<f.target.length;j++)f.play(f.target[j],values[j]);
+ await f.press();
+ a.ok(f.advise().includes(phrase));a.ok(f.advise().includes(lead));
+ a.ok(f.advise().includes('Paul Katz：換把前先在心裡聽到目標音'));
+ const restored=setup(cache,'',()=>false,p=>p,null,'major-F',opts);
+ a.ok(restored.advise().includes(phrase));a.ok(restored.advise().includes('Paul Katz：換把前先在心裡聽到目標音'));
+ const unknown={...p,slots:p.slots.map((s,j)=>j===i?{...s,plan:{...s.plan,reviewed:false},edge:null}:s)};
+ const weak=f.practiceAdviceReport({...unknown,rounds:[{id:1,values},{id:2,values}]});
+ a.doesNotMatch(weak.drills.join(' '),/手還沒移動時/);
+ const omitted=values.map((c,j)=>j===i-1?null:c);
+ a.doesNotMatch(f.practiceAdviceReport({...p,rounds:[{id:1,values:omitted},{id:2,values:omitted}]}).drills.join(' '),/手還沒移動時/);
+ const singleOnly=values.map((c,j)=>j===i?c:null);
+ a.doesNotMatch(f.practiceAdviceReport({...p,rounds:[{id:1,values:singleOnly},{id:2,values:singleOnly}]}).drills.join(' '),/手還沒移動時/);
+ a.doesNotMatch(f.planSuggestion({...p,restored:true,currentPlan:p,values:singleOnly}).action,/手還沒移動時/);
+ a.equal(f.network,0);
+});
