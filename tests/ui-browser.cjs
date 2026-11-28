@@ -128,7 +128,11 @@ async function noteCheck(p, width, errors){
    assert.equal(await textarea.isDisabled(),true);
    assert.equal(await picker.locator('option').count(),24);
    assert.equal(await picker.locator('option[value="major-0"]').count(),0);
-   await p.keyboard.press('ArrowDown');assert.equal(await picker.inputValue(),'major-1');
+   // Desktop macOS can open an OS-owned select menu; Playwright cannot
+   // drive its controls. Keep the Tab/focus assertion on all platforms.
+   if(process.platform==='darwin' && width>=500) await picker.selectOption('major-1');
+   else await p.keyboard.press('ArrowDown');
+   assert.equal(await picker.inputValue(),'major-1');
    await p.keyboard.press('Tab');assert.equal(await textarea.evaluate(e=>e===document.activeElement),true);
    await textarea.fill('新增 D♭ 練習');
    assert.equal(await picker.isDisabled(),true);

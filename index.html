@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f6f2">
-  <meta name="site-version" content="20261129-138-experimental">
+  <meta name="site-version" content="20261129-139-experimental">
   <meta name="description" content="大提琴每日 24 調練習：12 個大調與 12 個古典旋律小調，上行升六、七級，下行恢復自然小調，支援課堂同步。">
   <title>弓弦的每日音階練習｜大提琴 24 調音階練習</title>
   <script>
@@ -1802,7 +1802,7 @@
         </div>
     </details>
   </main>
-  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261129-138-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
+  <footer class="container"><small class="local-audio-note">聲音與音準分析只在本機處理，不會上傳。</small><a class="footer-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSf2u4NBtitR1g2aFGlrPtaUv4qovDPYnUWk9lPy1XW8KdGshg/viewform" referrerpolicy="no-referrer">匿名意見回饋（不需登入）</a><span class="site-version" aria-label="網站版本">20261129-139-experimental · <a href="../" aria-label="返回正式版 Stable" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Stable</a></span></footer>
   <nav id="floating-practice-nav" class="practice-float" aria-label="練習清單快速跳轉" hidden>
     <span class="practice-float-title">練習清單</span>
     <div class="practice-float-list" id="floating-practice-list"></div>
@@ -2623,15 +2623,45 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       return now-since < 160;
     };
   }
-  // Share input capture, with an optional shorter period estimate for practice.
+  // Ask iOS for media playback only while a user-started metronome is audible.
+  // Leave automatic routing in charge whenever the shared mic is in use.
+  // The OS owns speaker volume; never compensate by changing the click gain.
+  function clickAudioSession(device = {}) {
+    const ua = device.userAgent || '';
+    const ios = /iPhone|iPad|iPod/i.test(ua)
+      || (/Macintosh/i.test(ua) && device.platform === 'MacIntel' && device.maxTouchPoints > 1);
+    let active = false, input = false, owned = false;
+    function update() {
+      if (!ios) return;
+      try {
+        const audio = device.audioSession;
+        if (!audio) return;
+        if (active && !input) {
+          // Do not override a mode another feature already requested.
+          if (audio.type === 'auto') {
+            audio.type = 'playback';
+            owned = audio.type === 'playback';
+          }
+        } else if (owned) {
+          if (audio.type === 'playback') audio.type = 'auto';
+          owned = false;
+        }
+      } catch (_) {} // Optional API; keep the existing sound engine available.
+    }
+    return {
+      click(audible) { active = Boolean(audible); update(); },
+      input(acquiringOrLive) { input = Boolean(acquiringOrLive); update(); },
+    };
+  }
+  // Share input capture, with a shorter period estimate available for practice.
   // The tuner retains its longer window for a steadier display.
-  function micCapture(env, detect, floor, suppress = () => false, detectFast = null, suppressFast = suppress) {
+  function micCapture(env, detect, floor, suppress = () => false, detectFast = null, suppressFast = suppress, onInput = () => {}) {
     let session = null;
     const failures = error => error.name === 'NotAllowedError'
       ? '未取得麥克風權限，請在瀏覽器允許後重試。'
       : error.name === 'NotFoundError' ? '找不到麥克風，請檢查裝置。'
       : '無法收音：' + error.message;
-    function dropGraph(s) {
+    function dropGraph(s, keepPendingInput = false) {
       env.clearInterval(s.timer);
       env.clearTimeout(s.resumeTimeout);
       if (s.source) { s.source.disconnect(); s.source = null; }
@@ -2642,6 +2672,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         s.stream = null;
       }
       if (s.context) { s.context.close().catch(() => {}); s.context = null; }
+      if (!keepPendingInput) onInput(false);
     }
     function fail(s, message) {
       if (session !== s) return;
@@ -2788,7 +2819,10 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       const s = session ||= {phase:'permission', listeners:new Set()};
       const listener = {...callbacks};
       s.listeners.add(listener);
-      if (fresh) void acquire(s); // ensureContext runs synchronously inside the tap.
+      if (fresh) {
+        onInput(true);
+        void acquire(s); // ensureContext runs synchronously inside the tap.
+      }
       else if (s.phase === 'ready') Promise.resolve().then(() => ready(s,listener));
       else if (!s.context) {
         // Last listener cancelled during the same browser permission prompt.
@@ -2801,7 +2835,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
         // While a browser prompt is outstanding keep only its pending identity;
         // if it grants with no listeners, stop the returned tracks immediately.
         if (s.phase !== 'permission') session = null;
-        dropGraph(s);
+        dropGraph(s,s.phase === 'permission');
       };
     }
     return {subscribe};
@@ -5371,7 +5405,7 @@ function packFullTrace(trace, {countPrompt, budget=3000, encoder, unbounded=fals
       card.syncPracticeCharts?.();
     }
   });
-  return {align, trackNotes, micCapture, metronomeClickGate, centeredSettingsLeft, anchoredActionPopover, celloDemoPlayer, manager, card, chartPoint, centsText, scoreValues, monitorPitch, liveSlot, loopBoundary, resolveMidpoint, retainPracticeEvents, addHistory, createPitchTrend, trendSegments, pitchTrendSummary, timeCharts, sharedChartTime, chartSlotAt, planSuggestion, practiceAdviceReport, measuredTrendIssues, measuredTrendMetrics};
+  return {align, trackNotes, micCapture, clickAudioSession, metronomeClickGate, centeredSettingsLeft, anchoredActionPopover, celloDemoPlayer, manager, card, chartPoint, centsText, scoreValues, monitorPitch, liveSlot, loopBoundary, resolveMidpoint, retainPracticeEvents, addHistory, createPitchTrend, trendSegments, pitchTrendSummary, timeCharts, sharedChartTime, chartSlotAt, planSuggestion, practiceAdviceReport, measuredTrendIssues, measuredTrendMetrics};
 });
 // SCALE_PRACTICE_END
   </script>
@@ -7305,6 +7339,8 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     return ios && safari ? 0.85 : 0.65;
   }
   const metroPeakLevel = metronomePeakLevel(window.navigator);
+  const clickSession = window.CelloScalePractice.clickAudioSession(window.navigator);
+  const syncClickSession = () => clickSession.click((metroRunning || metroPending) && Number($('metro-volume').value)>0);
   let metroContext, metroTimer, metroRunning = false, metroPending = false, nextBeat = 0, beat = 0, metroGeneration = 0;
   let metroWorklet = null, workletModule = null;
   // AudioWorklet is primary; the original engine is only a session-local recovery path.
@@ -7376,6 +7412,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     if (metroWorklet) { metroWorklet.port.postMessage({ type: 'stop' }); metroWorklet.disconnect(); metroWorklet.port.close(); metroWorklet = null; }
     oscillators.forEach(o => { try { o.stop(); } catch (_) {} }); oscillators.clear();
     visuals.forEach(clearTimeout); visuals.clear(); metroBeatAnimation?.cancel(); metroBeatAnimation=null; markMetroNote(0);
+    syncClickSession();
     $('metro-status').textContent = message; metroUI();
   }
   function schedule() {
@@ -7402,7 +7439,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   }
   async function startMetro() {
     if (metroRunning||metroPending) { stopMetro(); return; }
-    const generation = ++metroGeneration; metroPending=true; metroUI();
+    const generation = ++metroGeneration; metroPending=true; metroUI(); syncClickSession();
     try {
       if (!Context) throw new Error('此瀏覽器不支援 Web Audio');
       if (!metroContext) {
@@ -7461,7 +7498,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     configureWorklet();
   };
   renderMetroAccents();
-  $('metro-volume').addEventListener('input', () => configureWorklet());
+  $('metro-volume').addEventListener('input', () => { syncClickSession(); configureWorklet(); });
 
   let tunerRelease, tunerRunning = false, pending = false, tunerGeneration = 0;
   const detectorKeys = {
@@ -7539,7 +7576,7 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
   const clickIsAudible = () => metroRunning && Number($('metro-volume').value) > 0;
   const capture = window.CelloScalePractice.micCapture(window,detectPitch,tunerInputFloor,
     (frequency,now) => ignoreClick(frequency,now,clickIsAudible()), detectPitch,
-    (frequency,now) => ignorePracticeClick(frequency,now,clickIsAudible()));
+    (frequency,now) => ignorePracticeClick(frequency,now,clickIsAudible()), clickSession.input);
   const demo = window.CelloScalePractice.celloDemoPlayer(window,{
     reference:a4Reference,isCapturing:()=>scalePractice.isCapturing(),
     asset:'./fingerboard-editor.js?v=20261126-cello-audio-2'
@@ -7659,8 +7696,8 @@ function saveInlineFingering(id,direction,map,original='',resetAll=false){
     showPanel('tuner',true);startTuner();
   };
   $('tuner-panel').addEventListener('keydown',e=>{if(e.key==='Escape'){closeTool('tuner');$('tuner-open').focus();}});
-  document.addEventListener('visibilitychange',()=>{if(document.hidden){demo.stop();scalePractice?.stop('頁面已切換，收音已停止。');closeTool('tuner');closeTool('metronome');}});
-  window.addEventListener('pagehide', () => { demo.stop(); scalePractice?.stop(null,true); stopTuner(); stopMetro(); });
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){closeTool('metronome');demo.stop();scalePractice?.stop('頁面已切換，收音已停止。');closeTool('tuner');}});
+  window.addEventListener('pagehide', () => { stopMetro(); demo.stop(); scalePractice?.stop(null,true); stopTuner(); });
 })();
 // AUDIO_TOOLS_END
 

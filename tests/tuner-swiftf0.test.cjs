@@ -144,7 +144,7 @@ function sharedTunerFixture(initial={}) {
   localStorage:{getItem(k){return store.get(k.split(':experimental:')[1])??null;},setItem(k,v){assert.match(k,/experimental:detector:(practice|tuner):v2$/);store.set(k.split(':experimental:')[1],v);}},
   CelloScalePractice:{...practice,micCapture:()=>capture}
  };
- const env={...lib,window,navigator:{},performance:window.performance,$,
+ const env={...lib,window,navigator:{},performance:window.performance,$,clickSession:practice.clickAudioSession({}),
   createSwiftF0:()=>detector,renderTuner:(pitch,hold)=>renders.push({pitch,hold}),metroRunning:false};
  vm.runInNewContext(code.slice(code.indexOf('  let tunerRelease'),code.indexOf('  function closeTool(name)'))+
    '\nglobalThis.control={startTuner,stopTuner}',env);
