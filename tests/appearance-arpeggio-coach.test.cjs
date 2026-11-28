@@ -47,7 +47,7 @@ test('appearance keeps light default, persists manual choice, follows system onl
 });
 
 test('global action is compact with the lower height; filled score primary applies only to idle scale/arpeggio',()=>{
-  assert.match(html,/\.launch-controls\{\s*grid-template-columns:clamp\(6\.5rem,27vw,8\.25rem\) minmax\(0,1fr\);/);
+  assert.match(html,/\.launch-controls\{\s*display:flex;flex-wrap:wrap;/);
   assert.match(html,/\.launch-controls #draw-button\{\s*width:100%;max-inline-size:8\.25rem;min-block-size:3\.75rem/);
   assert.match(html,/\.scale-practice\[data-phase=idle\]>\.scale-practice-action \.scale-start-shell>\.scale-practice-button\{\s*background:var\(--score-start-fill\)/);
   assert.match(html,/\[data-appearance=dark\] \.scale-practice\{--score-start-fill:#363d46/);
